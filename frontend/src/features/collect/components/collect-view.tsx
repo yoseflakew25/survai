@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface CollectViewProps {
   surveyId: string;
@@ -203,10 +204,12 @@ export function CollectView({
               <Icons.page className='mr-2 h-4 w-4' />
               Preview Survey
             </Button>
-            <Button variant='outline' className='w-full justify-start' disabled={!isPublished}>
-              <Icons.analytics className='mr-2 h-4 w-4' />
-              View Analytics
-            </Button>
+            <Link href={`/dashboard/surveys/${surveyId}/analytics`} className='w-full'>
+              <Button variant='outline' className='w-full justify-start' disabled={!isPublished}>
+                <Icons.analytics className='mr-2 h-4 w-4' />
+                View Analytics
+              </Button>
+            </Link>
             {isPublished && (
               <Button
                 variant='outline'

@@ -66,6 +66,16 @@ function isTokenExpired(token: string): boolean {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api/v1';
 
+// Mock user for development when no backend is available
+const MOCK_USER: AuthUser = {
+  id: 'usr_dev_001',
+  email: 'demo@survai.com',
+  fullName: 'Demo User',
+  role: 'admin',
+  organizationId: 'org_dev_001',
+  organizationName: 'DICDO'
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -87,6 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           organizationName: (payload.organization_name as string) ?? null
         });
       }
+    } else if (!stored) {
+      // Development fallback: use mock user when no backend
+      setUser(MOCK_USER);
     }
     setIsLoading(false);
   }, []);

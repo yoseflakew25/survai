@@ -34,9 +34,9 @@ const chartConfig = {
 
 export function BarGraph() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <Card className='border'>
+      <CardHeader className='border-b'>
+        <CardTitle className='text-primary font-semibold'>
           Bar Chart - Multiple
           <Badge variant='outline'>
             <Icons.trendingDown />

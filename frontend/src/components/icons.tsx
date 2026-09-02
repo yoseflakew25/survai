@@ -1,5 +1,7 @@
 import {
+  IconActivity,
   IconAdjustmentsHorizontal,
+  IconCamera,
   IconAlertCircle,
   IconAlertTriangle,
   IconArrowRight,
@@ -51,6 +53,7 @@ import {
   IconLayoutSidebar,
   IconLicense,
   IconLoader2,
+  IconMail,
   IconLock,
   IconLogin,
   IconLogout,
@@ -148,6 +151,7 @@ export const Icons = {
 
   // Communication
   chat: IconMessage,
+  mail: IconMail,
   notification: IconBell,
   phone: IconPhone,
   video: IconVideo,
@@ -155,6 +159,7 @@ export const Icons = {
   paperclip: IconPaperclip,
 
   // Files
+  camera: IconCamera,
   page: IconFile,
   post: IconFileText,
   fileTypePdf: IconFileTypePdf,
@@ -232,5 +237,6 @@ export const Icons = {
   analytics: IconReportAnalytics,
   report: IconFileText,
   collect: IconSend,
-  globe: IconExternalLink
+  globe: IconExternalLink,
+  activity: IconActivity
 };

@@ -1,71 +1,79 @@
+'use client';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
+import Link from 'next/link';
 
 const surveyData = [
   {
+    id: 'plan_001',
     title: 'Community Health Assessment',
     organization: 'DICDO',
-    status: 'published' as const,
-    responses: 142,
+    status: 'approved' as const,
+    sections: 5,
     updatedAt: '2 hours ago'
   },
   {
+    id: 'plan_002',
     title: 'Education Program Evaluation',
     organization: 'DICDO',
     status: 'draft' as const,
-    responses: 0,
+    sections: 4,
     updatedAt: '5 hours ago'
   },
   {
+    id: 'plan_003',
     title: 'Water & Sanitation Baseline',
     organization: 'DICDO',
-    status: 'closed' as const,
-    responses: 89,
+    status: 'draft' as const,
+    sections: 6,
     updatedAt: '1 day ago'
   },
   {
+    id: 'plan_004',
     title: 'Livelihoods Impact Survey',
     organization: 'DICDO',
-    status: 'published' as const,
-    responses: 67,
+    status: 'approved' as const,
+    sections: 5,
     updatedAt: '2 days ago'
   },
   {
+    id: 'plan_005',
     title: 'Food Security Assessment',
     organization: 'DICDO',
     status: 'draft' as const,
-    responses: 0,
+    sections: 4,
     updatedAt: '3 days ago'
   }
 ];
 
 const statusVariant = {
-  published: 'default' as const,
-  draft: 'secondary' as const,
-  closed: 'outline' as const,
-  archived: 'outline' as const
+  approved: 'default' as const,
+  draft: 'secondary' as const
 };
 
 const statusLabel = {
-  published: 'Published',
-  draft: 'Draft',
-  closed: 'Closed',
-  archived: 'Archived'
+  approved: 'Approved',
+  draft: 'Draft'
 };
 
 export function RecentSurveys() {
   return (
-    <Card className='h-full'>
-      <CardHeader>
-        <CardTitle>Recent Surveys</CardTitle>
-        <CardDescription>5 surveys updated this week</CardDescription>
+    <Card className='h-full border'>
+      <CardHeader className='border-b'>
+        <CardTitle className='text-primary font-semibold text-lg'>Recent Plans</CardTitle>
+        <CardDescription>5 plans updated this week</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className='space-y-6'>
-          {surveyData.map((survey, index) => (
-            <div key={index} className='flex items-center'>
+      <CardContent className='flex flex-col'>
+        <div className='flex-1 space-y-1'>
+          {surveyData.map((survey) => (
+            <Link
+              key={survey.id}
+              href={`/dashboard/plans/${survey.id}`}
+              className='flex items-center rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/50'
+            >
               <Avatar className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10'>
                 <AvatarFallback className='text-primary text-xs font-medium'>
                   {survey.title
@@ -82,7 +90,7 @@ export function RecentSurveys() {
                 </p>
                 <div className='flex items-center gap-2'>
                   <p className='text-muted-foreground text-xs'>
-                    {survey.responses} responses
+                    {survey.sections} sections
                   </p>
                   <span className='text-muted-foreground text-xs'>·</span>
                   <p className='text-muted-foreground text-xs'>
@@ -96,8 +104,14 @@ export function RecentSurveys() {
               >
                 {statusLabel[survey.status]}
               </Badge>
-            </div>
+            </Link>
           ))}
+        </div>
+        <div className='mt-4 border-t pt-4'>
+          <Link href='/dashboard/plans' className='inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90'>
+            View All Plans
+            <Icons.arrowRight className='ml-2 size-4' />
+          </Link>
         </div>
       </CardContent>
     </Card>

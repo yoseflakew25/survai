@@ -7,7 +7,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Plan Editor | Survey Copilot'
+  title: 'Review Survey Plan | SurvAI'
 };
 
 export default async function PlanDetailPage({
@@ -23,8 +23,8 @@ export default async function PlanDetailPage({
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <PageContainer
-        pageTitle='Plan Editor'
-        pageDescription='Define your research goals, objectives, and survey structure'
+        pageTitle='Review Survey Plan'
+        pageDescription='Review and refine your AI-generated plan before building the survey'
       >
         <Suspense fallback={<PlanDetailSkeleton />}>
           <PlanDetailView planId={planId} />

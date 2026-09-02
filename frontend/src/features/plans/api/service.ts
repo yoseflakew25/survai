@@ -191,7 +191,27 @@ export async function getPlans(): Promise<PlanListResponse> {
 
 export async function getPlanById(id: string): Promise<Plan | null> {
   await delay(150);
-  return MOCK_PLANS.find((p) => p.id === id) ?? null;
+  const existing = MOCK_PLANS.find((p) => p.id === id);
+  if (existing) return existing;
+
+  // For dynamically created plan IDs, create a new mock plan on the fly
+  const newPlan: Plan = {
+    id,
+    createdBy: 'user_demo_001',
+    organizationId: 'org_001',
+    researchGoal: 'New survey plan — edit this research goal to get started.',
+    objectives: [],
+    researchQuestions: [],
+    targetRespondents: [],
+    proposedSections: [],
+    estimatedLengthMinutes: null,
+    status: 'draft',
+    aiGenerationMeta: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  MOCK_PLANS.unshift(newPlan);
+  return newPlan;
 }
 
 export async function createPlan(data: PlanCreatePayload): Promise<Plan> {
@@ -212,6 +232,111 @@ export async function createPlan(data: PlanCreatePayload): Promise<Plan> {
     updatedAt: new Date().toISOString()
   };
   MOCK_PLANS.unshift(newPlan);
+  return newPlan;
+}
+
+/**
+ * Simulate AI generation — creates a plan and then populates it with AI-generated content.
+ * Returns a progress callback so the UI can show step-by-step generation.
+ */
+export async function createPlanWithAI(
+  data: PlanCreatePayload,
+  onProgress?: (step: string, progress: number) => void
+): Promise<Plan> {
+  // Step 1: Create the plan shell
+  onProgress?.('Creating plan...', 10);
+  await delay(400);
+  const newPlan: Plan = {
+    id: `plan_${Date.now()}`,
+    createdBy: 'user_demo_001',
+    organizationId: 'org_001',
+    researchGoal: data.researchGoal,
+    objectives: [],
+    researchQuestions: [],
+    targetRespondents: [],
+    proposedSections: [],
+    estimatedLengthMinutes: null,
+    status: 'draft',
+    aiGenerationMeta: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  MOCK_PLANS.unshift(newPlan);
+
+  // Step 2: Analyze research goal
+  onProgress?.('Analyzing research goal...', 25);
+  await delay(800);
+
+  // Step 3: Generating objectives
+  onProgress?.('Generating objectives...', 40);
+  await delay(700);
+  newPlan.objectives = [
+    'Understand the primary concerns and needs of the target population',
+    'Evaluate current service delivery and utilization patterns',
+    'Identify barriers and gaps in program implementation',
+    'Assess awareness and adoption of key practices'
+  ];
+
+  // Step 4: Generating research questions
+  onProgress?.('Generating research questions...', 55);
+  await delay(600);
+  newPlan.researchQuestions = [
+    'What are the most frequently reported needs in the target community?',
+    'How do community members currently access available services?',
+    'What factors limit participation in existing programs?',
+    'What is the awareness level of available resources and services?'
+  ];
+
+  // Step 5: Generating target respondents
+  onProgress?.('Identifying target respondents...', 70);
+  await delay(500);
+  newPlan.targetRespondents = [
+    'Community members aged 18-65 in target areas',
+    'Local leaders and organizational representatives',
+    'Service providers and frontline workers'
+  ];
+
+  // Step 6: Generating sections
+  onProgress?.('Designing survey sections...', 85);
+  await delay(600);
+  newPlan.proposedSections = [
+    {
+      title: 'Respondent Profile',
+      rationale: 'Establish demographic and socioeconomic baseline for segmentation'
+    },
+    {
+      title: 'Current Situation Assessment',
+      rationale: 'Capture the present state of the issue being surveyed'
+    },
+    {
+      title: 'Service Access & Utilization',
+      rationale: 'Measure how respondents interact with available services'
+    },
+    {
+      title: 'Barriers & Challenges',
+      rationale: 'Identify structural, financial, and informational barriers'
+    },
+    {
+      title: 'Recommendations & Priorities',
+      rationale: 'Capture respondent priorities and suggested improvements'
+    }
+  ];
+
+  // Step 7: Finalizing
+  onProgress?.('Finalizing plan...', 95);
+  await delay(400);
+  newPlan.estimatedLengthMinutes = 22;
+  newPlan.aiGenerationMeta = {
+    model: 'gpt-4o',
+    promptVersion: 'planner_v1',
+    requestId: `req_${Date.now()}`,
+    latencyMs: 4000
+  };
+  newPlan.updatedAt = new Date().toISOString();
+
+  onProgress?.('Plan generated!', 100);
+  await delay(200);
+
   return newPlan;
 }
 

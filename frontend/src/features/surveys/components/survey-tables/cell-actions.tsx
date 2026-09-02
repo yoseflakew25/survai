@@ -35,12 +35,6 @@ export function CellActions({ data }: CellActionsProps) {
       <DropdownMenuContent align='end' className='w-48'>
         <DropdownMenuGroup>
           <DropdownMenuItem
-            onClick={() => router.push(`/dashboard/surveys/${data.id}/build`)}
-          >
-            <Icons.forms className='mr-2 h-4 w-4' />
-            Build
-          </DropdownMenuItem>
-          <DropdownMenuItem
             onClick={() => router.push(`/dashboard/surveys/${data.id}/review`)}
           >
             <Icons.review className='mr-2 h-4 w-4' />

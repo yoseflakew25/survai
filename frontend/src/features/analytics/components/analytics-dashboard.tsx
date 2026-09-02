@@ -11,7 +11,10 @@ import { DistributionChart } from './distribution-chart';
 import { CrossTabTable } from './cross-tab-table';
 import { SavedAnalyses } from './saved-analyses';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 interface AnalyticsDashboardProps {
   surveyId: string;
@@ -28,6 +31,22 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
   return (
     <div className='space-y-6'>
+      {/* Generate Report */}
+      <div className='flex items-center justify-between'>
+        <div>
+          <h2 className='text-lg font-semibold'>Analytics Dashboard</h2>
+          <p className='text-muted-foreground text-sm'>Explore response data and generate insights</p>
+        </div>
+        <Link href={`/dashboard/surveys/${surveyId}/reports`}>
+          <Button>
+            <Icons.sparkles className='mr-2 h-4 w-4' />
+            Generate Report
+          </Button>
+        </Link>
+      </div>
+
+      <Separator />
+
       {/* Summary stats */}
       <AnalyticsSummaryStats summary={summary} />
 

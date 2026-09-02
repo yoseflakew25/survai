@@ -48,9 +48,9 @@ const chartConfig = {
 
 export function PieGraph() {
   return (
-    <Card className='flex h-full flex-col'>
-      <CardHeader className='items-center pb-0'>
-        <CardTitle>
+    <Card className='border flex h-full flex-col'>
+      <CardHeader className='items-center border-b pb-0'>
+        <CardTitle className='text-primary font-semibold'>
           Pie Chart
           <Badge variant='outline'>
             <Icons.trendingUp />

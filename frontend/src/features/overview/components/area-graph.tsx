@@ -41,14 +41,10 @@ const chartConfig = {
 
 export function AreaGraph() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          Dotted Area Chart
-          <Badge variant='outline'>
-            <Icons.trendingUp />
-            -5.2%
-          </Badge>
+    <Card className='border'>
+      <CardHeader className='border-b'>
+        <CardTitle className='text-primary font-semibold text-lg'>
+          Dotted Area Chart          
         </CardTitle>
         <CardDescription>Showing total visitors for the last 6 months</CardDescription>
       </CardHeader>

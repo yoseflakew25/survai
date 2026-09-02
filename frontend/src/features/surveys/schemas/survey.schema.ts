@@ -12,9 +12,8 @@ export const newSurveySchema = z.object({
     .or(z.literal('')),
   researchGoal: z
     .string()
-    .max(2000, 'Research goal must be under 2,000 characters')
-    .optional()
-    .or(z.literal('')),
+    .min(10, 'Research goal must be at least 10 characters for better AI results')
+    .max(2000, 'Research goal must be under 2,000 characters'),
   startMethod: z.literal('ai').optional()
 });
 

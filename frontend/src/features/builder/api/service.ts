@@ -205,7 +205,130 @@ export async function getSurveys(): Promise<SurveyListResponse> {
 
 export async function getSurveyById(id: string): Promise<Survey | null> {
   await delay(150);
-  return MOCK_SURVEYS.find((s) => s.id === id) ?? null;
+  const existing = MOCK_SURVEYS.find((s) => s.id === id);
+  if (existing) return existing;
+
+  // For dynamically created survey IDs, create a new mock survey on the fly
+  const newSurvey: Survey = {
+    id,
+    planId: null,
+    organizationId: 'org_001',
+    createdBy: 'user_demo_001',
+    title: 'New Survey',
+    description: 'A new survey created from the plan',
+    status: 'draft',
+    anonymousCollection: true,
+    currentVersionId: null,
+    sections: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  MOCK_SURVEYS.push(newSurvey);
+  return newSurvey;
+}
+
+export async function createSurveyFromPlan(
+  planId: string,
+  title: string
+): Promise<Survey> {
+  await delay(400);
+  const id = `sur_${Date.now()}`;
+  
+  // Generate AI sections and questions
+  const aiSections = generateAIFromPlan();
+  
+  // Create sections with questions
+  const sections: Section[] = aiSections.map((aiSection, sIdx) => {
+    const sectionId = nextId('sec');
+    return {
+      id: sectionId,
+      surveyId: id,
+      title: aiSection.title,
+      description: null,
+      orderIndex: sIdx,
+      questions: aiSection.questions.map((aiQuestion, qIdx) => ({
+        id: nextId('q'),
+        sectionId,
+        surveyId: id,
+        type: aiQuestion.type,
+        promptText: aiQuestion.promptText,
+        helpText: aiQuestion.helpText,
+        isRequired: aiQuestion.isRequired,
+        orderIndex: qIdx,
+        options: aiQuestion.options?.map((opt, oIdx) => ({
+          id: nextId('opt'),
+          label: opt,
+          value: opt.toLowerCase().replace(/\s+/g, '_')
+        })) ?? null,
+        validationRules: aiQuestion.type === 'rating_scale' ? { min: 1, max: 5 } : null,
+        conditionalLogic: null,
+        source: 'ai_generated' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  });
+  
+  const newSurvey: Survey = {
+    id,
+    planId,
+    organizationId: 'org_001',
+    createdBy: 'user_demo_001',
+    title,
+    description: '',
+    status: 'draft',
+    anonymousCollection: true,
+    currentVersionId: null,
+    sections,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  MOCK_SURVEYS.push(newSurvey);
+  return newSurvey;
+}
+
+// Helper to generate AI content from plan
+function generateAIFromPlan() {
+  return [
+    {
+      title: 'Household Demographics',
+      questions: [
+        { promptText: 'What is your age group?', type: 'single_choice' as QuestionType, options: ['18-24', '25-34', '35-44', '45-54', '55+'], isRequired: true, helpText: null },
+        { promptText: 'What is your gender?', type: 'single_choice' as QuestionType, options: ['Male', 'Female', 'Other', 'Prefer not to say'], isRequired: true, helpText: null },
+        { promptText: 'What is the highest level of education completed?', type: 'single_choice' as QuestionType, options: ['No formal education', 'Primary school', 'Secondary school', 'Tertiary education', 'Vocational training'], isRequired: true, helpText: null },
+        { promptText: 'What is your current employment status?', type: 'single_choice' as QuestionType, options: ['Employed full-time', 'Employed part-time', 'Self-employed', 'Unemployed', 'Retired', 'Student'], isRequired: true, helpText: null }
+      ]
+    },
+    {
+      title: 'Health Status & Conditions',
+      questions: [
+        { promptText: 'Which of the following health conditions have you been diagnosed with?', type: 'multiple_choice' as QuestionType, options: ['Hypertension', 'Diabetes', 'Malaria', 'HIV/AIDS', 'Respiratory illness', 'None of the above'], isRequired: true, helpText: 'Select all that apply' },
+        { promptText: 'How would you rate your overall health?', type: 'rating_scale' as QuestionType, options: null, isRequired: true, helpText: '1 = Poor, 5 = Excellent' },
+        { promptText: 'In the past 3 months, have you experienced any of the following symptoms?', type: 'multiple_choice' as QuestionType, options: ['Fever', 'Headache', 'Diarrhea', 'Cough', 'Fatigue', 'None of the above'], isRequired: true, helpText: null },
+        { promptText: 'Do you have any disabilities that affect your daily activities?', type: 'single_choice' as QuestionType, options: ['Yes', 'No', 'Prefer not to say'], isRequired: true, helpText: null }
+      ]
+    },
+    {
+      title: 'Healthcare Access & Utilization',
+      questions: [
+        { promptText: 'How often do you visit a healthcare facility?', type: 'single_choice' as QuestionType, options: ['Weekly', 'Monthly', 'Quarterly', 'Annually', 'Never'], isRequired: true, helpText: null },
+        { promptText: 'What is the primary healthcare facility you visit?', type: 'short_text' as QuestionType, options: null, isRequired: true, helpText: 'Name or describe the facility' },
+        { promptText: 'How far is the healthcare facility from your home?', type: 'single_choice' as QuestionType, options: ['Less than 1 km', '1-5 km', '5-10 km', '10-20 km', 'More than 20 km'], isRequired: true, helpText: null },
+        { promptText: 'What are the main barriers you face when trying to access healthcare?', type: 'long_text' as QuestionType, options: null, isRequired: false, helpText: 'Please describe any challenges related to distance, cost, availability, or other factors.' },
+        { promptText: 'Do you have health insurance coverage?', type: 'single_choice' as QuestionType, options: ['Yes, full coverage', 'Yes, partial coverage', 'No', 'Not sure'], isRequired: true, helpText: null }
+      ]
+    },
+    {
+      title: 'Satisfaction & Feedback',
+      questions: [
+        { promptText: 'How satisfied are you with the healthcare services in your area?', type: 'rating_scale' as QuestionType, options: null, isRequired: true, helpText: '1 = Very dissatisfied, 5 = Very satisfied' },
+        { promptText: 'What improvements would you like to see in healthcare services?', type: 'long_text' as QuestionType, options: null, isRequired: false, helpText: 'Share your suggestions for better healthcare' },
+        { promptText: 'Would you recommend the healthcare services to others?', type: 'single_choice' as QuestionType, options: ['Definitely yes', 'Probably yes', 'Not sure', 'Probably no', 'Definitely no'], isRequired: true, helpText: null }
+      ]
+    }
+  ];
 }
 
 export async function updateSurveyTitle(

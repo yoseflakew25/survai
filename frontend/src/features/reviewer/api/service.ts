@@ -128,8 +128,13 @@ export async function getLatestReview(
   surveyId: string
 ): Promise<ReviewerReport | null> {
   await delay(200);
-  if (surveyId === 'sur_001') return MOCK_REPORT;
-  return null;
+  // Return mock data for any survey ID
+  return {
+    ...MOCK_REPORT,
+    id: `rev_${surveyId}`,
+    surveyId,
+    createdAt: new Date().toISOString()
+  };
 }
 
 export async function triggerReview(
