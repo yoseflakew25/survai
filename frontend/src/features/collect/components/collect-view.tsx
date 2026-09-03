@@ -1,13 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface CollectViewProps {
   surveyId: string;
@@ -38,7 +32,6 @@ export function CollectView({
 
   const handlePublish = useCallback(async () => {
     setIsPublishing(true);
-    // Simulate publish API call
     await new Promise((r) => setTimeout(r, 1500));
     setIsPublished(true);
     setIsPublishing(false);
@@ -55,36 +48,74 @@ export function CollectView({
   }, [collectionUrl]);
 
   return (
-    <div className='grid gap-6 lg:grid-cols-3'>
-      {/* Main content */}
-      <div className='space-y-6 lg:col-span-2'>
-        {/* Status card */}
-        <Card>
-          <CardHeader>
-            <div className='flex items-start justify-between gap-2'>
-              <div>
-                <CardTitle className='text-base'>Publish Status</CardTitle>
-                <CardDescription>
-                  Control when your survey accepts responses
-                </CardDescription>
-              </div>
-              <Badge variant={isPublished ? 'default' : 'secondary'}>
-                {isPublished ? 'Published' : 'Draft'}
-              </Badge>
+    <div className='space-y-6'>
+      {/* Progress indicator */}
+      <div className='rounded-xl border bg-muted/30 p-4'>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center gap-4'>
+            <div className='flex items-center gap-2'>
+              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
+              <span className='text-sm font-medium'>Plan Created</span>
             </div>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            {!isPublished ? (
-              <>
-                <div className='rounded-lg border border-dashed p-6 text-center'>
-                  <Icons.collect className='text-muted-foreground mx-auto mb-3 h-8 w-8' />
-                  <p className='text-muted-foreground mb-1 text-sm font-medium'>
-                    This survey is not yet published
-                  </p>
-                  <p className='text-muted-foreground mb-4 text-xs'>
-                    Publish to start collecting responses from respondents
-                  </p>
-                  <Button onClick={handlePublish} disabled={isPublishing}>
+            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
+            <div className='flex items-center gap-2'>
+              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
+              <span className='text-sm font-medium'>Plan Approved</span>
+            </div>
+            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
+            <div className='flex items-center gap-2'>
+              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
+              <span className='text-sm font-medium'>Review Survey</span>
+            </div>
+            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
+            <div className='flex items-center gap-2'>
+              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>4</span>
+              <span className='text-sm font-medium'>Collect Responses</span>
+            </div>
+            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
+            <div className='flex items-center gap-2'>
+              <span className='bg-muted text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>5</span>
+              <span className='text-muted-foreground text-sm'>Analytics</span>
+            </div>
+          </div>
+          <Badge variant={isPublished ? 'default' : 'secondary'}>
+            {isPublished ? 'Published' : 'Draft'}
+          </Badge>
+        </div>
+      </div>
+
+      <div className='grid gap-6 lg:grid-cols-3'>
+        {/* Main content */}
+        <div className='space-y-6 lg:col-span-2'>
+          {/* Publish / Link Card */}
+          <div className='rounded-lg border bg-background'>
+            <div className='border-b bg-muted/30 px-4 py-3'>
+              <div className='flex items-center gap-3'>
+                <div className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded'>
+                  <Icons.collect className='h-3.5 w-3.5' />
+                </div>
+                <div>
+                  <h3 className='font-semibold'>Collection Link</h3>
+                  <p className='text-muted-foreground text-xs'>Share this link with respondents</p>
+                </div>
+                <Badge variant='secondary' className='ml-auto text-xs'>
+                  {isPublished ? 'Live' : 'Not published'}
+                </Badge>
+              </div>
+            </div>
+            <div className='p-4'>
+              {!isPublished ? (
+                <div className='space-y-4'>
+                  <div className='rounded-lg border border-dashed p-8 text-center'>
+                    <div className='bg-muted mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full'>
+                      <Icons.collect className='text-muted-foreground h-6 w-6' />
+                    </div>
+                    <p className='mb-1 text-sm font-medium'>This survey is not yet published</p>
+                    <p className='text-muted-foreground text-xs'>
+                      Publish to start collecting responses from respondents
+                    </p>
+                  </div>
+                  <Button onClick={handlePublish} disabled={isPublishing} size='lg' className='w-full'>
                     {isPublishing ? (
                       <>
                         <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
@@ -98,119 +129,142 @@ export function CollectView({
                     )}
                   </Button>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className='flex items-center gap-3 rounded-lg bg-primary/5 p-4'>
-                  <Icons.circleCheck className='text-primary size-5 shrink-0' />
-                  <div>
-                    <p className='text-sm font-medium'>
-                      Your survey is live
-                    </p>
+              ) : (
+                <div className='space-y-4'>
+                  {/* Live status banner */}
+                  <div className='flex items-center gap-3 rounded-lg bg-green-50 p-3 dark:bg-green-950'>
+                    <Icons.circleCheck className='text-green-600 dark:text-green-400 h-5 w-5 shrink-0' />
+                    <div className='min-w-0 flex-1'>
+                      <p className='text-sm font-medium text-green-700 dark:text-green-300'>
+                        Your survey is live and accepting responses
+                      </p>
+                      <p className='text-green-600/80 dark:text-green-400/80 text-xs'>
+                        Share the link below to start collecting responses
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Collection link */}
+                  <div className='space-y-2'>
+                    <label className='text-sm font-medium'>Collection Link</label>
+                    <div className='flex gap-2'>
+                      <Input value={collectionUrl} readOnly className='font-mono text-sm' />
+                      <Button variant='outline' onClick={handleCopyLink} className='shrink-0'>
+                        <Icons.share className='mr-1 h-4 w-4' />
+                        Copy
+                      </Button>
+                    </div>
                     <p className='text-muted-foreground text-xs'>
-                      Share the link below to start collecting responses
+                      Share via SMS, WhatsApp, or email. Respondents do not need an account.
                     </p>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
 
-                {/* Collection link */}
-                <div className='space-y-2'>
-                  <label className='text-sm font-medium'>
-                    Collection Link
-                  </label>
-                  <div className='flex gap-2'>
-                    <Input
-                      value={collectionUrl}
-                      readOnly
-                      className='font-mono text-sm'
-                    />
-                    <Button variant='outline' onClick={handleCopyLink}>
-                      <Icons.share className='mr-1 h-4 w-4' />
-                      Copy
-                    </Button>
+          {/* QR Code */}
+          {isPublished && (
+            <div className='rounded-lg border bg-background'>
+              <div className='border-b bg-muted/30 px-4 py-3'>
+                <div className='flex items-center gap-3'>
+                  <div className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded'>
+                    <Icons.page className='h-3.5 w-3.5' />
                   </div>
-                  <p className='text-muted-foreground text-xs'>
-                    Share this link via SMS, WhatsApp, or email. Respondents
-                    do not need an account.
-                  </p>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* QR Code placeholder */}
-        {isPublished && (
-          <Card>
-            <CardHeader>
-              <CardTitle className='text-base'>QR Code</CardTitle>
-              <CardDescription>
-                Print this QR code on paper surveys for easy digital access
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='flex items-center gap-6'>
-                <div className='bg-muted flex size-32 items-center justify-center rounded-lg'>
-                  <Icons.page className='text-muted-foreground/40 size-12' />
-                </div>
-                <div className='space-y-2'>
-                  <p className='text-sm'>
-                    Generate a QR code that links to your collection page.
-                  </p>
-                  <Button variant='outline' >
-                    <Icons.upload className='mr-1 h-3.5 w-3.5' />
-                    Download QR Code
-                  </Button>
+                  <div>
+                    <h3 className='font-semibold'>QR Code</h3>
+                    <p className='text-muted-foreground text-xs'>Print on paper surveys for easy digital access</p>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              <div className='p-4'>
+                <div className='flex items-center gap-6'>
+                  <div className='bg-muted flex size-32 shrink-0 items-center justify-center rounded-lg'>
+                    <Icons.page className='text-muted-foreground/40 size-12' />
+                  </div>
+                  <div className='space-y-3'>
+                    <p className='text-sm'>Generate a QR code that links to your collection page.</p>
+                    <Button variant='outline'>
+                      <Icons.upload className='mr-1 h-3.5 w-3.5' />
+                      Download QR Code
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-      {/* Sidebar */}
-      <div className='space-y-6'>
-        {/* Response stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-base'>Responses</CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-4 text-sm'>
-            <div className='flex justify-between'>
-              <span className='text-muted-foreground'>Total responses</span>
-              <span className='text-2xl font-bold'>{responseCount}</span>
+        {/* Sidebar */}
+        <div className='space-y-6'>
+          {/* Primary Action - View Analytics */}
+          <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
+            <div
+              className='pointer-events-none absolute inset-0'
+              style={{
+                backgroundImage:
+                  'linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
+                maskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)'
+              }}
+            />
+            <div className='relative space-y-4 p-5'>
+              <div className='space-y-1.5'>
+                <h3 className='text-base font-semibold text-primary-foreground'>View Results?</h3>
+                <p className='text-primary-foreground/80 text-xs leading-relaxed'>
+                  {isPublished
+                    ? `Collecting responses — ${responseCount} received so far`
+                    : 'Publish your survey to start collecting responses'}
+                </p>
+              </div>
+              <Link
+                href={`/dashboard/surveys/${surveyId}/analytics`}
+                className={cn('w-full', !isPublished && 'pointer-events-none opacity-50')}
+              >
+                <Button className='w-full' size='lg' variant='secondary' disabled={!isPublished}>
+                  View Analytics
+                  <Icons.arrowRight className='ml-2 h-4 w-4' />
+                </Button>
+              </Link>
+            
             </div>
-            <Separator />
-            <div className='flex justify-between'>
-              <span className='text-muted-foreground'>Status</span>
-              <Badge variant={isPublished ? 'default' : 'secondary'}>
-                {isPublished ? 'Collecting' : 'Not started'}
-              </Badge>
-            </div>
-            <div className='flex justify-between'>
-              <span className='text-muted-foreground'>Anonymous</span>
-              <span className='font-medium'>Yes</span>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Quick actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-base'>Actions</CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-2'>
-            <Button variant='outline' className='w-full justify-start' disabled={!isPublished}>
-              <Icons.page className='mr-2 h-4 w-4' />
-              Preview Survey
-            </Button>
-            <Link href={`/dashboard/surveys/${surveyId}/analytics`} className='w-full'>
+          <Separator />
+
+          {/* Response Stats */}
+          <div className='rounded-lg border bg-background p-4'>
+            <h3 className='mb-3 text-sm font-semibold'>Response Stats</h3>
+            <div className='space-y-3'>
+              <div className='flex items-center justify-between'>
+                <span className='text-muted-foreground text-sm'>Total responses</span>
+                <span className='text-2xl font-bold'>{responseCount}</span>
+              </div>
+              <Separator />
+              <div className='flex justify-between text-sm'>
+                <span className='text-muted-foreground'>Status</span>
+                <Badge variant={isPublished ? 'default' : 'secondary'}>
+                  {isPublished ? 'Collecting' : 'Not started'}
+                </Badge>
+              </div>
+              <div className='flex justify-between text-sm'>
+                <span className='text-muted-foreground'>Anonymous</span>
+                <span className='font-medium'>Yes</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Quick Actions */}
+          <div className='rounded-lg border bg-background p-4'>
+            <h3 className='mb-3 text-sm font-semibold'>Actions</h3>
+            <div className='space-y-2'>
               <Button variant='outline' className='w-full justify-start' disabled={!isPublished}>
-                <Icons.analytics className='mr-2 h-4 w-4' />
-                View Analytics
+                <Icons.page className='mr-2 h-4 w-4' />
+                Preview Survey
               </Button>
-            </Link>
-            {isPublished && (
               <Button
                 variant='outline'
                 className='w-full justify-start text-destructive hover:text-destructive'
@@ -218,9 +272,9 @@ export function CollectView({
                 <Icons.close className='mr-2 h-4 w-4' />
                 Close Survey
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

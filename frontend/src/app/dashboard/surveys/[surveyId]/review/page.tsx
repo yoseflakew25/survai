@@ -23,10 +23,7 @@ export default async function ReviewPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer
-        pageTitle='Survey Review'
-        pageDescription='AI-powered quality review with actionable findings'
-      >
+      <PageContainer>
         <Suspense fallback={<ReviewPageSkeleton />}>
           <ReviewerView surveyId={surveyId} />
         </Suspense>

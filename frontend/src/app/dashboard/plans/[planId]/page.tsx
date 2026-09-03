@@ -22,10 +22,7 @@ export default async function PlanDetailPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer
-        pageTitle='Review Survey Plan'
-        pageDescription='Review and refine your AI-generated plan before building the survey'
-      >
+      <PageContainer>
         <Suspense fallback={<PlanDetailSkeleton />}>
           <PlanDetailView planId={planId} />
         </Suspense>

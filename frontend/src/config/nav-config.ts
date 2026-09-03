@@ -12,14 +12,7 @@ export const navGroups: NavGroup[] = [
         shortcut: ['d', 'd'],
         items: []
       },
-      {
-        title: 'Plans',
-        url: '/dashboard/plans',
-        icon: 'plan',
-        isActive: false,
-        shortcut: ['p', 'p'],
-        items: []
-      },
+      
       {
         title: 'Surveys',
         url: '/dashboard/surveys',

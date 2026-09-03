@@ -1068,3 +1068,166 @@ will shape config, not architecture, once answered:
 | RAG | Retrieval-Augmented Generation |
 | Human-in-the-loop | A person reviews and controls AI output rather than the AI acting autonomously |
 | MVP | Minimum Viable Product |
+
+---
+
+## 23. Implementation Status — Frontend (as of September 2026)
+
+> This section tracks what has been built in the frontend (`apps/web`).
+> Backend API is still mock-data only; all services use in-memory arrays.
+> Update this section as each milestone ships.
+
+### ✅ Completed
+
+| Module | Pages / Components | Status | Notes |
+| --- | --- | --- | --- |
+| **Auth** | Login, Register, Forgot Password | ✅ Done | React Hook Form + Zod validation; JWT pattern mocked |
+| **Sidebar Navigation** | App sidebar with collapsible/expandable modes | ✅ Done | Logo variants (light/dark × collapsed/expanded); primary icon colors; user dropdown |
+| **Dashboard Overview** | Stat cards, Recent Plans, Quick Actions | ✅ Done | Outline-style cards; primary color accents; grid pattern backgrounds |
+| **Surveys List** | Surveys page with data table, search, filter, sort | ✅ Done | Professional shadcn-style table; column-based sorting; status badges |
+| **New Survey Modal** | Multi-step wizard (Details → Goal → Preview → Generate) | ✅ Done | Progress steps; validation (title ≥3, goal ≥10 chars); AI generation animation |
+| **Plan Editor** | Plan review/edit with inline editing | ✅ Done | EditableList (DnD reorder); ProposedSectionsEditor (collapsible); undo/redo; keyboard shortcuts |
+| **Survey Review** | Question review with inline editing | ✅ Done | DnD reorder within sections; add new questions; change type/required/options inline |
+| **Collect** | Publish flow, collection link, QR code | ✅ Done | Progress indicator; copy link; publish toggle |
+| **Analytics Dashboard** | Summary stats, distributions, cross-tabs | ✅ Done | Recharts integration; saved analyses sidebar |
+| **Report Workspace** | Editable sections, chat sidebar, export buttons | ✅ Done | Section-by-section editing; AI chat; DOCX/PDF export triggers |
+| **Settings** | Organization settings page | ✅ Done | Professional card-based layout |
+| **Notifications** | Notifications list | ✅ Done | Outline-style notification cards |
+| **Profile** | User profile page | ✅ Done | Avatar upload, form validation, activity section |
+
+### 🔄 In Progress
+
+| Module | Status | What's Left |
+| --- | --- | --- |
+| **AI Integration** | Mock only | All AI features (planner, reviewer, report) use `setTimeout` delays; need real OpenAI Responses API integration |
+| **Backend API** | Not started | FastAPI + PostgreSQL + Alembic schema from §6; all frontend currently uses mock services |
+| **Authentication** | Mock only | Frontend forms exist; need real JWT flow with refresh tokens |
+| **Collection Route** | Partial | `/s/[versionId]` exists; needs real respondent flow, validation, progress saving |
+
+### ❌ Not Started
+
+| Module | PRD Ref | Priority |
+| --- | --- | --- |
+| **Backend Auth** | §7 | P0 — blocks all real data flows |
+| **Backend Plans CRUD** | §11 | P0 |
+| **Backend Surveys/Sections/Questions** | §11 | P0 |
+| **Backend Reviewer** | §11 | P1 |
+| **Backend Analytics Engine** | §10 | P1 |
+| **Backend Reports + Export** | §13 | P1 |
+| **Background Jobs (ARQ)** | §14 | P1 |
+| **AI Orchestration Layer** | §8 | P1 |
+| **Anti-Hallucination Reconciliation** | §9 | P1 |
+| **Database (PostgreSQL)** | §6 | P0 |
+| **CI/CD Pipeline** | §4 | P2 |
+| **E2E Tests (Playwright)** | §19 | P2 |
+
+---
+
+## 24. Frontend Architecture — Current State
+
+### Directory Structure (actual)
+
+```
+frontend/src/
+├── app/
+│   ├── (auth)/                          # login, register, forgot-password
+│   ├── dashboard/
+│   │   ├── layout.tsx                   # sidebar + topbar shell
+│   │   ├── page.tsx                     # overview redirect
+│   │   ├── overview/                    # @pie_stats, @surveys parallel routes
+│   │   ├── surveys/
+│   │   │   ├── page.tsx                 # surveys list with data table
+│   │   │   └── [surveyId]/
+│   │   │       ├── review/page.tsx      # survey review + inline editing
+│   │   │       ├── collect/page.tsx     # publish + collection link
+│   │   │       ├── analytics/page.tsx   # charts + cross-tabs
+│   │   │       └── reports/page.tsx     # report editor + chat
+│   │   ├── plans/
+│   │   │   ├── page.tsx                 # plans list
+│   │   │   └── [planId]/page.tsx        # plan editor (review + edit)
+│   │   ├── settings/page.tsx            # organization settings
+│   │   ├── notifications/page.tsx       # notifications list
+│   │   └── profile/page.tsx             # user profile
+│   └── s/[versionId]/                   # public respondent collection
+├── features/
+│   ├── auth/                            # login/register forms
+│   ├── builder/                         # survey types, mock service, queries
+│   ├── reviewer/                        # findings list, quality score, queries
+│   ├── analytics/                       # summary stats, distributions, cross-tabs
+│   ├── reports/                         # report view + chat
+│   ├── collect/                         # collect view (publish/link)
+│   ├── plans/                           # plan editor, editable list, sections
+│   ├── surveys/                         # survey tables, new survey dialog
+│   ├── overview/                        # stat cards, recent plans
+│   ├── settings/                        # settings components
+│   ├── notifications/                   # notification components
+│   └── profile/                         # profile components
+├── components/
+│   ├── ui/                              # shadcn/ui primitives
+│   ├── layout/                          # page-container, app-sidebar
+│   ├── breadcrumbs.tsx
+│   └── icons.tsx                        # tabler icon mappings
+├── hooks/
+│   └── use-undo-redo.ts                 # generic undo/redo hook
+├── styles/
+│   └── themes/                          # CSS custom properties
+├── config/
+│   └── nav-config.ts                    # sidebar navigation items
+└── lib/
+    └── utils.ts                         # cn() helper
+```
+
+### User Flow — Implemented
+
+```
+1. Create Survey Modal
+   Title + Research Goal → AI Generation (animated) → Plan Editor
+
+2. Plan Editor (/dashboard/plans/{planId})
+   Review AI-generated content → Edit objectives/questions/sections
+   DnD reorder → Undo/Redo → "Generate Survey Questions"
+
+3. Survey Review (/dashboard/surveys/{id}/review)
+   Tabbed: Questions + AI Findings
+   Inline editing: type, required, options, text
+   DnD reorder within sections
+   Add new questions per section
+   "Continue to Collect →"
+
+4. Collect (/dashboard/surveys/{id}/collect)
+   Publish survey → Collection link + QR code
+   "View Analytics →"
+
+5. Analytics (/dashboard/surveys/{id}/analytics)
+   Summary stats, distributions, cross-tabs
+   "Generate Report →"
+
+6. Report (/dashboard/surveys/{id}/reports)
+   Editable sections, AI chat sidebar, DOCX/PDF export
+   "Back to Analytics"
+```
+
+### Styling System
+
+- **Primary palette:** `ultrasonic-blue` (purple: #6722dd)
+- **Card style:** Outline (border, no shadow unless hover)
+- **Progress indicators:** Rounded step badges with ✓/number
+- **Primary action cards:** `bg-primary` + white grid pattern + secondary button
+- **Dark mode:** Full support via CSS custom properties
+- **Sidebar:** Collapsible with logo variants, primary-colored icons
+
+---
+
+## 25. Next Milestones — Remaining Frontend Work
+
+| Priority | Task | PRD Ref |
+| --- | --- | --- |
+| P0 | Connect frontend to real backend API (replace mock services) | §11 |
+| P0 | Implement real auth flow (JWT + refresh tokens) | §7 |
+| P0 | Build public collection route with real respondent flow | COL-01–05 |
+| P1 | Add real-time response counter on Collect page | COL-04 |
+| P1 | Implement report export with actual DOCX/PDF generation | §13 |
+| P1 | Add loading skeletons for all async pages | §15 |
+| P2 | Add drag-and-drop section reorder on Review page | BLD-07 |
+| P2 | Implement conditional logic preview in Review | BLD-04 |
+| P2 | Add E2E tests with Playwright | §19 |

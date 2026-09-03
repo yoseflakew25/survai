@@ -11,12 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
-import { FindingsList } from './findings-list';
+import { AlertModal } from '@/components/modal/alert-modal';
 import { QualityScore } from './quality-score';
 import { updateQuestion } from '@/features/builder/api/service';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import type { ReviewerReport, ReviewerFinding } from '../api/types';
+import type { ReviewerReport } from '../api/types';
 import type { Survey, Section, Question, QuestionType, QuestionOption } from '@/features/builder/api/types';
 import { getQuestionTypeMeta, QUESTION_TYPES } from '@/features/builder/api/types';
 import {
@@ -46,7 +46,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   const { data: report } = useSuspenseQuery(latestReviewOptions(surveyId));
   const [localReport, setLocalReport] = useState(report);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'questions' | 'findings'>('questions');
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>([
     { id: 1, label: 'Analyzing survey structure', status: 'pending' },
     { id: 2, label: 'Reviewing question clarity', status: 'pending' },
@@ -85,24 +85,6 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   if (!survey) {
     notFound();
   }
-
-  const handleReviewComplete = useCallback((newReport: ReviewerReport) => {
-    setLocalReport(newReport);
-    setIsGenerating(false);
-  }, []);
-
-  const handleFindingUpdate = useCallback(
-    (finding: ReviewerFinding) => {
-      if (!localReport) return;
-      setLocalReport({
-        ...localReport,
-        findings: localReport.findings.map((f) =>
-          f.id === finding.id ? finding : f
-        )
-      });
-    },
-    [localReport]
-  );
 
   // Show loading state during AI generation
   if (isGenerating) {
@@ -174,115 +156,67 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   }
 
   const totalQuestions = survey.sections.reduce((sum, s) => sum + s.questions.length, 0);
-  const openFindings = localReport?.findings.filter(f => f.status === 'open').length ?? 0;
 
   return (
-    <div className='space-y-6'>
-      {/* Progress indicator */}
-      <div className='rounded-xl border bg-muted/30 p-4'>
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                ✓
-              </span>
-              <span className='text-sm font-medium'>Plan Created</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                ✓
-              </span>
-              <span className='text-sm font-medium'>Plan Approved</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                3
-              </span>
-              <span className='text-sm font-medium'>Review Survey</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-muted text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                4
-              </span>
-              <span className='text-muted-foreground text-sm'>Collect</span>
-            </div>
-          </div>
-          <Badge variant='secondary'>
-            {survey.sections.length} sections · {totalQuestions} questions
-          </Badge>
+    <>
+    <AlertModal
+      isOpen={deleteOpen}
+      onClose={() => setDeleteOpen(false)}
+      onConfirm={() => {
+        setDeleteOpen(false);
+        toast.success('Survey deleted');
+      }}
+      loading={false}
+      title='Delete Survey'
+      description='Are you sure you want to delete this survey? This action cannot be undone.'
+      confirmLabel='Delete'
+    />
+    <div className='space-y-4'>
+      {/* Survey Header */}
+      <div className='flex items-end justify-between gap-6  border-b pb-4'>
+        <div className='min-w-0'>
+          <h1 className='text-2xl font-bold tracking-tight text-primary'>{survey.title}</h1>
+          {survey.description && (
+            <p className='text-muted-foreground text-sm'>{survey.description}</p>
+          )}
+        </div>
+        <div className='flex shrink-0 items-center gap-2'>
+          <Button variant='outline' className='text-primary'>
+            <Icons.sparkles className='mr-1.5 h-3.5 w-3.5' />
+            Regenerate
+          </Button>
+          <Button variant='destructive'  onClick={() => setDeleteOpen(true)}>
+            <Icons.trash className='mr-1.5 h-3.5 w-3.5' />
+            Delete
+          </Button>
+         
+          <Button variant='outline' >
+            <Icons.review className='mr-1.5 h-3.5 w-3.5' />
+            Review with AI
+          </Button>
+           <Button variant='default' >
+            <Icons.check className='mr-1.5 h-3.5 w-3.5' />
+            Save Changes
+          </Button>
         </div>
       </div>
 
-      <div className='grid gap-6 lg:grid-cols-3'>
+      <div className='grid gap-6 lg:grid-cols-[1fr_340px]'>
         {/* Main content */}
-        <div className='space-y-6 lg:col-span-2'>
-          {/* Tab switcher */}
-          <div className='flex gap-2'>
-            <Button
-              variant={activeTab === 'questions' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('questions')}
-            >
-              <Icons.forms className='mr-2 h-4 w-4' />
-              Survey Questions
-              <Badge variant='secondary' className='ml-2 text-xs'>
-                {totalQuestions}
-              </Badge>
-            </Button>
-            <Button
-              variant={activeTab === 'findings' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('findings')}
-            >
-              <Icons.review className='mr-2 h-4 w-4' />
-              AI Findings
-              {openFindings > 0 && (
-                <Badge variant='destructive' className='ml-2 text-xs'>
-                  {openFindings}
-                </Badge>
-              )}
-            </Button>
+        <div className='space-y-6'>
+          <div className='space-y-4'>
+            {survey.sections.map((section, sIdx) => (
+              <SectionReviewCard
+                key={section.id}
+                section={section}
+                index={sIdx}
+              />
+            ))}
           </div>
-
-          {/* Questions tab */}
-          {activeTab === 'questions' && (
-            <div className='space-y-4'>
-              {survey.sections.map((section, sIdx) => (
-                <SectionReviewCard
-                  key={section.id}
-                  section={section}
-                  index={sIdx}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Findings tab */}
-          {activeTab === 'findings' && (
-            <>
-              {localReport ? (
-                <FindingsList
-                  findings={localReport.findings}
-                  onFindingUpdate={handleFindingUpdate}
-                />
-              ) : (
-                <div className='flex flex-col items-center rounded-xl border border-dashed py-16 text-center'>
-                  <Icons.eyeOff className='text-muted-foreground/30 mb-3 h-10 w-10' />
-                  <p className='text-muted-foreground mb-1 text-sm font-medium'>
-                    No review yet
-                  </p>
-                  <p className='text-muted-foreground text-xs'>
-                    Run an AI review to analyze your survey questions
-                  </p>
-                </div>
-              )}
-            </>
-          )}
         </div>
 
         {/* Sidebar */}
-        <div className='space-y-6'>
+        <div className='sticky top-[4.5rem] self-start space-y-6'>
           {/* Primary Action - Continue to Collect */}
           <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
             <div
@@ -297,10 +231,10 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             />
             <div className='relative space-y-4 p-5'>
               <div className='space-y-1.5'>
-                <h3 className='text-base font-semibold text-primary-foreground'>
+                <h3 className='text-lg font-semibold text-primary-foreground'>
                   Ready to Collect?
                 </h3>
-                <p className='text-primary-foreground/80 text-xs leading-relaxed'>
+                <p className='text-primary-foreground/80 text-sm leading-relaxed'>
                   Review the AI findings and proceed to collect responses
                 </p>
               </div>
@@ -310,13 +244,11 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   size='lg'
                   variant='secondary'
                 >
-                  Continue to Collect
+                  Publish the Survey
                   <Icons.arrowRight className='ml-2 h-4 w-4' />
                 </Button>
               </Link>
-              <p className='text-primary-foreground/60 text-center text-[11px]'>
-                You can always come back to review later
-              </p>
+             
             </div>
           </div>
 
@@ -386,6 +318,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -520,7 +453,7 @@ function QuestionReviewItem({ question, index }: { question: Question; index: nu
         <div className='flex items-center gap-2'>
           {isEditing ? (
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant='outline' size='sm' className='h-6 text-xs' />}>
+              <DropdownMenuTrigger render={<Button variant='outline'  className='h-6 text-xs' />}>
                 {TypeIcon && <TypeIcon className='mr-1 h-3 w-3' />}
                 {typeMeta.label}
                 <Icons.chevronDown className='ml-1 h-3 w-3' />
@@ -629,7 +562,7 @@ function QuestionReviewItem({ question, index }: { question: Question; index: nu
                 </div>
               ))}
             </div>
-            <Button variant='ghost' size='sm' className='h-7 text-xs' onClick={addOption}>
+            <Button variant='ghost'  className='h-7 text-xs' onClick={addOption}>
               <Icons.add className='mr-1 h-3 w-3' />
               Add Option
             </Button>
@@ -682,3 +615,4 @@ function QuestionReviewItem({ question, index }: { question: Question; index: nu
     </div>
   );
 }
+

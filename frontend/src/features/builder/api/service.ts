@@ -343,6 +343,18 @@ export async function updateSurveyTitle(
   return survey;
 }
 
+export async function updateSurveyDescription(
+  id: string,
+  description: string
+): Promise<Survey | null> {
+  await delay(100);
+  const survey = MOCK_SURVEYS.find((s) => s.id === id);
+  if (!survey) return null;
+  survey.description = description;
+  survey.updatedAt = new Date().toISOString();
+  return survey;
+}
+
 // ---- Section CRUD ----
 
 export async function addSection(

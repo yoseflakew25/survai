@@ -23,15 +23,11 @@ import { ProposedSectionsEditor } from './proposed-sections-editor';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { cn } from '@/lib/utils';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 
 interface PlanEditorProps {
   plan: Plan;
@@ -257,46 +253,51 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
     proposedSections.length > 0;
 
   return (
-    <div className='space-y-6'>
-      {/* Progress indicator */}
-      <Card className='bg-primary/5 border-primary/20'>
-        <CardContent>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-4'>
-              <div className='flex items-center gap-2'>
-                <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                  ✓
-                </span>
-                <span className='text-sm font-medium'>Plan Created</span>
-              </div>
-              <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-              <div className='flex items-center gap-2'>
-                <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                  2
-                </span>
-                <span className='text-sm font-medium'>Review & Edit</span>
-              </div>
-              <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-              <div className='flex items-center gap-2'>
-                <span className='bg-muted text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>
-                  3
-                </span>
-                <span className='text-muted-foreground text-sm'>Review & Collect</span>
-              </div>
+    <div className='space-y-4'>
+      {/* Header */}
+      <div className='grid items-center gap-4 lg:grid-cols-5'>
+        <div className='min-w-0  lg:col-span-2'>
+          <h1 className='text-2xl font-bold tracking-tight text-primary'>Review Survey Plan</h1>
+          <p className='text-muted-foreground text-sm'>
+            Review and refine your AI-generated plan before building the survey
+          </p>
+        </div>
+        <Card className='bg-primary/5 border-primary/20 lg:col-span-3'>
+          <CardContent className='flex items-center gap-3 px-3'>
+            <div className='flex items-center gap-2'>
+              <span className='bg-primary text-primary-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold'>
+                ✓
+              </span>
+              <span className='text-sm font-medium'>Plan Created</span>
             </div>
+            <Icons.chevronsRight className='text-muted-foreground h-3 w-3' />
+            <div className='flex items-center gap-2'>
+              <span className='bg-primary text-primary-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold'>
+                2
+              </span>
+              <span className='text-sm font-medium'>Review & Edit</span>
+            </div>
+            <Icons.chevronsRight className='text-muted-foreground h-3 w-3' />
+            <div className='flex items-center gap-2'>
+              <span className='bg-muted text-muted-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold'>
+                3
+              </span>
+              <span className='text-muted-foreground text-sm'>Review & Collect</span>
+            </div>
+            <Separator orientation='vertical' className='ml-auto mr-1 h-5' />
             <div className='flex items-center gap-2'>
               {hasUnsavedChanges() && (
-                <Badge variant='outline' className='border-amber-500 text-amber-600'>
+                <Badge variant='outline' className='border-amber-500 text-amber-600 text-[10px]'>
                   Unsaved Changes
                 </Badge>
               )}
-              <Badge variant={localPlan.status === 'approved' ? 'default' : 'secondary'}>
+              <Badge variant={localPlan.status === 'approved' ? 'default' : 'secondary'} className='text-[10px]'>
                 {localPlan.status === 'approved' ? 'Ready to Build' : 'Draft'}
               </Badge>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className='grid gap-6 lg:grid-cols-3'>
         {/* Main content area */}
@@ -409,7 +410,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
         </div>
 
         {/* Sidebar */}
-        <div className='space-y-6'>
+        <div className='sticky top-[4.5rem] self-start space-y-6'>
           {/* Primary Action - Proceed to Review */}
           <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
             {/* Grid pattern overlay */}
@@ -425,8 +426,8 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
             />
             <div className='relative space-y-4 p-5'>
               <div className='space-y-1.5'>
-                <h3 className='text-base font-semibold text-primary-foreground'>Ready to Generate?</h3>
-                <p className='text-primary-foreground/80 text-xs leading-relaxed'>
+                <h3 className='text-lg font-semibold text-primary-foreground'>Ready to Generate?</h3>
+                <p className='text-primary-foreground/80 text-sm leading-relaxed'>
                   AI will generate survey questions based on your plan. You can review and edit them.
                 </p>
               </div>
@@ -450,9 +451,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
                   </>
                 )}
               </Button>
-              <p className='text-primary-foreground/60 text-center text-[11px]'>
-                AI will generate questions, then you'll review them
-              </p>
+             
             </div>
           </div>
 
@@ -513,24 +512,27 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
       </div>
 
       {/* Unsaved Changes Dialog */}
-      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Save your changes?</AlertDialogTitle>
-            <AlertDialogDescription>
+      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <DialogContent className='sm:max-w-md gap-0 p-0 overflow-hidden'>
+          <DialogHeader className='bg-primary'>
+            <DialogTitle>Save your changes?</DialogTitle>
+          </DialogHeader>
+          <div className='px-4 pt-4 pb-2'>
+            <p className='text-sm text-muted-foreground'>
               You have unsaved changes to your survey plan. Would you like to save them before proceeding to the builder?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => proceedToBuilder(false)}>
+            </p>
+          </div>
+          <Separator />
+          <div className='px-4 py-3 flex items-center justify-end gap-2'>
+            <Button variant='outline' onClick={() => proceedToBuilder(false)}>
               Discard Changes
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => proceedToBuilder(true)}>
+            </Button>
+            <Button onClick={() => proceedToBuilder(true)}>
               Save & Proceed
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
