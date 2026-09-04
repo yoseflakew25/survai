@@ -1,54 +1,79 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Heading } from '@/components/ui/heading';
+import { SurveyStepper } from '@/components/survey-stepper';
 import { Icons } from '@/components/icons';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-
-interface ReportSection {
-  id: string;
-  title: string;
-  content: string;
-}
+import { reportOptions } from '../api/queries';
+import type { ReportSection } from '../api/types';
 
 interface ReportViewProps {
   surveyId: string;
 }
 
-const MOCK_SECTIONS: ReportSection[] = [
-  {
-    id: 'sec_1',
-    title: 'Executive Summary',
-    content:
-      'This report presents findings from the Community Health Assessment conducted across DICDO target communities. The survey captured health status, healthcare access patterns, and community health needs to inform program design and resource allocation.\n\nKey findings indicate that while healthcare awareness is moderate, significant barriers remain in access and utilization, particularly for vulnerable populations.'
-  },
-  {
-    id: 'sec_2',
-    title: 'Methodology',
-    content:
-      'The survey was administered to 138 respondents across target communities using a structured questionnaire. Data collection employed both digital and paper-based methods to ensure broad coverage. The questionnaire covered demographics, health status, healthcare access, and barriers to care.'
-  },
-  {
-    id: 'sec_3',
-    title: 'Key Findings',
-    content:
-      '1. **Health Conditions**: Hypertension (32%) and diabetes (18%) are the most commonly reported chronic conditions.\n\n2. **Healthcare Access**: 67% of respondents access healthcare quarterly or less frequently, with distance and cost cited as primary barriers.\n\n3. **Preventive Practices**: Awareness of preventive health measures varies significantly by age group, with younger respondents showing higher awareness levels.\n\n4. **Barriers**: The top three barriers identified are: distance to facilities (42%), cost of services (35%), and availability of medications (28%).'
-  },
-  {
-    id: 'sec_4',
-    title: 'Recommendations',
-    content:
-      'Based on the findings, we recommend:\n\n1. Expand mobile health clinics to address distance barriers\n2. Implement subsidized healthcare programs for vulnerable populations\n3. Launch community health education campaigns targeting preventive practices\n4. Establish community health worker networks for ongoing support'
-  }
-];
+function countWords(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+/** Renders **bold** segments inside a line. */
+function inlineBold(text: string): ReactNode[] {
+  return text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className='font-semibold text-foreground'>
+        {part}
+      </strong>
+    ) : (
+      part
+    )
+  );
+}
+
+/** Renders plain-text report content with numbered bullets and bold markers. */
+function renderSectionContent(content: string): ReactNode[] {
+  return content.split('\n').map((line, i) => {
+    if (!line.trim()) return <div key={i} className='h-2' />;
+
+    const numbered = line.match(/^\d+\.\s+(.*)$/);
+    const dashed = line.match(/^[-•]\s+(.*)$/);
+    const bulletText = numbered?.[1] ?? dashed?.[1];
+
+    if (bulletText) {
+      return (
+        <div key={i} className='flex gap-2.5'>
+          <span className='text-primary mt-[7px] h-1 w-1 shrink-0 rounded-full bg-current' />
+          <p className='flex-1'>{inlineBold(bulletText)}</p>
+        </div>
+      );
+    }
+
+    return (
+      <p key={i} className={cn(line.startsWith('**') && 'font-medium')}>
+        {inlineBold(line)}
+      </p>
+    );
+  });
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
 
 export function ReportView({ surveyId }: ReportViewProps) {
-  const [sections, setSections] = useState<ReportSection[]>(MOCK_SECTIONS);
+  const { data: report } = useSuspenseQuery(reportOptions(surveyId));
+  const [sections, setSections] = useState<ReportSection[]>(report.sections);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<
@@ -61,76 +86,104 @@ export function ReportView({ surveyId }: ReportViewProps) {
     }
   ]);
   const [chatInput, setChatInput] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Keep the chat scrolled to the latest message.
+  useEffect(() => {
+    const el = messagesEndRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chatMessages, isReplying]);
+
+  const totalWords = sections.reduce((sum, s) => sum + countWords(s.content), 0);
 
   const handleGenerateReport = useCallback(async () => {
     setIsGenerating(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setIsGenerating(false);
-    toast.success('Report generated', {
-      description: 'AI has generated a complete report from your survey data.'
-    });
+    try {
+      await new Promise((r) => setTimeout(r, 2000));
+      // Simulate a service failure so the error path is exercised
+      if (Math.random() < 0.15) {
+        throw new Error('Report generation failed');
+      }
+      toast.success('Report generated', {
+        description: 'AI has generated a complete report from your survey data.'
+      });
+    } catch {
+      toast.error('Generation failed', {
+        description: 'Could not generate the report. Please try again.'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   }, []);
 
-  const handleSendMessage = useCallback(() => {
-    if (!chatInput.trim()) return;
-    const userMessage = chatInput.trim();
-    setChatMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
-    setChatInput('');
-    setTimeout(() => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: `I've updated the report based on your feedback. The changes have been applied to the relevant sections. Would you like me to make any other adjustments?`
-        }
-      ]);
-    }, 1000);
-  }, [chatInput]);
+  const handleSendMessage = useCallback(
+    (override?: string) => {
+      const message = (override ?? chatInput).trim();
+      if (!message || isReplying) return;
+      setChatMessages((prev) => [...prev, { role: 'user', content: message }]);
+      setChatInput('');
+      setIsReplying(true);
+      setTimeout(() => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content:
+              "I've updated the report based on your feedback. The changes have been applied to the relevant sections. Would you like me to make any other adjustments?"
+          }
+        ]);
+        setIsReplying(false);
+      }, 1200);
+    },
+    [chatInput, isReplying]
+  );
 
   const handleExport = useCallback((format: string) => {
+    // Simulate a service failure so the error path is exercised
+    if (Math.random() < 0.15) {
+      toast.error(`Export failed`, {
+        description: `Could not export as ${format.toUpperCase()}. Please try again.`
+      });
+      return;
+    }
     toast.success(`Exporting as ${format.toUpperCase()}`, {
       description: `Your report will be downloaded as a ${format} file.`
     });
   }, []);
 
+  const reportStats = [
+    {
+      label: 'Responses',
+      value: report.stats.responseCount.toLocaleString(),
+      icon: <Icons.activity className='text-primary h-4 w-4' />
+    },
+    {
+      label: 'Completion',
+      value: `${report.stats.completionRate}%`,
+      icon: <Icons.checks className='text-primary h-4 w-4' />
+    },
+    {
+      label: 'Avg. Duration',
+      value: `${report.stats.avgCompletionMinutes}m`,
+      icon: <Icons.clock className='text-primary h-4 w-4' />
+    },
+    {
+      label: 'Questions',
+      value: report.stats.questionsCount.toString(),
+      icon: <Icons.forms className='text-primary h-4 w-4' />
+    }
+  ];
+
   return (
-    <div className='space-y-6'>
-      {/* Progress indicator */}
-      <div className='rounded-xl border bg-muted/30 p-4'>
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Plan Created</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Plan Approved</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Review Survey</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Collect</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Analytics</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>6</span>
-              <span className='text-sm font-medium'>Report</span>
-            </div>
-          </div>
-          <Badge variant='secondary'>Draft</Badge>
-        </div>
+    <div className='space-y-4'>
+      {/* Header + progress stepper side by side */}
+      <div className='flex flex-col items-end justify-between gap-4 sm:flex-row sm:items-end'>
+        <Heading
+          title='Report Workspace'
+          description='Generate AI-powered reports from your survey data'
+        />
+        <SurveyStepper currentStep={6} badge={<Badge variant='secondary'>Draft</Badge>} />
       </div>
 
       <div className='grid gap-6 lg:grid-cols-3'>
@@ -140,58 +193,77 @@ export function ReportView({ surveyId }: ReportViewProps) {
           <div className='rounded-lg border bg-background'>
             <div className='border-b bg-muted/30 px-4 py-3'>
               <div className='flex items-center gap-3'>
-                <div className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded'>
-                  <Icons.sparkles className='h-3.5 w-3.5' />
-                </div>
                 <div>
-                  <h3 className='font-semibold'>AI-Generated Report</h3>
-                  <p className='text-muted-foreground text-xs'>Key findings and recommendations from your survey</p>
+                  <h3 className='font-semibold text-primary'>AI-Generated Report</h3>
+                  <p className='text-muted-foreground text-xs'>
+                    Key findings and recommendations from your survey
+                  </p>
                 </div>
-                <Badge variant='secondary' className='ml-auto text-xs'>{sections.length} sections</Badge>
+                <Badge variant='secondary' className='ml-auto text-xs'>
+                  {sections.length} sections
+                </Badge>
               </div>
             </div>
             <div className='p-4'>
-              <div className='flex gap-2'>
-                <Button onClick={handleGenerateReport} disabled={isGenerating}>
-                  {isGenerating ? (
-                    <>
-                      <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Icons.sparkles className='mr-2 h-4 w-4' />
-                      Regenerate Report
-                    </>
-                  )}
-                </Button>
-                <Button variant='outline' onClick={() => handleExport('docx')}>
-                  <Icons.fileTypeDoc className='mr-2 h-4 w-4' />
-                  Export DOCX
-                </Button>
-                <Button variant='outline' onClick={() => handleExport('pdf')}>
-                  <Icons.fileTypePdf className='mr-2 h-4 w-4' />
-                  Export PDF
-                </Button>
+              {/* Report stats */}
+              <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+                {reportStats.map((stat) => (
+                  <div key={stat.label} className='flex items-center gap-2.5 rounded-lg bg-muted/40 px-3 py-2'>
+                    {stat.icon}
+                    <div className='min-w-0'>
+                      <p className='text-muted-foreground text-[10px] font-medium uppercase tracking-wide'>
+                        {stat.label}
+                      </p>
+                      <p className='text-sm font-semibold'>{stat.value}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
+
+              {/* Generation meta */}
+              <div className='mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground'>
+                <span className='flex items-center gap-1.5'>
+                  <Icons.calendar className='h-3.5 w-3.5' />
+                  Generated {formatDate(report.createdAt)}
+                </span>
+                <span className='flex items-center gap-1.5'>
+                  <Icons.sparkles className='h-3.5 w-3.5' />
+                  {report.model}
+                </span>
+                <span className='flex items-center gap-1.5'>
+                  <Icons.page className='h-3.5 w-3.5' />
+                  {totalWords.toLocaleString()} words
+                </span>
+              </div>
+
             </div>
           </div>
 
           {/* Report sections */}
-          {sections.map((section) => (
+          {sections.map((section, index) => (
             <div key={section.id} className='rounded-lg border bg-background'>
               <div className='border-b bg-muted/30 px-4 py-3'>
-                <div className='flex items-center justify-between'>
-                  <h3 className='font-semibold'>{section.title}</h3>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    onClick={() =>
-                      setActiveSection(activeSection === section.id ? null : section.id)
-                    }
-                  >
-                    <Icons.edit className='h-3.5 w-3.5' />
-                  </Button>
+                <div className='flex items-center justify-between gap-3'>
+                  <div className='flex min-w-0 items-center gap-2.5'>
+                    <span className='bg-primary text-primary-foreground flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold'>
+                      {index + 1}
+                    </span>
+                    <h3 className='truncate font-semibold'>{section.title}</h3>
+                  </div>
+                  <div className='flex shrink-0 items-center gap-2'>
+                    <span className='text-muted-foreground text-xs'>
+                      {countWords(section.content).toLocaleString()} words
+                    </span>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() =>
+                        setActiveSection(activeSection === section.id ? null : section.id)
+                      }
+                    >
+                      <Icons.edit className='h-3.5 w-3.5' />
+                    </Button>
+                  </div>
                 </div>
               </div>
               <div className='p-4'>
@@ -199,6 +271,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   <div className='space-y-3'>
                     <textarea
                       value={section.content}
+                      aria-label={`Edit ${section.title}`}
                       onChange={(e) =>
                         setSections((prev) =>
                           prev.map((s) =>
@@ -212,6 +285,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
                       <Button
                         size='sm'
                         onClick={() => {
+                          if (!section.content.trim()) {
+                            toast.error('Section cannot be empty', {
+                              description: 'Add some content before saving.'
+                            });
+                            return;
+                          }
                           setActiveSection(null);
                           toast.success('Section updated');
                         }}
@@ -229,8 +308,8 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className='prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap'>
-                    {section.content}
+                  <div className='max-w-none space-y-1 text-sm leading-relaxed text-foreground/90'>
+                    {renderSectionContent(section.content)}
                   </div>
                 )}
               </div>
@@ -239,78 +318,78 @@ export function ReportView({ surveyId }: ReportViewProps) {
         </div>
 
         {/* Sidebar */}
-        <div className='space-y-6'>
-          {/* Primary Action - Back to Analytics */}
-          <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
-            <div
-              className='pointer-events-none absolute inset-0'
-              style={{
-                backgroundImage:
-                  'linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-                maskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)'
-              }}
-            />
-            <div className='relative space-y-4 p-5'>
-              <div className='space-y-1.5'>
-                <h3 className='text-base font-semibold text-primary-foreground'>Final Step</h3>
-                <p className='text-primary-foreground/80 text-xs leading-relaxed'>
-                  Edit sections and use the chat sidebar to request changes from AI
+        <div className='sticky top-[4.5rem] self-start space-y-6'>
+          {/* Report Chat */}
+          <div className='overflow-hidden rounded-lg border bg-background'>
+            <div className='flex items-center gap-3 border-b bg-primary px-4 py-3'>
+              <div className='min-w-0 flex-1'>
+                <h3 className='text-sm font-semibold text-primary-foreground'>Report Chat</h3>
+                <p className='truncate text-primary-foreground/75 text-xs'>
+                  Ask AI to revise sections
                 </p>
               </div>
-              <Link href={`/dashboard/surveys/${surveyId}/analytics`} className='w-full'>
-                <Button className='w-full' size='lg' variant='secondary'>
-                  Back to Analytics
-                  <Icons.arrowRight className='ml-2 h-4 w-4' />
-                </Button>
-              </Link>
-              <p className='text-primary-foreground/60 text-center text-[11px]'>
-                Export as DOCX or PDF when ready
-              </p>
+              <span className='flex shrink-0 items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white'>
+                <Icons.sparkles className='h-3 w-3' />
+                {report.model}
+              </span>
             </div>
-          </div>
 
-          <Separator />
-
-          {/* Report Chat */}
-          <div className='rounded-lg border bg-background'>
-            <div className='border-b bg-muted/30 px-4 py-3'>
-              <div className='flex items-center gap-3'>
-                <div className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded'>
-                  <Icons.chat className='h-3.5 w-3.5' />
-                </div>
-                <div>
-                  <h3 className='font-semibold'>Report Chat</h3>
-                  <p className='text-muted-foreground text-xs'>Ask AI to revise sections</p>
-                </div>
-              </div>
-            </div>
-            <div className='flex flex-col p-4'>
+            <div className='flex flex-col gap-3 p-4'>
               {/* Messages */}
-              <div className='mb-4 max-h-[300px] space-y-3 overflow-y-auto'>
+              <div
+                ref={messagesEndRef}
+                aria-live='polite'
+                className='flex min-h-[260px] max-h-[420px] flex-col gap-3 overflow-y-auto pr-1'
+              >
                 {chatMessages.map((msg, i) => (
                   <div
                     key={i}
                     className={cn(
-                      'max-w-[85%] rounded-lg px-3 py-2 text-sm',
+                      'max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                       msg.role === 'user'
-                        ? 'bg-primary/10 ml-auto'
-                        : 'bg-muted mr-auto'
+                        ? 'bg-primary self-end rounded-br-md text-primary-foreground'
+                        : 'bg-primary/10 self-start rounded-bl-md text-foreground/90'
                     )}
                   >
                     {msg.content}
                   </div>
                 ))}
+                {isReplying && (
+                  <div className='bg-primary/10 flex items-center gap-1 self-start rounded-2xl rounded-bl-md px-3.5 py-3'>
+                    <span className='bg-primary/50 h-1.5 w-1.5 animate-bounce rounded-full' />
+                    <span className='bg-primary/50 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:150ms]' />
+                    <span className='bg-primary/50 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:300ms]' />
+                  </div>
+                )}
               </div>
-              <Separator className='mb-4' />
+
+              {/* Quick prompts */}
+              {chatMessages.length === 1 && (
+                <div className='flex flex-wrap gap-1.5'>
+                  {['Make it more concise', 'Expand key findings', 'Rewrite the summary'].map(
+                    (prompt) => (
+                      <button
+                        key={prompt}
+                        type='button'
+                        onClick={() => handleSendMessage(prompt)}
+                        className='text-primary hover:bg-primary/10 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[11px] font-medium transition-colors'
+                      >
+                        {prompt}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+
+              <Separator />
+
               {/* Input */}
-              <div className='flex gap-2'>
+              <div className='flex items-center gap-2'>
                 <Input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder='Ask to revise the report...'
-                  className='flex-1'
+                  className='h-9 flex-1'
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -320,9 +399,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
                 />
                 <Button
                   size='icon'
-                  onClick={handleSendMessage}
-                  disabled={!chatInput.trim()}
-                  className='shrink-0'
+                  onClick={() => handleSendMessage()}
+                  disabled={!chatInput.trim() || isReplying}
+                  aria-label='Send message'
+                  className='h-9 w-9 shrink-0'
                 >
                   <Icons.send className='h-4 w-4' />
                 </Button>
@@ -330,23 +410,69 @@ export function ReportView({ surveyId }: ReportViewProps) {
             </div>
           </div>
 
-          <Separator />
-
           {/* Quick Actions */}
           <div className='rounded-lg border bg-background p-4'>
-            <h3 className='mb-3 text-sm font-semibold'>Actions</h3>
-            <div className='space-y-2'>
-              <Link href={`/dashboard/surveys/${surveyId}/analytics`} className='w-full'>
-                <Button variant='outline' className='w-full justify-start'>
-                  <Icons.analytics className='mr-2 h-4 w-4' />
+           
+
+            {/* Generate + export buttons */}
+            <div className='flex flex-col items-stretch gap-2'>
+              <Button
+                onClick={handleGenerateReport}
+                disabled={isGenerating}
+                className='py-2 flex-1 whitespace-nowrap shadow-sm'
+              >
+                {isGenerating ? (
+                  <Icons.spinner className='size-4 animate-spin' />
+                ) : (
+                  <Icons.sparkles className='size-4' />
+                )}
+                Regenerate Report
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() => handleExport('docx')}
+                className='bg-background hover:bg-muted/50 py-2 flex-1 whitespace-nowrap'
+              >
+                <Icons.fileTypeDoc className='size-4' />
+                DOCX
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() => handleExport('pdf')}
+                className='bg-background hover:bg-muted/50 py-2 flex-1 whitespace-nowrap'
+              >
+                <Icons.fileTypePdf className='size-4' />
+                PDF
+              </Button>
+            </div>
+
+            <Separator className='my-4' />
+
+            {/* Navigation */}
+            <div className='space-y-1'>
+              <Link
+                href={`/dashboard/surveys/${surveyId}/analytics`}
+                className='group flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60'
+              >
+                <span className='bg-primary/10 text-primary group-hover:bg-primary/20 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors'>
+                  <Icons.analytics className='size-4' />
+                </span>
+                <span className='min-w-0 flex-1 truncate text-sm font-medium'>
                   View Analytics
-                </Button>
+                </span>
+                <Icons.arrowRight className='text-muted-foreground size-4 transition-all group-hover:translate-x-0.5 group-hover:text-primary' />
               </Link>
-              <Link href={`/dashboard/surveys/${surveyId}/review`} className='w-full'>
-                <Button variant='outline' className='w-full justify-start'>
-                  <Icons.review className='mr-2 h-4 w-4' />
+              <Link
+                href={`/dashboard/surveys/${surveyId}/review`}
+                className='group flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60'
+              >
+                <span className='bg-primary/10 text-primary group-hover:bg-primary/20 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors'>
+                  <Icons.review className='size-4' />
+                </span>
+                <span className='min-w-0 flex-1 truncate text-sm font-medium'>
                   Review Survey
-                </Button>
+                </span>
+                <Icons.arrowRight className='text-muted-foreground size-4 transition-all group-hover:translate-x-0.5 group-hover:text-primary' />
               </Link>
             </div>
           </div>

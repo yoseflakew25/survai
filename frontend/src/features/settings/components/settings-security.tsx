@@ -13,7 +13,7 @@ export function SettingsSecurity() {
   const [showApiKey, setShowApiKey] = useState(false);
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4'>
       {/* Two-Factor Authentication */}
       <div className='rounded-xl border bg-card'>
         <div className='border-b px-6 py-4'>

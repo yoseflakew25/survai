@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { triggerReview } from '../api/service';
 import type { ReviewerReport } from '../api/types';
 

@@ -458,7 +458,7 @@ function SecuritySection({
                   <p className='text-destructive text-xs'>{passwordErrors.newPassword.message}</p>
                 )}
                 {newPasswordValue && (
-                  <div className='space-y-1.5'>
+                  <div >
                     <div className='flex gap-1'>
                       {[1, 2, 3, 4, 5].map((i) => (
                         <div

@@ -17,7 +17,7 @@ import { Icons } from '@/components/icons';
 import { useMutation } from '@tanstack/react-query';
 import { createUserMutation, updateUserMutation } from '../api/mutations';
 import type { User } from '../api/types';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { userSchema, type UserFormValues } from '../schemas/user';
 import { ROLE_OPTIONS } from './users-table/options';
 

@@ -1,27 +1,30 @@
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
+import type { Icon } from '@/components/icons';
 import type { AnalyticsSummary } from '../api/types';
 
 interface AnalyticsSummaryStatsProps {
   summary: AnalyticsSummary;
 }
 
+interface Stat {
+  title: string;
+  value: string;
+  description: string;
+  icon: Icon;
+  trend: string;
+  trendUp: boolean;
+}
+
 export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
-  const stats = [
+  const stats: Stat[] = [
     {
       title: 'Total Responses',
       value: summary.responseCount.toLocaleString(),
       description: 'Collected responses',
-      icon: Icons.user as React.ComponentType<{ className?: string }>,
+      icon: Icons.user,
       trend: '+12.5%',
       trendUp: true
     },
@@ -29,7 +32,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
       title: 'Completion Rate',
       value: `${summary.completionRate}%`,
       description: 'Finished the survey',
-      icon: Icons.circleCheck as React.ComponentType<{ className?: string }>,
+      icon: Icons.circleCheck,
       trend: '+4.2%',
       trendUp: true
     },
@@ -37,51 +40,45 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
       title: 'Avg. Time',
       value: `${summary.avgCompletionMinutes} min`,
       description: 'To complete survey',
-      icon: Icons.clock as React.ComponentType<{ className?: string }>,
+      icon: Icons.clock,
       trend: '-1.3 min',
-      trendUp: true
+      trendUp: false
     },
     {
       title: 'Required Questions',
       value: '8',
       description: 'Out of 10 total',
-      icon: Icons.forms as React.ComponentType<{ className?: string }>,
+      icon: Icons.forms,
       trend: '',
       trendUp: true
     }
   ];
 
   return (
-    <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+    <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
       {stats.map((stat) => (
-        <Card key={stat.title}>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center justify-between'>
-              <CardDescription>{stat.description}</CardDescription>
-              <stat.icon className='text-muted-foreground h-4 w-4' />
-            </div>
-            <CardTitle className='text-2xl font-semibold tabular-nums'>
-              {stat.value}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='flex items-center justify-between'>
-              <span className='text-muted-foreground text-xs'>
-                {stat.title}
-              </span>
-              {stat.trend && (
-                <Badge variant='outline' className='text-[10px]'>
-                  {stat.trendUp ? (
-                    <Icons.trendingUp className='mr-0.5 h-2.5 w-2.5' />
-                  ) : (
-                    <Icons.trendingDown className='mr-0.5 h-2.5 w-2.5' />
-                  )}
-                  {stat.trend}
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div key={stat.title} className='rounded-lg bg-muted/40 p-3'>
+          <div className='flex items-center justify-between gap-2'>
+            <p className='text-muted-foreground text-[10px] font-medium tracking-wide uppercase'>
+              {stat.title}
+            </p>
+            <stat.icon className='text-primary h-4 w-4 shrink-0' />
+          </div>
+          <div className='mt-1 flex items-center justify-between gap-2'>
+            <p className='text-xl font-semibold tabular-nums'>{stat.value}</p>
+            {stat.trend && (
+              <Badge variant='outline' className='text-[10px]'>
+                {stat.trendUp ? (
+                  <Icons.trendingUp className='h-2.5 w-2.5' />
+                ) : (
+                  <Icons.trendingDown className='h-2.5 w-2.5' />
+                )}
+                {stat.trend}
+              </Badge>
+            )}
+          </div>
+          <p className='text-muted-foreground mt-1 text-xs'>{stat.description}</p>
+        </div>
       ))}
     </div>
   );

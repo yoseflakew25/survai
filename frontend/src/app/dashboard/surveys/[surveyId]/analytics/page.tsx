@@ -3,6 +3,7 @@ import { getQueryClient } from '@/lib/query-client';
 import {
   analyticsSummaryOptions,
   distributionsOptions,
+  crossTabOptions,
   savedAnalysesOptions
 } from '@/features/analytics/api/queries';
 import {
@@ -27,14 +28,12 @@ export default async function AnalyticsPage({
   const queryClient = getQueryClient();
   void queryClient.prefetchQuery(analyticsSummaryOptions(surveyId));
   void queryClient.prefetchQuery(distributionsOptions(surveyId));
+  void queryClient.prefetchQuery(crossTabOptions(surveyId));
   void queryClient.prefetchQuery(savedAnalysesOptions(surveyId));
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer
-        pageTitle='Analytics'
-        pageDescription='Explore response data with charts, distributions, and cross-tabs'
-      >
+      <PageContainer>
         <Suspense fallback={<AnalyticsDashboardSkeleton />}>
           <AnalyticsDashboard surveyId={surveyId} />
         </Suspense>

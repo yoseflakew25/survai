@@ -43,7 +43,7 @@ export function PlanDetailSkeleton() {
         <Skeleton className='h-64 w-full rounded-xl' />
         <Skeleton className='h-48 w-full rounded-xl' />
       </div>
-      <div className='space-y-6'>
+      <div className='space-y-4'>
         <Skeleton className='h-32 w-full rounded-xl' />
         <Skeleton className='h-48 w-full rounded-xl' />
         <Skeleton className='h-32 w-full rounded-xl' />

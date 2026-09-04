@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { ReviewerFinding, FindingStatus } from '../api/types';
 import { getIssueTypeMeta } from '../api/types';
 import { updateFindingStatus } from '../api/service';

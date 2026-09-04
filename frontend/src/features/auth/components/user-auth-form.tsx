@@ -3,7 +3,7 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
 import { useTransition } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import * as z from 'zod';
 import GithubSignInButton from './github-auth-button';
 

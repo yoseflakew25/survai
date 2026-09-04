@@ -22,7 +22,7 @@ export function PokemonInfo() {
   const { data } = useSuspenseQuery(pokemonOptions(pokemonId));
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4'>
       {/* Pokemon selector */}
       <Card>
         <CardHeader>

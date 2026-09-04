@@ -17,11 +17,13 @@ import { cn } from '@/lib/utils';
 interface DataTablePaginationProps<TData> extends React.ComponentProps<'div'> {
   table: Table<TData>;
   pageSizeOptions?: number[];
+  rowNoun?: string;
 }
 
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 30, 50],
+  rowNoun = 'surveys',
   className,
   ...props
 }: DataTablePaginationProps<TData>) {
@@ -50,7 +52,7 @@ export function DataTablePagination<TData>({
         ) : (
           <span>
             <span className='text-foreground font-medium'>{totalRows}</span>
-            {' '}surveys
+            {' '}{rowNoun}
           </span>
         )}
       </div>

@@ -12,7 +12,7 @@ export function SettingsGeneral() {
   const { user } = useAuth();
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4'>
       {/* Organization */}
       <div className='rounded-xl border bg-card'>
         <div className='border-b px-6 py-4'>

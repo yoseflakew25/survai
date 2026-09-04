@@ -7,7 +7,7 @@ import { Icons } from '@/components/icons';
 export default function ExclusivePage() {
   return (
     <PageContainer>
-      <div className='space-y-6'>
+      <div className='space-y-4'>
         <div>
           <h1 className='flex items-center gap-2 text-3xl font-bold tracking-tight'>
             <Icons.badgeCheck className='h-7 w-7 text-green-600' />

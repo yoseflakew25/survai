@@ -11,7 +11,7 @@ export default function FormCardSkeleton() {
       <CardContent>
         <div className='space-y-8'>
           {/* Image upload area skeleton */}
-          <div className='space-y-6'>
+          <div className='space-y-4'>
             <Skeleton className='h-4 w-16' /> {/* Label */}
             <Skeleton className='h-32 w-full rounded-lg' /> {/* Upload area */}
           </div>

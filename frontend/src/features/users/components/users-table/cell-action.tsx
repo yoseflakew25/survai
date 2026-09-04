@@ -14,7 +14,7 @@ import type { User } from '../../api/types';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { UserFormSheet } from '../user-form-sheet';
 
 interface CellActionProps {

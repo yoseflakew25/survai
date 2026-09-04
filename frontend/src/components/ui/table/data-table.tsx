@@ -23,6 +23,7 @@ interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   emptyIcon?: React.ReactNode;
   emptyTitle?: string;
   emptyDescription?: string;
+  rowNoun?: string;
 }
 
 export function DataTable<TData>({
@@ -31,7 +32,8 @@ export function DataTable<TData>({
   children,
   emptyIcon,
   emptyTitle,
-  emptyDescription
+  emptyDescription,
+  rowNoun = 'surveys'
 }: DataTableProps<TData>) {
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
 
@@ -141,7 +143,7 @@ export function DataTable<TData>({
 
       {/* Pagination */}
       <div className='flex flex-col gap-2.5'>
-        <DataTablePagination table={table} />
+        <DataTablePagination table={table} rowNoun={rowNoun} />
         {actionBar &&
           table.getFilteredSelectedRowModel().rows.length > 0 &&
           actionBar}

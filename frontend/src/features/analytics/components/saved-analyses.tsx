@@ -1,13 +1,5 @@
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import type { SavedAnalysis } from '../api/types';
@@ -18,27 +10,19 @@ interface SavedAnalysesProps {
 
 export function SavedAnalyses({ analyses }: SavedAnalysesProps) {
   return (
-    <Card>
-      <CardHeader>
-        <div className='flex items-start justify-between gap-2'>
-          <div>
-            <CardTitle className='text-base'>Saved Analyses</CardTitle>
-            <CardDescription>
-              Reusable chart configurations
-            </CardDescription>
-          </div>
+    <div className='rounded-lg border bg-background p-4'>
+      <div className='mb-3'>
+        <h3 className='text-md font-semibold text-primary'>Saved Analyses</h3>
+        <p className='text-muted-foreground text-xs'>Reusable chart configurations</p>
+      </div>
+      {analyses.length === 0 ? (
+        <div className='flex flex-col items-center py-6 text-center'>
+          <Icons.analytics className='text-muted-foreground/30 mb-2 h-8 w-8' />
+          <p className='text-muted-foreground text-sm'>No saved analyses yet</p>
         </div>
-      </CardHeader>
-      <CardContent className='space-y-3'>
-        {analyses.length === 0 ? (
-          <div className='flex flex-col items-center py-6 text-center'>
-            <Icons.analytics className='text-muted-foreground/30 mb-2 h-8 w-8' />
-            <p className='text-muted-foreground text-sm'>
-              No saved analyses yet
-            </p>
-          </div>
-        ) : (
-          analyses.map((analysis) => {
+      ) : (
+        <div className='space-y-2'>
+          {analyses.map((analysis) => {
             const chartType = (analysis.chartConfig?.type as string) ?? 'bar';
             return (
               <div
@@ -53,9 +37,7 @@ export function SavedAnalyses({ analyses }: SavedAnalysesProps) {
                   )}
                 </div>
                 <div className='min-w-0 flex-1'>
-                  <p className='truncate text-sm font-medium'>
-                    {analysis.name}
-                  </p>
+                  <p className='truncate text-sm font-medium text-primary'>{analysis.name}</p>
                   <p className='text-muted-foreground text-xs'>
                     {new Date(analysis.createdAt).toLocaleDateString()} ·{' '}
                     {chartType === 'crosstab' ? 'Cross-tab' : 'Bar chart'}
@@ -66,9 +48,9 @@ export function SavedAnalyses({ analyses }: SavedAnalysesProps) {
                 </Button>
               </div>
             );
-          })
-        )}
-      </CardContent>
-    </Card>
+          })}
+        </div>
+      )}
+    </div>
   );
 }

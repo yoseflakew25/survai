@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { Survey, Section, Question, SurveyDraftOutput, QuestionType } from '../api/types';
 import { SectionCard } from './section-card';
 import { AIGenerationPanel } from './ai-generation-panel';

@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { SurveyStepper } from '@/components/survey-stepper';
 import { Icons } from '@/components/icons';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { QualityScore } from './quality-score';
 import { updateQuestion } from '@/features/builder/api/service';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import type { ReviewerReport } from '../api/types';
 import type { Survey, Section, Question, QuestionType, QuestionOption } from '@/features/builder/api/types';
@@ -89,7 +90,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   // Show loading state during AI generation
   if (isGenerating) {
     return (
-      <div className='space-y-6'>
+      <div className='space-y-4'>
         {/* Progress indicator */}
         <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
           <div
@@ -201,9 +202,21 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
       </div>
 
+      {/* Progress indicator */}
+      <SurveyStepper
+        currentStep={3}
+        badge={
+          <Badge variant='secondary'>
+            {survey.status === 'published' || survey.status === 'closed'
+              ? 'Published'
+              : 'Draft'}
+          </Badge>
+        }
+      />
+
       <div className='grid gap-6 lg:grid-cols-[1fr_340px]'>
         {/* Main content */}
-        <div className='space-y-6'>
+        <div className='space-y-4'>
           <div className='space-y-4'>
             {survey.sections.map((section, sIdx) => (
               <SectionReviewCard
@@ -230,7 +243,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               }}
             />
             <div className='relative space-y-4 p-5'>
-              <div className='space-y-1.5'>
+              <div >
                 <h3 className='text-lg font-semibold text-primary-foreground'>
                   Ready to Collect?
                 </h3>
@@ -264,57 +277,8 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             />
           )}
 
-          <Separator />
 
-          {/* Survey Stats */}
-          <div className='rounded-lg border bg-background p-4'>
-            <h3 className='mb-3 text-sm font-semibold'>Survey Overview</h3>
-            <div className='space-y-2 text-sm'>
-              <div className='flex justify-between'>
-                <span className='text-muted-foreground'>Sections</span>
-                <span className='font-medium'>{survey.sections.length}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-muted-foreground'>Total Questions</span>
-                <span className='font-medium'>{totalQuestions}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-muted-foreground'>Required</span>
-                <span className='font-medium'>
-                  {survey.sections.reduce(
-                    (sum, s) => sum + s.questions.filter(q => q.isRequired).length,
-                    0
-                  )}
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-muted-foreground'>AI-generated</span>
-                <span className='font-medium'>
-                  {survey.sections.reduce(
-                    (sum, s) => sum + s.questions.filter(q => q.source === 'ai_generated').length,
-                    0
-                  )}
-                </span>
-              </div>
-              {localReport && (
-                <>
-                  <Separator className='my-2' />
-                  <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Quality Score</span>
-                    <span className='font-medium'>
-                      {localReport.overallQualityScore.toFixed(1)}/5.0
-                    </span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Open Findings</span>
-                    <span className='font-medium'>
-                      {localReport.findings.filter(f => f.status === 'open').length}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>
@@ -541,7 +505,7 @@ function QuestionReviewItem({ question, index }: { question: Question; index: nu
         {isEditing && (editType === 'single_choice' || editType === 'multiple_choice' || editType === 'dropdown') && (
           <div className='space-y-2 rounded-md border border-dashed p-2'>
             <p className='text-muted-foreground text-[10px] font-medium uppercase'>Options</p>
-            <div className='space-y-1.5'>
+            <div >
               {editOptions.map((opt) => (
                 <div key={opt.id} className='flex items-center gap-2'>
                   <span className='text-muted-foreground w-4 text-center text-[10px]'>•</span>

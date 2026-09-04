@@ -25,7 +25,7 @@ export function CollectionProgress({
   return (
     <div className={cn('space-y-3', className)}>
       {/* Overall progress */}
-      <div className='space-y-1.5'>
+      <div >
         <div className='flex items-center justify-between text-xs'>
           <span className='text-muted-foreground'>
             {totalAnswered} of {totalRequired} required questions answered

@@ -18,7 +18,7 @@ import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useRouter } from 'next/navigation';
 import { newSurveySchema, type NewSurveyValues } from '../schemas/survey.schema';
 import { createPlanWithAI } from '@/features/plans/api/service';
@@ -181,7 +181,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
           {/* Step 1: Details */}
           {step === 1 && (
             <div className='space-y-5 animate-in fade-in slide-in-from-right-2 duration-200'>
-              <div className='space-y-1.5'>
+              <div >
                 <div className='flex items-center gap-2'>
                  
                   <h3 className='text-sm font-semibold'>Survey Details</h3>
@@ -233,7 +233,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
           {/* Step 2: Research Goal */}
           {step === 2 && (
             <div className='space-y-5 animate-in fade-in slide-in-from-right-2 duration-200'>
-              <div className='space-y-1.5'>
+              <div >
                 <div className='flex items-center gap-2'>
                   <div className='bg-primary/10 flex size-7 items-center justify-center rounded-md'>
                     <Icons.sparkles className='text-primary size-4' />
@@ -270,7 +270,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                     <div className='bg-primary/10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded'>
                       <Icons.sparkles className='text-primary size-3.5' />
                     </div>
-                    <div className='space-y-1.5'>
+                    <div >
                       <p className='text-xs font-semibold'>AI will generate</p>
                       <ul className='text-muted-foreground space-y-1 text-xs'>
                         <li className='flex items-start gap-1.5'>
@@ -300,7 +300,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
           {/* Step 3: Preview */}
           {step === 3 && (
             <div className='space-y-5 animate-in fade-in slide-in-from-right-2 duration-200'>
-              <div className='space-y-1.5'>
+              <div >
                 <div className='flex items-center gap-2'>
                   <div className='bg-primary/10 flex size-7 items-center justify-center rounded-md'>
                     <Icons.eyeOff className='text-primary size-4' />

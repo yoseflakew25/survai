@@ -1,87 +1,93 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
+import { surveyByIdOptions, surveyKeys } from '@/features/builder/api/queries';
+import { collectStatsOptions } from '../api/queries';
+import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Heading } from '@/components/ui/heading';
+import { SurveyStepper } from '@/components/survey-stepper';
 import { Icons } from '@/components/icons';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface CollectViewProps {
   surveyId: string;
-  surveyTitle: string;
-  status: string;
-  responseCount: number;
 }
 
-export function CollectView({
-  surveyId,
-  surveyTitle,
-  status,
-  responseCount
-}: CollectViewProps) {
+export function CollectView({ surveyId }: CollectViewProps) {
+  const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
+  const { data: stats } = useSuspenseQuery(collectStatsOptions(surveyId));
+  const queryClient = useQueryClient();
+
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublished, setIsPublished] = useState(
-    status === 'published' || status === 'closed'
-  );
+  const [publishedOverride, setPublishedOverride] = useState<boolean | null>(null);
+
+  if (!survey) {
+    notFound();
+  }
+
+  const isPublished =
+    publishedOverride ?? (survey.status === 'published' || survey.status === 'closed');
 
   const collectionUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${surveyId}`;
 
   const handlePublish = useCallback(async () => {
     setIsPublishing(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsPublished(true);
-    setIsPublishing(false);
-    toast.success('Survey published!', {
-      description: 'Your survey is now accepting responses.'
-    });
-  }, []);
+    try {
+      await new Promise((r) => setTimeout(r, 1500));
+      // Simulate a service failure so the error path is exercised
+      if (Math.random() < 0.15) {
+        throw new Error('Publish service unavailable');
+      }
+      setPublishedOverride(true);
+      queryClient.invalidateQueries({ queryKey: surveyKeys.detail(surveyId) });
+      toast.success('Survey published!', {
+        description: 'Your survey is now accepting responses.'
+      });
+    } catch {
+      toast.error('Publish failed', {
+        description: 'Could not publish your survey. Please try again.'
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [surveyId, queryClient]);
 
-  const handleCopyLink = useCallback(() => {
-    navigator.clipboard.writeText(collectionUrl);
-    toast.success('Link copied!', {
-      description: 'Collection link copied to clipboard.'
-    });
+  const handleCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(collectionUrl);
+      toast.success('Link copied!', {
+        description: 'Collection link copied to clipboard.'
+      });
+    } catch {
+      toast.error('Copy failed', {
+        description: 'Could not copy the link. Please copy it manually.'
+      });
+    }
   }, [collectionUrl]);
 
   return (
-    <div className='space-y-6'>
-      {/* Progress indicator */}
-      <div className='rounded-xl border bg-muted/30 p-4'>
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Plan Created</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Plan Approved</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>✓</span>
-              <span className='text-sm font-medium'>Review Survey</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>4</span>
-              <span className='text-sm font-medium'>Collect Responses</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-4 w-4' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-muted text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold'>5</span>
-              <span className='text-muted-foreground text-sm'>Analytics</span>
-            </div>
-          </div>
-          <Badge variant={isPublished ? 'default' : 'secondary'}>
-            {isPublished ? 'Published' : 'Draft'}
-          </Badge>
-        </div>
+    <div className='space-y-4'>
+      {/* Header + progress stepper side by side */}
+      <div className='flex items-end justify-between gap-4'>
+        <Heading
+          title='Collect Responses'
+          description='Publish your survey and share it with respondents'
+        />
+        <SurveyStepper
+          currentStep={4}
+          badge={
+            <Badge variant={isPublished ? 'default' : 'secondary'}>
+              {isPublished ? 'Published' : 'Draft'}
+            </Badge>
+          }
+        />
       </div>
 
       <div className='grid gap-6 lg:grid-cols-3'>
@@ -107,8 +113,8 @@ export function CollectView({
               {!isPublished ? (
                 <div className='space-y-4'>
                   <div className='rounded-lg border border-dashed p-8 text-center'>
-                    <div className='bg-muted mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full'>
-                      <Icons.collect className='text-muted-foreground h-6 w-6' />
+                    <div className='bg-primary/10 text-primary mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full'>
+                      <Icons.collect className='h-6 w-6' />
                     </div>
                     <p className='mb-1 text-sm font-medium'>This survey is not yet published</p>
                     <p className='text-muted-foreground text-xs'>
@@ -146,9 +152,9 @@ export function CollectView({
 
                   {/* Collection link */}
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>Collection Link</label>
+                    <label htmlFor='collection-link' className='text-sm font-medium'>Collection Link</label>
                     <div className='flex gap-2'>
-                      <Input value={collectionUrl} readOnly className='font-mono text-sm' />
+                      <Input id='collection-link' value={collectionUrl} readOnly className='font-mono text-sm' />
                       <Button variant='outline' onClick={handleCopyLink} className='shrink-0'>
                         <Icons.share className='mr-1 h-4 w-4' />
                         Copy
@@ -196,7 +202,7 @@ export function CollectView({
         </div>
 
         {/* Sidebar */}
-        <div className='space-y-6'>
+        <div className='sticky top-[4.5rem] self-start space-y-6'>
           {/* Primary Action - View Analytics */}
           <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
             <div
@@ -210,11 +216,11 @@ export function CollectView({
               }}
             />
             <div className='relative space-y-4 p-5'>
-              <div className='space-y-1.5'>
-                <h3 className='text-base font-semibold text-primary-foreground'>View Results?</h3>
-                <p className='text-primary-foreground/80 text-xs leading-relaxed'>
+              <div >
+                <h3 className='text-lg font-semibold text-primary-foreground'>View Results?</h3>
+                <p className='text-primary-foreground/80 text-sm leading-relaxed'>
                   {isPublished
-                    ? `Collecting responses — ${responseCount} received so far`
+                    ? `Collecting responses — ${stats.responseCount} received so far`
                     : 'Publish your survey to start collecting responses'}
                 </p>
               </div>
@@ -227,7 +233,6 @@ export function CollectView({
                   <Icons.arrowRight className='ml-2 h-4 w-4' />
                 </Button>
               </Link>
-            
             </div>
           </div>
 
@@ -239,7 +244,7 @@ export function CollectView({
             <div className='space-y-3'>
               <div className='flex items-center justify-between'>
                 <span className='text-muted-foreground text-sm'>Total responses</span>
-                <span className='text-2xl font-bold'>{responseCount}</span>
+                <span className='text-2xl font-bold'>{stats.responseCount}</span>
               </div>
               <Separator />
               <div className='flex justify-between text-sm'>
@@ -250,7 +255,7 @@ export function CollectView({
               </div>
               <div className='flex justify-between text-sm'>
                 <span className='text-muted-foreground'>Anonymous</span>
-                <span className='font-medium'>Yes</span>
+                <span className='font-medium'>{survey.anonymousCollection ? 'Yes' : 'No'}</span>
               </div>
             </div>
           </div>

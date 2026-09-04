@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 
 export function SettingsNotifications() {
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4'>
       {/* Email Notifications */}
       <div className='rounded-xl border bg-card'>
         <div className='border-b px-6 py-4'>

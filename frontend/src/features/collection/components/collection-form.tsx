@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { PublicSurvey, PublicSection, PublicQuestion, AnswerValue } from '../api/types';
 import { CollectionProgress } from './collection-progress';
 import { PublicQuestionInput } from './public-question-input';

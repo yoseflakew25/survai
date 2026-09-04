@@ -54,7 +54,7 @@ export default function BillingPage() {
       pageTitle='Billing & Plans'
       pageDescription={`Manage your subscription and usage limits for ${user?.organizationName || 'your workspace'}`}
     >
-      <div className='space-y-6'>
+      <div className='space-y-4'>
         <Alert>
           <Icons.info className='h-4 w-4' />
           <AlertDescription>

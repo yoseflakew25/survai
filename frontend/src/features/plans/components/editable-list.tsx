@@ -151,7 +151,7 @@ export function EditableList({
           items={items.map((_, i) => `item-${i}`)}
           strategy={verticalListSortingStrategy}
         >
-          <div className='space-y-1.5'>
+          <div >
             {items.map((item, index) => (
               <SortableItem
                 key={`item-${index}`}

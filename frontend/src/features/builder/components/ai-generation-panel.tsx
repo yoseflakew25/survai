@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { SurveyDraftOutput } from '../api/types';
 import { generateSurveyDraft } from '../api/service';
 

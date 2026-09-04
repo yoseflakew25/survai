@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { revalidateLogic, useStore } from '@tanstack/react-form';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import * as z from 'zod';
 import { Icons } from '@/components/icons';
 import { FieldDescription, FieldGroup } from '@/components/ui/field';

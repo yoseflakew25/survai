@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import type { Plan, ProposedSection } from '../api/types';
 import { generatePlanWithAI, updatePlan } from '../api/service';
 import { createSurveyFromPlan } from '@/features/builder/api/service';
@@ -425,7 +425,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
               }}
             />
             <div className='relative space-y-4 p-5'>
-              <div className='space-y-1.5'>
+              <div >
                 <h3 className='text-lg font-semibold text-primary-foreground'>Ready to Generate?</h3>
                 <p className='text-primary-foreground/80 text-sm leading-relaxed'>
                   AI will generate survey questions based on your plan. You can review and edit them.

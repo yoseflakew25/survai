@@ -4,7 +4,7 @@ import { Icons } from '@/components/icons';
 import Image from 'next/image';
 import * as React from 'react';
 import Dropzone, { type DropzoneProps, type FileRejection } from 'react-dropzone';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';

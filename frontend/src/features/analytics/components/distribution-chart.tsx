@@ -10,13 +10,6 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { QuestionDistribution } from '../api/types';
 
@@ -40,22 +33,20 @@ export function DistributionChart({ distribution }: DistributionChartProps) {
   }));
 
   return (
-    <Card>
-      <CardHeader className='pb-2'>
-        <div className='flex items-start justify-between gap-2'>
-          <div className='min-w-0 flex-1'>
-            <CardTitle className='text-sm'>{distribution.questionText}</CardTitle>
-            <CardDescription className='mt-0.5 text-xs'>
-              {distribution.totalResponses} responses · {distribution.missingCount} missing
-            </CardDescription>
-          </div>
-          <Badge variant='outline' className='shrink-0 text-[10px]'>
-            {distribution.questionType.replace('_', ' ')}
-          </Badge>
+    <div className='rounded-lg bg-muted/40 p-4'>
+      <div className='flex items-start justify-between gap-2'>
+        <div className='min-w-0 flex-1'>
+          <p className='truncate text-sm font-medium'>{distribution.questionText}</p>
+          <p className='text-muted-foreground mt-0.5 text-xs'>
+            {distribution.totalResponses} responses · {distribution.missingCount} missing
+          </p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width='100%' height={220}>
+        <Badge variant='outline' className='shrink-0 text-[10px]'>
+          {distribution.questionType.replace('_', ' ')}
+        </Badge>
+      </div>
+      <div className='mt-3'>
+        <ResponsiveContainer width='100%' height={200}>
           <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray='3 3' vertical={false} />
             <XAxis
@@ -90,7 +81,7 @@ export function DistributionChart({ distribution }: DistributionChartProps) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

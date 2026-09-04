@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   getAnalyticsSummary,
   getQuestionDistributions,
+  getCrossTab,
   getSavedAnalyses
 } from './service';
 
@@ -15,6 +16,9 @@ export const analyticsKeys = {
   saved: (surveyId: string) => [...analyticsKeys.all, 'saved', surveyId] as const
 };
 
+// Default question pair used by the mock cross-tab view.
+const DEFAULT_CROSSTAB_IDS = { questionAId: 'q_001', questionBId: 'q_007' } as const;
+
 export const analyticsSummaryOptions = (surveyId: string) =>
   queryOptions({
     queryKey: analyticsKeys.summary(surveyId),
@@ -26,6 +30,17 @@ export const distributionsOptions = (surveyId: string) =>
   queryOptions({
     queryKey: analyticsKeys.distributions(surveyId),
     queryFn: () => getQuestionDistributions(surveyId),
+    enabled: !!surveyId
+  });
+
+export const crossTabOptions = (
+  surveyId: string,
+  questionAId = DEFAULT_CROSSTAB_IDS.questionAId,
+  questionBId = DEFAULT_CROSSTAB_IDS.questionBId
+) =>
+  queryOptions({
+    queryKey: analyticsKeys.crossTab(surveyId, questionAId, questionBId),
+    queryFn: () => getCrossTab(surveyId, questionAId, questionBId),
     enabled: !!surveyId
   });
 

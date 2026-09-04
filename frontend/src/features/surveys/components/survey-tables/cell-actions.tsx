@@ -55,9 +55,11 @@ export function CellActions({ data }: CellActionsProps) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <Icons.page className='mr-2 h-4 w-4' />
-            Duplicate
+          <DropdownMenuItem
+            onClick={() => router.push(`/dashboard/surveys/${data.id}/respondents`)}
+          >
+            <Icons.teams className='mr-2 h-4 w-4' />
+            Respondents
           </DropdownMenuItem>
           <DropdownMenuItem className='text-destructive'>
             <Icons.trash className='mr-2 h-4 w-4' />

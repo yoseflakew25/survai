@@ -38,7 +38,7 @@ import {
   deleteQuestion,
   reorderQuestions
 } from '../api/service';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 interface SectionManagerProps {
   surveyId: string;

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAppForm } from '@/lib/form';
 import * as z from 'zod';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
 import {
