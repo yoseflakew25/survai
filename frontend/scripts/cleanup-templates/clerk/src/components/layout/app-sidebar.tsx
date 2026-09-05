@@ -51,8 +51,13 @@ export default function AppSidebar() {
             {/* {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>} */}
             <SidebarMenu>
               {group.items.map((item) => {
-                const Icon = item.icon ? Icons[item.icon] : Icons.logo;
-                return item?.items && item?.items?.length > 0 ? (
+                const Icon =
+                  item.icon
+                    ? (Icons[item.icon] as React.ComponentType<React.SVGProps<SVGSVGElement>>)
+                    : null;
+                const hasChildren = item?.items && item?.items?.length > 0;
+
+                return hasChildren ? (
                   <Collapsible
                     key={item.title}
                     defaultOpen={item.isActive}
@@ -67,7 +72,9 @@ export default function AppSidebar() {
                         />
                       }
                     >
-                      {item.icon && <Icon />}
+                      {Icon && (
+                        <Icon className='size-4 shrink-0' />
+                      )}
                       <span>{item.title}</span>
                       <Icons.chevronRight className='ml-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
                     </CollapsibleTrigger>
@@ -93,7 +100,9 @@ export default function AppSidebar() {
                       tooltip={item.title}
                       isActive={pathname === item.url}
                     >
-                      <Icon />
+                      {Icon && (
+                        <Icon className='size-4 shrink-0' />
+                      )}
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

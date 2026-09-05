@@ -1,6 +1,7 @@
 'use client';
 
 import type { Column, ColumnDef } from '@tanstack/react-table';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import { Icons } from '@/components/icons';
@@ -42,7 +43,8 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
 }
 
-export const columns: ColumnDef<Respondent>[] = [
+export function createColumns(surveyId: string): ColumnDef<Respondent>[] {
+  return [
   {
     id: 'name',
     accessorFn: (row) => row.name,
@@ -50,15 +52,20 @@ export const columns: ColumnDef<Respondent>[] = [
       <DataTableColumnHeader column={column} title='Respondent' />
     ),
     cell: ({ row }) => (
-      <div className='flex items-center gap-3'>
+      <Link
+        href={`/dashboard/surveys/${surveyId}/respondents/${row.original.id}`}
+        className='group flex items-center gap-3 rounded-md focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none'
+      >
         <div className='bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold'>
           {initialsOf(row.original.name)}
         </div>
         <div className='min-w-0'>
-          <p className='truncate text-sm font-medium'>{row.original.name}</p>
+          <p className='text-sm font-medium underline-offset-4 group-hover:underline'>
+            {row.original.name}
+          </p>
           <p className='text-muted-foreground truncate text-xs'>{row.original.email}</p>
         </div>
-      </div>
+      </Link>
     ),
     meta: {
       label: 'Respondent',
@@ -120,4 +127,5 @@ export const columns: ColumnDef<Respondent>[] = [
       );
     }
   }
-];
+  ];
+}

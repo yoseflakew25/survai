@@ -37,37 +37,34 @@ export default async function RespondentsPage({
 function RespondentsPageSkeleton() {
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      {/* Header */}
+      {/* Header + stats in one row */}
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <div className='space-y-2'>
           <Skeleton className='h-8 w-44 rounded' />
           <Skeleton className='h-4 w-72 rounded' />
         </div>
-        <Skeleton className='h-6 w-28 rounded-full' />
+        <div className='grid flex-1 basis-[32rem] grid-cols-2 gap-3 sm:grid-cols-4'>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className='flex h-[4.25rem] w-full items-center gap-3 rounded-lg border bg-muted/40 p-3'>
+              <Skeleton className='size-9 shrink-0 rounded-md' />
+              <div className='flex-1 space-y-1.5'>
+                <Skeleton className='h-2.5 w-16 rounded' />
+                <Skeleton className='h-4 w-10 rounded' />
+              </div>
+            </Skeleton>
+          ))}
+        </div>
       </div>
 
-      {/* Stats tiles */}
-      <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className='h-[4.5rem] w-full rounded-lg' />
-        ))}
+      {/* Toolbar row */}
+      <div className='flex items-center gap-2 px-1 py-1'>
+        <Skeleton className='h-8 w-56 rounded-md' />
+        <Skeleton className='h-8 w-24 rounded-md' />
+        <Skeleton className='ml-auto h-8 w-20 rounded-md' />
       </div>
 
       {/* Table card */}
       <div className='overflow-hidden rounded-lg border bg-background'>
-        {/* Toolbar band */}
-        <div className='flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-muted/30 px-3 py-2'>
-          <div className='space-y-1.5'>
-            <Skeleton className='h-4 w-28 rounded' />
-            <Skeleton className='h-3 w-32 rounded' />
-          </div>
-          <div className='flex items-center gap-2'>
-            <Skeleton className='h-8 w-44 rounded-md' />
-            <Skeleton className='h-8 w-24 rounded-md' />
-            <Skeleton className='h-8 w-20 rounded-md' />
-          </div>
-        </div>
-
         {/* Table header */}
         <div className='flex gap-16 border-b bg-muted/50 px-4 py-3'>
           <Skeleton className='h-3 w-32 rounded' />

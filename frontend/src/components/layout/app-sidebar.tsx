@@ -23,6 +23,7 @@ import {
   SidebarRail,
   useSidebar
 } from '@/components/ui/sidebar';
+import type { ComponentType } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { navGroups } from '@/config/nav-config';
 import { useAuth } from '@/lib/auth-context';
@@ -74,7 +75,9 @@ export default function AppSidebar() {
           <SidebarGroup key={group.label || 'ungrouped'} className='py-0'>
             <SidebarMenu>
               {group.items.map((item) => {
-                const Icon = item.icon ? Icons[item.icon] : Icons.logo;
+                const IconComponent = item.icon
+                  ? (Icons[item.icon] as ComponentType<React.SVGProps<SVGSVGElement>>)
+                  : null;
                 const hasChildren = item?.items && item?.items.length > 0;
                 const isActive = pathname === item.url || item.items?.some((sub) => pathname === sub.url);
 
@@ -93,7 +96,7 @@ export default function AppSidebar() {
                           />
                         }
                       >
-                        <Icon />
+                        {IconComponent && <IconComponent className='size-4 shrink-0' />}
                         <span className='flex-1 group-data-[collapsible=icon]:hidden'>{item.title}</span>
                         <Icons.chevronRight className='ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden group-data-panel-open/collapsible:rotate-90' />
                       </CollapsibleTrigger>
@@ -122,7 +125,7 @@ export default function AppSidebar() {
                       tooltip={item.title}
                       isActive={pathname === item.url}
                     >
-                      <Icon />
+                      {IconComponent && <IconComponent className='size-4 shrink-0' />}
                       <span className='flex-1 group-data-[collapsible=icon]:hidden'>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

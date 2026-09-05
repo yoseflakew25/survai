@@ -220,7 +220,13 @@ export async function getPublicSurvey(
 ): Promise<PublicSurvey | null> {
   await delay(300);
   // In production: GET /public/surveys/{versionId}
-  if (versionId === 'ver_001' || versionId === 'test') {
+  // The Collect page shares the survey id (sur_001) in its public link,
+  // so accept both the canonical version id and the demo survey id.
+  if (
+    versionId === 'ver_001' ||
+    versionId === 'test' ||
+    versionId === 'sur_001'
+  ) {
     return MOCK_PUBLIC_SURVEY;
   }
   return null;

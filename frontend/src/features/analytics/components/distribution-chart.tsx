@@ -8,9 +8,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell
+  Cell,
+  Rectangle
 } from 'recharts';
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Icons } from '@/components/icons';
 import type { QuestionDistribution } from '../api/types';
 
 const CHART_COLORS = [
@@ -23,14 +26,30 @@ const CHART_COLORS = [
 
 interface DistributionChartProps {
   distribution: QuestionDistribution;
+  surveyId: string;
 }
 
-export function DistributionChart({ distribution }: DistributionChartProps) {
+export function DistributionChart({
+  distribution,
+  surveyId
+}: DistributionChartProps) {
+  const router = useRouter();
   const data = distribution.buckets.map((b) => ({
     name: b.label,
     count: b.value,
     percent: b.percent
   }));
+
+  const drillInto = (bucketLabel: string | undefined) => {
+    if (!bucketLabel) return;
+    const params = new URLSearchParams({
+      question: distribution.questionId,
+      answer: bucketLabel
+    });
+    router.push(
+      `/dashboard/surveys/${surveyId}/respondents?${params.toString()}`
+    );
+  };
 
   return (
     <div className='rounded-lg bg-muted/40 p-4'>
@@ -70,8 +89,19 @@ export function DistributionChart({ distribution }: DistributionChartProps) {
                 borderRadius: 8,
                 border: '1px solid var(--border)'
               }}
+              cursor={{ fill: 'var(--muted)' }}
             />
-            <Bar dataKey='count' radius={[4, 4, 0, 0]} maxBarSize={48}>
+            <Bar
+              dataKey='count'
+              radius={[4, 4, 0, 0]}
+              maxBarSize={48}
+              onClick={(data) =>
+                drillInto((data.payload as { name?: string } | undefined)?.name)
+              }
+              shape={(props) => (
+                <Rectangle {...props} style={{ cursor: 'pointer' }} />
+              )}
+            >
               {data.map((_, index) => (
                 <Cell
                   key={`cell-${index}`}
@@ -82,6 +112,10 @@ export function DistributionChart({ distribution }: DistributionChartProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <p className='text-muted-foreground mt-1 flex items-center justify-end gap-1 text-[11px]'>
+        <Icons.arrowRight className='h-3 w-3' />
+        Click a bar to view those respondents
+      </p>
     </div>
   );
 }

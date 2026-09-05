@@ -1,6 +1,8 @@
 'use client';
 
 import { Icons } from '@/components/icons';
+import type { Icon } from '@/components/icons';
+import type { ComponentType } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +20,6 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@/components/ui/sidebar';
-import { Icon } from '@/components/icons';
 
 export function NavProjects({
   projects
@@ -42,46 +43,56 @@ export function NavProjects({
             </p>
           </SidebarMenuItem>
         )}
-        {projects.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton render={<a href={item.url} aria-label={item.name} />}>
-              <item.icon />
-              <span>{item.name}</span>
-            </SidebarMenuButton>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<SidebarMenuAction showOnHover />}>
-                <Icons.dots />
-                <span className='sr-only'>More</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className='w-48 rounded-lg'
-                side={isMobile ? 'bottom' : 'right'}
-                align={isMobile ? 'end' : 'start'}
+        {projects.map((item) => {
+          const IconComponent =
+            (Icons[item.icon] as ComponentType<React.SVGProps<SVGSVGElement>>) || null;
+
+          return (
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton
+                render={<a href={item.url} aria-label={item.name} />}
+                className='gap-3'
               >
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <Icons.workspace className='text-muted-foreground mr-2 h-4 w-4' />
-                    <span>View Project</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Icons.share className='text-muted-foreground mr-2 h-4 w-4' />
-                    <span>Share Project</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <Icons.trash className='text-muted-foreground mr-2 h-4 w-4' />
-                    <span>Delete Project</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        ))}
+                {IconComponent && (
+                  <IconComponent className='text-sidebar-foreground shrink-0 size-4' />
+                )}
+                <span>{item.name}</span>
+              </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<SidebarMenuAction showOnHover />}>
+                  <Icons.dots className='h-4 w-4' />
+                  <span className='sr-only'>More</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className='w-48 rounded-lg'
+                  side={isMobile ? 'bottom' : 'right'}
+                  align={isMobile ? 'end' : 'start'}
+                >
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                      <Icons.workspace className='text-muted-foreground mr-2 h-4 w-4' />
+                      <span>View Project</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Icons.share className='text-muted-foreground mr-2 h-4 w-4' />
+                      <span>Share Project</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                      <Icons.trash className='text-muted-foreground mr-2 h-4 w-4' />
+                      <span>Delete Project</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          );
+        })}
         <SidebarMenuItem>
           <SidebarMenuButton className='text-sidebar-foreground/70'>
-            <Icons.dots className='text-sidebar-foreground/70' />
+            <Icons.dots className='text-sidebar-foreground/70 h-4 w-4' />
             <span>More</span>
           </SidebarMenuButton>
         </SidebarMenuItem>

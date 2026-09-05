@@ -24,7 +24,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
       title: 'Total Responses',
       value: summary.responseCount.toLocaleString(),
       description: 'Collected responses',
-      icon: Icons.user,
+      icon: 'user' as const,
       trend: '+12.5%',
       trendUp: true
     },
@@ -32,7 +32,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
       title: 'Completion Rate',
       value: `${summary.completionRate}%`,
       description: 'Finished the survey',
-      icon: Icons.circleCheck,
+      icon: 'circleCheck' as const,
       trend: '+4.2%',
       trendUp: true
     },
@@ -40,7 +40,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
       title: 'Avg. Time',
       value: `${summary.avgCompletionMinutes} min`,
       description: 'To complete survey',
-      icon: Icons.clock,
+      icon: 'clock' as const,
       trend: '-1.3 min',
       trendUp: false
     },
@@ -48,7 +48,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
       title: 'Required Questions',
       value: '8',
       description: 'Out of 10 total',
-      icon: Icons.forms,
+      icon: 'forms' as const,
       trend: '',
       trendUp: true
     }
@@ -56,14 +56,19 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
 
   return (
     <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
-      {stats.map((stat) => (
-        <div key={stat.title} className='rounded-lg bg-muted/40 p-3'>
-          <div className='flex items-center justify-between gap-2'>
-            <p className='text-muted-foreground text-[10px] font-medium tracking-wide uppercase'>
-              {stat.title}
-            </p>
-            <stat.icon className='text-primary h-4 w-4 shrink-0' />
-          </div>
+      {stats.map((stat) => {
+        const IconComponent = Icons[stat.icon];
+
+        return (
+          <div key={stat.title} className='rounded-lg bg-muted/40 p-3'>
+            <div className='flex items-center justify-between gap-2'>
+              <p className='text-muted-foreground text-[10px] font-medium tracking-wide uppercase'>
+                {stat.title}
+              </p>
+              {IconComponent && (
+                <IconComponent className='text-primary h-4 w-4 shrink-0' />
+              )}
+            </div>
           <div className='mt-1 flex items-center justify-between gap-2'>
             <p className='text-xl font-semibold tabular-nums'>{stat.value}</p>
             {stat.trend && (
@@ -78,8 +83,9 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
             )}
           </div>
           <p className='text-muted-foreground mt-1 text-xs'>{stat.description}</p>
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

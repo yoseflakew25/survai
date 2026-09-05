@@ -238,38 +238,42 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
           <Separator />
 
-          {/* Response Stats */}
-          <div className='rounded-lg border bg-background p-4'>
-            <h3 className='mb-3 text-sm font-semibold'>Response Stats</h3>
-            <div className='space-y-3'>
-              <div className='flex items-center justify-between'>
-                <span className='text-muted-foreground text-sm'>Total responses</span>
-                <span className='text-2xl font-bold'>{stats.responseCount}</span>
-              </div>
-              <Separator />
-              <div className='flex justify-between text-sm'>
-                <span className='text-muted-foreground'>Status</span>
-                <Badge variant={isPublished ? 'default' : 'secondary'}>
-                  {isPublished ? 'Collecting' : 'Not started'}
-                </Badge>
-              </div>
-              <div className='flex justify-between text-sm'>
-                <span className='text-muted-foreground'>Anonymous</span>
-                <span className='font-medium'>{survey.anonymousCollection ? 'Yes' : 'No'}</span>
-              </div>
-            </div>
-          </div>
 
-          <Separator />
 
           {/* Quick Actions */}
           <div className='rounded-lg border bg-background p-4'>
-            <h3 className='mb-3 text-sm font-semibold'>Actions</h3>
-            <div className='space-y-2'>
-              <Button variant='outline' className='w-full justify-start' disabled={!isPublished}>
-                <Icons.page className='mr-2 h-4 w-4' />
-                Preview Survey
-              </Button>
+            <div className='flex flex-col gap-2'>
+              <a
+                href={`/s/${surveyId}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='group rounded-md p-0 -webkit-tap-highlight-color-transparent'
+              >
+                <Button
+                  variant='outline'
+                  className='w-full justify-start h-auto px-3 py-2.5 text-sm'
+                  disabled={!isPublished}
+                >
+                  <Icons.externalLink className='mr-2 h-4 w-4' />
+                  <span className='inline-flex items-center gap-1'>
+                    Preview Survey
+                    <Icons.chordUpDownAlt className='size-3' />
+                  </span>
+                </Button>
+              </a>
+              {isPublished && (
+                <a
+                  href={`/s/${surveyId}`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='group rounded-md p-0 -webkit-tap-highlight-color-transparent'
+                >
+                  <Button className='w-full justify-start h-auto px-3 py-2.5 text-sm shadow-sm'>
+                    <Icons.openInNew className='size-3.5' />
+                    <span>Open in New Tab</span>
+                  </Button>
+                </a>
+              )}
               <Button
                 variant='outline'
                 className='w-full justify-start text-destructive hover:text-destructive'

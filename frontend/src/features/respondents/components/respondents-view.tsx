@@ -21,8 +21,9 @@ import { DataTablePagination } from '@/components/ui/table/data-table-pagination
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { DataTableViewOptions } from '@/components/ui/table/data-table-view-options';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { respondentsOptions } from '../api/queries';
-import { columns } from './columns';
+import { createColumns } from './columns';
 import type { RespondentStatus } from '../api/types';
 import type { Icon } from '@/components/icons';
 
@@ -36,15 +37,19 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
 }
 
-const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
+// Sortable columns (status is not sortable) — must stay in sync with ./columns
+const SORTABLE_COLUMN_IDS = ['name', 'submittedAt', 'durationSeconds'];
 
 export function RespondentsView({ surveyId }: RespondentsViewProps) {
-  const [params] = useQueryStates({
+  const columns = useMemo(() => createColumns(surveyId), [surveyId]);
+  const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
     name: parseAsString,
     status: parseAsString,
-    sort: getSortingStateParser(columnIds).withDefault([])
+    question: parseAsString,
+    answer: parseAsString,
+    sort: getSortingStateParser(SORTABLE_COLUMN_IDS).withDefault([])
   });
 
   const filters = {
@@ -52,6 +57,8 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
     limit: params.perPage,
     ...(params.name && { search: params.name }),
     ...(params.status && { status: params.status as RespondentStatus }),
+    ...(params.question && { question: params.question }),
+    ...(params.answer && { answer: params.answer }),
     ...(params.sort.length > 0 && { sort: JSON.stringify(params.sort) })
   };
 
@@ -67,58 +74,54 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
   });
 
   const summary = data.summary;
-  const statTiles: {
+  const statTiles: Array<{
     label: string;
     value: string;
     icon: Icon;
-  }[] = [
-    { label: 'Total', value: summary.responses.toLocaleString(), icon: Icons.teams },
-    { label: 'Completed', value: summary.completed.toLocaleString(), icon: Icons.circleCheck },
-    { label: 'Partial', value: summary.partial.toLocaleString(), icon: Icons.clock },
+  }> = [
+    { label: 'Total', value: summary.responses.toLocaleString(), icon: 'teams' as const },
+    { label: 'Completed', value: summary.completed.toLocaleString(), icon: 'circleCheck' as const },
+    { label: 'Partial', value: summary.partial.toLocaleString(), icon: 'clock' as const },
     {
       label: 'Avg. Duration',
       value: formatDuration(summary.avgDurationSeconds),
-      icon: Icons.clock
+      icon: 'clock' as const
     }
   ];
 
-  const visibleCount = table.getRowModel().rows.length;
   const noResponsesYet = summary.responses === 0;
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      {/* Header */}
+      {/* Header + stats in one row */}
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <Heading
           title='Respondents'
           description='People who submitted responses to this survey'
         />
-        <Badge variant='secondary' className='text-xs'>
-          {summary.responses.toLocaleString()}{' '}
-          {summary.responses === 1 ? 'response' : 'responses'}
-        </Badge>
-      </div>
-
-      {/* Stats tiles */}
-      <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
-        {statTiles.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className='rounded-lg bg-muted/40 p-3.5'>
-              <div className='flex items-center justify-between gap-2'>
-                <p className='text-muted-foreground text-[10px] font-medium tracking-wide uppercase'>
-                  {stat.label}
-                </p>
-                <div className='bg-primary/10 flex size-7 shrink-0 items-center justify-center rounded-md'>
-                  <Icon className='text-primary size-4' />
+        <div className='grid flex-1 basis-[32rem] grid-cols-2 gap-3 sm:grid-cols-4'>
+          {statTiles.map((stat) => {
+            const Icon = Icons[stat.icon];
+            return (
+              <div
+                key={stat.label}
+                className='flex items-center gap-3 rounded-lg border bg-muted/40 p-3'
+              >
+                <div className='bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-md'>
+                  {Icon && <Icon className='text-primary size-4' />}
+                </div>
+                <div className='min-w-0'>
+                  <p className='text-muted-foreground truncate text-[10px] font-medium tracking-wide uppercase'>
+                    {stat.label}
+                  </p>
+                  <p className='truncate text-xl font-semibold tracking-tight tabular-nums'>
+                    {stat.value}
+                  </p>
                 </div>
               </div>
-              <p className='mt-2 text-2xl font-semibold tracking-tight tabular-nums'>
-                {stat.value}
-              </p>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* No responses yet — CTA instead of the table */}
@@ -137,23 +140,46 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
           </Link>
         </div>
       ) : (
-        <div className='overflow-hidden rounded-lg border bg-background'>
-          {/* Toolbar */}
-          <div className='flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-muted/30 px-3 py-2'>
-            <div className='min-w-0'>
-              <h3 className='text-sm font-semibold'>Submissions</h3>
-              <p className='text-muted-foreground truncate text-xs'>
-                Showing {visibleCount.toLocaleString()} of {data.total.toLocaleString()}
-              </p>
-            </div>
-            <DataTableToolbar table={table} className='w-auto flex-none p-0'>
-              <DataTableViewOptions table={table} />
-            </DataTableToolbar>
-          </div>
+        <>
+          {/* Toolbar row */}
+          <DataTableToolbar table={table}>
+            <DataTableViewOptions table={table} />
+          </DataTableToolbar>
 
-          {/* Table */}
-          <Table>
-            <TableHeader className='bg-muted/50'>
+          {/* Analytics drill-down context */}
+          {data.activeFilter && (
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border bg-primary/5 px-3 py-2 text-sm'>
+              <span className='text-muted-foreground text-xs'>
+                Respondents who answered
+              </span>
+              <span className='min-w-0 max-w-[16rem] truncate font-medium'>
+                {data.activeFilter.questionText}
+              </span>
+              <Icons.arrowRight className='text-muted-foreground h-3 w-3' />
+              <span className='text-primary font-semibold'>
+                {data.activeFilter.answer}
+              </span>
+              <Badge variant='secondary' className='text-[10px]'>
+                {data.activeFilter.count.toLocaleString()}
+              </Badge>
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label='Clear answer filter'
+                className='ml-auto h-6 w-6'
+                onClick={() =>
+                  setParams({ question: null, answer: null, page: 1 })
+                }
+              >
+                <Icons.close className='h-3.5 w-3.5' />
+              </Button>
+            </div>
+          )}
+
+          <div className='overflow-hidden rounded-lg border bg-background'>
+            {/* Table */}
+            <Table>
+              <TableHeader className='bg-muted/50'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='hover:bg-transparent'>
                   {headerGroup.headers.map((header) => (
@@ -198,7 +224,10 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
                         variant='ghost'
                         size='sm'
                         className='mt-1'
-                        onClick={() => table.resetColumnFilters()}
+                        onClick={() => {
+                          table.resetColumnFilters();
+                          void setParams({ question: null, answer: null, page: 1 });
+                        }}
                       >
                         Clear filters
                       </Button>
@@ -213,7 +242,8 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
           <div className='border-t px-3 py-2'>
             <DataTablePagination table={table} rowNoun='respondents' className='px-0 py-0' />
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

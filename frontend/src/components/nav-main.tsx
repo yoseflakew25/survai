@@ -14,7 +14,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from '@/components/ui/sidebar';
-import { Icon } from '@/components/icons';
+import type { Icon } from '@/components/icons';
+import type { ComponentType } from 'react';
 
 export function NavMain({
   items
@@ -35,35 +36,41 @@ export function NavMain({
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarGroupContent className='flex flex-col gap-2'>
         <SidebarMenu>
-          {items.map((item) => (
-            <Collapsible key={item.title} defaultOpen={item.isActive} render={<SidebarMenuItem />}>
-              <CollapsibleTrigger
-                render={
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    className='group/collapsible bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear'
-                  />
-                }
-              >
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
-                <Icons.chevronRight className='ml-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton
-                        render={<a href={subItem.url} aria-label={subItem.title} />}
-                      >
-                        <span>{subItem.title}</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
+          {items.map((item) => {
+            const IconComponent = item.icon
+              ? (Icons[item.icon] as ComponentType<React.SVGProps<SVGSVGElement>>)
+              : null;
+
+            return (
+              <Collapsible key={item.title} defaultOpen={item.isActive} render={<SidebarMenuItem />}>
+                <CollapsibleTrigger
+                  render={
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      className='group/collapsible bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear'
+                    />
+                  }
+                >
+                  {IconComponent && <IconComponent />}
+                  <span>{item.title}</span>
+                  <Icons.chevronRight className='ml-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {item.items?.map((subItem) => (
+                      <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubButton
+                          render={<a href={subItem.url} aria-label={subItem.title} />}
+                        >
+                          <span>{subItem.title}</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

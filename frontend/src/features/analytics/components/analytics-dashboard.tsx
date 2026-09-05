@@ -106,7 +106,11 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
           >
             <div className='grid gap-4 md:grid-cols-2'>
               {distributions.map((dist) => (
-                <DistributionChart key={dist.questionId} distribution={dist} />
+                <DistributionChart
+                  key={dist.questionId}
+                  distribution={dist}
+                  surveyId={surveyId}
+                />
               ))}
             </div>
           </AnalyticsSection>
@@ -158,7 +162,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
           </div>
 
           {/* Saved Analyses */}
-          <SavedAnalyses analyses={savedAnalyses} />
+          {/* <SavedAnalyses analyses={savedAnalyses} /> */}
         </div>
       </div>
     </div>
