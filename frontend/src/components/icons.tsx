@@ -120,6 +120,22 @@ const IconGithub = (props: React.SVGProps<SVGSVGElement>) => (
     <><path d='M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7a5.44 5.44 0 0 0 0-11.07 5.07 5.07 0 0 0-7 5.07A5.44 5.44 0 0 0 20 4.12' /></>
   </InlineIcon>
 );
+const IconGoogle = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    data-testid='google-g-mark'
+    xmlns='http://www.w3.org/2000/svg'
+    className='fill-current text-[#564597]'
+    width='1em'
+    height='1em'
+    viewBox='0 0 24 24'
+    {...props}
+  >
+    <path d='M0 0h24v24H0z' fill='none' />
+    <path
+      fill='#564597'
+      d='M21.456 10.154c.123.659.19 1.348.19 2.067c0 5.624-3.764 9.623-9.449 9.623A9.84 9.84 0 0 1 2.353 12a9.84 9.84 0 0 1 9.844-9.844c2.658 0 4.879.978 6.583 2.566l-2.775 2.775V7.49c-1.033-.984-2.344-1.489-3.808-1.489c-3.248 0-5.888 2.744-5.888 5.993s2.64 5.999 5.888 5.999c2.947 0 4.953-1.686 5.365-4h-5.365v-3.839z' />
+  </svg>
+);
 const IconKanban = (props: React.SVGProps<SVGSVGElement>) => (
   <InlineIcon {...props}>
     <><rect width='18' height='10' x='3' y='3' rx='1.5' /><path d='M9 21v-5' /><path d='M15 21v-5' /><path d='M4.5 3v3' /><path d='M19.5 3v3' /><path d='M12 9v3' /></>
@@ -337,6 +353,7 @@ export const Icons: Record<string, AnyIcon> = {
   forms: _AsAnyIcon(IconForms),
   galleryVerticalEnd: IconGalleryVerticalEnd,
   github: IconGithub,
+  google: IconGoogle,
   gripVertical: _AsAnyIcon(IconGripVertical),
   info: _AsAnyIcon(IconNotification),
   italic: _AsAnyIcon(IconItalic),
