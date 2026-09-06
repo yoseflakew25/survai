@@ -1,260 +1,234 @@
-<h1 align="center">Admin Dashboard Template with Next.js &amp; Shadcn UI</h1>
+<h1 align="center">Survey Copilot</h1>
 
-<div align="center">Free, open source admin dashboard starter built with Next.js 16, shadcn/ui, Tailwind CSS, and TypeScript</div>
-
-<div align="center">
-  <a href="https://dub.sh/shadcn-dashboard"><strong>View Demo</strong></a>
-</div>
-
-<br />
+<div align="center">AI-assisted survey lifecycle platform — plan, build, review, collect, analyze, and report.</div>
 
 <div align="center">
-  <img src="/public/shadcn-dashboard.png" alt="Shadcn Dashboard Cover" style="max-width: 100%; border-radius: 8px;" />
+  <img src="/shadcn-dashboard.png" alt="Survey Copilot Cover" style="max-width: 100%; border-radius: 8px;" />
 </div>
 
 <br />
 
 <p align="center">
-  <a href="https://github.com/Kiranism/next-shadcn-dashboard-starter/stargazers"><img src="https://img.shields.io/github/stars/Kiranism/next-shadcn-dashboard-starter?style=social" alt="GitHub stars" /></a>
-  <a href="https://github.com/Kiranism/next-shadcn-dashboard-starter/network/members"><img src="https://img.shields.io/github/forks/Kiranism/next-shadcn-dashboard-starter?style=social" alt="Forks" /></a>
-  <a href="https://github.com/Kiranism/next-shadcn-dashboard-starter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Kiranism/next-shadcn-dashboard-starter" alt="MIT License" /></a>
+  <a href="https://github.com/PAVILION/Survey-Copilot/stargazers"><img src="https://img.shields.io/github/stars/PAVILION/Survey-Copilot?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/PAVILION/Survey-Copilot/network/members"><img src="https://img.shields.io/github/forks/PAVILION/Survey-Copilot?style=social" alt="Forks" /></a>
+  <a href="https://github.com/PAVILION/Survey-Copilot/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PAVILION/Survey-Copilot" alt="MIT License" /></a>
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js" />
-  <a href="https://go.clerk.com/ILdYhn7"><img src="https://img.shields.io/badge/Sponsored_by-Clerk-6C47FF?style=flat-square&logo=clerk" alt="Sponsored by Clerk" /></a>
+  <img src="https://img.shields.io/badge/Tailwind-v4-90CDF4" alt="Tailwind CSS" />
 </p>
 
 ## Overview
 
-A free, open source (MIT) admin dashboard starter built with Next.js 16, shadcn/ui on Base UI primitives, TypeScript, and Tailwind CSS v4.
+Survey Copilot is a full-stack admin dashboard for building and managing surveys from ideation through analysis. It is built on Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, and shadcn/ui on Base UI primitives.
 
-Every feature is a working, production-ready implementation, not static demo UI. Tables search, filter, sort, and paginate for real. Forms validate and mutate with cache invalidation.
-Auth, organizations, and billing function end-to-end.
+The template has been trimmed to the survey workflow: no auth provider is wired in yet (login/sign-up renders a UI stub), no organizations, billing, kanban, or chat. What remains is a lean, working foundation focused on surveys, respondents, collection, and analytics.
 
-Clone it, strip what you don't need with the built-in cleanup script, and start building on patterns you'd write yourself. It works well as a base for SaaS apps, internal tools, and admin panels.
+### What is included
 
-### Why This Template
+- **Dashboard overview** — summary cards and charts anchored to recent surveys
+- **Survey list** — TanStack Table with React Query prefetch, client cache, and nuqs URL state for search, filter, and pagination
+- **Survey builder** — section + question editor with an AI-assisted generation panel (mock flow)
+- **Collection** — publish survey, share collection link/QR, and watch live response stats
+- **Respondents** — list and drill into individual responses
+- **Analytics** — question distributions, cross-tab analysis, and saved analyses per survey
+- **Reports** — per-survey report view
+- **Forms showcase** — basic, advanced, multi-step, and sheet forms built with TanStack Form + Zod
+- **Authentication UI** — sign-in and sign-up pages render a form stub; wiring to a real backend is pending
+- **Settings + Notifications + Profile** — UI pages scaffolded for the account experience
 
-Most dashboard templates are static demo boilerplates: screens that look finished but need rebuilding the moment you wire in real data. This starter takes the opposite approach:
+### What was removed
 
-- **Everything actually works.** Data tables run end-to-end: server prefetch, client-side React Query cache, and URL-synced search, filtering, sorting, and pagination via nuqs. Forms are built from reusable, composable fields with Zod validation, including advanced patterns like multi-step and dialog/sheet forms, with real create/update mutations and cache invalidation on success.
-- **Industry-standard implementations.** The data layer follows the official TanStack Query SSR pattern (server prefetch + `HydrationBoundary` + `useSuspenseQuery`), typed end to end, organized in a feature-based structure with a clean API layer per feature. These are patterns you copy into production code as-is, not mockups you rebuild from scratch.
-- **Minimal by design.** Deliberately lean, with no bloated boilerplate, so you spend your time tweaking it to your use case, not deleting someone else's code. The built-in [cleanup script](#cleanup-script-start-minimal-in-60-seconds) strips any feature you don't need in under a minute.
+- Clerk (auth, organizations, billing) — replaced with a mock auth context stub
+- Workspaces / Teams pages
+- Kanban board
+- Chat
+- AI Chat streaming demo
+- All non-Vercel themes (only the Vercel theme remains)
 
 ### Tech Stack
 
-- Framework - [Next.js 16](https://nextjs.org/16)
-- Language - [TypeScript](https://www.typescriptlang.org)
-- Auth - [Clerk](https://go.clerk.com/ILdYhn7)
-- Error tracking - [Sentry](https://sentry.io/for/nextjs/?utm_source=github&utm_medium=paid-community&utm_campaign=general-fy26q2-nextjs&utm_content=github-banner-project-tryfree)
-- Styling - [Tailwind CSS v4](https://tailwindcss.com)
-- Components - [shadcn/ui](https://ui.shadcn.com) on [Base UI](https://base-ui.com) primitives
-- Charts - [Recharts](https://recharts.org) • [Evil Charts](https://evilcharts.com/)
-- Schema validation - [Zod](https://zod.dev)
-- Data fetching - [TanStack React Query](https://tanstack.com/query)
-- State management - [Zustand](https://zustand-demo.pmnd.rs)
-- Search param state - [Nuqs](https://nuqs.47ng.com/)
-- Tables - [TanStack Data Tables](https://ui.shadcn.com/docs/components/data-table) • [Dice Table](https://www.diceui.com/docs/components/data-table)
-- Forms - [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev)
-- Command+K interface - [kbar](https://kbar.vercel.app/)
-- Linter / Formatter - [OxLint](https://oxc.rs/docs/guide/usage/linter) • [Oxfmt](https://oxc.rs/docs/guide/usage/formatter)
-- Pre-commit hooks - [Husky](https://typicode.github.io/husky/)
-- Themes - [tweakcn](https://tweakcn.com/)
+| Layer | Choice |
+|---|---|
+| Framework | [Next.js 16](https://nextjs.org/16) (App Router) |
+| Language | [TypeScript](https://www.typescriptlang.org) |
+| UI primitives | [shadcn/ui](https://ui.shadcn.com) on [Base UI](https://base-ui.com) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com) |
+| Icons | [@tabler/icons-react](https://tabler.io/icons) (single registry in `src/components/icons.tsx`) |
+| Data fetching | [TanStack React Query](https://tanstack.com/query) |
+| URL state | [Nuqs](https://nuqs.47ng.com/) |
+| Tables | [TanStack Table](https://tanstack.com/table/latest) |
+| Forms | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev) |
+| Drag-and-drop | [@dnd-kit](https://dndkit.com) |
+| State (local UI) | [Zustand](https://zustand-demo.pmnd.rs) |
+| Charts | [Recharts](https://recharts.org) |
+| Command+K | [kbar](https://kbar.vercel.app/) |
+| Toasts | [React Hot Toast](https://react-hot-toast.com/) |
+| Error tracking | [Sentry](https://sentry.io/for/nextjs/) (optional) |
+| Linter / Formatter | [OxLint](https://oxc.rs/docs/guide/usage/linter) + [Oxfmt](https://oxc.rs/docs/guide/usage/formatter) |
+| Pre-commit hooks | [Husky](https://typicode.github.io/husky/) |
 
-_Looking for a TanStack Start version? Here's the [repo](https://git.new/tanstack-start-dashboard)._
+## Architecture notes
 
-## Features
+### Auth (stub)
 
-- Pre-built dashboard layout with sidebar, header, and content area
-- Analytics overview page with cards and charts
-- Data tables with React Query prefetch, client-side cache, search, filter, and pagination
-- Authentication and user management through Clerk
-- Multi-tenant workspaces using Clerk Organizations (create, switch, manage teams)
-- Billing and subscriptions via Clerk Billing for B2B, with plan management and feature gating
-- Client-side RBAC navigation that filters menu items by organization, permissions, and roles
-- Infobar component for tips, status messages, or contextual notes on any page
-- shadcn/ui components on Base UI primitives, styled with Tailwind CSS
-- Six-plus themes with a theme switcher
-- Feature-based folder structure
-- A starting point for SaaS dashboards, internal tools, and client admin panels
+Authentication is intentionally a stub right now. `src/lib/auth-context.tsx` provides a `AuthProvider` with a mock user for development, and the real login/register flow targets a backend at `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8000/api/v1`). Sign-in and sign-up pages render the form UI; the actual API calls are prepared but not connected to a live service.
 
-## Use Cases
+If you want to connect a real auth backend, implement the endpoints the context already calls:
+- `POST /auth/login`
+- `POST /auth/register`
+- `POST /auth/refresh`
+- `POST /auth/logout`
 
-A few things you can build with it:
+JWT tokens are stored in `sessionStorage` during development, with an in-memory refresh flow. For production, move tokens to httpOnly cookies as appropriate for your stack.
 
-- SaaS admin dashboards
-- Internal tools and operations panels
-- Analytics dashboards
-- Client project admin panels
-- A boilerplate for new Next.js shadcn projects
+### Data fetching pattern
 
-## Pages
+Each feature follows the same three-file API layer:
 
-| Page                                                                                                                                                                  | Notes                                                                                                                                                                                |
-| :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Signup / Signin](https://go.clerk.com/ILdYhn7)                                                                                                                       | Auth handled by Clerk, with passwordless sign-in, social logins, and enterprise SSO. |
-| [Dashboard Overview](https://shadcn-dashboard.kiranism.dev/dashboard)                                                                                                 | Cards and Recharts graphs. Parallel routes give each section its own loading and error state.                                                                                       |
-| [Product List (Table)](https://shadcn-dashboard.kiranism.dev/dashboard/product)                                                                                       | TanStack Table plus React Query (server prefetch, client cache) with nuqs URL state for search, filter, and pagination. `shallow: true` keeps interactions on the client.           |
-| [Create Product Form](https://shadcn-dashboard.kiranism.dev/dashboard/product/new)                                                                                    | TanStack Form and Zod with `useMutation` for create and update. Cache is invalidated on success.                                                                                    |
-| [Users (Table)](https://shadcn-dashboard.kiranism.dev/dashboard/users)                                                                                                | Same setup as Products: React Query with nuqs, server prefetch, and client-side pagination and filtering.                                                                           |
-| [React Query Demo](https://shadcn-dashboard.kiranism.dev/dashboard/react-query)                                                                                       | A Pokemon API example showing the server prefetch, `HydrationBoundary`, and `useSuspenseQuery` pattern with client-side cache. |
-| [Profile](https://shadcn-dashboard.kiranism.dev/dashboard/profile)                                                                                                   | Clerk's account management UI for profile and security settings. |
-| [Kanban Board](https://shadcn-dashboard.kiranism.dev/dashboard/kanban)                                                                                                | Drag-and-drop task board built with dnd-kit and Zustand. Column sorting, priority badges, assignees, and due dates. |
-| [Chat](https://shadcn-dashboard.kiranism.dev/dashboard/chat)                                                                                                          | Messaging UI with a conversation list, message bubbles, quick replies, attachments, and an auto-reply demo. Multi-panel layout that works on mobile. |
-| [AI Chat](https://shadcn-dashboard.kiranism.dev/dashboard/ai-chat)                                                                                                    | Scripted AI chat that streams a predefined conversation through the real `useChat` lifecycle — no model, API route, or key. Built with the shadcn chat components (MessageScroller, Bubble, Marker). |
-| [Notifications](https://shadcn-dashboard.kiranism.dev/dashboard/notifications)                                                                                        | Notification center with a header badge, popover preview, and a full page with All / Unread / Read tabs. Includes mark-as-read and mark-all-as-read. |
-| [Workspaces](https://shadcn-dashboard.kiranism.dev/dashboard/workspaces)                                                                                              | Organization management using Clerk's `<OrganizationList />`. View, create, and switch between organizations. |
-| [Team Management](https://shadcn-dashboard.kiranism.dev/dashboard/workspaces/team)                                                                                    | Team management using Clerk's `<OrganizationProfile />`. Manage members, roles, permissions, security, and org details. Needs an active organization. |
-| [Billing & Plans](https://shadcn-dashboard.kiranism.dev/dashboard/billing)                                                                                            | Billing page using Clerk's `<PricingTable />`. View plans, subscribe, and manage subscriptions. Needs an active organization. |
-| [Exclusive Page](https://shadcn-dashboard.kiranism.dev/dashboard/exclusive)                                                                                           | Plan-based access control with Clerk's `<Protect>`. Only available to organizations on the Pro plan, with a fallback UI for everyone else. |
-| [Not Found](https://shadcn-dashboard.kiranism.dev/dashboard/notfound)                                                                                                 | A root-level not-found page.                                                                                                                                                        |
-| [Global Error](https://sentry.io/for/nextjs/?utm_source=github&utm_medium=paid-community&utm_campaign=general-fy26q2-nextjs&utm_content=github-banner-project-tryfree) | A shared error page wired to Sentry for logging, reports, and session replay. |
+```
+src/features/<name>/api/
+  types.ts      ← type contract
+  service.ts    ← data access functions (mock by default; swap for your backend)
+  queries.ts    ← React Query query key factory + queryOptions
+```
 
-## Folder Structure
+The default pattern is TanStack's official SSR flow: server-side `prefetchQuery` + `HydrationBoundary` + `dehydrate`, then `useSuspenseQuery` on the client. Mutations invalidate the query cache on success.
 
-```plaintext
+### Fake data
+
+Mock data lives in `src/constants/` and inside each feature's `api/service.ts`. When you connect a real backend, only `service.ts` needs to change — queries and components import from it and stay untouched.
+
+### Theme
+
+Only the **Vercel** theme remains. Dark/light mode toggle still works (default shortcut `⌘⇧D`). There is no theme switcher anymore.
+
+## Project structure
+
+```
 src/
-├── app/                           # Next.js App Router directory
-│   ├── auth/                      # Auth pages (sign-in, sign-up)
-│   ├── dashboard/                 # Dashboard route group
-│   │   ├── overview/              # Analytics with parallel routes
-│   │   ├── product/               # Product CRUD pages (React Query)
-│   │   ├── users/                 # Users table (React Query + nuqs)
-│   │   ├── react-query/           # React Query demo page
-│   │   ├── kanban/                # Task board page
-│   │   ├── chat/                  # Messaging page
-│   │   ├── ai-chat/               # AI chat streaming demo
-│   │   ├── notifications/         # Notifications page
-│   │   ├── workspaces/            # Org management & teams
-│   │   ├── billing/               # Billing & plans
-│   │   ├── profile/               # User profile
-│   │   └── exclusive/             # Plan-gated page
-│   └── api/                       # API routes
+├── app/                          # Next.js App Router
+│   ├── auth/                     # Sign-in / sign-up (UI stubs)
+│   ├── dashboard/                # Dashboard route group
+│   │   ├── overview/             # Cards + charts, parallel routes
+│   │   ├── surveys/              # Survey list + per-survey lifecycle
+│   │   │   └── [surveyId]/
+│   │   │       ├── page.tsx              # Survey header + phase nav
+│   │   │       ├── builder/              # Editor (sections, questions, AI panel)
+│   │   │       ├── collect/              # Publish + share + live stats
+│   │   │       ├── respondents/          # Response list + individual view
+│   │   │       ├── analytics/            # Distributions, cross-tab, saved analyses
+│   │   │       └── reports/              # Report view
+│   │   ├── product/              # Product table (kept as a reference CRUD flow)
+│   │   ├── react-query/          # React Query pattern demo
+│   │   ├── forms/                # Basic / advanced / multi-step / sheet form demos
+│   │   ├── plans/                # Plan detail page
+│   │   ├── notifications/        # Notification center
+│   │   ├── profile/              # Profile page (UI stub)
+│   │   ├── settings/             # Settings page
+│   │   ├── elements/             # UI element showcase
+│   │   ├── ai-chat/              # (page removed; components remain if re-added)
+│   │   └── billing/              # (page removed)
+│   ├── api/                      # Route handlers (BFF / REST patterns)
+│   ├── layout.tsx                # Root layout + providers
+│   ├── page.tsx                  # Redirects to dashboard
+│   ├── global-error.tsx          # Sentry-wired error boundary
+│   └── not-found.tsx             # 404 page
 │
-├── components/                    # Shared components
-│   ├── ui/                        # UI primitives (buttons, inputs, dialogs, etc.)
-│   ├── layout/                    # Layout components (header, sidebar, etc.)
-│   ├── themes/                    # Theme system (selector, mode toggle, config)
-│   └── kbar/                      # Command+K interface
+├── components/
+│   ├── ui/                       # shadcn/ui primitives
+│   ├── layout/                   # Sidebar, header, org-switcher, user-nav
+│   ├── themes/                   # Theme config, mode toggle, font config
+│   ├── kbar/                     # Command+K bar
+│   ├── icons.tsx                 # Centralized icon registry
+│   └── ...
 │
-├── features/                      # Feature-based modules
-│   ├── overview/                  # Dashboard analytics (charts, cards)
-│   ├── products/                  # Product listing, form, tables (React Query)
-│   ├── users/                     # User management table (React Query)
-│   ├── react-query-demo/          # React Query demo (Pokemon API)
-│   ├── kanban/                    # Drag-drop task board
-│   ├── chat/                      # Messaging (conversations, bubbles, composer)
-│   ├── ai-chat/                   # Scripted useChat streaming demo (shadcn chat UI)
-│   ├── notifications/             # Notification center & store
-│   ├── auth/                      # Auth components
-│   └── profile/                   # Profile form schemas
+├── features/                     # Feature modules
+│   ├── overview/                 # Dashboard analytics
+│   ├── products/                 # Product CRUD (React Query demo)
+│   ├── surveys/                  # Survey list + tables
+│   ├── builder/                  # Survey builder (sections, questions, AI panel)
+│   ├── collect/                  # Collection / publish flow
+│   ├── respondents/              # Respondents list + detail
+│   ├── analytics/                # Analytics queries + components
+│   ├── notifications/            # Notification center + store
+│   ├── auth/                     # Sign-in / sign-up view components
+│   ├── profile/                  # Profile page components
+│   └── react-query-demo/         # Pokemon API React Query demo
 │
-├── lib/                           # Core utilities (query-client, searchparams, etc.)
-├── hooks/                         # Custom hooks
-├── config/                        # Navigation, infobar, data table config
-├── constants/                     # Mock data
-├── styles/                        # Global CSS & theme files
-│   └── themes/                    # Individual theme CSS files
-└── types/                         # TypeScript types
+├── lib/                          # Query client, utils, auth-context, search params
+├── hooks/                        # Custom hooks (nav, breadcrumbs, etc.)
+├── config/                       # Nav config, infobar content
+├── constants/                    # Mock data
+├── styles/
+│   ├── globals.css               # Tailwind + view transitions
+│   └── themes/
+│       └── vercel.css            # Only remaining theme
+└── types/                        # Shared TypeScript types
 ```
 
-## Getting Started
+## Getting started
 
-> [!NOTE]
-> This starter uses Next.js 16 (App Router) with React 19 and shadcn/ui. To run it locally:
+### Prerequisites
 
-Clone the repo:
+- [Bun](https://bun.sh) (preferred) or npm
+- Node.js 20+
 
-```
-git clone https://github.com/Kiranism/next-shadcn-dashboard-starter.git
-```
-
-- `bun install`
-- Copy the example env file: `cp env.example.txt .env.local`
-- Fill in the required variables in `.env.local`
-- `bun run dev`
-
-##### Environment variables
-
-See `env.example.txt` for the variables you need. They cover authentication and error tracking.
-
-##### Clerk setup
-
-For setting up Clerk auth (including organizations, workspaces, and teams), see [clerk_setup.md](./docs/clerk_setup.md).
-
-The app should now be running at http://localhost:3000.
-
-> [!WARNING]
-> After cloning or forking, be careful when pulling the latest changes. Updates can cause merge conflicts.
-
----
-
-## Cleanup Script: Start Minimal in 60 Seconds
-
-Most starters make you hand-delete demo pages and rip out dependencies. This one ships with a cleanup script that removes the optional features you don't need (folders, files, dependencies, docs, and env entries), leaving a minimal base to build on. Run `--list` to see what's removable:
+### Run locally
 
 ```bash
-bun run cleanup --interactive    # interactive mode
-bun run cleanup --list           # see available features
-bun run cleanup --dry-run chat   # preview before removing
-bun run cleanup kanban chat      # remove specific features
+git clone https://github.com/PAVILION/Survey-Copilot.git
+cd Survey-Copilot/frontend
+bun install
+cp env.example.txt .env.local
+bun run dev
 ```
 
-Run `bun run cleanup --help` for all options (with npm, pass flags after `--`: `npm run cleanup -- --list`). The replacement files it writes live in `scripts/cleanup-templates/` as real, typechecked code. When you're done, delete `scripts/cleanup.js`, `scripts/cleanup-templates/`, and the `cleanup` entry in `package.json`.
+The app runs at `http://localhost:3000`.
 
-## FAQ
+### Environment variables
 
-**Is it production ready?**
-Yes. Every feature is a complete, working implementation: authentication, CRUD flows, table search/filter/sort/pagination, and form validation with mutations all function end-to-end. It's a starting point for real applications, not a visual mockup.
+Copy `env.example.txt` to `.env.local`. The file currently documents:
 
-**How is this different from other dashboard templates?**
-Most dashboard templates are static demo boilerplates: screens that look finished but need rebuilding once you wire in real data. Here the tables, forms, auth, organizations, and billing all work end-to-end, the implementations follow official TanStack and Next.js patterns, and a cleanup script keeps the base minimal so you tweak it to your use case instead of deleting code.
+- `BUILD_STANDALONE` — set to `true` when deploying with Docker or self-hosting in standalone output mode
+- Sentry variables (`NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ORG`, `NEXT_PUBLIC_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`, `NEXT_PUBLIC_SENTRY_DISABLED`) — optional, only needed if you want error tracking
+- `NEXT_PUBLIC_API_BASE_URL` — optional; the auth context falls back to `http://localhost:8000/api/v1` when unset
 
-**Is it free for commercial use?**
-Yes. MIT-licensed and free for both personal and commercial projects: no paid tier, no license keys.
+No Clerk variables are needed. Clerk was removed from the project.
 
-**Can I use it without Clerk?**
-Yes. Run `bun run cleanup clerk` to remove Clerk authentication (along with organizations and billing) and wire in your own auth solution.
+### Connecting auth
 
-**How do I remove demo pages or features I don't need?**
-Run `bun run cleanup --interactive` and pick what to strip, or `bun run cleanup --list` to see what can be removed.
+The sign-in and sign-up pages are UI stubs. To make them functional, implement the backend endpoints the auth context expects (see the Auth stub section above) and point `NEXT_PUBLIC_API_BASE_URL` at your service.
 
-**Does it support Next.js 16, React 19, and Tailwind CSS v4?**
-Yes. The template is built on Next.js 16 (App Router), React 19, and Tailwind CSS v4, with shadcn/ui on Base UI primitives, and is actively maintained to track new releases.
+### Connecting real data
 
-**Can I use npm instead of Bun?**
-Yes. Bun is preferred, but npm works too, and the repo even ships both Node.js and Bun Dockerfiles for deployment.
+For each feature, replace the mock implementations in `src/features/<name>/api/service.ts` with real fetches or server actions. Query keys and options in `queries.ts` do not need to change.
 
-**Does it work with AI coding assistants?**
-Yes. The repo ships AGENTS.md and CLAUDE.md with the project's conventions, plus a bundled Claude Code skill (`.claude/skills/kiranism-shadcn-dashboard`) that teaches agents how to add pages, tables, forms, and navigation the template way. Works with Claude Code, Cursor, and any tool that reads AGENTS.md.
+## Cleanup script
 
-**What data fetching pattern does it use?**
-TanStack React Query with the official SSR pattern: `prefetchQuery` on the server, `HydrationBoundary` with `dehydrate` for hydration, and `useSuspenseQuery` on the client, plus nuqs for URL-synced search-param state. Mutations invalidate the cache on success.
+The repo still ships the optional cleanup script at `scripts/cleanup.js`, but many of the original features have already been removed. If you want to run it:
 
-**How do I deploy it?**
-Deploy to Vercel out of the box, or use the included Docker setups: a Node.js Dockerfile and a Bun Dockerfile, both using Next.js standalone output mode. See the [deployment guide](./docs/deployment.md).
+```bash
+bun run cleanup --list
+bun run cleanup --interactive
+bun run cleanup --dry-run <feature>
+```
 
-## Deploy
+When you are done cleaning up, delete `scripts/cleanup.js`, `scripts/cleanup-templates/`, and the `cleanup` entry in `package.json`.
 
-Deploy to Vercel out of the box, or use the included Docker setups: a Node.js Dockerfile and a Bun Dockerfile, both using Next.js standalone output mode. Full guide: [docs/deployment.md](./docs/deployment.md).
+## Deployment
 
-### Support
+Deploy to [Vercel](https://vercel.com) out of the box, or use the included Dockerfiles:
 
-If this template saved you some time, a star is appreciated. You can also [buy me a coffee](https://buymeacoffee.com/kir4n) if you'd like.
+- `Dockerfile` — Node.js-based
+- `Dockerfile.bun` — Bun-based
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?style=flat-square&logo=buymeacoffee)](https://buymeacoffee.com/kir4n)
+Both use Next.js standalone output mode. Full guide: `docs/deployment.md`.
 
-<!--
+When deploying, set `BUILD_STANDALONE=true` and any Sentry variables you want to enable.
 
-SEO keywords:
+## Support
 
-open source admin dashboard, nextjs admin dashboard, nextjs dashboard template,
+If this saved you time, a star is appreciated.
 
-shadcn ui dashboard, admin dashboard starter, next.js 16, typescript dashboard,
+## License
 
-dashboard ui template, nextjs shadcn admin panel, react admin dashboard,
-
-tailwind css admin dashboard, production ready admin dashboard template,
-
-free react admin dashboard, nextjs 16 dashboard starter, working crud dashboard
-
--->
-
+MIT.

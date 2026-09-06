@@ -995,6 +995,32 @@ Mapping PRD §15 onto concrete deliverables:
 | 7 | Report chat + hardening | RPT-04; export pipeline (§13); permissions audit; error-state UI for every async job |
 | 8 | Pilot + polish | DICDO user testing against real/representative data; fix list; docs; demo script |
 
+## 18a. Frontend UI implementation notes (update this section as the UI progresses)
+
+The frontend is not a separate repo anymore — it is a single Next.js App Router
+app at `frontend/`. The roadmap above still defines the product/week shape, but
+the UI work so far has been implementation-first: normalize the shell, fix the
+survey hub, then build out the survey module pages and their sub-pages.
+
+Current UI reality is tracked in `status.md`. The points below are the parts of
+the plan most affected by how the UI is actually being built right now:
+
+- **Nav and shell first.** Sidebar nav is driven by `src/config/nav-config.ts`;
+  every nav item that needs an icon must add its key to `src/components/icons.tsx`
+  (Tabler import or inline SVG shim) before it lands, because `AppSidebar`
+  renders `Icons[item.icon]` directly. Missing keys render nothing.
+- **Survey module consistency.** Hub uses `SurveyDetailPage` and module cards.
+  Every survey sub-page (Build, Review, Collect, Analytics, Reports) should share
+  the same header + stepper treatment so the five modules read as one system.
+- **Respondents and detail are the current UI focus.** The respondents list page
+  is moving toward: heading alone, then a single row with sort controls, stats,
+  and the table toolbar; status as a column-header dropdown filter; respondent
+  search in the column header. The respondent detail page is moving toward a
+  prefilled-survey-form look, not a generic key/value list.
+- **Mock work is explicit.** Overview and the module interiors are still mostly
+  mock/hardcoded until the backend is live; skeletons and page shells exist, but
+  real query wiring is deferred.
+
 ---
 
 ## 19. Testing Strategy
@@ -1062,6 +1088,26 @@ will shape config, not architecture, once answered:
 | AI Survey Builder | Generates a draft questionnaire from a research goal |
 | Survey Reviewer | Checks questions for common quality problems, suggests improvements |
 | Deterministic analytics | Calculations from normal software logic — same input always yields same output |
+
+## 23. Appendix: Frontend source-of-truth files for UI work
+
+When picking up a UI task, start from these files instead of inferring structure
+from screenshots or older sessions:
+
+- `frontend/src/config/nav-config.ts` — sidebar/nav items and their icon keys
+- `frontend/src/components/icons.tsx` — icon registry (`Icons` record)
+- `frontend/src/components/layout/app-sidebar.tsx` — sidebar renderer
+- `frontend/src/hooks/use-logo.ts` — logo path/alt logic
+- `frontend/src/app/dashboard/surveys/[surveyId]/page.tsx` — survey hub
+- `frontend/src/app/dashboard/surveys/[surveyId]/respondents/page.tsx` — respondents shell + skeleton
+- `frontend/src/features/respondents/components/respondents-view.tsx` — respondents UI
+- `frontend/src/features/respondents/components/columns.tsx` — respondents table columns + header filters
+- `frontend/src/features/respondents/components/respondent-detail-view.tsx` — respondent detail
+- `status.md` — current UI progress snapshot
+
+`plan.md` is the architectural source of truth; `status.md` is the current
+frontend implementation status. If they disagree, status.md is usually the more
+recent picture of the UI.
 | Cross-tabulation | A table comparing responses across two variables |
 | LLM | Large Language Model |
 | Prompt | Instructions sent to an AI model to guide its response |
