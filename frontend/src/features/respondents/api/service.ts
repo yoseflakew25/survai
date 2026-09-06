@@ -435,6 +435,7 @@ export async function getRespondentDetail(
 
   return {
     ...respondent,
+    surveyId: surveyId,
     surveyTitle: survey.title,
     surveyStatus: survey.status,
     anonymousCollection: survey.anonymousCollection,

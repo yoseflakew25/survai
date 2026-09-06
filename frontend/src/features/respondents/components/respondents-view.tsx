@@ -19,12 +19,11 @@ import {
 } from '@/components/ui/table';
 import { DataTablePagination } from '@/components/ui/table/data-table-pagination';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
-import { DataTableViewOptions } from '@/components/ui/table/data-table-view-options';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { respondentsOptions } from '../api/queries';
 import { createColumns } from './columns';
-import type { RespondentStatus } from '../api/types';
+import type { Respondent, RespondentStatus } from '../api/types';
 import type { Icon } from '@/components/icons';
 
 interface RespondentsViewProps {
@@ -49,7 +48,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
     status: parseAsString,
     question: parseAsString,
     answer: parseAsString,
-    sort: getSortingStateParser(SORTABLE_COLUMN_IDS).withDefault([])
+    sort: getSortingStateParser<Respondent>(SORTABLE_COLUMN_IDS).withDefault([])
   });
 
   const filters = {
@@ -89,41 +88,38 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
     }
   ];
 
+  type SortId = 'submittedAt' | 'name';
+  type SortItem = { id: string; desc: boolean };
+  const sortOptions: Array<{ id: SortId; label: string }> = [
+    { id: 'submittedAt', label: 'Date & time' },
+    { id: 'name', label: 'Alphabetically' }
+  ];
+
+  const activeSortId: SortId | null = (() => {
+    if (params.sort.length === 0) return null;
+    const primary = params.sort[0];
+    if (!primary) return null;
+    if (primary.id === 'submittedAt' || primary.id === 'name') return primary.id as SortId;
+    return null;
+  })();
+
+  function toggleSort(id: SortId) {
+    const current: SortItem[] = params.sort;
+    const existing = current.find((s: SortItem) => s.id === id);
+    const nextDir = existing?.desc ? 'asc' : 'desc';
+    const next: SortItem[] = existing
+      ? current.map((s: SortItem) => (s.id === id ? { id, desc: nextDir === 'desc' } : s))
+      : [{ id, desc: nextDir === 'desc' }, ...current.map((s: SortItem) => ({ id: s.id, desc: s.desc }))];
+    const nextSort: SortItem[] = next.length
+      ? next.filter((s: SortItem) => SORTABLE_COLUMN_IDS.includes(s.id as SortId))
+      : [];
+    void setParams({ page: 1, sort: nextSort as never });
+  }
+
   const noResponsesYet = summary.responses === 0;
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      {/* Header + stats in one row */}
-      <div className='flex flex-wrap items-center justify-between gap-4'>
-        <Heading
-          title='Respondents'
-          description='People who submitted responses to this survey'
-        />
-        <div className='grid flex-1 basis-[32rem] grid-cols-2 gap-3 sm:grid-cols-4'>
-          {statTiles.map((stat) => {
-            const Icon = Icons[stat.icon];
-            return (
-              <div
-                key={stat.label}
-                className='flex items-center gap-3 rounded-lg border bg-muted/40 p-3'
-              >
-                <div className='bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-md'>
-                  {Icon && <Icon className='text-primary size-4' />}
-                </div>
-                <div className='min-w-0'>
-                  <p className='text-muted-foreground truncate text-[10px] font-medium tracking-wide uppercase'>
-                    {stat.label}
-                  </p>
-                  <p className='truncate text-xl font-semibold tracking-tight tabular-nums'>
-                    {stat.value}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* No responses yet — CTA instead of the table */}
       {noResponsesYet ? (
         <div className='flex flex-col items-center justify-center rounded-lg border bg-background px-6 py-16 text-center'>
@@ -141,10 +137,35 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
         </div>
       ) : (
         <>
-          {/* Toolbar row */}
-          <DataTableToolbar table={table}>
-            <DataTableViewOptions table={table} />
-          </DataTableToolbar>
+          {/* Header: the heading */}
+          <div className='flex flex-wrap items-start justify-between gap-3'>
+            <Heading
+              title='Respondents'
+              description='People who submitted responses to this survey'
+            />
+            {/* Stats cards */}
+            <div className='grid flex-1 gap-3 sm:grid-cols-4'>
+              {statTiles.map((stat) => {
+                const IconComponent = Icons[stat.icon];
+                return (
+                  <div
+                    key={stat.label}
+                    className='flex items-center gap-3 rounded-lg border bg-muted/40 p-2'
+                  >
+                    <div className='min-w-0'>
+                      <p className='text-muted-foreground truncate text-[10px] font-medium tracking-wide uppercase'>
+                        {stat.label}
+                      </p>
+                      <p className='truncate text-xl font-semibold tracking-tight text-primary tabular-nums'>
+                        {stat.value}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
 
           {/* Analytics drill-down context */}
           {data.activeFilter && (
@@ -183,7 +204,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='hover:bg-transparent'>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className='first:pl-4 last:pr-4'>
+                    <TableHead key={header.id} className='first:pl-4 last:pr-4 text-md'>
                       {header.isPlaceholder
                         ? null
                         : flexRender(

@@ -12,7 +12,6 @@ export const navGroups: NavGroup[] = [
         shortcut: ['d', 'd'],
         items: []
       },
-      
       {
         title: 'Surveys',
         url: '/dashboard/surveys',

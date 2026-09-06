@@ -66,6 +66,7 @@ export interface RespondentAnswer {
 }
 
 export interface RespondentDetail extends Respondent {
+  surveyId: any;
   surveyTitle: string;
   surveyStatus: string;
   anonymousCollection: boolean;

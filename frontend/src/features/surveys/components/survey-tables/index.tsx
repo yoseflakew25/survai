@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Icons } from '@/components/icons';
-import { DataTableViewOptions } from '@/components/ui/table/data-table-view-options';
+
 import { NewSurveyDialog } from '../new-survey-dialog';
 
 const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
@@ -138,8 +138,6 @@ export function SurveyTable() {
             New Survey
           </Button>
 
-          {/* View options */}
-          <DataTableViewOptions table={table} />
           </div>
 
         </div>
