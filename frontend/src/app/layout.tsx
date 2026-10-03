@@ -11,9 +11,8 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
 
 const META_THEME_COLORS = {
-  light: '#faf9f2',
-  light: '#fdfdfa',
-  dark: '#09090b'
+  light: '#fdfcff',
+  dark: '#07060f'
 };
 
 export const metadata: Metadata = {

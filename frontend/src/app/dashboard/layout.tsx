@@ -25,7 +25,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
   return (
     <KBar>
-      <SidebarProvider defaultOpen={defaultOpen}>
+      <SidebarProvider
+        defaultOpen={defaultOpen}
+        style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
+      >
         <a
           href='#main-content'
           className='bg-background ring-ring sr-only rounded-md px-3 py-2 text-sm font-medium shadow focus:not-sr-only focus:absolute focus:top-2 focus:start-2 focus:z-50 focus:ring-2'

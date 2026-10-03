@@ -31,7 +31,7 @@ const getFileIcon = (fileType: string, fileName: string) => {
   const iconProps = { size: 24 };
 
   if (fileType.startsWith('image/'))
-    return <Icons.media {...iconProps} className='text-emerald-500 dark:text-emerald-400' />;
+    return <Icons.media {...iconProps} className='text-success' />;
 
   if (fileType === 'application/pdf' || extension === 'pdf')
     return <Icons.fileTypePdf {...iconProps} className='text-red-500 dark:text-red-400' />;
@@ -48,7 +48,7 @@ const getFileIcon = (fileType: string, fileName: string) => {
     fileType.includes('spreadsheet') ||
     fileType.includes('excel')
   )
-    return <Icons.fileTypeXls {...iconProps} className='text-green-500 dark:text-green-400' />;
+    return <Icons.fileTypeXls {...iconProps} className='text-success' />;
 
   if (['txt', 'md'].includes(extension) || fileType === 'text/plain')
     return <Icons.post {...iconProps} className='text-zinc-500 dark:text-zinc-400' />;

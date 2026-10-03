@@ -124,12 +124,12 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               className={cn(
                 'flex items-center gap-3 rounded-lg border p-3 transition-all',
                 step.status === 'active' && 'border-primary/30 bg-primary/5',
-                step.status === 'completed' && 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
+                step.status === 'completed' && 'border-success-border bg-success-muted'
               )}
             >
               <div className='shrink-0'>
                 {step.status === 'completed' ? (
-                  <div className='flex h-6 w-6 items-center justify-center rounded-full bg-green-500'>
+                  <div className='bg-success-strong flex h-6 w-6 items-center justify-center rounded-full'>
                     <Icons.check className='h-4 w-4 text-white' />
                   </div>
                 ) : step.status === 'active' ? (
@@ -141,7 +141,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               <span className={cn(
                 'text-sm',
                 step.status === 'active' && 'font-medium text-primary',
-                step.status === 'completed' && 'text-green-700 dark:text-green-400'
+                step.status === 'completed' && 'text-success-muted-foreground'
               )}>
                 {step.label}
               </span>
@@ -176,7 +176,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       {/* Survey Header */}
       <div className='flex items-end justify-between gap-6  border-b pb-4'>
         <div className='min-w-0'>
-          <h1 className='text-2xl font-bold tracking-tight text-primary'>{survey.title}</h1>
+          <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>{survey.title}</h1>
           {survey.description && (
             <p className='text-muted-foreground text-sm'>{survey.description}</p>
           )}

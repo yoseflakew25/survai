@@ -257,7 +257,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
       {/* Header */}
       <div className='grid items-center gap-4 lg:grid-cols-5'>
         <div className='min-w-0  lg:col-span-2'>
-          <h1 className='text-2xl font-bold tracking-tight text-primary'>Review Survey Plan</h1>
+          <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Review Survey Plan</h1>
           <p className='text-muted-foreground text-sm'>
             Review and refine your AI-generated plan before building the survey
           </p>

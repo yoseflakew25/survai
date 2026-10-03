@@ -104,7 +104,7 @@ export default function NotificationsPage() {
   return (
     <div className='flex flex-1 flex-col px-4 pt-2 pb-4 md:px-6 md:pt-4'>
       <div className='mb-6'>
-        <h1 className='text-2xl font-bold tracking-tight text-primary'>Notifications</h1>
+        <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Notifications</h1>
         <p className='text-muted-foreground text-sm'>
           Stay updated on your surveys, reviews, and team activity.
         </p>

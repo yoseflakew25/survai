@@ -135,7 +135,7 @@ function FindingCard({
     <div
       className={cn(
         'rounded-lg border p-3 space-y-2 transition-colors',
-        finding.status === 'accepted' && 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20',
+        finding.status === 'accepted' && 'border-success-border bg-success-muted/50',
         finding.status === 'dismissed' && 'opacity-60'
       )}
     >

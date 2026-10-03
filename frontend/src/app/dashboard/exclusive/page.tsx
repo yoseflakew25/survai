@@ -10,7 +10,7 @@ export default function ExclusivePage() {
       <div className='space-y-4'>
         <div>
           <h1 className='flex items-center gap-2 text-3xl font-bold tracking-tight'>
-            <Icons.badgeCheck className='h-7 w-7 text-green-600' />
+            <Icons.badgeCheck className='text-success h-7 w-7' />
             Exclusive Area
           </h1>
           <p className='text-muted-foreground'>

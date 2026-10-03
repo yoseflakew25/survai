@@ -55,7 +55,7 @@ const typeConfig: Record<
   ActivityType,
   { icon: keyof typeof Icons; color: string; label: string }
 > = {
-  created: { icon: 'add', color: 'text-emerald-500', label: 'Created' },
+  created: { icon: 'add', color: 'text-success', label: 'Created' },
   edited: { icon: 'edit', color: 'text-blue-500', label: 'Edited' },
   published: { icon: 'globe', color: 'text-violet-500', label: 'Published' },
   reviewed: { icon: 'review', color: 'text-amber-500', label: 'Reviewed' },

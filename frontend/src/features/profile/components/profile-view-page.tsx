@@ -132,7 +132,7 @@ export default function ProfileViewPage() {
 
     if (score <= 2) return { score, label: 'Weak', color: 'bg-destructive' };
     if (score <= 3) return { score, label: 'Fair', color: 'bg-amber-500' };
-    if (score <= 4) return { score, label: 'Good', color: 'bg-emerald-500' };
+    if (score <= 4) return { score, label: 'Good', color: 'bg-success' };
     return { score, label: 'Strong', color: 'bg-primary' };
   };
 
@@ -169,7 +169,7 @@ export default function ProfileViewPage() {
   return (
     <div className='flex flex-1 flex-col px-4 pt-2 pb-4 md:px-6 md:pt-4'>
       <div className='mb-6'>
-        <h1 className='text-2xl font-bold tracking-tight text-primary'>Profile</h1>
+        <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Profile</h1>
         <p className='text-muted-foreground text-sm'>
           Manage your personal information and account settings.
         </p>

@@ -67,7 +67,7 @@ export function RespondentDetailView({
       {/* Respondent header */}
       <div className='flex flex-wrap items-end justify-between gap-6'>
         <div className='min-w-0'>
-          <h1 className='text-2xl font-bold tracking-tight text-primary'>
+          <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>
             {detail.name}
           </h1>
           <p className='truncate text-sm text-muted-foreground'>

@@ -71,7 +71,7 @@ export function SurveyTable() {
         <div className='flex flex-wrap items-end justify-between gap-3'>
           {/* Title + description */}
           <div className='mr-auto min-w-0'>
-            <h1 className='text-2xl font-bold tracking-tight text-primary'>Surveys</h1>
+            <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Surveys</h1>
             <p className='text-muted-foreground text-sm'>
               Build, publish, and collect responses for your surveys
             </p>

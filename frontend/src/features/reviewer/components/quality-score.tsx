@@ -14,7 +14,7 @@ interface QualityScoreProps {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 4.0) return 'text-emerald-600 dark:text-emerald-400';
+  if (score >= 4.0) return 'text-success';
   if (score >= 3.0) return 'text-amber-600 dark:text-amber-400';
   return 'text-red-600 dark:text-red-400';
 }
@@ -28,13 +28,13 @@ function getScoreLabel(score: number): string {
 }
 
 function getScoreBg(score: number): string {
-  if (score >= 4.0) return 'bg-emerald-500';
+  if (score >= 4.0) return 'bg-success';
   if (score >= 3.0) return 'bg-amber-500';
   return 'bg-red-500';
 }
 
 function getCriterionColor(score: number): string {
-  if (score >= 4.0) return 'bg-emerald-500';
+  if (score >= 4.0) return 'bg-success';
   if (score >= 3.0) return 'bg-amber-500';
   return 'bg-red-500';
 }

@@ -211,7 +211,9 @@ export default function SignInViewPage() {
 
           <Button
             variant='outline'
-            className={cn('h-11 w-full text-[15px] text-[#564597] hover:bg-[#564597]/10 border-[#564597] hover:text-white hover:bg-[#564597]/20 hover:border-[#564597]')}
+            className={cn(
+              'h-11 w-full text-[15px] text-primary hover:bg-primary/10 border-primary hover:text-white hover:bg-primary/20 hover:border-primary'
+            )}
             type='button'
             onClick={() => {
               window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
