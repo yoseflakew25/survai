@@ -29,12 +29,6 @@ const signInSchema = z.object({
 
 type SignInValues = z.infer<typeof signInSchema>;
 
-const HIGHLIGHTS = [
-  'AI-assisted survey design',
-  'Smart collection with conditional logic',
-  'Real-time analytics & reporting'
-];
-
 export default function SignInViewPage() {
   const { login, isSignedIn } = useAuth();
   const router = useRouter();
@@ -73,83 +67,49 @@ export default function SignInViewPage() {
   }
 
   return (
-    <div className='flex min-h-screen'>
-      {/* Brand panel */}
-      <aside className='bg-primary relative hidden w-[46%] flex-col justify-between overflow-hidden p-10 lg:flex lg:p-12 xl:p-16'>
-        {/* Background grid pattern */}
-        <div aria-hidden className='pointer-events-none absolute inset-0'>
-          <div
-            className='absolute inset-0 bg-[linear-gradient(to_right,rgb(255,255,255 / 9%)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255,255,255 / 9%)_1px,transparent_1px)] bg-[length:84px_84px] [mask-image:linear-gradient(to_bottom,white,rgb(255,255,255 / 0%)_78%,white)]'
-          />
-        </div>
+    <div className='min-h-screen bg-background grid  md:grid-cols-2 justify-center items-center'>
+      {/* Left panel: Creative Hero Image with margin & rounded corners */}
+      {/* <aside className='relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-2xl border border-border/40 bg-[#F2F4FA]  md:flex  lg:rounded-3xl dark:bg-card'> */}
+<div className='flex items-center justify-center'>
 
-        {/* Logo */}            <Link
-              href='/'
-              aria-label='Go to home'
-              className='relative w-fit rounded-md focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none'
-            >
-              <img
-                src='/images/logo/logo-full-dark-mode.svg'
-                alt='SurvAI'
-                className='h-9 w-auto transition-opacity hover:opacity-85 xl:h-10'
-              />
-            </Link>
+        <img
+          src='/images/auth-page-hero.svg'
+          alt='SurvAI Auth Illustration'
+          className='max-h-[95vh] rounded-3xl'
+        />
+               </div>
 
-          
+      {/* </aside> */}
 
-        {/* Headline + highlights */}
-        <div className='relative max-w-md'>
-          <h2 className='text-4xl leading-tight font-bold text-white xl:text-5xl'>
-            Every voice,
-            <br />
-            measured.
-          </h2>
-          <p className='mt-6 text-base leading-relaxed text-white/85'>
-            Design surveys, collect responses, and turn answers into decisions
-            powered by AI at every step.
-          </p>
+      {/* Right panel: Form + Logo */}
+      <div className='flex flex-1 items-center justify-center px-6 py-12 md:px-8'>
+        <div className='w-full max-w-md'>
+          {/* Logo on right side */}
+          <Link
+            href='/'
+            aria-label='Go to home'
+            className='mb-8 block w-fit rounded-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none'
+          >
+            <img
+              src='/images/logo/logo-full-light-mode.svg'
+              alt='SurvAI'
+              className='h-9 w-auto transition-opacity hover:opacity-85 dark:hidden xl:h-10'
+            />
+            <img
+              src='/images/logo/logo-full-dark-mode.svg'
+              alt='SurvAI'
+              className='hidden h-9 w-auto transition-opacity hover:opacity-85 dark:block xl:h-10'
+            />
+          </Link>
 
-          <ul className='mt-10 space-y-4'>
-            {HIGHLIGHTS.map((item) => (
-              <li key={item} className='flex items-center gap-3'>
-                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-white/20'>
-                  <Icons.circleCheck className='size-3.5 text-white' />
-                </span>
-                <span className='text-sm font-medium text-white/95'>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Copyright */}
-        <p className='relative text-sm text-white/60'>
-          © 2026 Survey Copilot. All rights reserved.
-        </p>
-      </aside>
-
-      {/* Form panel */}
-      <main className='flex flex-1 items-center justify-center px-6 py-12 lg:px-10'>
-        <div className='w-full max-w-md'>            {/* Mobile brand row */}
-            <Link href='/' aria-label='Go to home' className='mb-10 w-fit lg:hidden'>
-              <img
-                src='/images/logo/logo-full-light-mode.svg'
-                alt='SurvAI'
-                className='h-8 w-auto'
-              />
-            </Link>
-           
-
-          <h1 className='text-primary text-3xl font-bold tracking-tight'>
+          <h1 className='text-3xl font-bold tracking-tight text-foreground'>
             Welcome back!
           </h1>
-          <p className='text-muted-foreground'>
+          <p className='mt-2 text-sm text-muted-foreground'>
             Sign in to manage your surveys and insights.
           </p>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className='mt-10 space-y-5'
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className='mt-8 space-y-5'>
             {serverError && (
               <div className='rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive'>
                 {serverError}
@@ -179,7 +139,7 @@ export default function SignInViewPage() {
                 </FieldLabel>
                 <Link
                   href='#'
-                  className='text-muted-foreground ml-auto text-sm underline-offset-4 hover:underline'
+                  className='ml-auto text-sm text-muted-foreground underline-offset-4 hover:underline'
                 >
                   Forgot password?
                 </Link>
@@ -209,11 +169,20 @@ export default function SignInViewPage() {
             </LoadingButton>
           </form>
 
+          <div className='relative my-6'>
+            <div className='absolute inset-0 flex items-center'>
+              <span className='w-full border-t border-border' />
+            </div>
+            <div className='relative flex justify-center text-xs uppercase'>
+              <span className='bg-background px-2 text-muted-foreground'>
+                Or continue with
+              </span>
+            </div>
+          </div>
+
           <Button
             variant='outline'
-            className={cn(
-              'h-11 w-full text-[15px] text-primary hover:bg-primary/10 border-primary hover:text-white hover:bg-primary/20 hover:border-primary'
-            )}
+            className={cn('h-11 w-full text-[15px]')}
             type='button'
             onClick={() => {
               window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
@@ -223,19 +192,20 @@ export default function SignInViewPage() {
             Sign in with Google
           </Button>
 
-          <p className='mt-10 text-center text-sm'>
+          <p className='mt-8 text-center text-sm'>
             <span className='text-muted-foreground'>
               Don&apos;t have an account?{' '}
             </span>
             <Link
               href='/auth/sign-up'
-              className='text-primary font-medium underline-offset-4 hover:underline'
+              className='font-medium text-primary underline-offset-4 hover:underline'
             >
               Create one
             </Link>
           </p>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
+
