@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Heading } from '@/components/ui/heading';
-import { SurveyStepper } from '@/components/survey-stepper';
 import {
   SurvaiPanel,
   SurvaiPanelBody,
@@ -185,17 +184,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
           title='Report Workspace'
           description='Generate AI-powered reports from your survey data'
         />
-        <SurveyStepper
-          currentStep={6}
-          badge={
-            <Badge
-              variant='secondary'
-              className='rounded-full border-transparent text-[10px]'
-            >
-              Draft
-            </Badge>
-          }
-        />
+        <Badge
+          variant='secondary'
+          className='rounded-full border-transparent text-[10px]'
+        >
+          Draft
+        </Badge>
       </div>
 
       <div className='grid gap-6 lg:grid-cols-3'>
@@ -346,77 +340,142 @@ export function ReportView({ surveyId }: ReportViewProps) {
         </div>
 
         <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <SurvaiPanel>
-            <div className='flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 py-3'>
-              <div className='min-w-0 flex-1'>
-                <h3 className='font-display text-sm font-bold tracking-tight text-brand-foreground'>
-                  Report Chat
-                </h3>
-                <p className='truncate text-xs text-brand-foreground/75'>
-                  Ask AI to revise sections
-                </p>
+          <SurvaiPanel className='flex flex-col'>
+            <div className='relative shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 py-4'>
+              <div
+                className='pointer-events-none absolute inset-0 opacity-35'
+                style={{
+                  backgroundImage:
+                    'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
+                  backgroundSize: '18px 18px',
+                  maskImage:
+                    'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
+                  WebkitMaskImage:
+                    'linear-gradient(to right, transparent, black 20%, black 80%, transparent)'
+                }}
+              />
+              <div className='relative flex items-start gap-3'>
+                <div className='flex size-9 shrink-0 items-center justify-center rounded-xl bg-card text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_20%,transparent)]'>
+                  <Icons.chat className='size-4' />
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <h3 className='font-display text-base font-extrabold tracking-tight text-foreground'>
+                    Report Chat
+                  </h3>
+                  <p className='mt-0.5 text-xs leading-relaxed text-foreground/70'>
+                    Ask AI to revise any section
+                  </p>
+                </div>
+                <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm'>
+                  <Icons.sparkles className='size-3' />
+                  {report.model}
+                </span>
               </div>
-              <span className='flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 font-mono text-[10px] font-medium text-brand-foreground'>
-                <Icons.sparkles className='h-3 w-3' />
-                {report.model}
-              </span>
             </div>
 
-            <div className='flex flex-col gap-3 p-4'>
-              <div
-                ref={messagesEndRef}
-                aria-live='polite'
-                className='flex min-h-[min(52vh,520px)] max-h-[min(70vh,720px)] flex-col gap-2.5 overflow-y-auto pr-1'
-              >
-                {chatMessages.map((msg, i) => (
+            <div
+              ref={messagesEndRef}
+              aria-live='polite'
+              className='flex min-h-[min(48vh,480px)] max-h-[min(64vh,640px)] flex-col gap-3 overflow-y-auto px-3.5 py-4'
+              style={{
+                backgroundImage: `
+                  radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
+                  radial-gradient(color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px)
+                `,
+                backgroundSize: 'auto, 16px 16px'
+              }}
+            >
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex gap-2.5 animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both',
+                    msg.role === 'user' ? 'justify-end' : 'justify-start'
+                  )}
+                >
+                  {msg.role === 'assistant' ? (
+                    <div
+                      className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                      aria-hidden
+                    >
+                      <Icons.sparkles className='size-3.5' />
+                    </div>
+                  ) : null}
                   <div
-                    key={i}
                     className={cn(
-                      'max-w-[90%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                      'max-w-[min(100%,18rem)] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                       msg.role === 'user'
-                        ? 'self-end rounded-br-md bg-foreground text-background'
-                        : 'self-start rounded-bl-md border border-border bg-muted/50 text-foreground/90'
+                        ? 'rounded-br-md bg-foreground text-background'
+                        : 'rounded-bl-md border border-border bg-card/95 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
                     )}
                   >
                     {msg.content}
                   </div>
-                ))}
-                {isReplying ? (
-                  <div className='flex items-center gap-1 self-start rounded-2xl rounded-bl-md border border-border bg-muted/50 px-3.5 py-3'>
-                    <span className='size-1.5 animate-bounce rounded-full bg-foreground/40' />
-                    <span className='size-1.5 animate-bounce rounded-full bg-foreground/40 [animation-delay:150ms]' />
-                    <span className='size-1.5 animate-bounce rounded-full bg-foreground/40 [animation-delay:300ms]' />
+                </div>
+              ))}
+              {isReplying ? (
+                <div
+                  className='flex gap-2.5 animate-in fade-in duration-200'
+                  aria-label='SurvAI is typing'
+                >
+                  <div
+                    className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    aria-hidden
+                  >
+                    <Icons.sparkles className='size-3.5' />
                   </div>
-                ) : null}
-              </div>
+                  <div className='flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-card/95 px-4 py-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
+                    {[0, 1, 2].map((dot) => (
+                      <span
+                        key={dot}
+                        className='size-1.5 animate-bounce rounded-full bg-foreground/45'
+                        style={{
+                          animationDelay: `${dot * 140}ms`,
+                          animationDuration: '900ms'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
-              {chatMessages.length === 1 ? (
-                <div className='flex flex-wrap gap-1.5'>
-                  {[
-                    'Make it more concise',
-                    'Expand key findings',
-                    'Rewrite the summary'
-                  ].map((prompt) => (
-                    <button
-                      key={prompt}
-                      type='button'
-                      onClick={() => handleSendMessage(prompt)}
-                      className='rounded-full border border-border bg-brand-soft px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-brand'
-                    >
-                      {prompt}
-                    </button>
-                  ))}
+            <div className='shrink-0 space-y-3 border-t border-border bg-[color-mix(in_srgb,var(--background)_55%,var(--brand-soft))] px-3.5 py-3.5'>
+              {chatMessages.length === 1 && !isReplying ? (
+                <div className='flex flex-col gap-1.5'>
+                  <p className='text-muted-foreground px-0.5 text-[10px] font-medium tracking-wide uppercase'>
+                    Suggestions
+                  </p>
+                  <div className='flex flex-wrap gap-1.5'>
+                    {[
+                      'Make it more concise',
+                      'Expand key findings',
+                      'Rewrite the summary'
+                    ].map((prompt) => (
+                      <button
+                        key={prompt}
+                        type='button'
+                        onClick={() => handleSendMessage(prompt)}
+                        className='rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-card px-2.5 py-1 text-[11px] font-medium text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] transition-[background-color,border-color] hover:border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] hover:bg-brand'
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : null}
 
-              <Separator />
-
-              <div className='flex items-center gap-2'>
+              <div className='relative'>
                 <Input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder='Ask to revise the report...'
-                  className='h-10 flex-1 rounded-xl'
+                  placeholder={
+                    isReplying
+                      ? 'SurvAI is typing…'
+                      : 'Ask to revise the report…'
+                  }
+                  disabled={isReplying}
+                  className='border-border bg-card h-11 rounded-2xl border-2 pr-12 text-sm shadow-sm focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))] disabled:opacity-70'
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -429,9 +488,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   onClick={() => handleSendMessage()}
                   disabled={!chatInput.trim() || isReplying}
                   aria-label='Send message'
-                  className={cn(brandCtaClass, 'size-10 shrink-0 p-0')}
+                  className={cn(
+                    brandCtaClass,
+                    'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'
+                  )}
                 >
-                  <Icons.send className='h-4 w-4' />
+                  <Icons.send className='size-3.5' />
                 </Button>
               </div>
             </div>

@@ -23,7 +23,9 @@ import { Icons } from '@/components/icons';
 
 import { NewSurveyDialog } from '../new-survey-dialog';
 
-const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
+const columnIds = columns
+  .map((c) => c.id)
+  .filter((id): id is string => Boolean(id) && id !== 'open');
 
 const STATUS_OPTIONS = [
   { label: 'Published', value: 'published' },
@@ -33,7 +35,7 @@ const STATUS_OPTIONS = [
 ];
 
 const brandCtaClass =
-  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
+  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
 
 export function SurveyTable() {
   const router = useRouter();
@@ -102,27 +104,33 @@ export function SurveyTable() {
                   <Button
                     variant='outline'
                     className='h-9 rounded-xl border-border bg-card'
-                  >
-                    <Icons.adjustments className='h-3.5 w-3.5' />
-                    Status
-                    {params.status ? (
-                      <span className='rounded-full bg-brand-soft px-1.5 text-[10px] font-bold text-foreground'>
-                        1
-                      </span>
-                    ) : null}
-                  </Button>
+                  />
                 }
-              />
-              <DropdownMenuContent align='start' className='w-40 rounded-xl'>
+              >
+                <Icons.adjustments className='size-3.5' />
+                {params.status
+                  ? (STATUS_OPTIONS.find((o) => o.value === params.status)
+                      ?.label ?? 'Status')
+                  : 'Status'}
+                {params.status ? (
+                  <span className='rounded-full bg-brand-soft px-1.5 text-[10px] font-bold text-foreground'>
+                    1
+                  </span>
+                ) : (
+                  <Icons.chevronDown className='size-3.5 opacity-50' />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='w-44 rounded-xl'>
                 <DropdownMenuGroup>
                   {STATUS_OPTIONS.map((opt) => (
                     <DropdownMenuCheckboxItem
                       key={opt.value}
+                      closeOnClick
                       checked={params.status === opt.value}
-                      onSelect={(e) => {
-                        e.preventDefault();
+                      onCheckedChange={() => {
                         void setParams({
-                          status: params.status === opt.value ? null : opt.value,
+                          status:
+                            params.status === opt.value ? null : opt.value,
                           page: 1
                         });
                       }}
@@ -135,7 +143,7 @@ export function SurveyTable() {
                   <>
                     <div className='bg-border mx-1 my-1 h-px' />
                     <DropdownMenuItem
-                      onSelect={() => void setParams({ status: null, page: 1 })}
+                      onClick={() => void setParams({ status: null, page: 1 })}
                     >
                       Clear filter
                     </DropdownMenuItem>
@@ -156,6 +164,22 @@ export function SurveyTable() {
 
         <DataTable
           table={table}
+          rowNoun={data.total === 1 ? 'survey' : 'surveys'}
+          emptyIcon={
+            <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+              <Icons.forms className='size-5 text-foreground' />
+            </div>
+          }
+          emptyTitle={
+            params.title || params.status
+              ? 'No matching surveys'
+              : 'No surveys yet'
+          }
+          emptyDescription={
+            params.title || params.status
+              ? 'Clear search or status filters to see more surveys.'
+              : 'Create your first survey to start collecting responses.'
+          }
           onRowClick={(survey) =>
             router.push(`/dashboard/surveys/${survey.id}/review`)
           }

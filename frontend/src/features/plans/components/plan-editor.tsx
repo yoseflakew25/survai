@@ -1,15 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
@@ -17,6 +10,7 @@ import { toast } from '@/lib/toast';
 import type { Plan, ProposedSection } from '../api/types';
 import { generatePlanWithAI, updatePlan } from '../api/service';
 import { createSurveyFromPlan } from '@/features/builder/api/service';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { EditableList } from './editable-list';
 import { ProposedSectionsEditor } from './proposed-sections-editor';
@@ -28,11 +22,23 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import {
+  SurvaiBrandCard,
+  SurvaiPanel,
+  SurvaiPanelBody,
+  SurvaiPanelHeader
+} from '@/components/survai-panel';
 
 interface PlanEditorProps {
   plan: Plan;
   onPlanUpdate: (plan: Plan) => void;
 }
+
+const sidebarBtnClass =
+  'h-10 rounded-xl border-border bg-card font-medium shadow-sm';
+
+const brandCtaOnLimeClass =
+  'h-10 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card font-semibold text-foreground shadow-sm hover:bg-card/90';
 
 interface PlanState {
   researchGoal: string;
@@ -235,7 +241,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
         description: 'AI is generating your survey questions. This may take a moment...'
       });
       
-      // Navigate to the review page
+      // Survey is generated — open Review; Plan stays available in survey nav
       router.push(`/dashboard/surveys/${survey.id}/review`);
     } catch {
       toast.error('Failed to proceed', {
@@ -252,262 +258,334 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
     targetRespondents.length > 0 ||
     proposedSections.length > 0;
 
+  const unsaved = hasUnsavedChanges();
+  const readyToBuild = localPlan.status === 'approved' || hasContent;
+
+  const planSteps = [
+    { n: 1, label: 'Plan created', state: 'complete' as const },
+    { n: 2, label: 'Review & edit', state: 'current' as const },
+    { n: 3, label: 'Generate survey', state: 'upcoming' as const }
+  ];
+
   return (
-    <div className='space-y-4'>
+    <div className='space-y-5'>
       {/* Header */}
-      <div className='grid items-center gap-4 lg:grid-cols-5'>
-        <div className='min-w-0  lg:col-span-2'>
-          <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>Review Survey Plan</h1>
-          <p className='text-muted-foreground text-sm'>
-            Review and refine your AI-generated plan before building the survey
+      <div className='flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6'>
+        <div className='min-w-0'>
+          <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+            Survey plan
+          </h1>
+          <p className='text-muted-foreground mt-1 max-w-xl text-sm leading-relaxed'>
+            Refine the AI draft, then generate survey questions when you&apos;re
+            ready.
           </p>
         </div>
-        <Card className='bg-primary/5 border-primary/20 lg:col-span-3'>
-          <CardContent className='flex items-center gap-3 px-3'>
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold'>
-                ✓
-              </span>
-              <span className='text-sm font-medium'>Plan Created</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-3 w-3' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-primary text-primary-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold'>
-                2
-              </span>
-              <span className='text-sm font-medium'>Review & Edit</span>
-            </div>
-            <Icons.chevronsRight className='text-muted-foreground h-3 w-3' />
-            <div className='flex items-center gap-2'>
-              <span className='bg-muted text-muted-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold'>
-                3
-              </span>
-              <span className='text-muted-foreground text-sm'>Review & Collect</span>
-            </div>
-            <Separator orientation='vertical' className='ml-auto mr-1 h-5' />
-            <div className='flex items-center gap-2'>
-              {hasUnsavedChanges() && (
-                <Badge variant='outline' className='border-amber-500 text-amber-600 text-[10px]'>
-                  Unsaved Changes
-                </Badge>
-              )}
-              <Badge variant={localPlan.status === 'approved' ? 'default' : 'secondary'} className='text-[10px]'>
-                {localPlan.status === 'approved' ? 'Ready to Build' : 'Draft'}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+
+        <div className='flex shrink-0 flex-wrap items-center gap-2'>
+          <Button
+            variant='ghost'
+            size='sm'
+            nativeButton={false}
+            className='text-muted-foreground hover:text-foreground h-9 rounded-xl px-3'
+            render={<Link href='/dashboard/surveys' />}
+          >
+            <Icons.chevronLeft className='size-4' />
+            Back to Surveys
+          </Button>
+
+          {unsaved ? (
+            <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--gold)_55%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_14%,var(--card))] px-2.5 py-1 text-[11px] font-semibold text-foreground'>
+              <span className='size-1.5 rounded-full bg-[var(--gold)]' aria-hidden />
+              Unsaved
+            </span>
+          ) : (
+            <span className='text-muted-foreground inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-medium'>
+              <Icons.check className='size-3' />
+              Saved
+            </span>
+          )}
+          <span
+            className={cn(
+              'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold',
+              readyToBuild
+                ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'
+                : 'border-border bg-secondary text-muted-foreground border'
+            )}
+          >
+            {readyToBuild ? 'Ready to build' : 'Draft'}
+          </span>
+        </div>
       </div>
+
+      {/* Progress */}
+      <ol
+        aria-label='Plan progress'
+        className='flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:gap-0 sm:px-4 sm:py-3'
+      >
+        {planSteps.map((step, i) => {
+          const complete = step.state === 'complete';
+          const current = step.state === 'current';
+          return (
+            <li key={step.n} className='flex min-w-0 flex-1 items-center gap-2 sm:gap-3'>
+              <div className='flex min-w-0 items-center gap-2.5'>
+                <span
+                  className={cn(
+                    'flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors',
+                    complete &&
+                      'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]',
+                    current &&
+                      'bg-foreground text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)]',
+                    !complete &&
+                      !current &&
+                      'border border-border bg-muted/60 text-muted-foreground'
+                  )}
+                >
+                  {complete ? (
+                    <Icons.check className='size-3.5' stroke={2.5} />
+                  ) : (
+                    step.n
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'truncate text-sm font-medium',
+                    current && 'font-semibold text-foreground',
+                    complete && 'text-foreground',
+                    !complete && !current && 'text-muted-foreground'
+                  )}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {i < planSteps.length - 1 ? (
+                <span
+                  className={cn(
+                    'mx-1 hidden h-px flex-1 sm:block',
+                    complete ? 'bg-foreground/25' : 'bg-border'
+                  )}
+                  aria-hidden
+                />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
 
       <div className='grid gap-6 lg:grid-cols-3'>
         {/* Main content area */}
-        <div className='space-y-6 lg:col-span-2'>
-          {/* Research Goal */}
-          <Card>
-            <CardHeader>
-              <div className='flex items-start justify-between gap-2'>
-                <div>
-                  <CardTitle className='font-display font-bold tracking-tight text-foreground'>Research Goal</CardTitle>
-                  <CardDescription>
-                    Review the AI-generated research goal or refine it
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+        <div className='space-y-4 lg:col-span-2'>
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.sparkles className='size-3.5' />}
+              title='Research goal'
+              subtitle='What this survey is trying to learn'
+              badge={
+                <Badge
+                  variant='secondary'
+                  className='rounded-full border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft text-[10px] font-semibold'
+                >
+                  AI draft
+                </Badge>
+              }
+            />
+            <SurvaiPanelBody>
               <Textarea
                 value={researchGoal}
                 onChange={(e) =>
-                  setPlanState((prev) => ({ ...prev, researchGoal: e.target.value }))
+                  setPlanState((prev) => ({
+                    ...prev,
+                    researchGoal: e.target.value
+                  }))
                 }
                 rows={4}
-                className='resize-none'
-                placeholder='Describe the purpose of your survey...'
+                className='border-border min-h-[7rem] resize-none rounded-xl border-2 text-sm leading-relaxed focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))]'
+                placeholder='Describe the purpose of your survey…'
               />
-            </CardContent>
-          </Card>
+              <p className='text-muted-foreground mt-2 text-[11px] tabular-nums'>
+                {researchGoal.trim().length.toLocaleString()} characters
+              </p>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
 
-          {/* Objectives */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Objectives</CardTitle>
-              <CardDescription>
-                Review, edit, or add objectives that this survey will achieve
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.checks className='size-3.5' />}
+              title='Objectives'
+              subtitle='Outcomes this survey should achieve'
+              badge={
+                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
+                  {objectives.length}
+                </span>
+              }
+            />
+            <SurvaiPanelBody>
               <EditableList
                 items={objectives}
                 onChange={(newObjectives) =>
-                  setPlanState((prev) => ({ ...prev, objectives: newObjectives }))
+                  setPlanState((prev) => ({
+                    ...prev,
+                    objectives: newObjectives
+                  }))
                 }
-                placeholder='e.g., Understand the primary health concerns...'
+                placeholder='e.g. Understand primary health concerns…'
                 addLabel='Add objective'
-                emptyMessage='No objectives yet. Generate with AI or add manually.'
+                emptyMessage='No objectives yet'
               />
-            </CardContent>
-          </Card>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
 
-          {/* Research Questions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Research Questions</CardTitle>
-              <CardDescription>
-                Review, edit, or add questions the survey should answer
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.forms className='size-3.5' />}
+              title='Research questions'
+              subtitle='Questions the survey should answer'
+              badge={
+                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
+                  {researchQuestions.length}
+                </span>
+              }
+            />
+            <SurvaiPanelBody>
               <EditableList
                 items={researchQuestions}
                 onChange={(newQuestions) =>
-                  setPlanState((prev) => ({ ...prev, researchQuestions: newQuestions }))
+                  setPlanState((prev) => ({
+                    ...prev,
+                    researchQuestions: newQuestions
+                  }))
                 }
-                placeholder='e.g., What are the most prevalent health conditions...'
+                placeholder='e.g. What conditions do households report most?'
                 addLabel='Add question'
-                emptyMessage='No research questions yet. Generate with AI or add manually.'
+                emptyMessage='No research questions yet'
               />
-            </CardContent>
-          </Card>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
 
-          {/* Target Respondents */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Target Respondents</CardTitle>
-              <CardDescription>
-                Review or define who should participate in this survey
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.teams className='size-3.5' />}
+              title='Target respondents'
+              subtitle='Who should take this survey'
+              badge={
+                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
+                  {targetRespondents.length}
+                </span>
+              }
+            />
+            <SurvaiPanelBody>
               <EditableList
                 items={targetRespondents}
                 onChange={(newRespondents) =>
-                  setPlanState((prev) => ({ ...prev, targetRespondents: newRespondents }))
+                  setPlanState((prev) => ({
+                    ...prev,
+                    targetRespondents: newRespondents
+                  }))
                 }
-                placeholder='e.g., Household heads aged 18-65...'
-                addLabel='Add respondent type'
-                emptyMessage='No target respondents defined. Generate with AI or add manually.'
+                placeholder='e.g. Household heads aged 18–65…'
+                addLabel='Add audience'
+                emptyMessage='No target respondents yet'
               />
-            </CardContent>
-          </Card>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
 
-          {/* Proposed Sections */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Proposed Sections</CardTitle>
-              <CardDescription>
-                Review, reorder, or add sections that organize your survey questions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.kanban className='size-3.5' />}
+              title='Proposed sections'
+              subtitle='How questions will be grouped in the survey'
+              badge={
+                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
+                  {proposedSections.length}
+                </span>
+              }
+            />
+            <SurvaiPanelBody>
               <ProposedSectionsEditor
                 sections={proposedSections}
                 onChange={(newSections) =>
-                  setPlanState((prev) => ({ ...prev, proposedSections: newSections }))
+                  setPlanState((prev) => ({
+                    ...prev,
+                    proposedSections: newSections
+                  }))
                 }
               />
-            </CardContent>
-          </Card>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
         </div>
 
         {/* Sidebar */}
-        <div className='sticky top-[4.5rem] self-start space-y-6'>
-          {/* Primary Action - Proceed to Review */}
-          <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
-            {/* Grid pattern overlay */}
-            <div
-              className='pointer-events-none absolute inset-0'
-              style={{
-                backgroundImage:
-                  'linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-                maskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)'
-              }}
+        <div className='sticky top-[4.5rem] self-start space-y-4'>
+          <SurvaiBrandCard
+            title='Ready to generate?'
+            description='AI will draft survey questions from this plan. You can review and edit everything next.'
+          >
+            <Button
+              type='button'
+              className={brandCtaOnLimeClass}
+              onClick={handleProceedToBuilder}
+              disabled={isCreatingSurvey || !hasContent}
+            >
+              {isCreatingSurvey ? (
+                <>
+                  <Icons.spinner className='size-4 animate-spin' />
+                  Generating…
+                </>
+              ) : (
+                <>
+                  <Icons.sparkles className='size-4' />
+                  Generate survey questions
+                  <Icons.arrowRight className='ml-auto size-4' />
+                </>
+              )}
+            </Button>
+          </SurvaiBrandCard>
+
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.edit className='size-3.5' />}
+              title='Quick actions'
+              subtitle='Save or step through edits'
             />
-            <div className='relative space-y-4 p-5'>
-              <div >
-                <h3 className='text-lg font-semibold text-primary-foreground'>Ready to Generate?</h3>
-                <p className='text-primary-foreground/80 text-sm leading-relaxed'>
-                  AI will generate survey questions based on your plan. You can review and edit them.
-                </p>
-              </div>
-              <Button
-                className='w-full'
-                size='lg'
-                variant='secondary'
-                onClick={handleProceedToBuilder}
-                disabled={isCreatingSurvey || !hasContent}
-              >
-                {isCreatingSurvey ? (
-                  <>
-                    <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-                    Generating Questions...
-                  </>
-                ) : (
-                  <>
-                    <Icons.sparkles className='mr-2 h-4 w-4' />
-                    Generate Survey Questions
-                    <Icons.chevronRight className='ml-2 h-4 w-4' />
-                  </>
-                )}
-              </Button>
-             
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-2'>
-              {/* Undo/Redo buttons */}
-              <div className='flex gap-2'>
+            <SurvaiPanelBody className='space-y-2'>
+              <div className='grid grid-cols-2 gap-2'>
                 <Button
+                  type='button'
                   variant='outline'
-                  size='default'
-                  className='flex-1'
+                  className={cn(sidebarBtnClass, 'justify-center')}
                   onClick={undo}
                   disabled={!canUndo}
                 >
-                  <Icons.chevronsLeft className='mr-1 h-4 w-4' />
+                  <Icons.chevronsLeft className='size-4' />
                   Undo
                 </Button>
                 <Button
+                  type='button'
                   variant='outline'
-                  size='default'
-                  className='flex-1'
+                  className={cn(sidebarBtnClass, 'justify-center')}
                   onClick={redo}
                   disabled={!canRedo}
                 >
                   Redo
-                  <Icons.chevronsRight className='ml-1 h-4 w-4' />
+                  <Icons.chevronsRight className='size-4' />
                 </Button>
               </div>
 
               <Button
-                className='w-full'
+                type='button'
                 variant='outline'
+                className={cn(sidebarBtnClass, 'w-full justify-center')}
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || !hasUnsavedChanges()}
               >
                 {isSaving ? (
-                  <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+                  <Icons.spinner className='size-4 animate-spin' />
                 ) : (
-                  <Icons.check className='mr-2 h-4 w-4' />
+                  <Icons.check className='size-4' />
                 )}
-                Save Progress
+                {hasUnsavedChanges() ? 'Save progress' : 'All saved'}
               </Button>
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-         
-
-          
+            </SurvaiPanelBody>
+          </SurvaiPanel>
         </div>
       </div>
 

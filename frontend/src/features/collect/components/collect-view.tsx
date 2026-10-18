@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Heading } from '@/components/ui/heading';
-import { SurveyStepper } from '@/components/survey-stepper';
 import {
   SurvaiBrandCard,
   SurvaiPanel,
@@ -80,27 +79,21 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
   return (
     <div className='space-y-4'>
-      {/* Header + progress stepper side by side */}
       <div className='flex items-end justify-between gap-4'>
         <Heading
           title='Collect Responses'
           description='Publish your survey and share it with respondents'
         />
-        <SurveyStepper
-          currentStep={4}
-          badge={
-            <Badge
-              variant='outline'
-              className={
-                isPublished
-                  ? 'rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] text-brand-foreground'
-                  : 'rounded-full text-[10px]'
-              }
-            >
-              {isPublished ? 'Published' : 'Draft'}
-            </Badge>
+        <Badge
+          variant='outline'
+          className={
+            isPublished
+              ? 'rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] text-brand-foreground'
+              : 'rounded-full text-[10px]'
           }
-        />
+        >
+          {isPublished ? 'Published' : 'Draft'}
+        </Badge>
       </div>
 
       <div className='grid gap-6 lg:grid-cols-3'>
@@ -243,21 +236,6 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
           <SurvaiPanel>
             <SurvaiPanelBody className='flex flex-col gap-2'>
-              <a
-                href={`/s/${surveyId}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='block'
-              >
-                <Button
-                  variant='outline'
-                  className='h-auto w-full justify-start rounded-xl px-3 py-2.5 text-sm'
-                  disabled={!isPublished}
-                >
-                  <Icons.externalLink className='mr-2 h-4 w-4' />
-                  Preview Survey
-                </Button>
-              </a>
               {isPublished ? (
                 <a
                   href={`/s/${surveyId}`}
@@ -267,7 +245,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                 >
                   <Button className='h-auto w-full justify-start rounded-xl px-3 py-2.5 text-sm'>
                     <Icons.openInNew className='mr-2 size-3.5' />
-                    Open in New Tab
+                    Preview Survey
                   </Button>
                 </a>
               ) : null}

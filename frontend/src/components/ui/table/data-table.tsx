@@ -15,7 +15,6 @@ import {
 import { getCommonPinningStyles } from '@/lib/data-table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Icons } from '@/components/icons';
-import { Badge } from '@/components/ui/badge';
 
 interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   table: TanstackTable<TData>;
@@ -60,7 +59,7 @@ export function DataTable<TData>({
       <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
         <ScrollArea className='w-full'>
           <Table>
-            <TableHeader className='border-b border-border bg-card'>
+            <TableHeader className='border-b border-border bg-muted/35'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                   key={headerGroup.id}
@@ -70,7 +69,7 @@ export function DataTable<TData>({
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className='bg-card first:pl-4 last:pr-2'
+                      className='bg-transparent first:pl-4 last:pr-3'
                       style={{
                         ...getCommonPinningStyles({ column: header.column })
                       }}
@@ -92,21 +91,33 @@ export function DataTable<TData>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    role={onRowClick ? 'link' : undefined}
                     className={
                       onRowClick
-                        ? 'cursor-pointer first:pl-4 last:pr-4'
-                        : 'first:pl-4 last:pr-4'
+                        ? 'cursor-pointer outline-none focus-visible:bg-muted/55 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40'
+                        : undefined
                     }
                     onClick={
                       onRowClick
                         ? () => onRowClick(row.original)
                         : undefined
                     }
+                    onKeyDown={
+                      onRowClick
+                        ? (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onRowClick(row.original);
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className='bg-card first:pl-4 last:pr-2'
+                        className='bg-transparent py-2.5 first:pl-4 last:pr-3'
                         style={{
                           ...getCommonPinningStyles({ column: cell.column })
                         }}
@@ -120,24 +131,24 @@ export function DataTable<TData>({
                   </TableRow>
                 ))
               ) : (
-                <TableRow>
+                <TableRow className='hover:bg-transparent'>
                   <TableCell
                     colSpan={table.getAllColumns().length}
-                    className='h-40'
+                    className='h-48'
                   >
-                    <div className='flex flex-col items-center justify-center gap-3 text-center'>
+                    <div className='flex flex-col items-center justify-center gap-3 px-4 text-center'>
                       {emptyIcon ?? (
-                        <div className='bg-muted flex size-12 items-center justify-center rounded-full'>
-                          <Icons.search className='text-muted-foreground/50 size-5' />
+                        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+                          <Icons.forms className='text-foreground size-5' />
                         </div>
                       )}
                       <div>
-                        <p className='text-sm font-medium'>
-                          {emptyTitle ?? 'No results found'}
+                        <p className='font-display text-sm font-bold tracking-tight'>
+                          {emptyTitle ?? 'No surveys found'}
                         </p>
-                        <p className='text-muted-foreground mt-0.5 text-xs'>
+                        <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
                           {emptyDescription ??
-                            'Try adjusting your search or filter criteria'}
+                            'Try adjusting your search or status filter, or create a new survey.'}
                         </p>
                       </div>
                     </div>

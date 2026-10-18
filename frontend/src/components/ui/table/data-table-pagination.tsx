@@ -35,7 +35,7 @@ export function DataTablePagination<TData>({
   return (
     <div
       className={cn(
-        'flex w-full flex-wrap items-center justify-between gap-3 px-1 py-1',
+        'flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/60 px-3 py-2',
         className
       )}
       {...props}
@@ -51,15 +51,16 @@ export function DataTablePagination<TData>({
           </span>
         ) : (
           <span>
-            <span className='text-foreground font-medium'>{totalRows}</span>
-            {' '}{rowNoun}
+            <span className='text-foreground font-semibold tabular-nums'>
+              {totalRows}
+            </span>{' '}
+            {rowNoun}
           </span>
         )}
       </div>
 
       {/* Right: page size + page nav */}
-      <div className='flex items-center gap-4'>
-        {/* Rows per page */}
+      <div className='flex items-center gap-3'>
         <div className='hidden items-center gap-2 sm:flex'>
           <span className='text-muted-foreground text-xs'>Rows</span>
           <Select
@@ -68,7 +69,7 @@ export function DataTablePagination<TData>({
               table.setPageSize(Number(value));
             }}
           >
-            <SelectTrigger className='h-7 w-[3.5rem] text-xs'>
+            <SelectTrigger className='h-8 w-[3.75rem] rounded-lg text-xs'>
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side='top'>
@@ -83,18 +84,21 @@ export function DataTablePagination<TData>({
           </Select>
         </div>
 
-        {/* Page indicator */}
         <span className='text-muted-foreground text-xs tabular-nums'>
-          {currentPage} / {pageCount}
+          Page{' '}
+          <span className='text-foreground font-medium'>
+            {pageCount === 0 ? 0 : currentPage}
+          </span>{' '}
+          of{' '}
+          <span className='text-foreground font-medium'>{pageCount}</span>
         </span>
 
-        {/* Page navigation */}
-        <div className='flex items-center gap-0.5'>
+        <div className='flex items-center gap-1'>
           <Button
             aria-label='Previous page'
             variant='outline'
             size='icon'
-            className='size-7'
+            className='size-8 rounded-lg'
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
@@ -104,7 +108,7 @@ export function DataTablePagination<TData>({
             aria-label='Next page'
             variant='outline'
             size='icon'
-            className='size-7'
+            className='size-8 rounded-lg'
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >

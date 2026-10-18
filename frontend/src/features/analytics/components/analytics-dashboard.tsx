@@ -13,7 +13,6 @@ import { CrossTabTable } from './cross-tab-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
-import { SurveyStepper } from '@/components/survey-stepper';
 import {
   SurvaiBrandCard,
   SurvaiPanel,
@@ -61,15 +60,10 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
   return (
     <div className='space-y-4'>
-      {/* Header + progress stepper side by side */}
-      <div className='flex items-end justify-between gap-4'>
+      <div>
         <Heading
           title='Analytics'
           description='Explore response data with charts, distributions, and cross-tabs'
-        />
-        <SurveyStepper
-          currentStep={5}
-         
         />
       </div>
 

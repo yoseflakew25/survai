@@ -9,28 +9,70 @@ import type { SurveyListItem, SurveyStatus } from '../../api/types';
 
 const STATUS_CONFIG: Record<
   SurveyStatus,
-  { label: string; className: string; icon?: typeof Icons.circleCheck }
+  {
+    label: string;
+    className: string;
+    icon: typeof Icons.circleCheck;
+  }
 > = {
   published: {
     label: 'Published',
     className:
-      'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground',
+      'border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground',
     icon: Icons.circleCheck
   },
   draft: {
     label: 'Draft',
-    className: 'border-transparent bg-secondary text-secondary-foreground'
+    className: 'border-border bg-muted/70 text-muted-foreground',
+    icon: Icons.edit
   },
   closed: {
     label: 'Closed',
-    className: 'border-border bg-card text-foreground'
+    className: 'border-border bg-card text-foreground',
+    icon: Icons.circleX
   },
   archived: {
     label: 'Archived',
     className:
-      'border-transparent bg-[color-mix(in_srgb,var(--gold)_22%,white)] text-foreground'
+      'border-[color-mix(in_srgb,var(--gold)_40%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_16%,var(--card))] text-foreground',
+    icon: Icons.eyeOff
   }
 };
+
+function surveyInitials(title: string) {
+  return title
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function formatUpdatedAt(iso: string) {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+}
 
 export const columns: ColumnDef<SurveyListItem>[] = [
   {
@@ -42,26 +84,26 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     cell: ({ row }) => {
       const survey = row.original;
       return (
-        <div className='flex items-center gap-3'>
-          <div className='flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft'>
-            <span className='text-xs font-semibold text-foreground'>
-              {survey.title
-                .split(' ')
-                .map((w) => w[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase()}
-            </span>
+        <div className='flex min-w-0 items-center gap-3'>
+          <div
+            className='bg-brand-soft text-foreground flex size-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold tracking-wide shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+            aria-hidden
+          >
+            {surveyInitials(survey.title)}
           </div>
-          <div className='min-w-0'>
-            <p className='truncate text-sm font-semibold tracking-tight'>
+          <div className='min-w-0 max-w-[18rem] sm:max-w-[22rem] lg:max-w-[28rem]'>
+            <p className='truncate text-sm font-semibold tracking-tight text-foreground group-hover/row:underline group-hover/row:decoration-foreground/25 group-hover/row:underline-offset-2'>
               {survey.title}
             </p>
             {survey.description ? (
-              <p className='text-muted-foreground truncate text-xs'>
+              <p className='text-muted-foreground mt-0.5 truncate text-xs leading-snug'>
                 {survey.description}
               </p>
-            ) : null}
+            ) : (
+              <p className='text-muted-foreground/60 mt-0.5 text-xs italic'>
+                No description
+              </p>
+            )}
           </div>
         </div>
       );
@@ -87,9 +129,12 @@ export const columns: ColumnDef<SurveyListItem>[] = [
       return (
         <Badge
           variant='outline'
-          className={cn('rounded-full text-[10px] font-medium', config.className)}
+          className={cn(
+            'gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+            config.className
+          )}
         >
-          {StatusIcon ? <StatusIcon className='mr-1 h-3 w-3' /> : null}
+          <StatusIcon className='size-3' />
           {config.label}
         </Badge>
       );
@@ -100,7 +145,7 @@ export const columns: ColumnDef<SurveyListItem>[] = [
       options: [
         { label: 'Published', value: 'published', icon: Icons.circleCheck },
         { label: 'Draft', value: 'draft', icon: Icons.edit },
-        { label: 'Closed', value: 'closed', icon: Icons.close },
+        { label: 'Closed', value: 'closed', icon: Icons.circleX },
         { label: 'Archived', value: 'archived', icon: Icons.eyeOff }
       ]
     },
@@ -115,7 +160,8 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     cell: ({ cell }) => {
       const count = cell.getValue<number>();
       return (
-        <span className='text-muted-foreground font-mono text-sm tabular-nums'>
+        <span className='text-muted-foreground inline-flex items-center gap-1.5 font-mono text-sm tabular-nums'>
+          <Icons.forms className='size-3.5 opacity-50' aria-hidden />
           {count}
         </span>
       );
@@ -129,8 +175,15 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     ),
     cell: ({ cell }) => {
       const count = cell.getValue<number>();
+      if (count === 0) {
+        return (
+          <span className='text-muted-foreground/70 font-mono text-sm tabular-nums'>
+            —
+          </span>
+        );
+      }
       return (
-        <span className='font-mono text-sm font-medium tabular-nums'>
+        <span className='font-mono text-sm font-semibold tabular-nums text-foreground'>
           {count.toLocaleString()}
         </span>
       );
@@ -145,18 +198,29 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     cell: ({ cell }) => {
       const rate = cell.getValue<number | null>();
       if (rate === null) {
-        return <span className='text-muted-foreground text-sm'>—</span>;
+        return (
+          <span className='text-muted-foreground/70 font-mono text-sm tabular-nums'>
+            —
+          </span>
+        );
       }
+
+      const display =
+        Number.isInteger(rate) ? `${rate}%` : `${rate.toFixed(1)}%`;
+
       return (
-        <div className='flex items-center gap-2'>
-          <div className='h-1.5 w-16 overflow-hidden rounded-full bg-secondary'>
+        <div
+          className='flex min-w-[7.5rem] items-center gap-2.5'
+          title={`${display} completion`}
+        >
+          <div className='bg-secondary h-2 w-20 overflow-hidden rounded-full'>
             <div
-              className='h-full rounded-full bg-brand'
-              style={{ width: `${rate}%` }}
+              className='h-full rounded-full bg-brand transition-[width] duration-300'
+              style={{ width: `${Math.min(100, Math.max(0, rate))}%` }}
             />
           </div>
-          <span className='text-muted-foreground font-mono text-xs tabular-nums'>
-            {rate}%
+          <span className='text-muted-foreground w-10 font-mono text-xs tabular-nums'>
+            {display}
           </span>
         </div>
       );
@@ -166,24 +230,37 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     id: 'updatedAt',
     accessorKey: 'updatedAt',
     header: ({ column }: { column: Column<SurveyListItem, unknown> }) => (
-      <DataTableColumnHeader column={column} title='Last Updated' />
+      <DataTableColumnHeader column={column} title='Updated' />
     ),
     cell: ({ cell }) => {
-      const date = new Date(cell.getValue<string>());
-      const now = new Date();
-      const diffDays = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      let relative = '';
-      if (diffDays === 0) relative = 'Today';
-      else if (diffDays === 1) relative = 'Yesterday';
-      else if (diffDays < 7) relative = `${diffDays} days ago`;
-      else relative = date.toLocaleDateString();
-
+      const iso = cell.getValue<string>();
+      const absolute = new Date(iso).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
       return (
-        <span className='text-muted-foreground text-sm'>{relative}</span>
+        <span
+          className='text-muted-foreground text-sm tabular-nums'
+          title={absolute}
+        >
+          {formatUpdatedAt(iso)}
+        </span>
       );
     }
+  },
+  {
+    id: 'open',
+    enableSorting: false,
+    enableHiding: false,
+    header: () => <span className='sr-only'>Open</span>,
+    cell: () => (
+      <span className='text-muted-foreground flex justify-end opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100'>
+        <Icons.chevronRight className='size-4' aria-hidden />
+      </span>
+    ),
+    size: 40
   }
 ];

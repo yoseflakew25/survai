@@ -54,13 +54,13 @@ class AuthService:
         await self.organizations.add(org)
         await self.session.flush()
 
-        # MVP: one login per organization (no staff seats). Role reserved for later.
+        # MVP: one login per organization (no staff seats).
         display_name = full_name.strip() or org.name
         user = User(
             email=email.lower().strip(),
             hashed_password=hash_password(password),
             full_name=display_name,
-            role=UserRole.admin,
+            role=UserRole.organization,
             organization_id=org.id,
             is_active=True,
             is_superuser=False,

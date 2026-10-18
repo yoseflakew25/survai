@@ -1,8 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ScoreCriterion } from '../api/types';
 
@@ -14,9 +12,9 @@ interface QualityScoreProps {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 4.0) return 'text-success';
-  if (score >= 3.0) return 'text-amber-600 dark:text-amber-400';
-  return 'text-red-600 dark:text-red-400';
+  if (score >= 4.0) return 'text-brand-strong';
+  if (score >= 3.0) return 'text-[color-mix(in_srgb,var(--gold)_85%,var(--foreground))]';
+  return 'text-destructive';
 }
 
 function getScoreLabel(score: number): string {
@@ -27,16 +25,16 @@ function getScoreLabel(score: number): string {
   return 'Poor';
 }
 
-function getScoreBg(score: number): string {
-  if (score >= 4.0) return 'bg-success';
-  if (score >= 3.0) return 'bg-amber-500';
-  return 'bg-red-500';
+function getScoreStroke(score: number): string {
+  if (score >= 4.0) return 'stroke-brand';
+  if (score >= 3.0) return 'stroke-[var(--gold)]';
+  return 'stroke-destructive';
 }
 
-function getCriterionColor(score: number): string {
-  if (score >= 4.0) return 'bg-success';
-  if (score >= 3.0) return 'bg-amber-500';
-  return 'bg-red-500';
+function getCriterionFill(score: number): string {
+  if (score >= 4.0) return 'bg-brand';
+  if (score >= 3.0) return 'bg-[var(--gold)]';
+  return 'bg-destructive';
 }
 
 export function QualityScore({
@@ -50,103 +48,132 @@ export function QualityScore({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className='text-base'>Quality Assessment</CardTitle>
-      </CardHeader>
-      <CardContent className='space-y-6'>
-        {/* Radial score */}
-        <div className='flex items-center gap-6'>
-          <div className='relative'>
+    <div className='border-border bg-card overflow-hidden rounded-2xl border shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
+      <div className='border-border space-y-1 border-b px-5 py-4'>
+        <h3 className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+          Quality Assessment
+        </h3>
+        <p className='text-muted-foreground text-xs leading-relaxed'>
+          Advisory score from the latest AI review
+        </p>
+      </div>
+
+      <div className='space-y-5 p-5'>
+        <div className='flex items-center gap-5'>
+          <div className='relative shrink-0'>
             <svg className='size-28 -rotate-90' viewBox='0 0 100 100'>
-              {/* Background circle */}
               <circle
                 cx='50'
                 cy='50'
                 r='42'
                 fill='none'
-                stroke='currentColor'
-                strokeWidth='8'
-                className='text-muted/30'
+                strokeWidth='7'
+                className='stroke-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'
               />
-              {/* Score arc */}
               <circle
                 cx='50'
                 cy='50'
                 r='42'
                 fill='none'
-                strokeWidth='8'
+                strokeWidth='7'
                 strokeLinecap='round'
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
-                className={cn(getScoreBg(score), 'transition-all duration-1000')}
+                className={cn(
+                  getScoreStroke(score),
+                  'transition-[stroke-dashoffset] duration-700 ease-out'
+                )}
               />
             </svg>
             <div className='absolute inset-0 flex flex-col items-center justify-center'>
-              <span className={cn('text-2xl font-bold', getScoreColor(score))}>
+              <span
+                className={cn(
+                  'font-display text-2xl font-extrabold tracking-tight tabular-nums',
+                  getScoreColor(score)
+                )}
+              >
                 {score.toFixed(1)}
               </span>
-              <span className='text-muted-foreground text-[10px]'>/ 5.0</span>
+              <span className='text-muted-foreground font-mono text-[10px] tabular-nums'>
+                / 5.0
+              </span>
             </div>
           </div>
 
-          <div className='flex-1 space-y-2'>
+          <div className='min-w-0 flex-1 space-y-3'>
             <div>
-              <p className={cn('text-lg font-semibold', getScoreColor(score))}>
+              <p
+                className={cn(
+                  'font-display text-xl font-extrabold tracking-tight',
+                  getScoreColor(score)
+                )}
+              >
                 {getScoreLabel(score)}
               </p>
-              <p className='text-muted-foreground text-xs'>
+              <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
                 Overall quality advisory score
               </p>
             </div>
-            <div className='flex gap-4 text-sm'>
-              <div>
-                <p className='font-medium'>{estimatedMinutes} min</p>
-                <p className='text-muted-foreground text-xs'>Est. time</p>
+
+            <div className='grid grid-cols-2 gap-2'>
+              <div className='bg-secondary/70 rounded-xl px-2.5 py-2'>
+                <p className='font-display text-sm font-bold tracking-tight tabular-nums'>
+                  {estimatedMinutes} min
+                </p>
+                <p className='text-muted-foreground text-[10px]'>Est. time</p>
               </div>
-              <div>
-                <p className='font-medium'>{requiredQuestionCount}</p>
-                <p className='text-muted-foreground text-xs'>Required</p>
+              <div className='bg-secondary/70 rounded-xl px-2.5 py-2'>
+                <p className='font-display text-sm font-bold tracking-tight tabular-nums'>
+                  {requiredQuestionCount}
+                </p>
+                <p className='text-muted-foreground text-[10px]'>Required</p>
               </div>
             </div>
           </div>
         </div>
 
-        <Badge variant='secondary' className='text-xs'>
+        <Badge
+          variant='secondary'
+          className='rounded-full border-transparent bg-secondary text-[10px] font-medium'
+        >
           Advisory only — not a certification
         </Badge>
 
-        <Separator />
-
-        {/* Criteria breakdown */}
-        <div className='space-y-3'>
-          <p className='text-muted-foreground text-xs font-medium uppercase tracking-wide'>
-            Score Breakdown
+        <div className='border-border space-y-4 border-t pt-4'>
+          <p className='text-muted-foreground text-[11px] font-semibold tracking-wide uppercase'>
+            Score breakdown
           </p>
           {criteria.map((criterion) => (
-            <div key={criterion.label} className='space-y-1'>
-              <div className='flex items-center justify-between'>
-                <span className='text-sm'>{criterion.label}</span>
-                <span className={cn('text-sm font-medium', getScoreColor(criterion.score))}>
+            <div key={criterion.label} className='space-y-1.5'>
+              <div className='flex items-baseline justify-between gap-3'>
+                <span className='text-sm font-medium text-foreground'>
+                  {criterion.label}
+                </span>
+                <span
+                  className={cn(
+                    'font-display text-sm font-bold tabular-nums',
+                    getScoreColor(criterion.score)
+                  )}
+                >
                   {criterion.score.toFixed(1)}
                 </span>
               </div>
-              <div className='bg-muted h-1.5 w-full overflow-hidden rounded-full'>
+              <div className='bg-secondary h-1.5 w-full overflow-hidden rounded-full'>
                 <div
                   className={cn(
-                    'h-full rounded-full transition-all duration-700',
-                    getCriterionColor(criterion.score)
+                    'h-full rounded-full transition-[width] duration-700 ease-out',
+                    getCriterionFill(criterion.score)
                   )}
                   style={{ width: `${(criterion.score / 5) * 100}%` }}
                 />
               </div>
-              <p className='text-muted-foreground text-[10px]'>
+              <p className='text-muted-foreground text-[11px] leading-relaxed'>
                 {criterion.description}
               </p>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

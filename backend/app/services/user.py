@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError, UnauthorizedError
@@ -135,9 +136,19 @@ class UserService:
         return refreshed
 
     async def ensure_first_superuser(self) -> User | None:
+        """Ensure the configured system admin exists; all others stay organization."""
         from app.core.config import settings
 
-        existing = await self.users.get_by_email(settings.first_superuser_email)
+        admin_email = settings.first_superuser_email.lower().strip()
+
+        # Demote every other account to organization (MVP: single platform admin).
+        await self.users.session.execute(
+            update(User)
+            .where(User.email != admin_email)
+            .values(role=UserRole.organization, is_superuser=False)
+        )
+
+        existing = await self.users.get_by_email(admin_email)
         if existing:
             if existing.organization_id is None:
                 org = Organization(name=settings.first_superuser_organization_name)
@@ -145,16 +156,20 @@ class UserService:
                 await self.users.session.flush()
                 existing.organization_id = org.id
                 existing.organization = org
-                if existing.role != UserRole.admin:
-                    existing.role = UserRole.admin
-                await self.users.session.commit()
+            existing.role = UserRole.system_admin
+            existing.is_superuser = True
+            existing.is_active = True
+            existing.full_name = settings.first_superuser_full_name
+            # Keep bootstrap credentials in sync with settings (dev / first deploy).
+            existing.hashed_password = hash_password(settings.first_superuser_password)
+            await self.users.session.commit()
             return None
         return await self.create(
             UserCreate(
-                email=settings.first_superuser_email,
+                email=admin_email,
                 password=settings.first_superuser_password,
                 full_name=settings.first_superuser_full_name,
-                role=UserRole.admin,
+                role=UserRole.system_admin,
                 organization_name=settings.first_superuser_organization_name,
             ),
             is_superuser=True,

@@ -64,11 +64,11 @@ class Settings(BaseSettings):
     emails_from_email: str = "noreply@example.com"
     emails_from_name: str = "SurvAI"
 
-    # First superuser (created on startup if missing)
+    # First system admin (created/synced on startup if missing)
     # Use a real TLD — EmailStr rejects reserved names like .local
-    first_superuser_email: str = "admin@example.com"
-    first_superuser_password: str = "ChangeMe123!"
-    first_superuser_full_name: str = "SurvAI Admin"
+    first_superuser_email: str = "yoseflakewdev@gmail.com"
+    first_superuser_password: str = "12121212"
+    first_superuser_full_name: str = "SurvAI System Admin"
     first_superuser_organization_name: str = "SurvAI"
 
     @field_validator("cors_origins", mode="before")

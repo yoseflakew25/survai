@@ -8,7 +8,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  type DragEndEvent
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -35,7 +35,7 @@ interface EditableListProps {
 export function EditableList({
   items,
   onChange,
-  placeholder = 'Enter item...',
+  placeholder = 'Enter item…',
   addLabel = 'Add item',
   emptyMessage = 'No items yet',
   disabled = false,
@@ -47,9 +47,7 @@ export function EditableList({
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8 // 8px movement before drag starts
-      }
+      activationConstraint: { distance: 8 }
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
@@ -59,14 +57,12 @@ export function EditableList({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
+      if (!over || active.id === over.id) return;
 
-      if (over && active.id !== over.id) {
-        const oldIndex = items.findIndex((_, i) => `item-${i}` === active.id);
-        const newIndex = items.findIndex((_, i) => `item-${i}` === over.id);
-
-        if (oldIndex !== -1 && newIndex !== -1) {
-          onChange(arrayMove(items, oldIndex, newIndex));
-        }
+      const oldIndex = items.findIndex((_, i) => `item-${i}` === active.id);
+      const newIndex = items.findIndex((_, i) => `item-${i}` === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onChange(arrayMove(items, oldIndex, newIndex));
       }
     },
     [items, onChange]
@@ -103,136 +99,129 @@ export function EditableList({
         e.preventDefault();
         if (index !== undefined) {
           setEditingIndex(null);
-          if (index === items.length - 1) {
-            newItemRef.current?.focus();
-          }
+          if (index === items.length - 1) newItemRef.current?.focus();
         } else {
           handleAdd();
         }
       } else if (e.key === 'Escape') {
         setEditingIndex(null);
-      } else if (e.key === 'Backspace' && index !== undefined && items[index] === '') {
+      } else if (
+        e.key === 'Backspace' &&
+        index !== undefined &&
+        items[index] === ''
+      ) {
         e.preventDefault();
         handleRemove(index);
-        if (index > 0) {
-          setEditingIndex(index - 1);
-        }
+        if (index > 0) setEditingIndex(index - 1);
       }
     },
     [handleAdd, handleRemove, items]
   );
 
-  const handleFocus = useCallback((index: number) => {
-    setEditingIndex(index);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    setTimeout(() => setEditingIndex(null), 150);
-  }, []);
-
   return (
-    <div className={cn('space-y-2', className)}>
-      {items.length === 0 && (
-        <div className='flex flex-col items-center justify-center rounded-lg border border-dashed py-8 text-center bg-primary/5 text-primary-foreground/80'>
-          <Icons.forms className='text-muted-foreground/40 mb-2 h-8 w-8' />
-          <p className='text-muted-foreground text-sm'>{emptyMessage}</p>
-          <p className='text-muted-foreground/60 mt-1 text-xs'>
-            Click the button below or use AI to generate
+    <div className={cn('space-y-3', className)}>
+      {items.length === 0 ? (
+        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center'>
+          <div className='bg-brand-soft flex size-10 items-center justify-center rounded-xl'>
+            <Icons.forms className='size-4 text-foreground' />
+          </div>
+          <p className='text-sm font-medium text-foreground'>{emptyMessage}</p>
+          <p className='text-muted-foreground text-xs'>
+            Add one below, or generate more with AI.
           </p>
         </div>
-      )}
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={items.map((_, i) => `item-${i}`)}
-          strategy={verticalListSortingStrategy}
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <div >
-            {items.map((item, index) => (
-              <SortableItem
-                key={`item-${index}`}
-                id={`item-${index}`}
-                index={index}
-                disabled={disabled}
-              >
-                <div
-                  className={cn(
-                    'group flex flex-1 items-center gap-2 rounded-md px-2 py-1 transition-colors',
-                    editingIndex === index
-                      ? 'bg-primary/5 ring-1 ring-primary/20'
-                      : 'hover:bg-muted/50'
-                  )}
+          <SortableContext
+            items={items.map((_, i) => `item-${i}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className='divide-border overflow-hidden rounded-xl border border-border divide-y'>
+              {items.map((item, index) => (
+                <SortableItem
+                  key={`item-${index}`}
+                  id={`item-${index}`}
+                  index={index}
+                  disabled={disabled}
+                  className='bg-card'
                 >
-                  <span
+                  <div
                     className={cn(
-                      'flex h-5 w-5 shrink-0 items-center justify-center rounded text-xs font-medium transition-colors',
-                      editingIndex === index
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
+                      'group flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 transition-colors',
+                      editingIndex === index && 'bg-brand-soft/40'
                     )}
                   >
-                    {index + 1}
-                  </span>
-                  <Input
-                    value={item}
-                    onChange={(e) => handleUpdate(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, index)}
-                    onFocus={() => handleFocus(index)}
-                    onBlur={handleBlur}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    className={cn(
-                      'h-8 flex-1 border-transparent bg-transparent font-medium focus:border-primary focus:bg-background',
-                      !item && 'text-muted-foreground italic'
-                    )}
-                  />
-                  {!disabled && (
-                    <div className='flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100'>
+                    <span
+                      className={cn(
+                        'flex size-6 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold tabular-nums transition-colors',
+                        editingIndex === index
+                          ? 'bg-foreground text-background'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    <Input
+                      value={item}
+                      onChange={(e) => handleUpdate(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, index)}
+                      onFocus={() => setEditingIndex(index)}
+                      onBlur={() => {
+                        window.setTimeout(() => setEditingIndex(null), 150);
+                      }}
+                      placeholder={placeholder}
+                      disabled={disabled}
+                      className={cn(
+                        'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-medium shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
+                        !item && 'text-muted-foreground italic'
+                      )}
+                    />
+                    {!disabled ? (
                       <Button
+                        type='button'
                         variant='ghost'
                         size='icon-sm'
                         onClick={() => handleRemove(index)}
-                        className='h-6 w-6 text-muted-foreground hover:text-destructive'
+                        className='text-muted-foreground hover:text-destructive size-8 shrink-0 rounded-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
                         aria-label={`Remove item ${index + 1}`}
                       >
-                        <Icons.close className='h-3.5 w-3.5' />
+                        <Icons.close className='size-3.5' />
                       </Button>
-                    </div>
-                  )}
-                </div>
-              </SortableItem>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+                    ) : null}
+                  </div>
+                </SortableItem>
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      )}
 
-      {!disabled && (
+      {!disabled ? (
         <div className='flex items-center gap-2'>
-          <div className='relative flex-1'>
-            <Input
-              ref={newItemRef}
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e)}
-              placeholder={addLabel + '...'}
-              className='h-9 border-dashed'
-            />
-          </div>
+          <Input
+            ref={newItemRef}
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e)}
+            placeholder={`${addLabel}…`}
+            className='h-10 flex-1 rounded-xl border-dashed'
+          />
           <Button
+            type='button'
             variant='outline'
-            size='default'
+            className='h-10 shrink-0 rounded-xl px-3 font-medium'
             onClick={handleAdd}
             disabled={!newItem.trim()}
           >
-            <Icons.add className='mr-1 h-4 w-4' />
+            <Icons.add className='size-4' />
             {addLabel}
           </Button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
 const TABS = [
+  { label: 'Plan', href: 'plan', icon: 'plan' as const },
   { label: 'Review', href: 'review', icon: 'review' as const },
   { label: 'Collect', href: 'collect', icon: 'collect' as const },
   { label: 'Analytics', href: 'analytics', icon: 'analytics' as const },

@@ -27,6 +27,7 @@ import type { ComponentType } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { navGroups } from '@/config/nav-config';
 import { useAuth } from '@/lib/auth-context';
+import { toast } from '@/lib/toast';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -103,7 +104,7 @@ function NavCollapsibleItem({
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   const router = useRouter();
   const filteredGroups = useFilteredNavGroups(navGroups);
   const { state } = useSidebar();
@@ -243,14 +244,29 @@ export default function AppSidebar() {
                 {/* Sign out */}
                 <DropdownMenuGroup>
                   <DropdownMenuItem
+                    disabled={isLoggingOut}
+                    variant='destructive'
                     onClick={() => {
-                      logout();
-                      router.push('/auth/sign-in');
+                      void (async () => {
+                        try {
+                          await logout();
+                          toast.success('Signed out', {
+                            description: 'See you next time.'
+                          });
+                        } catch {
+                          toast.error('Could not sign out', {
+                            description: 'Try again in a moment.'
+                          });
+                        }
+                      })();
                     }}
-                    className='text-destructive focus:text-destructive'
                   >
-                    <Icons.logout aria-hidden className='mr-2 size-4' />
-                    <span>Sign out</span>
+                    {isLoggingOut ? (
+                      <Icons.spinner aria-hidden className='mr-2 size-4 animate-spin' />
+                    ) : (
+                      <Icons.logout aria-hidden className='mr-2 size-4' />
+                    )}
+                    <span>{isLoggingOut ? 'Signing out…' : 'Sign out'}</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>

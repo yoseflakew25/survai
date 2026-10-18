@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type ReactNode
 } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { createPlanWithAI } from '@/features/plans/api/service';
+import { toast } from '@/lib/toast';
 
 interface NewSurveyDialogProps {
   open: boolean;
@@ -117,6 +120,7 @@ function wait(ms: number) {
 }
 
 export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
@@ -125,6 +129,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
   const [done, setDone] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [composerReady, setComposerReady] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -153,6 +158,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
     setDone(false);
     setIsTyping(false);
     setComposerReady(false);
+    setIsGeneratingPlan(false);
 
     void (async () => {
       const first = QUESTIONS[0];
@@ -206,9 +212,42 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
   }, [open, questionIndex, done, isTyping, composerReady]);
 
   const handleClose = useCallback(() => {
+    if (isGeneratingPlan) return;
     runIdRef.current += 1;
     onOpenChange(false);
-  }, [onOpenChange]);
+  }, [isGeneratingPlan, onOpenChange]);
+
+  const handleGeneratePlan = useCallback(async () => {
+    if (isGeneratingPlan) return;
+    setIsGeneratingPlan(true);
+    try {
+      const researchGoal = [
+        `Survey title: ${answers.title.trim()}`,
+        answers.description.trim()
+          ? `Description: ${answers.description.trim()}`
+          : null,
+        answers.researchGoal.trim()
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const plan = await createPlanWithAI({ researchGoal });
+
+      toast.success('Plan generated', {
+        description: 'Review and refine your survey plan next.'
+      });
+
+      runIdRef.current += 1;
+      onOpenChange(false);
+      router.push(`/dashboard/plans/${plan.id}`);
+    } catch {
+      toast.error('Could not generate plan', {
+        description: 'Please try again.'
+      });
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  }, [answers, isGeneratingPlan, onOpenChange, router]);
 
   const advance = useCallback(
     async (value: string) => {
@@ -281,7 +320,13 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
   const activeStep = done ? QUESTIONS.length : questionIndex + 1;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) handleClose();
+        else onOpenChange(true);
+      }}
+    >
       <DialogContent
         showCloseButton
         className='flex h-[min(820px,92svh)] w-full flex-col gap-0 overflow-hidden rounded-2xl border-border p-0 sm:max-w-2xl'
@@ -432,15 +477,31 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
         <div className='border-border shrink-0 border-t bg-[color-mix(in_srgb,var(--background)_55%,var(--brand-soft))] px-6 py-4 sm:px-8'>
           {done ? (
             <div className='flex items-center justify-between gap-2'>
-              <Button type='button' variant='ghost' onClick={handleClose}>
+              <Button
+                type='button'
+                variant='ghost'
+                onClick={handleClose}
+                disabled={isGeneratingPlan}
+              >
                 Close
               </Button>
               <Button
                 type='button'
-                disabled
-                className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 font-semibold text-foreground opacity-60'
+                disabled={isGeneratingPlan}
+                onClick={() => void handleGeneratePlan()}
+                className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 font-semibold text-foreground disabled:opacity-70'
               >
-                Generate plan
+                {isGeneratingPlan ? (
+                  <>
+                    <Icons.spinner className='size-4 animate-spin' />
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <Icons.sparkles className='size-4' />
+                    Generate plan
+                  </>
+                )}
               </Button>
             </div>
           ) : (

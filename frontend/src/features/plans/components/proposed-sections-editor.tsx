@@ -8,7 +8,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  type DragEndEvent
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -44,9 +44,7 @@ export function ProposedSectionsEditor({
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8
-      }
+      activationConstraint: { distance: 8 }
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
@@ -56,23 +54,20 @@ export function ProposedSectionsEditor({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
+      if (!over || active.id === over.id) return;
 
-      if (over && active.id !== over.id) {
-        const oldIndex = sections.findIndex((_, i) => `section-${i}` === active.id);
-        const newIndex = sections.findIndex((_, i) => `section-${i}` === over.id);
+      const oldIndex = sections.findIndex((_, i) => `section-${i}` === active.id);
+      const newIndex = sections.findIndex((_, i) => `section-${i}` === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
 
-        if (oldIndex !== -1 && newIndex !== -1) {
-          onChange(arrayMove(sections, oldIndex, newIndex));
-          // Update expanded index if needed
-          if (expandedIndex === oldIndex) {
-            setExpandedIndex(newIndex);
-          } else if (expandedIndex !== null) {
-            if (oldIndex < expandedIndex && newIndex >= expandedIndex) {
-              setExpandedIndex(expandedIndex - 1);
-            } else if (oldIndex > expandedIndex && newIndex <= expandedIndex) {
-              setExpandedIndex(expandedIndex + 1);
-            }
-          }
+      onChange(arrayMove(sections, oldIndex, newIndex));
+      if (expandedIndex === oldIndex) {
+        setExpandedIndex(newIndex);
+      } else if (expandedIndex !== null) {
+        if (oldIndex < expandedIndex && newIndex >= expandedIndex) {
+          setExpandedIndex(expandedIndex - 1);
+        } else if (oldIndex > expandedIndex && newIndex <= expandedIndex) {
+          setExpandedIndex(expandedIndex + 1);
         }
       }
     },
@@ -81,10 +76,12 @@ export function ProposedSectionsEditor({
 
   const handleAdd = useCallback(() => {
     const trimmedTitle = newTitle.trim();
-    const trimmedRationale = newRationale.trim();
     if (!trimmedTitle) return;
 
-    onChange([...sections, { title: trimmedTitle, rationale: trimmedRationale }]);
+    onChange([
+      ...sections,
+      { title: trimmedTitle, rationale: newRationale.trim() }
+    ]);
     setNewTitle('');
     setNewRationale('');
     setExpandedIndex(sections.length);
@@ -108,63 +105,63 @@ export function ProposedSectionsEditor({
     [sections, onChange]
   );
 
-  const toggleExpanded = useCallback((index: number) => {
-    setExpandedIndex((prev) => (prev === index ? null : index));
-  }, []);
-
   return (
     <div className={cn('space-y-3', className)}>
-      {sections.length === 0 && (
-        <div className='flex flex-col items-center justify-center rounded-lg border border-dashed py-8 text-center'>
-          <Icons.kanban className='text-muted-foreground/40 mb-2 h-8 w-8' />
-          <p className='text-primary text-sm'>
-             Add additional sections manually.
+      {sections.length === 0 ? (
+        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center'>
+          <div className='bg-brand-soft flex size-10 items-center justify-center rounded-xl'>
+            <Icons.kanban className='size-4 text-foreground' />
+          </div>
+          <p className='text-sm font-medium text-foreground'>
+            No sections yet
           </p>
-          <p className='text-muted-foreground/60 mt-1 text-xs'>
-            Sections organize your survey questions into logical groups
+          <p className='text-muted-foreground max-w-xs text-xs leading-relaxed'>
+            Sections group questions into a clear flow for respondents.
           </p>
         </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sections.map((_, i) => `section-${i}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className='space-y-2'>
+              {sections.map((section, index) => (
+                <SortableSectionItem
+                  key={`section-${index}`}
+                  id={`section-${index}`}
+                  index={index}
+                  section={section}
+                  isExpanded={expandedIndex === index}
+                  onToggle={() =>
+                    setExpandedIndex((prev) => (prev === index ? null : index))
+                  }
+                  onUpdate={(field, value) => handleUpdate(index, field, value)}
+                  onRemove={() => handleRemove(index)}
+                  disabled={disabled}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={sections.map((_, i) => `section-${i}`)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className='space-y-2'>
-            {sections.map((section, index) => (
-              <SortableSectionItem
-                key={`section-${index}`}
-                id={`section-${index}`}
-                index={index}
-                section={section}
-                isExpanded={expandedIndex === index}
-                onToggle={() => toggleExpanded(index)}
-                onUpdate={(field, value) => handleUpdate(index, field, value)}
-                onRemove={() => handleRemove(index)}
-                disabled={disabled}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      {!disabled && (
-        <div className='space-y-2 rounded-lg border border-dashed p-3'>
-          <div className='flex items-center gap-2'>
-            <Icons.add className='text-muted-foreground h-4 w-4' />
-            <span className='text-muted-foreground text-xs font-medium'>Add New Section</span>
-          </div>
+      {!disabled ? (
+        <div className='space-y-2.5 rounded-xl border border-dashed border-border bg-muted/15 p-3.5'>
+          <p className='text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium tracking-wide uppercase'>
+            <Icons.add className='size-3.5' />
+            New section
+          </p>
           <Input
             ref={newTitleRef}
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder='Section title'
-            className='h-9 font-medium'
+            className='h-10 rounded-xl font-medium'
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newTitle.trim()) {
                 e.preventDefault();
@@ -177,19 +174,20 @@ export function ProposedSectionsEditor({
             onChange={(e) => setNewRationale(e.target.value)}
             placeholder='Rationale — why this section matters (optional)'
             rows={2}
-            className='resize-none text-xs'
+            className='resize-none rounded-xl text-sm'
           />
           <Button
+            type='button'
             variant='outline'
-            size='default'
+            className='h-9 w-full rounded-xl font-medium'
             onClick={handleAdd}
             disabled={!newTitle.trim()}
           >
-            <Icons.add className='mr-1 h-4 w-4' />
-            Add Section
+            <Icons.add className='size-4' />
+            Add section
           </Button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -17,6 +17,8 @@ export function OrgSwitcher() {
   const { user } = useAuth();
 
   const orgName = user?.organizationName ?? 'Survai';
+  const roleLabel =
+    user?.role === 'system_admin' ? 'System admin' : 'Organization';
 
   return (
     <SidebarMenu>
@@ -38,7 +40,7 @@ export function OrgSwitcher() {
           >
             <span className='truncate font-medium'>{orgName}</span>
             <span className='text-muted-foreground truncate text-xs'>
-              {user?.role ?? 'Organization'}
+              {roleLabel}
             </span>
           </div>
         </SidebarMenuButton>

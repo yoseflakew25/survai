@@ -35,12 +35,11 @@ export function AuthShowcase() {
     <div className='hidden border-l border-border/40 lg:block lg:w-[55%] xl:w-[60%]'>
       <div className='auth-panel-tint relative h-full w-full overflow-hidden'>
         <div className='bg-grid' />
-        <div className='matrix-rain' />
         <div className='bg-glow' />
 
         <SurvaiMark
           ghost
-          className='ghost-drift absolute -right-[8%] -bottom-[10%] h-[55%] w-auto text-foreground opacity-[0.4] dark:opacity-[0.32]'
+          className='absolute -right-[8%] -bottom-[10%] h-[55%] w-auto text-foreground opacity-[0.28] dark:opacity-[0.22]'
         />
 
         <div className='relative z-10 flex h-full flex-col items-center justify-center px-10'>

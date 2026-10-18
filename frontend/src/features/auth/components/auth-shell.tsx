@@ -35,7 +35,7 @@ export function AuthShell({ children }: AuthShellProps) {
 
         <footer className='px-6 py-4 sm:px-8 lg:px-10'>
           <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground/30'>
-            <span>© {new Date().getFullYear()} Survai</span>
+            <span suppressHydrationWarning>© {new Date().getFullYear()} Survai</span>
             <Link
               href='/privacy'
               className='transition-colors hover:text-muted-foreground/60'

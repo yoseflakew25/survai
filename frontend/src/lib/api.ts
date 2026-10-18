@@ -8,7 +8,7 @@ export type ApiUser = {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'researcher' | 'viewer';
+  role: 'system_admin' | 'organization';
   is_active: boolean;
   is_superuser: boolean;
   organization_id: string | null;

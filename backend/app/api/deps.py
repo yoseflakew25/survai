@@ -79,4 +79,4 @@ def require_roles(*roles: UserRole) -> Callable[[User], User]:
     return _checker
 
 
-AdminUser = Annotated[User, Depends(require_roles(UserRole.admin))]
+AdminUser = Annotated[User, Depends(require_roles(UserRole.system_admin))]

@@ -36,33 +36,33 @@ export function SortableItem({
   };
 
   return (
-    <div
+    <li
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center gap-2',
-        isDragging && 'opacity-50 rounded-lg bg-primary/10 shadow-lg',
+        'flex items-stretch',
+        isDragging &&
+          'relative z-50 rounded-xl bg-card opacity-95 shadow-md ring-1 ring-border',
         className
       )}
     >
-      {!disabled && (
+      {!disabled ? (
         <button
           type='button'
           className={cn(
-            'flex h-6 w-6 shrink-0 items-center justify-center rounded',
-            'text-muted-foreground hover:text-foreground hover:bg-muted',
-            'cursor-grab active:cursor-grabbing transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-primary/20'
+            'text-muted-foreground hover:text-foreground hover:bg-muted/60 flex w-8 shrink-0 cursor-grab items-center justify-center transition-colors active:cursor-grabbing',
+            'focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-2'
           )}
           {...attributes}
           {...listeners}
           aria-label={`Drag to reorder item ${index + 1}`}
         >
-          <Icons.gripVertical className='h-4 w-4' />
+          <Icons.gripVertical className='size-4' />
         </button>
+      ) : (
+        <div className='w-8 shrink-0' />
       )}
-      {disabled && <div className='w-6 shrink-0' />}
       {children}
-    </div>
+    </li>
   );
 }

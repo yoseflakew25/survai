@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertDialog,
@@ -123,7 +123,6 @@ function sectionFromTab(tab: string | null): ProfileSection {
 
 export default function ProfileViewPage() {
   const { user, setUserFromApi, logout } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<ProfileSection>(() =>
     sectionFromTab(searchParams.get('tab'))
@@ -272,14 +271,13 @@ export default function ProfileViewPage() {
     setIsDeleting(true);
     try {
       await deleteMyAccount();
-      await logout();
       toast.success('Organization deleted');
-      router.replace('/auth/sign-in');
+      await logout();
+      // RequireAuth shows signing-out / redirect screens
     } catch (err) {
       toast.error('Could not delete account', {
         description: err instanceof Error ? err.message : 'Try again'
       });
-    } finally {
       setIsDeleting(false);
     }
   };

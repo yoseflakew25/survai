@@ -18,7 +18,7 @@ async def test_register_login_me_refresh_logout(client: AsyncClient) -> None:
     assert body["user"]["email"] == "ops@dicdo.example.com"
     assert body["user"]["organization_name"] == "DICDO"
     assert body["user"]["full_name"] == "DICDO"
-    assert body["user"]["role"] == "admin"
+    assert body["user"]["role"] == "organization"
     assert body["access_token"]
 
     me = await client.get(

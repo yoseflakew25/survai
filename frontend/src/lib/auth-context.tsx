@@ -22,7 +22,7 @@ import {
 // Types
 // ============================================================
 
-export type UserRole = 'admin' | 'researcher' | 'viewer';
+export type UserRole = 'system_admin' | 'organization';
 
 /** Logged-in organization account (MVP: one login per org). Not a respondent. */
 export interface AuthUser {
@@ -43,6 +43,8 @@ export interface AuthUser {
 interface AuthContextValue {
   isSignedIn: boolean;
   isLoading: boolean;
+  /** True while logout request + session clear are in flight. */
+  isLoggingOut: boolean;
   user: AuthUser | null;
   /** In-memory only — never persisted. Prefer httpOnly cookies for auth. */
   accessToken: string | null;
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const clearSession = useCallback(() => {
     setAccessToken(null);
@@ -230,14 +233,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       await apiFetch('/auth/logout', { method: 'POST' });
     } catch {
       // ignore network errors — clear local session anyway
     } finally {
       clearSession();
+      setIsLoggingOut(false);
     }
-  }, [clearSession]);
+  }, [clearSession, isLoggingOut]);
 
   const setUserFromApi = useCallback((apiUser: ApiUser) => {
     setUser(mapUser(apiUser));
@@ -247,6 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       isSignedIn: !!user,
       isLoading,
+      isLoggingOut,
       user,
       accessToken,
       login,
@@ -254,7 +261,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       setUserFromApi
     }),
-    [accessToken, isLoading, user, login, register, logout, setUserFromApi]
+    [
+      accessToken,
+      isLoading,
+      isLoggingOut,
+      user,
+      login,
+      register,
+      logout,
+      setUserFromApi
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

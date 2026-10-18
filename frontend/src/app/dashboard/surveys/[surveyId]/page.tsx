@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 
 const MODULES = [
   {
-    title: 'Build',
-    description: 'Design sections and questions with AI assistance',
-    icon: 'forms' as const,
-    urlSuffix: 'build'
+    title: 'Plan',
+    description: 'Research goal, objectives, and proposed sections',
+    icon: 'plan' as const,
+    urlSuffix: 'plan'
   },
   {
     title: 'Review',

@@ -50,95 +50,101 @@ export function SortableSectionItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group rounded-lg border transition-all',
-        isDragging && 'opacity-50 shadow-lg',
-        isExpanded
-          ? 'bg-primary/5 ring-1 ring-primary/20'
-          : 'hover:border-primary/20'
+        'group overflow-hidden rounded-xl border border-border bg-card transition-[box-shadow,border-color]',
+        isDragging && 'opacity-95 shadow-md ring-1 ring-border',
+        isExpanded &&
+          'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] shadow-sm'
       )}
     >
-      {/* Section Header */}
-      <div className='flex items-center gap-2 p-3'>
-        {!disabled && (
+      <div className='flex items-center gap-1.5 px-2 py-2 sm:gap-2 sm:px-2.5'>
+        {!disabled ? (
           <button
             type='button'
-            className={cn(
-              'flex h-6 w-6 shrink-0 items-center justify-center rounded',
-              'text-muted-foreground hover:text-foreground hover:bg-muted',
-              'cursor-grab active:cursor-grabbing transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-primary/20'
-            )}
+            className='text-muted-foreground hover:text-foreground hover:bg-muted/60 flex size-8 shrink-0 cursor-grab items-center justify-center rounded-lg transition-colors active:cursor-grabbing'
             {...attributes}
             {...listeners}
             aria-label={`Drag to reorder section ${index + 1}`}
           >
-            <Icons.gripVertical className='h-4 w-4' />
+            <Icons.gripVertical className='size-4' />
           </button>
-        )}
+        ) : null}
+
         <span
           className={cn(
-            'flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-semibold transition-colors',
+            'flex size-7 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold tabular-nums',
             isExpanded
-              ? 'bg-primary text-primary-foreground'
+              ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground'
               : 'bg-muted text-muted-foreground'
           )}
         >
           {index + 1}
         </span>
+
         <Input
           value={section.title}
           onChange={(e) => onUpdate('title', e.target.value)}
           placeholder='Section title'
           disabled={disabled}
           className={cn(
-            'h-8 flex-1 border-transparent bg-transparent font-medium focus:border-primary focus:bg-background',
+            'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-semibold shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
             !section.title && 'text-muted-foreground italic'
           )}
-          onClick={() => !isExpanded && onToggle()}
+          onClick={() => {
+            if (!isExpanded) onToggle();
+          }}
         />
-        {!disabled && (
-          <div className='flex items-center gap-1'>
+
+        {!disabled ? (
+          <div className='flex shrink-0 items-center gap-0.5'>
             <Button
+              type='button'
               variant='ghost'
               size='icon-sm'
               onClick={onToggle}
-              className='h-7 w-7'
+              className='size-8 rounded-lg'
+              aria-expanded={isExpanded}
               aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
             >
-              <Icons.chevronsUpDown className='h-3.5 w-3.5' />
+              <Icons.chevronsUpDown className='size-3.5' />
             </Button>
             <Button
+              type='button'
               variant='ghost'
               size='icon-sm'
               onClick={onRemove}
-              className='h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity'
+              className='text-muted-foreground hover:text-destructive size-8 rounded-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
               aria-label={`Remove section ${index + 1}`}
             >
-              <Icons.close className='h-3.5 w-3.5' />
+              <Icons.close className='size-3.5' />
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Section Rationale (expandable) */}
-      {isExpanded && (
-        <div className='border-t px-3 pb-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-150'>
-          <label className='text-muted-foreground mb-1.5 block text-xs font-medium'>
+      {isExpanded ? (
+        <div className='border-border animate-in fade-in slide-in-from-top-1 space-y-2 border-t bg-muted/20 px-3 py-3 duration-150 sm:px-4'>
+          <label className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
             Rationale
           </label>
           <Textarea
             value={section.rationale}
             onChange={(e) => onUpdate('rationale', e.target.value)}
-            placeholder='Why does this section exist? What does it help measure?'
+            placeholder='Why this section exists — what it helps measure…'
             disabled={disabled}
             rows={2}
-            className='resize-none text-xs'
+            className='border-border bg-card min-h-[4rem] resize-none rounded-xl text-sm'
           />
-          <p className='text-muted-foreground/60 mt-1.5 text-[10px]'>
-            Explain the purpose of this section to help your team understand its importance
-          </p>
+          {!section.rationale.trim() ? (
+            <p className='text-muted-foreground text-[11px] leading-relaxed'>
+              A short rationale helps your team keep the survey focused.
+            </p>
+          ) : null}
         </div>
-      )}
+      ) : section.rationale ? (
+        <p className='text-muted-foreground border-border line-clamp-1 border-t px-3 py-2 text-xs sm:px-4'>
+          {section.rationale}
+        </p>
+      ) : null}
     </div>
   );
 }

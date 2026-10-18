@@ -12,7 +12,7 @@ from app.models.user import UserRole
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=255)
-    role: UserRole = UserRole.researcher
+    role: UserRole = UserRole.organization
 
 
 class UserCreate(UserBase):

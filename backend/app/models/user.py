@@ -23,9 +23,14 @@ if TYPE_CHECKING:
 
 
 class UserRole(str, enum.Enum):
-    admin = "admin"
-    researcher = "researcher"
-    viewer = "viewer"
+    """Platform RBAC roles.
+
+    - system_admin: SurvAI operators (platform-wide)
+    - organization: organization workspace accounts (default for signups)
+    """
+
+    system_admin = "system_admin"
+    organization = "organization"
 
 
 class User(Base):
@@ -48,7 +53,7 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role", native_enum=False),
         nullable=False,
-        default=UserRole.researcher,
+        default=UserRole.organization,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
