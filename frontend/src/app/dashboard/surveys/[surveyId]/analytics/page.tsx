@@ -15,7 +15,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Analytics | Survey Copilot'
+  title: 'Analytics'
 };
 
 export default async function AnalyticsPage({

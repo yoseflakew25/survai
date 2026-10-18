@@ -30,23 +30,25 @@ const chartData = [
 
 const chartConfig = {
   desktop: {
-    label: 'Desktop',
+    label: 'Completed',
     color: 'var(--chart-1)'
   },
   mobile: {
-    label: 'Mobile',
+    label: 'Started',
     color: 'var(--chart-2)'
   }
 } satisfies ChartConfig;
 
 export function AreaGraph() {
   return (
-    <Card className='border'>
-      <CardHeader className='border-b'>
-        <CardTitle className='text-primary font-semibold text-lg'>
-          Dotted Area Chart          
+    <Card className='rounded-2xl border-border bg-card shadow-sm'>
+      <CardHeader className='border-b border-border'>
+        <CardTitle className='font-display text-lg font-bold tracking-tight'>
+          Response activity
         </CardTitle>
-        <CardDescription>Showing total visitors for the last 6 months</CardDescription>
+        <CardDescription>
+          Completed vs started responses over the last 12 months
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

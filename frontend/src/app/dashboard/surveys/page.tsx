@@ -5,8 +5,8 @@ import { SurveyTable } from '@/features/surveys/components/survey-tables';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Surveys | Survey Copilot',
-  description: 'Manage your surveys'
+  title: 'Surveys',
+  description: 'Build, publish, and collect responses for your surveys'
 };
 
 export default function SurveysPage() {

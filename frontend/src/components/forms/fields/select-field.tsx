@@ -1,5 +1,6 @@
 'use client';
 
+import { Controller } from 'react-hook-form';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import {
   Select,
@@ -9,9 +10,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';
+import { useFormField, type BaseFieldProps } from '@/lib/form-context';
 
 export function SelectField({
+  name,
   label,
   description,
   required,
@@ -21,39 +23,44 @@ export function SelectField({
   placeholder?: string;
   options: { value: string; label: string; disabled?: boolean }[];
 }) {
-  const field = useFieldContext<string>();
-  const isInvalid = useFieldInvalid();
+  const { control, isInvalid, errorMessage } = useFormField(name);
 
   return (
-    <Field data-invalid={isInvalid}>
-      <FieldLabel htmlFor={field.name}>
-        {label}
-        {required && ' *'}
-      </FieldLabel>
-      <Select
-        name={field.name}
-        value={field.state.value}
-        onValueChange={(value) => field.handleChange(value ?? '')}
-      >
-        <SelectTrigger
-          id={field.name}
-          aria-invalid={isInvalid}
-          aria-describedby={isInvalid ? `${field.name}-error` : undefined}
-        >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {options.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      {description && <FieldDescription>{description}</FieldDescription>}
-      {isInvalid && <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />}
-    </Field>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <Field data-invalid={isInvalid}>
+          <FieldLabel htmlFor={name}>
+            {label}
+            {required ? ' *' : null}
+          </FieldLabel>
+          <Select
+            name={field.name}
+            value={field.value}
+            onValueChange={(value) => field.onChange(value ?? '')}
+          >
+            <SelectTrigger
+              id={name}
+              aria-invalid={isInvalid}
+              aria-describedby={isInvalid ? `${name}-error` : undefined}
+            >
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {options.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          {description ? <FieldDescription>{description}</FieldDescription> : null}
+          {isInvalid ? <FieldError id={`${name}-error`} errors={errorMessage} /> : null}
+        </Field>
+      )}
+    />
   );
 }

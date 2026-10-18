@@ -8,7 +8,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Respondents | Survey Copilot'
+  title: 'Respondents'
 };
 
 export default async function RespondentsPage({

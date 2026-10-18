@@ -124,7 +124,7 @@ export function AvatarUpload({ initials, currentImage, onImageChange }: AvatarUp
         >
           <Avatar className='h-20 w-20 border-2 border-primary/20 transition-all'>
             <AvatarImage src={currentImage || undefined} alt='Profile' />
-            <AvatarFallback className='bg-primary/10 text-primary text-xl font-semibold'>
+            <AvatarFallback className='bg-brand-soft text-xl font-semibold text-foreground'>
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -137,7 +137,7 @@ export function AvatarUpload({ initials, currentImage, onImageChange }: AvatarUp
           {/* Drag overlay */}
           {isDragging && (
             <div className='absolute inset-0 flex items-center justify-center rounded-full bg-primary/20 border-2 border-dashed border-primary'>
-              <Icons.upload className='size-5 text-primary' />
+              <Icons.upload className='size-5 text-foreground' />
             </div>
           )}
         </div>

@@ -176,7 +176,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       {/* Survey Header */}
       <div className='flex items-end justify-between gap-6  border-b pb-4'>
         <div className='min-w-0'>
-          <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>{survey.title}</h1>
+          <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>{survey.title}</h1>
           {survey.description && (
             <p className='text-muted-foreground text-sm'>{survey.description}</p>
           )}
@@ -289,7 +289,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
 // Section Review Card Component
 function SectionReviewCard({ section, index }: { section: Section; index: number }) {
   return (
-    <div className='rounded-lg border bg-background'>
+    <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
       <div className='border-b bg-muted/30 px-4 py-3'>
         <div className='flex items-center gap-3'>
           <span className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded text-xs font-bold'>

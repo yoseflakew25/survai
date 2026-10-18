@@ -36,7 +36,7 @@ export function BarGraph() {
   return (
     <Card className='border'>
       <CardHeader className='border-b'>
-        <CardTitle className='text-primary font-semibold'>
+        <CardTitle className='font-display text-lg font-bold tracking-tight text-foreground'>
           Bar Chart - Multiple
           <Badge variant='outline'>
             <Icons.trendingDown />

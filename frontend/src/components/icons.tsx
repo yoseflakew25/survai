@@ -151,23 +151,15 @@ const IconLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <><rect width='6' height='6' x='2' y='8' rx='1' /><rect width='6' height='6' x='16' y='2' rx='1' /><rect width='6' height='6' x='8' y='16' rx='1' /><path d='M6 8h12v2' /><path d='M8 16h8v-2' /></>
   </InlineIcon>
 );
-const IconDashboard = (props: InlineIconProps) => (
-  <svg
-    xmlns='http://www.w3.org/2000/svg'
-    width={props.size ?? props.width ?? 24}
-    height={props.size ?? props.height ?? 24}
-    viewBox='0 0 24 24'
-    fill='var(--primary)'
-    stroke='none'
-    className={props.className}
-    aria-hidden={props['aria-hidden'] ?? true}
-    {...props}
-  >
-    <path d='M0 0h24v24H0z' fill='none' />
-    <path
-      d='M20 3h-6c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1m-1 8h-4V5h4zm-9-8H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1M9 7H5V5h4zm11 8h-6c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 4h-4v-2h4zm-9-8H4c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-8c0-.55-.45-1-1-1m-1 8H5v-6h4z'
-    />
-  </svg>
+const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => (
+  <InlineIcon {...props}>
+    <>
+      <rect width='7' height='7' x='3' y='3' rx='1' />
+      <rect width='7' height='7' x='14' y='3' rx='1' />
+      <rect width='7' height='7' x='14' y='14' rx='1' />
+      <rect width='7' height='7' x='3' y='14' rx='1' />
+    </>
+  </InlineIcon>
 );
 const IconProfile = (props: React.SVGProps<SVGSVGElement>) => (
   <InlineIcon {...props}>

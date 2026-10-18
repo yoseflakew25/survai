@@ -2,6 +2,7 @@
 
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { SurvaiPanel, SurvaiPanelHeader } from '@/components/survai-panel';
 
 type ActivityType = 'created' | 'edited' | 'published' | 'reviewed' | 'completed';
 
@@ -53,13 +54,34 @@ const mockActivity: ActivityItem[] = [
 
 const typeConfig: Record<
   ActivityType,
-  { icon: keyof typeof Icons; color: string; label: string }
+  { icon: keyof typeof Icons; label: string; badgeClass: string }
 > = {
-  created: { icon: 'add', color: 'text-success', label: 'Created' },
-  edited: { icon: 'edit', color: 'text-blue-500', label: 'Edited' },
-  published: { icon: 'globe', color: 'text-violet-500', label: 'Published' },
-  reviewed: { icon: 'review', color: 'text-amber-500', label: 'Reviewed' },
-  completed: { icon: 'check', color: 'text-primary', label: 'Completed' }
+  created: {
+    icon: 'add',
+    label: 'Created',
+    badgeClass: 'bg-secondary text-secondary-foreground'
+  },
+  edited: {
+    icon: 'edit',
+    label: 'Edited',
+    badgeClass: 'bg-secondary text-secondary-foreground'
+  },
+  published: {
+    icon: 'collect',
+    label: 'Published',
+    badgeClass:
+      'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
+  },
+  reviewed: {
+    icon: 'review',
+    label: 'Reviewed',
+    badgeClass: 'bg-secondary text-secondary-foreground'
+  },
+  completed: {
+    icon: 'check',
+    label: 'Completed',
+    badgeClass: 'bg-foreground text-background'
+  }
 };
 
 function formatTimeAgo(date: string): string {
@@ -78,34 +100,43 @@ function formatTimeAgo(date: string): string {
 
 export function RecentActivity() {
   return (
-    <div className='rounded-xl border bg-card'>
-      <div className='border-b px-6 py-4'>
-        <h3 className='font-semibold text-primary'>Recent Activity</h3>
-        <p className='text-muted-foreground mt-0.5 text-sm'>
-          Your recent actions across surveys and reports.
-        </p>
-      </div>
-      <div className='divide-y'>
+    <SurvaiPanel>
+      <SurvaiPanelHeader
+        icon={<Icons.activity className='size-3.5' />}
+        title='Recent Activity'
+        subtitle='Your recent actions across surveys and reports.'
+      />
+      <div className='divide-y divide-border'>
         {mockActivity.map((item) => {
           const config = typeConfig[item.type];
           const Icon = Icons[config.icon];
 
           return (
-            <div key={item.id} className='flex items-start gap-3 px-6 py-3.5'>
-              <div className={`mt-0.5 ${config.color}`}>
-                <Icon className='size-4' />
+            <div key={item.id} className='flex items-start gap-3 px-4 py-3.5 sm:px-5'>
+              <div className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-foreground'>
+                {Icon ? <Icon className='size-3.5' /> : null}
               </div>
-              <div className='flex-1 min-w-0'>
-                <p className='text-sm font-medium'>{item.title}</p>
-                <p className='text-muted-foreground mt-0.5 text-xs'>{item.description}</p>
+              <div className='min-w-0 flex-1'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <p className='text-sm font-medium'>{item.title}</p>
+                  <Badge
+                    variant='outline'
+                    className={`rounded-full border-transparent text-[10px] ${config.badgeClass}`}
+                  >
+                    {config.label}
+                  </Badge>
+                </div>
+                <p className='text-muted-foreground mt-0.5 text-xs'>
+                  {item.description}
+                </p>
               </div>
-              <span className='text-muted-foreground/60 mt-0.5 text-xs whitespace-nowrap'>
+              <span className='text-muted-foreground mt-0.5 shrink-0 font-mono text-[11px] whitespace-nowrap tabular-nums'>
                 {formatTimeAgo(item.timestamp)}
               </span>
             </div>
           );
         })}
       </div>
-    </div>
+    </SurvaiPanel>
   );
 }

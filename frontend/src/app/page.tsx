@@ -1,5 +1,13 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 
-export default async function Page() {
-  redirect('/dashboard/overview');
+import { BoardPage } from '@/features/board/components/board-page';
+
+export const metadata: Metadata = {
+  title: 'Survai · Surveys you can trust',
+  description:
+    'AI-assisted survey lifecycle — plan, build, review, collect, analyze, and report. AI writes the language; deterministic code owns every figure.'
+};
+
+export default function Page() {
+  return <BoardPage />;
 }

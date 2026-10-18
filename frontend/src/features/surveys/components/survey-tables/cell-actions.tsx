@@ -32,7 +32,7 @@ export function CellActions({ data }: CellActionsProps) {
         <Icons.dots className='h-4 w-4' />
         <span className='sr-only'>Open menu</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-48'>
+      <DropdownMenuContent align='end' className='w-48 rounded-xl'>
         <DropdownMenuGroup>
           <DropdownMenuItem
             onClick={() => router.push(`/dashboard/surveys/${data.id}/review`)}

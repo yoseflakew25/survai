@@ -6,19 +6,21 @@ This file provides essential information for AI coding agents working on this pr
 
 ## Project Overview
 
-**Next.js Admin Dashboard Starter** is a production-ready admin dashboard template built with:
+**SurvAI frontend** — Next.js app for the survey lifecycle product. Canonical stack:
 
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript 5.7
 - **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui (New York style)
-- **Authentication**: Clerk (with Organizations/Billing support)
+- **UI Components**: shadcn/ui
+- **Authentication**: JWT + httpOnly cookies (API); Better Auth for FE UX only
+- **Data fetching**: TanStack Query (`@tanstack/react-query`)
+- **Forms**: React Hook Form + Zod
+- **Client state**: Zustand
 - **Error Tracking**: Sentry
 - **Charts**: Recharts
-- **Containerization**: Docker (Node.js & Bun Dockerfiles)
 - **Package Manager**: Bun (preferred) or npm
 
-The project follows a feature-based folder structure designed for scalability in SaaS applications, internal tools, and admin panels.
+The project follows a feature-based folder structure. Do not introduce alternate libraries for auth, forms, data fetching, or UI.
 
 ---
 
@@ -39,24 +41,24 @@ The project follows a feature-based folder structure designed for scalability in
 
 ### State Management
 
-- Zustand 5.x for local UI state in the stateful demo features
-- Nuqs for URL search params state management
-- TanStack Form + Zod for form handling (`createFormHook` + shadcn `Field`-anatomy components)
+- Zustand for cross-component client UI state
+- Nuqs for URL search params (tables, filters, pagination)
+- React Hook Form + Zod for forms (`useForm` + `@hookform/resolvers/zod` + `FormProvider` + `@/components/forms/fields`)
 
 ### Data Fetching & Caching
 
 - TanStack React Query for data fetching, caching, and mutations
 - Server-side prefetching with `HydrationBoundary` + `dehydrate`
-- Client-side `useQuery` + nuqs `shallow: true` for tables (no RSC round-trips on pagination/filter)
+- Client-side `useQuery` / `useSuspenseQuery` + nuqs `shallow: true` for tables
 - `useMutation` + `invalidateQueries` for form submissions
 - Query client singleton in `src/lib/query-client.ts`
 
 ### Authentication & Authorization
 
-- Clerk for authentication and user management
-- Clerk Organizations for multi-tenant workspaces
-- Clerk Billing for subscription management (B2B)
-- Client-side RBAC for navigation visibility
+- JWT + httpOnly cookies — FastAPI issues/validates; credentials on API calls
+- Better Auth — sign-in/up UI and related client helpers only (not a second auth backend)
+- Client-side RBAC for navigation visibility where needed
+- Legacy: older docs/cleanup templates may mention Clerk — ignore for new work
 
 ### Data & APIs
 
@@ -345,41 +347,9 @@ The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation cl
 
 ## Authentication Patterns
 
-### Protected Routes
+**Security model: JWT + httpOnly cookies** (API is source of truth). **Better Auth** is frontend UX only (sign-in/up UI + client helpers). Clerk is not part of the stack.
 
-Dashboard routes use Clerk's middleware pattern. Pages that require organization:
-
-```tsx
-import { auth } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
-
-export default async function Page() {
-  const { orgId } = await auth();
-  if (!orgId) redirect('/dashboard/workspaces');
-  // ...
-}
-```
-
-### Plan/Feature Protection
-
-Use Clerk's `<Protect>` component for client-side:
-
-```tsx
-import { Protect } from '@clerk/nextjs';
-
-<Protect plan='pro' fallback={<UpgradePrompt />}>
-  <PremiumContent />
-</Protect>;
-```
-
-Use `has()` function for server-side checks:
-
-```tsx
-import { auth } from '@clerk/nextjs';
-
-const { has } = await auth();
-const hasFeature = has({ feature: 'premium_access' });
-```
+When wiring auth: API login/refresh sets cookies; FE uses Better Auth UX + RHF/Zod forms; dashboard gates read the same cookie session the API trusts. Until then treat auth UI as presentational.
 
 ---
 
@@ -758,6 +728,6 @@ See "Theming System" section above or `docs/themes.md`.
 7. **shadcn components** - don't modify files in `src/components/ui/` directly; extend them instead
 8. **Icons** - NEVER import icons directly from `@tabler/icons-react` or any other icon package. All icons must be registered in `src/components/icons.tsx` and imported as `import { Icons } from '@/components/icons'`. To add a new icon: add the tabler import to `icons.tsx`, add a semantic key to the `Icons` object, then use `Icons.keyName` in your component.
 9. **Page headers** - Always use `PageContainer` props (`pageTitle`, `pageDescription`, `pageHeaderAction`) for page headers. Never import `<Heading>` manually in pages — `PageContainer` handles that internally.
-10. **Forms** - Use `useAppForm` from `@/lib/form` with `form.AppField` rendering the shared field components (`field.TextField`, `field.SelectField`, …) from `@/components/forms/fields`. Each component follows the official shadcn TanStack Form anatomy; drop down to raw `form.Field` render props for one-off custom fields. Never use `useState` inside a render prop — extract stateful controls into components.
+10. **Forms** - Use React Hook Form (`useForm` + `FormProvider`) + Zod via `@hookform/resolvers/zod`, with field components from `@/components/forms/fields`. See `docs/forms.md`.
 11. **Button loading** - Use `<Button isLoading={isPending}>` for loading states. Uses CSS Grid overlap trick for zero layout shift. When `isLoading` is not passed, button behaves as default shadcn. `SubmitButton` in forms handles this automatically via form `isSubmitting` state.
 12. **Data layer** - Always go through the service layer: `types.ts` → `service.ts` → `queries.ts`. Components import types from `types.ts`, functions from `service.ts`, query options from `queries.ts`. Never import from `@/constants/mock-api*` directly in components.

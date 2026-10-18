@@ -118,10 +118,12 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-lg gap-0 p-0 overflow-hidden'>
+      <DialogContent className='gap-0 overflow-hidden rounded-2xl border-border p-0 sm:max-w-lg'>
         {/* Header */}
         <DialogHeader>
-          <DialogTitle className='text-xl font-semibold'>Create New Survey</DialogTitle>
+          <DialogTitle className='font-display text-xl font-extrabold tracking-tight'>
+            Create New Survey
+          </DialogTitle>
           <DialogDescription>
             Set up your survey in a few steps. You can always edit later.
           </DialogDescription>
@@ -139,9 +141,9 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                       className={cn(
                         'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all duration-200',
                         step > s.id
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-foreground text-background'
                           : step === s.id
-                            ? 'bg-primary/15 text-primary ring-2 ring-primary/30'
+                            ? 'bg-brand-soft text-foreground ring-2 ring-[color-mix(in_srgb,var(--brand)_45%,transparent)]'
                             : 'bg-muted text-muted-foreground'
                       )}
                     >
@@ -164,7 +166,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                     <div
                       className={cn(
                         'mx-2 h-px flex-1 transition-colors duration-300',
-                        step > s.id ? 'bg-primary' : 'bg-border'
+                        step > s.id ? 'bg-foreground' : 'bg-border'
                       )}
                     />
                   )}
@@ -235,8 +237,8 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
             <div className='space-y-5 animate-in fade-in slide-in-from-right-2 duration-200'>
               <div >
                 <div className='flex items-center gap-2'>
-                  <div className='bg-primary/10 flex size-7 items-center justify-center rounded-md'>
-                    <Icons.sparkles className='text-primary size-4' />
+                  <div className='flex size-7 items-center justify-center rounded-lg bg-brand-soft'>
+                    <Icons.sparkles className='size-4 text-foreground' />
                   </div>
                   <h3 className='text-sm font-semibold'>Research Goal</h3>
                 </div>
@@ -265,28 +267,28 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                 </Field>
 
                 {/* AI benefits card */}
-                <div className='rounded-lg border bg-primary/[0.03] p-4'>
+                <div className='rounded-xl border border-border bg-brand-soft/50 p-4'>
                   <div className='flex items-start gap-3'>
-                    <div className='bg-primary/10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded'>
-                      <Icons.sparkles className='text-primary size-3.5' />
+                    <div className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg bg-brand-soft'>
+                      <Icons.sparkles className='size-3.5 text-foreground' />
                     </div>
                     <div >
                       <p className='text-xs font-semibold'>AI will generate</p>
                       <ul className='text-muted-foreground space-y-1 text-xs'>
                         <li className='flex items-start gap-1.5'>
-                          <span className='text-primary mt-0.5 size-1 shrink-0 rounded-full bg-current' />
+                          <span className='mt-0.5 size-1.5 shrink-0 rounded-full bg-brand' />
                           Research objectives aligned to your goal
                         </li>
                         <li className='flex items-start gap-1.5'>
-                          <span className='text-primary mt-0.5 size-1 shrink-0 rounded-full bg-current' />
+                          <span className='mt-0.5 size-1.5 shrink-0 rounded-full bg-brand' />
                           Target respondent types
                         </li>
                         <li className='flex items-start gap-1.5'>
-                          <span className='text-primary mt-0.5 size-1 shrink-0 rounded-full bg-current' />
+                          <span className='mt-0.5 size-1.5 shrink-0 rounded-full bg-brand' />
                           Proposed survey sections with rationale
                         </li>
                         <li className='flex items-start gap-1.5'>
-                          <span className='text-primary mt-0.5 size-1 shrink-0 rounded-full bg-current' />
+                          <span className='mt-0.5 size-1.5 shrink-0 rounded-full bg-brand' />
                           Draft questions for each section
                         </li>
                       </ul>
@@ -302,8 +304,8 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
             <div className='space-y-5 animate-in fade-in slide-in-from-right-2 duration-200'>
               <div >
                 <div className='flex items-center gap-2'>
-                  <div className='bg-primary/10 flex size-7 items-center justify-center rounded-md'>
-                    <Icons.eyeOff className='text-primary size-4' />
+                  <div className='flex size-7 items-center justify-center rounded-lg bg-brand-soft'>
+                    <Icons.eyeOff className='size-4 text-foreground' />
                   </div>
                   <h3 className='text-sm font-semibold'>Preview & Generate</h3>
                 </div>
@@ -314,19 +316,22 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
 
               <div className='space-y-3 '>
                 {/* Survey card */}
-                <div className='rounded-lg border bg-card p-4 shadow-xs'>
+                <div className='rounded-xl border border-border bg-card p-4 shadow-sm'>
                   <div className='flex items-start justify-between gap-3'>
                     <div className='min-w-0 flex-1 space-y-1'>
                       <p className='text-sm font-semibold leading-snug'>
                         {title || 'Untitled Survey'}
                       </p>
-                      {description && (
-                        <p className='text-muted-foreground text-xs leading-relaxed line-clamp-2'>
+                      {description ? (
+                        <p className='text-muted-foreground line-clamp-2 text-xs leading-relaxed'>
                           {description}
                         </p>
-                      )}
+                      ) : null}
                     </div>
-                    <Badge variant='secondary' className='shrink-0 text-[10px]'>
+                    <Badge
+                      variant='secondary'
+                      className='shrink-0 rounded-full text-[10px]'
+                    >
                       Draft
                     </Badge>
                   </div>
@@ -355,34 +360,34 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                 )}
 
                 {/* What happens next */}
-                <div className='rounded-lg border bg-primary/[0.03] p-4'>
+                <div className='rounded-xl border border-border bg-brand-soft/50 p-4'>
                   <div className='flex items-start gap-3'>
-                    <div className='bg-primary/10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded'>
-                      <Icons.sparkles className='text-primary size-3.5' />
+                    <div className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg bg-brand-soft'>
+                      <Icons.sparkles className='size-3.5 text-foreground' />
                     </div>
                     <div className='space-y-2'>
                       <p className='text-xs font-semibold'>What happens next</p>
                       <ol className='text-muted-foreground space-y-1.5 text-xs'>
                         <li className='flex items-start gap-2'>
-                          <span className='bg-primary/15 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold'>
+                          <span className='flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground text-[9px] font-bold text-background'>
                             1
                           </span>
                           Survey is created with your details
                         </li>
                         <li className='flex items-start gap-2'>
-                          <span className='bg-primary/15 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold'>
+                          <span className='flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground text-[9px] font-bold text-background'>
                             2
                           </span>
                           AI generates sections, questions, and objectives
                         </li>
                         <li className='flex items-start gap-2'>
-                          <span className='bg-primary/15 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold'>
+                          <span className='flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground text-[9px] font-bold text-background'>
                             3
                           </span>
                           You review and edit in the builder
                         </li>
                         <li className='flex items-start gap-2'>
-                          <span className='bg-primary/15 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold'>
+                          <span className='flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground text-[9px] font-bold text-background'>
                             4
                           </span>
                           Publish when ready to collect responses
@@ -413,13 +418,18 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
               Cancel
             </Button>
             {step < 3 ? (
-              <Button type='button' onClick={handleNext}>
+              <Button
+                type='button'
+                className='h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-primary font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:brightness-105'
+                onClick={handleNext}
+              >
                 Continue
                 <Icons.chevronRight className='ml-1 h-4 w-4' />
               </Button>
             ) : (
               <Button
                 type='button'
+                className='h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-primary font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:brightness-105'
                 disabled={isGenerating || !researchGoal || researchGoal.length < 10}
                 onClick={() => handleSubmit(handleGenerate)()}
               >

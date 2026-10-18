@@ -34,7 +34,7 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
           Powered by{' '}
           <span className='text-primary inline-flex items-center gap-1 font-medium'>
             <Icons.sparkles className='size-3' />
-            Survey Copilot
+            Survai
           </span>
         </p>
       </div>

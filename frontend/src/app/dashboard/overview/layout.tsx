@@ -10,10 +10,33 @@ import {
 import { Icons } from '@/components/icons';
 import React from 'react';
 
+const KPI_CARDS = [
+  {
+    label: 'Total Surveys',
+    value: '12',
+    delta: '+3 this month'
+  },
+  {
+    label: 'Total Responses',
+    value: '1,847',
+    delta: '+12.5%'
+  },
+  {
+    label: 'Reports Generated',
+    value: '8',
+    delta: '+2 this week'
+  },
+  {
+    label: 'Completion Rate',
+    value: '78.3%',
+    delta: '+4.2%'
+  }
+] as const;
+
 export default function OverViewLayout({
   surveys,
-  pie_stats,
-  bar_stats,
+  pie_stats: _pie_stats,
+  bar_stats: _bar_stats,
   area_stats
 }: {
   surveys: React.ReactNode;
@@ -23,73 +46,38 @@ export default function OverViewLayout({
 }) {
   return (
     <PageContainer
-      pageTitle='Wellcome to Survai'
+      pageTitle='Welcome to Survai'
       pageDescription='Overview of your survey activity and performance'
     >
       <div className='flex flex-1 flex-col gap-4'>
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
-          <Card className='@container/card border shadow-none transition-shadow hover:shadow-md'>
-            <CardHeader>
-              <CardDescription>Total Surveys</CardDescription>
-              <CardTitle className='text-primary text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                12
-              </CardTitle>
-              <CardAction>
-                <Badge>
-                  <Icons.trendingUp />
-                  +3 this month
-                </Badge>
-              </CardAction>
-            </CardHeader>
-          </Card>
-          <Card className='@container/card border shadow-none transition-shadow hover:shadow-md'>
-            <CardHeader>
-              <CardDescription>Total Responses</CardDescription>
-              <CardTitle className='text-primary text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                1,847
-              </CardTitle>
-              <CardAction>
-                <Badge>
-                  <Icons.trendingUp />
-                  +12.5%
-                </Badge>
-              </CardAction>
-            </CardHeader>
-          </Card>
-          <Card className='@container/card border shadow-none transition-shadow hover:shadow-md'>
-            <CardHeader>
-              <CardDescription>Reports Generated</CardDescription>
-              <CardTitle className='text-primary text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                8
-              </CardTitle>
-              <CardAction>
-                <Badge>
-                  <Icons.trendingUp />
-                  +2 this week
-                </Badge>
-              </CardAction>
-            </CardHeader>
-          </Card>
-          <Card className='@container/card border shadow-none transition-shadow hover:shadow-md'>
-            <CardHeader>
-              <CardDescription>Completion Rate</CardDescription>
-              <CardTitle className='text-primary text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                78.3%
-              </CardTitle>
-              <CardAction>
-                <Badge>
-                  <Icons.trendingUp />
-                  +4.2%
-                </Badge>
-              </CardAction>
-            </CardHeader>
-          </Card>
+        <div className='grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4'>
+          {KPI_CARDS.map((kpi) => (
+            <Card
+              key={kpi.label}
+              className='@container/card rounded-2xl border-border bg-card shadow-sm transition-shadow hover:shadow-md'
+            >
+              <CardHeader>
+                <CardDescription className='text-[13px]'>{kpi.label}</CardDescription>
+                <CardTitle className='font-display text-2xl font-extrabold tracking-tight tabular-nums text-foreground @[250px]/card:text-3xl'>
+                  {kpi.value}
+                </CardTitle>
+                <CardAction>
+                  <Badge
+                    variant='secondary'
+                    className='rounded-full border border-border bg-brand-soft text-[11px] font-medium text-foreground'
+                  >
+                    <Icons.trendingUp />
+                    {kpi.delta}
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
+
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
-          <div className='col-span-4'> {area_stats}</div>
-          <div className='col-span-4 md:col-span-3'>
-            {surveys}
-          </div>
+          <div className='col-span-4'>{area_stats}</div>
+          <div className='col-span-4 md:col-span-3'>{surveys}</div>
         </div>
       </div>
     </PageContainer>

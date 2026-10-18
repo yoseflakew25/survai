@@ -16,7 +16,7 @@ export function OrgSwitcher() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const orgName = user?.organizationName ?? 'Survey Copilot';
+  const orgName = user?.organizationName ?? 'Survai';
 
   return (
     <SidebarMenu>

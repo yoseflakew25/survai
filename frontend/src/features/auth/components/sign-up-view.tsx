@@ -1,63 +1,58 @@
 'use client';
 
-import { Icons } from '@/components/icons';
-import { Button } from '@/components/ui/button';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { useAuth } from '@/lib/auth-context';
-import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from '@/lib/toast';
-import { GOOGLE_OAUTH_REDIRECT_URL } from '@/lib/auth-env';
-import { cn } from '@/lib/utils';
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-const signUpSchema = z
+import { AuthShell } from '@/features/auth/components/auth-shell';
+import { IconGoogle, IconMail } from '@/features/auth/components/survai-mark';
+import { GOOGLE_OAUTH_REDIRECT_URL } from '@/lib/auth-env';
+import { useAuth } from '@/lib/auth-context';
+import { toast } from '@/lib/toast';
+
+const magicSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Enter a valid email')
+});
+
+const passwordSchema = z
   .object({
-    fullName: z
-      .string()
-      .min(1, 'Full name is required')
-      .min(2, 'Name must be at least 2 characters'),
-    email: z
-      .string()
-      .min(1, 'Email is required')
-      .email('Please enter a valid email address'),
+    fullName: z.string().min(1, 'Name is required').min(2, 'At least 2 characters'),
+    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
     password: z
       .string()
       .min(1, 'Password is required')
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string().min(1, 'Please confirm your password')
+      .min(8, 'At least 8 characters')
+      .regex(/[A-Z]/, 'Include an uppercase letter')
+      .regex(/[0-9]/, 'Include a number'),
+    confirmPassword: z.string().min(1, 'Confirm your password')
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword']
   });
 
-type SignUpValues = z.infer<typeof signUpSchema>;
+type MagicValues = z.infer<typeof magicSchema>;
+type PasswordValues = z.infer<typeof passwordSchema>;
 
-const HIGHLIGHTS = [
-  'Design surveys with AI assistance',
-  'Conditional logic & multi-step forms',
-  'Analytics, reports & review workflows'
-];
+const inputClass =
+  'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function SignUpViewPage() {
   const { register: registerUser, isSignedIn } = useAuth();
   const router = useRouter();
+  const [mode, setMode] = useState<'magic' | 'password'>('magic');
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting }
-  } = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema),
+  const magicForm = useForm<MagicValues>({
+    resolver: zodResolver(magicSchema),
+    defaultValues: { email: '' }
+  });
+
+  const passwordForm = useForm<PasswordValues>({
+    resolver: zodResolver(passwordSchema),
     defaultValues: {
       fullName: '',
       email: '',
@@ -71,7 +66,16 @@ export default function SignUpViewPage() {
     return null;
   }
 
-  async function onSubmit(values: SignUpValues) {
+  async function onMagicSubmit(values: MagicValues) {
+    setServerError(null);
+    passwordForm.setValue('email', values.email);
+    setMode('password');
+    toast.success('Create a password to finish', {
+      description: 'Email codes are coming soon. Set a password to create your account.'
+    });
+  }
+
+  async function onPasswordSubmit(values: PasswordValues) {
     setServerError(null);
     try {
       await registerUser({
@@ -80,7 +84,7 @@ export default function SignUpViewPage() {
         password: values.password
       });
       toast.success('Account created!', {
-        description: 'Welcome to Survey Copilot. Your account is ready.'
+        description: 'Welcome to Survai. Your account is ready.'
       });
       router.push('/dashboard/overview');
     } catch (err) {
@@ -91,202 +95,164 @@ export default function SignUpViewPage() {
   }
 
   return (
-    <div className='flex min-h-screen'>
-      {/* Brand panel */}
-      <aside className='bg-primary relative hidden w-[46%] flex-col justify-between overflow-hidden p-10 lg:flex lg:p-12 xl:p-16'>
-        {/* Background grid pattern */}
-        <div aria-hidden className='pointer-events-none absolute inset-0'>
-          <div
-            className='absolute inset-0 bg-[linear-gradient(to_right,rgb(255,255,255 / 9%)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255,255,255 / 9%)_1px,transparent_1px)] bg-[length:84px_84px] [mask-image:linear-gradient(to_bottom,white,rgb(255,255,255 / 0%)_78%,white)]'
-          />
-        </div>
-
-        {/* Logo */}
-        <Link
-          href='/'
-          aria-label='Go to home'
-          className='relative w-fit rounded-md focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none'
-        >
-          <img
-            src='/images/logo/logo-full-dark-mode.svg'
-            alt='SurvAI'
-            className='h-9 w-auto transition-opacity hover:opacity-85 xl:h-10'
-          />
-        </Link>
-
-        {/* Headline + highlights */}
-        <div className='relative max-w-md'>
-          <h2 className='text-4xl leading-tight font-bold text-white xl:text-5xl'>
-            Insights start
-            <br />
-            with a question.
-          </h2>
-          <p className='mt-6 text-base leading-relaxed text-white/85'>
-            Join Survey Copilot and go from idea to analyzed results in one
-            connected workspace.
-          </p>
-
-          <ul className='mt-10 space-y-4'>
-            {HIGHLIGHTS.map((item) => (
-              <li key={item} className='flex items-center gap-3'>
-                <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-white/20'>
-                  <Icons.circleCheck className='size-3.5 text-white' />
-                </span>
-                <span className='text-sm font-medium text-white/95'>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Copyright */}
-        <p className='relative text-sm text-white/60'>
-          © 2026 Survey Copilot. All rights reserved.
+    <AuthShell>
+      <div className='mb-6'>
+        <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
+          Create your account
+        </h1>
+        <p className='mt-1.5 text-[15px] text-muted-foreground'>
+          {mode === 'magic'
+            ? "No password needed. We'll email you a code."
+            : 'Start building surveys you can trust.'}
         </p>
-      </aside>
+      </div>
 
-      {/* Form panel */}
-      <main className='flex flex-1 items-center justify-center px-6 py-12 lg:px-10'>
-        <div className='w-full max-w-md'>
-          {/* Mobile brand row */}
-          <Link href='/' aria-label='Go to home' className='mb-10 w-fit lg:hidden'>
-            <img
-              src='/images/logo/logo-full-light-mode.svg'
-              alt='SurvAI'
-              className='h-8 w-auto'
-            />
-          </Link>
-
-          <p className='mt-3 text-sm text-muted-foreground lg:hidden'>
-            or continue with Google
-          </p>
-
-          <h1 className='text-primary text-3xl font-bold tracking-tight'>
-            Create your account
-          </h1>
-          <p className='text-muted-foreground '>
-            Start building smarter surveys in minutes.
-          </p>
-
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className='mt-8 space-y-4'
-          >
-            {serverError && (
-              <div className='rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive'>
-                {serverError}
-              </div>
-            )}
-
-            <Field>
-              <FieldLabel htmlFor='fullName' className='font-medium'>
-                Full name
-              </FieldLabel>
-              <Input
-                id='fullName'
-                placeholder='Jane Doe'
-                autoComplete='name'
-                className='h-11'
-                aria-invalid={!!errors.fullName}
-                {...register('fullName')}
-              />
-              {errors.fullName && (
-                <FieldError>{errors.fullName.message}</FieldError>
-              )}
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor='email' className='font-medium'>
-                Email address
-              </FieldLabel>
-              <Input
-                id='email'
-                type='email'
-                placeholder='you@example.com'
-                autoComplete='email'
-                className='h-11'
-                aria-invalid={!!errors.email}
-                {...register('email')}
-              />
-              {errors.email && <FieldError>{errors.email.message}</FieldError>}
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor='password' className='font-medium'>
-                Password
-              </FieldLabel>
-              <Input
-                id='password'
-                type='password'
-                placeholder='Min. 8 characters'
-                autoComplete='new-password'
-                className='h-11'
-                aria-invalid={!!errors.password}
-                {...register('password')}
-              />
-              {errors.password && (
-                <FieldError>{errors.password.message}</FieldError>
-              )}
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor='confirmPassword' className='font-medium'>
-                Confirm password
-              </FieldLabel>
-              <Input
-                id='confirmPassword'
-                type='password'
-                placeholder='Re-enter your password'
-                autoComplete='new-password'
-                className='h-11'
-                aria-invalid={!!errors.confirmPassword}
-                {...register('confirmPassword')}
-              />
-              {errors.confirmPassword && (
-                <FieldError>{errors.confirmPassword.message}</FieldError>
-              )}
-            </Field>
-
-            <LoadingButton
-              type='submit'
-              className='h-11 w-full text-[15px]'
-              loading={isSubmitting}
-              loadingLabel='Creating account…'
-            >
-              Create account
-              <Icons.arrowRight className='ml-1.5 size-4' />
-            </LoadingButton>
-          </form>
-
-          <Button
-            variant='outline'
-            className={cn('h-11 w-full text-[15px] text-primary *:hover:bg-primary/5 border-primary')}
+      <div className='space-y-4'>
+        <div className='flex gap-2'>
+          <button
             type='button'
+            className='flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium transition-colors hover:border-foreground/40'
+            onClick={() => {
+              toast.info('GitHub sign-in is coming soon');
+            }}
+          >
+            <svg className='h-4 w-4' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'>
+              <path d='M12 2C6.477 2 2 6.486 2 12.021c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.866-.013-1.7-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.339-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.56 9.56 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.31.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.025 10.025 0 0 0 22 12.021C22 6.486 17.523 2 12 2z' />
+            </svg>
+            GitHub
+          </button>
+          <button
+            type='button'
+            className='flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium transition-colors hover:border-foreground/40'
             onClick={() => {
               window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
             }}
           >
-            <Icons.google className='mr-2.5 size-5' />
-            Continue with Google
-          </Button>
-
-          <p className='mt-4 text-center text-sm'>
-            <span className='text-muted-foreground'>
-              Already have an account?{' '}
-            </span>
-            <Link
-              href='/auth/sign-in'
-              className='text-primary font-medium underline-offset-4 hover:underline'
-            >
-              Sign in
-            </Link>
-          </p>
-
-          <p className='text-muted-foreground mt-4 text-center text-xs'>
-            By creating an account, you agree to our Terms of Service and
-            Privacy Policy.
-          </p>
+            <IconGoogle className='h-4 w-4' />
+            Google
+          </button>
         </div>
-      </main>
-    </div>
+
+        <div className='relative'>
+          <div className='absolute inset-0 flex items-center'>
+            <span className='w-full border-t border-border' />
+          </div>
+          <div className='relative flex justify-center text-xs'>
+            <span className='bg-background px-2 text-muted-foreground'>or</span>
+          </div>
+        </div>
+
+        {serverError && (
+          <div className='rounded-xl border border-destructive/50 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive'>
+            {serverError}
+          </div>
+        )}
+
+        {mode === 'magic' ? (
+          <form className='space-y-2' onSubmit={magicForm.handleSubmit(onMagicSubmit)}>
+            <input
+              type='email'
+              placeholder='you@example.com'
+              autoComplete='email'
+              aria-label='Email'
+              className={inputClass}
+              {...magicForm.register('email')}
+            />
+            {magicForm.formState.errors.email && (
+              <p className='text-sm text-destructive'>
+                {magicForm.formState.errors.email.message}
+              </p>
+            )}
+            <button
+              type='submit'
+              disabled={magicForm.formState.isSubmitting}
+              className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
+            >
+              <IconMail className='h-4 w-4' />
+              Email me a code
+            </button>
+          </form>
+        ) : (
+          <form className='space-y-2' onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
+            <input
+              placeholder='Full name'
+              autoComplete='name'
+              aria-label='Full name'
+              className={inputClass}
+              {...passwordForm.register('fullName')}
+            />
+            {passwordForm.formState.errors.fullName && (
+              <p className='text-sm text-destructive'>
+                {passwordForm.formState.errors.fullName.message}
+              </p>
+            )}
+            <input
+              type='email'
+              placeholder='you@example.com'
+              autoComplete='email'
+              aria-label='Email'
+              className={inputClass}
+              {...passwordForm.register('email')}
+            />
+            {passwordForm.formState.errors.email && (
+              <p className='text-sm text-destructive'>
+                {passwordForm.formState.errors.email.message}
+              </p>
+            )}
+            <input
+              type='password'
+              placeholder='Password'
+              autoComplete='new-password'
+              aria-label='Password'
+              className={inputClass}
+              {...passwordForm.register('password')}
+            />
+            {passwordForm.formState.errors.password && (
+              <p className='text-sm text-destructive'>
+                {passwordForm.formState.errors.password.message}
+              </p>
+            )}
+            <input
+              type='password'
+              placeholder='Confirm password'
+              autoComplete='new-password'
+              aria-label='Confirm password'
+              className={inputClass}
+              {...passwordForm.register('confirmPassword')}
+            />
+            {passwordForm.formState.errors.confirmPassword && (
+              <p className='text-sm text-destructive'>
+                {passwordForm.formState.errors.confirmPassword.message}
+              </p>
+            )}
+            <button
+              type='submit'
+              disabled={passwordForm.formState.isSubmitting}
+              className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
+            >
+              {passwordForm.formState.isSubmitting ? 'Creating…' : 'Create account'}
+            </button>
+          </form>
+        )}
+
+        <button
+          type='button'
+          className='w-full text-center text-[13px] text-muted-foreground hover:text-foreground'
+          onClick={() => {
+            setServerError(null);
+            setMode((m) => (m === 'magic' ? 'password' : 'magic'));
+          }}
+        >
+          {mode === 'magic' ? 'Use a password instead' : 'Email me a code instead'}
+        </button>
+
+        <p className='text-center text-[13px] text-muted-foreground'>
+          Already have an account?{' '}
+          <Link href='/auth/sign-in' className='font-semibold text-foreground hover:underline'>
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </AuthShell>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppForm } from '@/lib/form';
+import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -26,10 +27,10 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-
-// ---------------------------------------------------------------------------
-// Schemas
-// ---------------------------------------------------------------------------
+import { TextField } from '@/components/forms/fields/text-field';
+import { TextareaField } from '@/components/forms/fields/textarea-field';
+import { SelectField } from '@/components/forms/fields/select-field';
+import { SliderField } from '@/components/forms/fields/slider-field';
 
 const sheetFormSchema = z.object({
   name: z.string().min(2, 'Product name must be at least 2 characters'),
@@ -43,6 +44,9 @@ const dialogFormSchema = z.object({
   feedback: z.string().min(5, 'Feedback must be at least 5 characters')
 });
 
+type SheetFormValues = z.infer<typeof sheetFormSchema>;
+type DialogFormValues = z.infer<typeof dialogFormSchema>;
+
 const categoryOptions = [
   { value: 'beauty', label: 'Beauty Products' },
   { value: 'electronics', label: 'Electronics' },
@@ -50,31 +54,26 @@ const categoryOptions = [
   { value: 'sports', label: 'Sports & Outdoors' }
 ];
 
-// ---------------------------------------------------------------------------
-// Sheet Form
-// ---------------------------------------------------------------------------
-
 function SheetFormSection() {
   const [open, setOpen] = useState(false);
 
-  const form = useAppForm({
+  const form = useForm({
+    resolver: zodResolver(sheetFormSchema),
     defaultValues: {
       name: '',
       category: '',
-      price: undefined as number | undefined,
+      price: undefined as unknown as number,
       description: ''
-    },
-    validators: {
-      onSubmit: sheetFormSchema
-    },
-    onSubmit: ({ value }) => {
-      toast.success('Product created successfully!', {
-        description: `${value.name} has been added.`
-      });
-      setOpen(false);
-      form.reset();
     }
   });
+
+  function onSubmit(value: SheetFormValues) {
+    toast.success('Product created successfully!', {
+      description: `${value.name} has been added.`
+    });
+    setOpen(false);
+    form.reset();
+  }
 
   return (
     <Card>
@@ -100,66 +99,46 @@ function SheetFormSection() {
               </SheetDescription>
             </SheetHeader>
 
-            <form
-              id='sheet-form-id'
-              className='space-y-4 p-4 md:p-4'
-              onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
-              }}
-            >
-              <FieldGroup>
-                <form.AppField
-                  name='name'
-                  children={(field) => (
-                    <field.TextField
-                      label='Product Name'
-                      required
-                      placeholder='Enter product name'
-                    />
-                  )}
-                />
-
-                <form.AppField
-                  name='category'
-                  children={(field) => (
-                    <field.SelectField
-                      label='Category'
-                      required
-                      options={categoryOptions}
-                      placeholder='Select a category'
-                    />
-                  )}
-                />
-
-                <form.AppField
-                  name='price'
-                  children={(field) => (
-                    <field.TextField
-                      label='Price'
-                      required
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      placeholder='0.00'
-                    />
-                  )}
-                />
-
-                <form.AppField
-                  name='description'
-                  children={(field) => (
-                    <field.TextareaField
-                      label='Description'
-                      required
-                      placeholder='Enter product description'
-                      maxLength={500}
-                      rows={4}
-                    />
-                  )}
-                />
-              </FieldGroup>
-            </form>
+            <FormProvider {...form}>
+              <form
+                id='sheet-form-id'
+                className='space-y-4 p-4 md:p-4'
+                onSubmit={form.handleSubmit(onSubmit)}
+              >
+                <FieldGroup>
+                  <TextField
+                    name='name'
+                    label='Product Name'
+                    required
+                    placeholder='Enter product name'
+                  />
+                  <SelectField
+                    name='category'
+                    label='Category'
+                    required
+                    options={categoryOptions}
+                    placeholder='Select a category'
+                  />
+                  <TextField
+                    name='price'
+                    label='Price'
+                    required
+                    type='number'
+                    min={0}
+                    step='0.01'
+                    placeholder='0.00'
+                  />
+                  <TextareaField
+                    name='description'
+                    label='Description'
+                    required
+                    placeholder='Enter product description'
+                    maxLength={500}
+                    rows={4}
+                  />
+                </FieldGroup>
+              </form>
+            </FormProvider>
 
             <SheetFooter className='pt-4'>
               <Button type='button' variant='outline' onClick={() => setOpen(false)}>
@@ -176,29 +155,24 @@ function SheetFormSection() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Dialog Form
-// ---------------------------------------------------------------------------
-
 function DialogFormSection() {
   const [open, setOpen] = useState(false);
 
-  const form = useAppForm({
+  const form = useForm<DialogFormValues>({
+    resolver: zodResolver(dialogFormSchema),
     defaultValues: {
       rating: 5,
       feedback: ''
-    },
-    validators: {
-      onSubmit: dialogFormSchema
-    },
-    onSubmit: ({ value }) => {
-      toast.success('Feedback submitted!', {
-        description: `Rating: ${value.rating}/10. Thank you!`
-      });
-      setOpen(false);
-      form.reset();
     }
   });
+
+  function onSubmit(value: DialogFormValues) {
+    toast.success('Feedback submitted!', {
+      description: `Rating: ${value.rating}/10. Thank you!`
+    });
+    setOpen(false);
+    form.reset();
+  }
 
   return (
     <Card>
@@ -220,42 +194,32 @@ function DialogFormSection() {
               <DialogDescription>Rate your experience and leave a comment.</DialogDescription>
             </DialogHeader>
 
-            <form
-              id='dialog-form-id'
-              className='space-y-4 py-2'
-              onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
-              }}
-            >
-              <FieldGroup>
-                <form.AppField
-                  name='rating'
-                  children={(field) => (
-                    <field.SliderField
-                      label='Rating'
-                      description='Rate your experience (0-10)'
-                      min={0}
-                      max={10}
-                      step={1}
-                    />
-                  )}
-                />
-
-                <form.AppField
-                  name='feedback'
-                  children={(field) => (
-                    <field.TextareaField
-                      label='Feedback'
-                      required
-                      placeholder='Tell us what you think...'
-                      maxLength={300}
-                      rows={3}
-                    />
-                  )}
-                />
-              </FieldGroup>
-            </form>
+            <FormProvider {...form}>
+              <form
+                id='dialog-form-id'
+                className='space-y-4 py-2'
+                onSubmit={form.handleSubmit(onSubmit)}
+              >
+                <FieldGroup>
+                  <SliderField
+                    name='rating'
+                    label='Rating'
+                    description='Rate your experience (0-10)'
+                    min={0}
+                    max={10}
+                    step={1}
+                  />
+                  <TextareaField
+                    name='feedback'
+                    label='Feedback'
+                    required
+                    placeholder='Tell us what you think...'
+                    maxLength={300}
+                    rows={3}
+                  />
+                </FieldGroup>
+              </form>
+            </FormProvider>
 
             <DialogFooter>
               <Button type='button' variant='outline' onClick={() => setOpen(false)}>
@@ -271,10 +235,6 @@ function DialogFormSection() {
     </Card>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Toast Demo
-// ---------------------------------------------------------------------------
 
 function ToastDemoSection() {
   return (
@@ -322,10 +282,6 @@ function ToastDemoSection() {
     </Card>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Main Demo
-// ---------------------------------------------------------------------------
 
 export default function SheetFormDemo() {
   return (

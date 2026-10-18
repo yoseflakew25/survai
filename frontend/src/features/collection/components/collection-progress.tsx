@@ -29,14 +29,24 @@ export function CollectionProgress({
       : 0;
 
   return (
-    <div className={cn('rounded-xl border bg-background px-4 py-3', className)}>
-      <div className='flex flex-wrap items-center justify-between gap-x-4 gap-y-1'>
-        <p className='text-xs font-medium'>
+    <div
+      className={cn(
+        'rounded-2xl border border-border bg-card px-4 py-3.5 shadow-sm',
+        className
+      )}
+    >
+      <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-1'>
+        <p className='text-sm font-medium text-foreground'>
           Section{' '}
-          <span className='text-primary'>
-            {currentSectionIndex + 1} of {sections.length}
-          </span>{' '}
+          <span className='font-mono text-[13px] font-semibold tabular-nums'>
+            {currentSectionIndex + 1}
+            <span className='text-muted-foreground font-normal'>
+              {' '}
+              of {sections.length}
+            </span>
+          </span>
           <span className='text-muted-foreground font-normal'>
+            {' '}
             — {sections[currentSectionIndex]?.title}
           </span>
         </p>
@@ -49,20 +59,20 @@ export function CollectionProgress({
           ) : (
             `${totalAnswered} answered`
           )}
-          <span className='text-foreground ml-2 font-semibold'>{percent}%</span>
+          <span className='ml-2 font-mono text-sm font-semibold text-foreground'>
+            {percent}%
+          </span>
         </p>
       </div>
 
-      {/* Overall progress bar */}
-      <div className='bg-muted mt-2.5 h-1.5 w-full overflow-hidden rounded-full'>
+      <div className='mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary'>
         <div
-          className='bg-primary h-full rounded-full transition-all duration-500 ease-out'
-          style={{ width: `${percent}%` }}
+          className='h-full rounded-full bg-brand transition-all duration-500 ease-out'
+          style={{ width: `${Math.max(percent, percent > 0 ? 2 : 0)}%` }}
         />
       </div>
 
-      {/* Section steps */}
-      <div className='mt-3 flex flex-wrap items-center gap-1.5'>
+      <div className='mt-3 flex flex-wrap items-center gap-1.5 rounded-full bg-secondary/80 p-1'>
         {sections.map((section, i) => {
           const sectionAnswered = answeredCounts[i] ?? 0;
           const sectionRequired = requiredCounts[i] ?? 0;
@@ -72,22 +82,26 @@ export function CollectionProgress({
               : sectionAnswered > 0;
           const isActive = i === currentSectionIndex;
           const isReachable = i <= currentSectionIndex;
-          const Icon = isComplete ? Icons.check : null;
 
           const content = (
             <>
               <span
                 className={cn(
-                  'flex size-4 shrink-0 items-center justify-center rounded-full',
-                  isComplete || isActive
-                    ? 'bg-primary/15 text-primary'
-                    : 'bg-muted text-muted-foreground'
+                  'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                  isActive &&
+                    'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground',
+                  !isActive &&
+                    isComplete &&
+                    'bg-foreground text-background',
+                  !isActive &&
+                    !isComplete &&
+                    'bg-muted text-muted-foreground'
                 )}
               >
-                {isComplete && Icon ? (
-                  <Icon className='size-2.5' />
+                {isComplete && !isActive ? (
+                  <Icons.check className='size-3' />
                 ) : (
-                  <span className='text-[9px] font-bold'>{i + 1}</span>
+                  i + 1
                 )}
               </span>
               <span className='truncate'>{section.title}</span>
@@ -95,14 +109,17 @@ export function CollectionProgress({
           );
 
           const chipClassName = cn(
-            'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-colors',
-            isActive
-              ? 'border-primary/40 bg-primary/5 font-medium text-primary'
-              : isComplete
-                ? 'border-primary/25 text-primary hover:border-primary/50'
-                : isReachable
-                  ? 'border-border text-foreground hover:bg-muted/60'
-                  : 'cursor-default border-border/60 text-muted-foreground/60'
+            'inline-flex max-w-full items-center gap-2 rounded-full px-2.5 py-1.5 text-[11px] transition-colors',
+            isActive &&
+              'bg-card font-semibold text-foreground shadow-sm ring-1 ring-border',
+            !isActive &&
+              isComplete &&
+              'font-medium text-foreground hover:bg-card/70',
+            !isActive &&
+              !isComplete &&
+              isReachable &&
+              'text-foreground/80 hover:bg-card/50',
+            !isReachable && 'cursor-default text-muted-foreground/55'
           );
 
           return isReachable && onSelectSection ? (
@@ -116,7 +133,11 @@ export function CollectionProgress({
               {content}
             </button>
           ) : (
-            <span key={section.id} className={chipClassName} aria-current={isActive ? 'step' : undefined}>
+            <span
+              key={section.id}
+              className={chipClassName}
+              aria-current={isActive ? 'step' : undefined}
+            >
               {content}
             </span>
           );

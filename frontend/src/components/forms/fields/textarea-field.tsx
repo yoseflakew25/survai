@@ -1,11 +1,13 @@
 'use client';
 
 import * as React from 'react';
+import { Controller } from 'react-hook-form';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
-import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';
+import { useFormField, type BaseFieldProps } from '@/lib/form-context';
 
 export function TextareaField({
+  name,
   label,
   description,
   required,
@@ -14,33 +16,39 @@ export function TextareaField({
 }: BaseFieldProps & {
   /** Show a character counter (uses `maxLength` as the denominator). */
   showCount?: boolean;
-} & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange' | 'onBlur'>) {
-  const field = useFieldContext<string>();
-  const isInvalid = useFieldInvalid();
+} & Omit<React.ComponentProps<typeof Textarea>, 'name' | 'value' | 'onChange' | 'onBlur'>) {
+  const { control, isInvalid, errorMessage } = useFormField(name);
 
   return (
-    <Field data-invalid={isInvalid}>
-      <FieldLabel htmlFor={field.name}>
-        {label}
-        {required && ' *'}
-      </FieldLabel>
-      <Textarea
-        id={field.name}
-        name={field.name}
-        value={field.state.value}
-        onBlur={field.handleBlur}
-        onChange={(e) => field.handleChange(e.target.value)}
-        aria-invalid={isInvalid}
-        aria-describedby={isInvalid ? `${field.name}-error` : undefined}
-        {...textareaProps}
-      />
-      {showCount && textareaProps.maxLength && (
-        <div className='text-muted-foreground text-right text-sm'>
-          {field.state.value?.length || 0} / {textareaProps.maxLength}
-        </div>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <Field data-invalid={isInvalid}>
+          <FieldLabel htmlFor={name}>
+            {label}
+            {required ? ' *' : null}
+          </FieldLabel>
+          <Textarea
+            id={name}
+            {...textareaProps}
+            name={field.name}
+            ref={field.ref}
+            value={field.value ?? ''}
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? `${name}-error` : undefined}
+          />
+          {showCount && textareaProps.maxLength ? (
+            <div className='text-muted-foreground text-right text-sm'>
+              {field.value?.length || 0} / {textareaProps.maxLength}
+            </div>
+          ) : null}
+          {description ? <FieldDescription>{description}</FieldDescription> : null}
+          {isInvalid ? <FieldError id={`${name}-error`} errors={errorMessage} /> : null}
+        </Field>
       )}
-      {description && <FieldDescription>{description}</FieldDescription>}
-      {isInvalid && <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />}
-    </Field>
+    />
   );
 }

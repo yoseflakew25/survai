@@ -11,6 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Heading } from '@/components/ui/heading';
 import { SurveyStepper } from '@/components/survey-stepper';
+import {
+  SurvaiBrandCard,
+  SurvaiPanel,
+  SurvaiPanelBody,
+  SurvaiPanelHeader
+} from '@/components/survai-panel';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
@@ -83,7 +89,14 @@ export function CollectView({ surveyId }: CollectViewProps) {
         <SurveyStepper
           currentStep={4}
           badge={
-            <Badge variant={isPublished ? 'default' : 'secondary'}>
+            <Badge
+              variant='outline'
+              className={
+                isPublished
+                  ? 'rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] text-brand-foreground'
+                  : 'rounded-full text-[10px]'
+              }
+            >
               {isPublished ? 'Published' : 'Draft'}
             </Badge>
           }
@@ -94,26 +107,22 @@ export function CollectView({ surveyId }: CollectViewProps) {
         {/* Main content */}
         <div className='space-y-6 lg:col-span-2'>
           {/* Publish / Link Card */}
-          <div className='rounded-lg border bg-background'>
-            <div className='border-b bg-muted/30 px-4 py-3'>
-              <div className='flex items-center gap-3'>
-                <div className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded'>
-                  <Icons.collect className='h-3.5 w-3.5' />
-                </div>
-                <div>
-                  <h3 className='font-semibold'>Collection Link</h3>
-                  <p className='text-muted-foreground text-xs'>Share this link with respondents</p>
-                </div>
-                <Badge variant='secondary' className='ml-auto text-xs'>
+          <SurvaiPanel>
+            <SurvaiPanelHeader
+              icon={<Icons.collect className='size-3.5' />}
+              title='Collection Link'
+              subtitle='Share this link with respondents'
+              badge={
+                <Badge variant='secondary' className='rounded-full text-[10px]'>
                   {isPublished ? 'Live' : 'Not published'}
                 </Badge>
-              </div>
-            </div>
-            <div className='p-4'>
+              }
+            />
+            <SurvaiPanelBody>
               {!isPublished ? (
                 <div className='space-y-4'>
-                  <div className='rounded-lg border border-dashed p-8 text-center'>
-                    <div className='bg-primary/10 text-primary mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full'>
+                  <div className='rounded-xl border border-dashed border-border p-8 text-center'>
+                    <div className='mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-brand-soft text-foreground'>
                       <Icons.collect className='h-6 w-6' />
                     </div>
                     <p className='mb-1 text-sm font-medium'>This survey is not yet published</p>
@@ -121,7 +130,12 @@ export function CollectView({ surveyId }: CollectViewProps) {
                       Publish to start collecting responses from respondents
                     </p>
                   </div>
-                  <Button onClick={handlePublish} disabled={isPublishing} size='lg' className='w-full'>
+                  <Button
+                    onClick={handlePublish}
+                    disabled={isPublishing}
+                    size='lg'
+                    className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground hover:brightness-105'
+                  >
                     {isPublishing ? (
                       <>
                         <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
@@ -166,123 +180,106 @@ export function CollectView({ surveyId }: CollectViewProps) {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
 
           {/* QR Code */}
-          {isPublished && (
-            <div className='rounded-lg border bg-background'>
-              <div className='border-b bg-muted/30 px-4 py-3'>
-                <div className='flex items-center gap-3'>
-                  <div className='bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded'>
-                    <Icons.page className='h-3.5 w-3.5' />
-                  </div>
-                  <div>
-                    <h3 className='font-semibold'>QR Code</h3>
-                    <p className='text-muted-foreground text-xs'>Print on paper surveys for easy digital access</p>
-                  </div>
-                </div>
-              </div>
-              <div className='p-4'>
+          {isPublished ? (
+            <SurvaiPanel>
+              <SurvaiPanelHeader
+                icon={<Icons.page className='size-3.5' />}
+                title='QR Code'
+                subtitle='Print on paper surveys for easy digital access'
+              />
+              <SurvaiPanelBody>
                 <div className='flex items-center gap-6'>
-                  <div className='bg-muted flex size-32 shrink-0 items-center justify-center rounded-lg'>
+                  <div className='flex size-32 shrink-0 items-center justify-center rounded-xl bg-muted'>
                     <Icons.page className='text-muted-foreground/40 size-12' />
                   </div>
                   <div className='space-y-3'>
-                    <p className='text-sm'>Generate a QR code that links to your collection page.</p>
-                    <Button variant='outline'>
+                    <p className='text-sm'>
+                      Generate a QR code that links to your collection page.
+                    </p>
+                    <Button variant='outline' className='rounded-xl'>
                       <Icons.upload className='mr-1 h-3.5 w-3.5' />
                       Download QR Code
                     </Button>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </SurvaiPanelBody>
+            </SurvaiPanel>
+          ) : null}
         </div>
 
         {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-6'>
-          {/* Primary Action - View Analytics */}
-          <div className='relative overflow-hidden rounded-xl border border-primary/20 bg-primary'>
-            <div
-              className='pointer-events-none absolute inset-0'
-              style={{
-                backgroundImage:
-                  'linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-                maskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)'
-              }}
-            />
-            <div className='relative space-y-4 p-5'>
-              <div >
-                <h3 className='text-lg font-semibold text-primary-foreground'>View Results?</h3>
-                <p className='text-primary-foreground/80 text-sm leading-relaxed'>
-                  {isPublished
-                    ? `Collecting responses — ${stats.responseCount} received so far`
-                    : 'Publish your survey to start collecting responses'}
-                </p>
-              </div>
-              <Link
-                href={`/dashboard/surveys/${surveyId}/analytics`}
-                className={cn('w-full', !isPublished && 'pointer-events-none opacity-50')}
+          <SurvaiBrandCard
+            title='View Results?'
+            description={
+              isPublished
+                ? `Collecting responses — ${stats.responseCount} received so far`
+                : 'Publish your survey to start collecting responses'
+            }
+          >
+            <Link
+              href={`/dashboard/surveys/${surveyId}/analytics`}
+              className={cn(
+                'block w-full',
+                !isPublished && 'pointer-events-none opacity-50'
+              )}
+            >
+              <Button
+                className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
+                size='lg'
+                disabled={!isPublished}
               >
-                <Button className='w-full' size='lg' variant='secondary' disabled={!isPublished}>
-                  View Analytics
-                  <Icons.arrowRight className='ml-2 h-4 w-4' />
-                </Button>
-              </Link>
-            </div>
-          </div>
+                View Analytics
+                <Icons.arrowRight className='ml-2 h-4 w-4' />
+              </Button>
+            </Link>
+          </SurvaiBrandCard>
 
           <Separator />
 
-
-
-          {/* Quick Actions */}
-          <div className='rounded-lg border bg-background p-4'>
-            <div className='flex flex-col gap-2'>
+          <SurvaiPanel>
+            <SurvaiPanelBody className='flex flex-col gap-2'>
               <a
                 href={`/s/${surveyId}`}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='group rounded-md p-0 -webkit-tap-highlight-color-transparent'
+                className='block'
               >
                 <Button
                   variant='outline'
-                  className='w-full justify-start h-auto px-3 py-2.5 text-sm'
+                  className='h-auto w-full justify-start rounded-xl px-3 py-2.5 text-sm'
                   disabled={!isPublished}
                 >
                   <Icons.externalLink className='mr-2 h-4 w-4' />
-                  <span className='inline-flex items-center gap-1'>
-                    Preview Survey
-                    <Icons.chordUpDownAlt className='size-3' />
-                  </span>
+                  Preview Survey
                 </Button>
               </a>
-              {isPublished && (
+              {isPublished ? (
                 <a
                   href={`/s/${surveyId}`}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='group rounded-md p-0 -webkit-tap-highlight-color-transparent'
+                  className='block'
                 >
-                  <Button className='w-full justify-start h-auto px-3 py-2.5 text-sm shadow-sm'>
-                    <Icons.openInNew className='size-3.5' />
-                    <span>Open in New Tab</span>
+                  <Button className='h-auto w-full justify-start rounded-xl px-3 py-2.5 text-sm'>
+                    <Icons.openInNew className='mr-2 size-3.5' />
+                    Open in New Tab
                   </Button>
                 </a>
-              )}
+              ) : null}
               <Button
                 variant='outline'
-                className='w-full justify-start text-destructive hover:text-destructive'
+                className='w-full justify-start rounded-xl text-destructive hover:text-destructive'
               >
                 <Icons.close className='mr-2 h-4 w-4' />
                 Close Survey
               </Button>
-            </div>
-          </div>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
         </div>
       </div>
     </div>
