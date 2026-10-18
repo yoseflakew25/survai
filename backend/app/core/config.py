@@ -27,8 +27,16 @@ class Settings(BaseSettings):
     # Database
     database_url: str = Field(
         default="postgresql+asyncpg://survai:survai@localhost:5432/survai",
-        description="Async SQLAlchemy URL",
+        description="Async SQLAlchemy URL (use postgresql+asyncpg://…)",
     )
+    # Required for managed providers (Aiven, Neon, etc.)
+    database_ssl: bool = False
+    # Optional path to provider CA PEM (Aiven “CA certificate”). If unset with
+    # database_ssl=true, connects like libpq sslmode=require (encrypt, no verify).
+    database_ssl_ca: str | None = None
+    # Keep well under provider connection limits (Aiven free ≈ 20)
+    database_pool_size: int = 5
+    database_max_overflow: int = 5
 
     # JWT / cookies
     jwt_secret_key: str = Field(default="CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND")
@@ -53,11 +61,12 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_tls: bool = False
-    emails_from_email: str = "noreply@survai.local"
+    emails_from_email: str = "noreply@example.com"
     emails_from_name: str = "SurvAI"
 
     # First superuser (created on startup if missing)
-    first_superuser_email: str = "admin@survai.local"
+    # Use a real TLD — EmailStr rejects reserved names like .local
+    first_superuser_email: str = "admin@example.com"
     first_superuser_password: str = "ChangeMe123!"
     first_superuser_full_name: str = "SurvAI Admin"
 

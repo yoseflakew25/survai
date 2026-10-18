@@ -5,13 +5,14 @@ from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
 from app.core.config import settings
 from app.db.base import Base
+from app.db.ssl_utils import build_database_ssl_context
 from app.models import PasswordResetToken, RefreshToken, User  # noqa: F401
 
 config = context.config
@@ -41,10 +42,14 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
+    connect_args: dict[str, object] = {}
+    if settings.database_ssl:
+        connect_args["ssl"] = build_database_ssl_context(settings.database_ssl_ca)
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
