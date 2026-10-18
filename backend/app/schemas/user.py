@@ -59,6 +59,7 @@ class UserPublic(BaseModel):
     role: UserRole
     is_active: bool
     is_superuser: bool
+    email_verified: bool = False
     organization_id: UUID | None = None
     organization_name: str | None = None
     organization_description: str | None = None
@@ -83,6 +84,7 @@ class UserPublic(BaseModel):
                 "role": data.role,
                 "is_active": data.is_active,
                 "is_superuser": data.is_superuser,
+                "email_verified": data.email_verified,
                 "organization_id": data.organization_id,
                 "organization_name": org.name if org is not None else None,
                 "organization_description": org.description if org is not None else None,

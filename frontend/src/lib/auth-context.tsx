@@ -15,6 +15,7 @@ import {
   apiFetch,
   toUserFacingError,
   type ApiUser,
+  type RegisterPendingResponse,
   type TokenPairResponse
 } from '@/lib/api';
 
@@ -49,13 +50,24 @@ interface AuthContextValue {
   /** In-memory only — never persisted. Prefer httpOnly cookies for auth. */
   accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
-  /** Creates an Organization account (workspace + login). No staff seats. */
+  /**
+   * Creates an Organization account and emails a verification OTP.
+   * Does not sign in — call `verifyEmail` next.
+   */
   register: (data: {
     email: string;
     password: string;
     organizationName: string;
     fullName?: string;
-  }) => Promise<void>;
+  }) => Promise<RegisterPendingResponse>;
+  /** Confirm signup OTP and establish the session. */
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  /** Resend signup OTP for an unverified email. */
+  resendVerification: (email: string) => Promise<RegisterPendingResponse>;
+  /** Request a password-reset email (always succeeds; no enumeration). */
+  requestPasswordReset: (email: string) => Promise<void>;
+  /** Set a new password using the token from the reset email link. */
+  confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Replace local user state after profile updates. */
   setUserFromApi: (apiUser: ApiUser) => void;
@@ -202,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string;
       organizationName: string;
       fullName?: string;
-    }) => {
+    }): Promise<RegisterPendingResponse> => {
       try {
         const res = await apiFetch('/auth/register', {
           method: 'POST',
@@ -222,14 +234,110 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             )
           );
         }
-        applyTokenPair(data as TokenPairResponse);
+        return data as RegisterPendingResponse;
       } catch (err) {
         throw new Error(
           toUserFacingError(err, 'Could not create your organization. Please try again.')
         );
       }
     },
+    []
+  );
+
+  const verifyEmail = useCallback(
+    async (email: string, code: string) => {
+      try {
+        const res = await apiFetch('/auth/verify-email', {
+          method: 'POST',
+          body: JSON.stringify({ email, code })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            toUserFacingError(
+              new Error(apiErrorMessage(data, 'Invalid or expired verification code')),
+              'Invalid or expired verification code'
+            )
+          );
+        }
+        applyTokenPair(data as TokenPairResponse);
+      } catch (err) {
+        throw new Error(
+          toUserFacingError(err, 'Could not verify email. Please try again.')
+        );
+      }
+    },
     [applyTokenPair]
+  );
+
+  const resendVerification = useCallback(async (email: string) => {
+    try {
+      const res = await apiFetch('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          toUserFacingError(
+            new Error(apiErrorMessage(data, 'Could not resend verification code')),
+            'Could not resend verification code'
+          )
+        );
+      }
+      return data as RegisterPendingResponse;
+    } catch (err) {
+      throw new Error(
+        toUserFacingError(err, 'Could not resend verification code. Please try again.')
+      );
+    }
+  }, []);
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    try {
+      const res = await apiFetch('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          toUserFacingError(
+            new Error(apiErrorMessage(data, 'Could not send reset email')),
+            'Could not send reset email'
+          )
+        );
+      }
+    } catch (err) {
+      throw new Error(
+        toUserFacingError(err, 'Could not send reset email. Please try again.')
+      );
+    }
+  }, []);
+
+  const confirmPasswordReset = useCallback(
+    async (token: string, newPassword: string) => {
+      try {
+        const res = await apiFetch('/auth/reset-password', {
+          method: 'POST',
+          body: JSON.stringify({ token, new_password: newPassword })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            toUserFacingError(
+              new Error(apiErrorMessage(data, 'Invalid or expired reset link')),
+              'Invalid or expired reset link'
+            )
+          );
+        }
+      } catch (err) {
+        throw new Error(
+          toUserFacingError(err, 'Could not reset password. Please try again.')
+        );
+      }
+    },
+    []
   );
 
   const logout = useCallback(async () => {
@@ -258,6 +366,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       accessToken,
       login,
       register,
+      verifyEmail,
+      resendVerification,
+      requestPasswordReset,
+      confirmPasswordReset,
       logout,
       setUserFromApi
     }),
@@ -268,6 +380,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       login,
       register,
+      verifyEmail,
+      resendVerification,
+      requestPasswordReset,
+      confirmPasswordReset,
       logout,
       setUserFromApi
     ]

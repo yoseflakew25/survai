@@ -53,6 +53,7 @@ class UserService:
             organization_id=org.id if org else None,
             is_active=True,
             is_superuser=is_superuser,
+            email_verified=is_superuser,
         )
         user = await self.users.add(user)
         if org is not None:
@@ -159,6 +160,7 @@ class UserService:
             existing.role = UserRole.system_admin
             existing.is_superuser = True
             existing.is_active = True
+            existing.email_verified = True
             existing.full_name = settings.first_superuser_full_name
             # Keep bootstrap credentials in sync with settings (dev / first deploy).
             existing.hashed_password = hash_password(settings.first_superuser_password)

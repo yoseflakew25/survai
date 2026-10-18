@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { createPlanWithAI } from '@/features/plans/api/service';
+import { PlanGenerationProgress } from '@/features/plans/components/plan-generation-progress';
 import { toast } from '@/lib/toast';
 
 interface NewSurveyDialogProps {
@@ -203,7 +204,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
     const el = listRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [messages, error, done, isTyping]);
+  }, [messages, error, done, isTyping, isGeneratingPlan]);
 
   useEffect(() => {
     if (!open || done || isTyping || !composerReady) return;
@@ -428,7 +429,29 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
 
             {isTyping ? <TypingIndicator /> : null}
 
-            {done ? (
+            {done && isGeneratingPlan ? (
+              <div className='border-border bg-card mt-1 overflow-hidden rounded-2xl border shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
+                <div className='flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand px-4 py-3'>
+                  <div className='min-w-0'>
+                    <p className='font-display text-base font-extrabold tracking-tight text-foreground'>
+                      Generating Survey plan
+                    </p>
+                    <p className='text-foreground/70 text-xs'>
+                      Drafting from your research goal
+                    </p>
+                  </div>
+                  <Icons.spinner className='size-4 shrink-0 animate-spin text-foreground' />
+                </div>
+                <div className='px-4 py-4'>
+                  <PlanGenerationProgress
+                    active={isGeneratingPlan}
+                    goalPreview={answers.researchGoal}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {done && !isGeneratingPlan ? (
               <div className='border-border bg-card mt-1 overflow-hidden rounded-2xl border shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
                 <div className='flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand px-4 py-3'>
                   <div className='min-w-0'>
@@ -465,8 +488,8 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
 
                 <div className='bg-brand-soft/60 border-border border-t px-4 py-3'>
                   <p className='text-muted-foreground text-xs leading-relaxed'>
-                    Next we’ll turn this into a survey plan with sections and
-                    draft questions.
+                    Next we&apos;ll carefully draft objectives, research
+                    questions, audiences, and survey sections from your goal.
                   </p>
                 </div>
               </div>
@@ -475,7 +498,11 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
         </div>
 
         <div className='border-border shrink-0 border-t bg-[color-mix(in_srgb,var(--background)_55%,var(--brand-soft))] px-6 py-4 sm:px-8'>
-          {done ? (
+          {done && isGeneratingPlan ? (
+            <p className='text-muted-foreground text-center text-xs'>
+              Generating with Gemini — please don&apos;t close this dialog.
+            </p>
+          ) : done ? (
             <div className='flex items-center justify-between gap-2'>
               <Button
                 type='button'
@@ -491,17 +518,8 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                 onClick={() => void handleGeneratePlan()}
                 className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 font-semibold text-foreground disabled:opacity-70'
               >
-                {isGeneratingPlan ? (
-                  <>
-                    <Icons.spinner className='size-4 animate-spin' />
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <Icons.sparkles className='size-4' />
-                    Generate plan
-                  </>
-                )}
+                <Icons.sparkles className='size-4' />
+                Generate plan
               </Button>
             </div>
           ) : (

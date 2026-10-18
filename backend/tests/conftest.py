@@ -13,7 +13,15 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models import Organization, PasswordResetToken, RefreshToken, User  # noqa: F401
+from app.models import (  # noqa: F401
+    AiGenerationLog,
+    EmailVerificationOtp,
+    Organization,
+    PasswordResetToken,
+    RefreshToken,
+    SurveyPlan,
+    User,
+)
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -25,6 +33,14 @@ def _test_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "smtp_enabled", False)
     monkeypatch.setattr(settings, "cookie_secure", False)
     settings.__dict__.pop("cors_origin_list", None)  # property — no cache
+
+
+@pytest.fixture
+def fixed_otp(monkeypatch: pytest.MonkeyPatch) -> str:
+    """Pin registration OTP so verify-email tests don't need log scraping."""
+    code = "123456"
+    monkeypatch.setattr("app.services.auth._generate_otp_code", lambda: code)
+    return code
 
 
 @pytest_asyncio.fixture

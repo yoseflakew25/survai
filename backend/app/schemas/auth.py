@@ -20,6 +20,24 @@ class RegisterRequest(BaseModel):
     organization_name: str = Field(min_length=1, max_length=255)
 
 
+class RegisterPendingResponse(BaseModel):
+    """Returned after signup — account exists but email OTP must be verified."""
+
+    email: EmailStr
+    message: str = "Check your email for a verification code."
+    # Only set when outbound email is not configured (dev). Never in production with SMTP/Resend.
+    dev_code: str | None = None
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class TokenPairResponse(BaseModel):
     access_token: str
     refresh_token: str

@@ -13,7 +13,14 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 from app.db.ssl_utils import build_database_ssl_context
-from app.models import Organization, PasswordResetToken, RefreshToken, User  # noqa: F401
+from app.models import (  # noqa: F401
+    AiGenerationLog,
+    Organization,
+    PasswordResetToken,
+    RefreshToken,
+    SurveyPlan,
+    User,
+)
 
 config = context.config
 if config.config_file_name is not None:

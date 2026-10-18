@@ -190,6 +190,12 @@ export default function SignInViewPage() {
               >
                 Password
               </label>
+              <Link
+                href='/auth/forgot-password'
+                className='text-muted-foreground hover:text-foreground text-[12px] font-medium hover:underline'
+              >
+                Forgot password?
+              </Link>
             </div>
             <PasswordInput
               id='sign-in-password'

@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { EditableList } from './editable-list';
 import { ProposedSectionsEditor } from './proposed-sections-editor';
+import { PlanGenerationProgress } from './plan-generation-progress';
+import { PlanQuickActions } from './plan-quick-actions';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { cn } from '@/lib/utils';
 import {
@@ -33,9 +35,6 @@ interface PlanEditorProps {
   plan: Plan;
   onPlanUpdate: (plan: Plan) => void;
 }
-
-const sidebarBtnClass =
-  'h-10 rounded-xl border-border bg-card font-medium shadow-sm';
 
 const brandCtaOnLimeClass =
   'h-10 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card font-semibold text-foreground shadow-sm hover:bg-card/90';
@@ -71,10 +70,13 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
   const {
     state: planState,
     setState: setPlanState,
+    replaceState: replacePlanState,
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    pastCount,
+    futureCount
   } = useUndoRedo<PlanState>(initialState, { maxHistory: 30 });
 
   const { researchGoal, objectives, researchQuestions, targetRespondents, proposedSections } =
@@ -159,7 +161,8 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
   }, [localPlan.id, researchGoal, objectives, researchQuestions, targetRespondents, proposedSections, onPlanUpdate]);
 
   const handleAIGenerate = useCallback(async () => {
-    if (!researchGoal.trim()) {
+    const goal = researchGoal.trim();
+    if (!goal) {
       toast.error('Research goal required', {
         description: 'Enter a research goal before generating with AI.'
       });
@@ -168,33 +171,33 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
 
     setIsGenerating(true);
     try {
-      const output = await generatePlanWithAI(localPlan.id);
+      // Single request: update goal + hard-replace all AI fields on the server.
+      const { plan: refreshed, output } = await generatePlanWithAI(
+        localPlan.id,
+        goal
+      );
 
-      // Update state with AI output
-      setPlanState({
-        researchGoal,
-        objectives: output.objectives,
-        researchQuestions: output.researchQuestions,
-        targetRespondents: output.targetRespondents,
-        proposedSections: output.proposedSections
-      });
+      // Deep-copy from the persisted plan only — no merge with previous editor state.
+      const nextState: PlanState = {
+        researchGoal: refreshed.researchGoal,
+        objectives: [...refreshed.objectives],
+        researchQuestions: [...refreshed.researchQuestions],
+        targetRespondents: [...refreshed.targetRespondents],
+        proposedSections: refreshed.proposedSections.map((s) => ({
+          title: s.title,
+          rationale: s.rationale
+        }))
+      };
+      // Wipe undo/redo so old AI content cannot resurface via Undo.
+      replacePlanState(nextState);
+      lastSavedRef.current = JSON.stringify(nextState);
+      setLocalPlan(refreshed);
+      onPlanUpdate(refreshed);
 
-      // Also persist the update
-      const updated = await updatePlan(localPlan.id, {
-        researchGoal,
-        objectives: output.objectives,
-        researchQuestions: output.researchQuestions,
-        targetRespondents: output.targetRespondents,
-        proposedSections: output.proposedSections,
-        estimatedLengthMinutes: output.estimatedLengthMinutes
-      });
-      if (updated) {
-        setLocalPlan(updated);
-        onPlanUpdate(updated);
-      }
-
-      toast.success('Plan generated', {
-        description: output.notes ?? 'AI has generated objectives, questions, and sections for your plan.'
+      toast.success('Plan regenerated', {
+        description:
+          output.notes ??
+          'Previous plan content was replaced with a fresh AI draft.'
       });
     } catch {
       toast.error('Generation failed', {
@@ -203,7 +206,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [localPlan.id, researchGoal, setPlanState, onPlanUpdate]);
+  }, [localPlan.id, researchGoal, replacePlanState, onPlanUpdate]);
 
   const handleProceedToBuilder = useCallback(async () => {
     // Check for unsaved changes and show dialog if needed
@@ -401,7 +404,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
                 className='border-border min-h-[7rem] resize-none rounded-xl border-2 text-sm leading-relaxed focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))]'
                 placeholder='Describe the purpose of your survey…'
               />
-              <p className='text-muted-foreground mt-2 text-[11px] tabular-nums'>
+              <p className='text-muted-foreground mt-3 text-[11px] tabular-nums'>
                 {researchGoal.trim().length.toLocaleString()} characters
               </p>
             </SurvaiPanelBody>
@@ -540,54 +543,44 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
             </Button>
           </SurvaiBrandCard>
 
-          <SurvaiPanel>
-            <SurvaiPanelHeader
-              icon={<Icons.edit className='size-3.5' />}
-              title='Quick actions'
-              subtitle='Save or step through edits'
-            />
-            <SurvaiPanelBody className='space-y-2'>
-              <div className='grid grid-cols-2 gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  className={cn(sidebarBtnClass, 'justify-center')}
-                  onClick={undo}
-                  disabled={!canUndo}
-                >
-                  <Icons.chevronsLeft className='size-4' />
-                  Undo
-                </Button>
-                <Button
-                  type='button'
-                  variant='outline'
-                  className={cn(sidebarBtnClass, 'justify-center')}
-                  onClick={redo}
-                  disabled={!canRedo}
-                >
-                  Redo
-                  <Icons.chevronsRight className='size-4' />
-                </Button>
-              </div>
-
-              <Button
-                type='button'
-                variant='outline'
-                className={cn(sidebarBtnClass, 'w-full justify-center')}
-                onClick={handleSave}
-                disabled={isSaving || !hasUnsavedChanges()}
-              >
-                {isSaving ? (
-                  <Icons.spinner className='size-4 animate-spin' />
-                ) : (
-                  <Icons.check className='size-4' />
-                )}
-                {hasUnsavedChanges() ? 'Save progress' : 'All saved'}
-              </Button>
-            </SurvaiPanelBody>
-          </SurvaiPanel>
+          <PlanQuickActions
+            canUndo={canUndo}
+            canRedo={canRedo}
+            pastCount={pastCount}
+            futureCount={futureCount}
+            onUndo={undo}
+            onRedo={redo}
+            onSave={() => void handleSave()}
+            onRegenerate={() => void handleAIGenerate()}
+            isSaving={isSaving}
+            isGenerating={isGenerating}
+            hasUnsavedChanges={hasUnsavedChanges()}
+            canRegenerate={Boolean(researchGoal.trim())}
+          />
         </div>
       </div>
+
+      <Dialog
+        open={isGenerating}
+        onOpenChange={(next) => {
+          if (!next && isGenerating) return;
+        }}
+      >
+        <DialogContent
+          className='sm:max-w-md gap-0 overflow-hidden p-0'
+          showCloseButton={false}
+        >
+          <DialogHeader className='bg-primary'>
+            <DialogTitle>Generating Survey plan</DialogTitle>
+          </DialogHeader>
+          <div className='px-4 pt-4 pb-4'>
+            <PlanGenerationProgress
+              active={isGenerating}
+              goalPreview={researchGoal}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Unsaved Changes Dialog */}
       <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>

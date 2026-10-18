@@ -1,15 +1,20 @@
 """Application settings loaded from environment variables."""
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Always load backend/.env regardless of process cwd (uvicorn reload / IDE launch).
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_ENV_FILE = _BACKEND_ROOT / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -54,14 +59,20 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     password_reset_path: str = "/auth/reset-password"
 
-    # Email (SMTP) — optional in development; logged to console when disabled
+    # Email verification OTP (registration)
+    email_verification_otp_expire_minutes: int = 10
+    email_verification_otp_max_attempts: int = 5
+
+    # Email — prefer Resend (RESEND_API_KEY). Fallback: SMTP when smtp_enabled=true.
+    # If neither is set, OTP is only logged to the API console (dev).
+    resend_api_key: str = ""
     smtp_enabled: bool = False
-    smtp_host: str = "localhost"
-    smtp_port: int = 1025
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_tls: bool = False
-    emails_from_email: str = "noreply@example.com"
+    smtp_tls: bool = True
+    emails_from_email: str = "onboarding@resend.dev"
     emails_from_name: str = "SurvAI"
 
     # First system admin (created/synced on startup if missing)
@@ -70,6 +81,15 @@ class Settings(BaseSettings):
     first_superuser_password: str = "12121212"
     first_superuser_full_name: str = "SurvAI System Admin"
     first_superuser_organization_name: str = "SurvAI"
+
+    # AI — Gemini behind app/ai/client.py (never call the vendor from routes)
+    ai_provider: Literal["gemini"] = "gemini"
+    gemini_api_key: str = ""
+    gemini_model_planner: str = "gemini-3.8-flash"
+    gemini_model_builder: str = "gemini-3.8-flash"
+    gemini_model_reviewer: str = "gemini-3.8-flash"
+    gemini_model_report: str = "gemini-3.8-flash"
+    gemini_model_chat: str = "gemini-3.8-flash"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

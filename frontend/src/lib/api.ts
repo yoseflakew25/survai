@@ -11,6 +11,7 @@ export type ApiUser = {
   role: 'system_admin' | 'organization';
   is_active: boolean;
   is_superuser: boolean;
+  email_verified: boolean;
   organization_id: string | null;
   organization_name: string | null;
   organization_description: string | null;
@@ -28,6 +29,13 @@ export type TokenPairResponse = {
   refresh_token: string;
   token_type: string;
   user: ApiUser;
+};
+
+export type RegisterPendingResponse = {
+  email: string;
+  message: string;
+  /** Present only when Resend/SMTP are not configured (local/dev). */
+  dev_code?: string | null;
 };
 
 export function apiErrorMessage(data: unknown, fallback: string): string {

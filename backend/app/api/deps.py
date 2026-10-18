@@ -16,6 +16,7 @@ from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService
+from app.services.plan import PlanService
 from app.services.user import UserService
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -29,8 +30,13 @@ def get_user_service(session: DbSession) -> UserService:
     return UserService(session)
 
 
+def get_plan_service(session: DbSession) -> PlanService:
+    return PlanService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
 
 
 def _extract_bearer(authorization: str | None) -> str | None:
@@ -58,7 +64,7 @@ async def get_current_user(
         raise UnauthorizedError() from exc
 
     user = await UserRepository(session).get_by_id(user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or not user.email_verified:
         raise UnauthorizedError()
     return user
 

@@ -1,4 +1,4 @@
-"""Auth routes — login/register/refresh/logout + password recovery.
+"""Auth routes — login/register/OTP verify/refresh/logout + password recovery.
 
 Tokens are returned in the JSON body *and* set as httpOnly cookies so the
 Next.js frontend can use either pattern (Bearer header or credentialed cookies).
@@ -19,30 +19,53 @@ from app.schemas.auth import (
     MessageResponse,
     PasswordResetConfirm,
     RefreshRequest,
+    RegisterPendingResponse,
     RegisterRequest,
+    ResendVerificationRequest,
     TokenPairResponse,
+    VerifyEmailRequest,
 )
 from app.schemas.user import UserPublic
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenPairResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=RegisterPendingResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def register(
     body: RegisterRequest,
-    response: Response,
     auth: AuthServiceDep,
-) -> TokenPairResponse:
-    tokens = await auth.register(
+) -> RegisterPendingResponse:
+    return await auth.register(
         email=body.email,
         password=body.password,
         full_name=body.full_name or body.organization_name,
         organization_name=body.organization_name,
     )
+
+
+@router.post("/verify-email", response_model=TokenPairResponse)
+async def verify_email(
+    body: VerifyEmailRequest,
+    response: Response,
+    auth: AuthServiceDep,
+) -> TokenPairResponse:
+    tokens = await auth.verify_email(email=body.email, code=body.code)
     set_auth_cookies(
         response, access_token=tokens.access_token, refresh_token=tokens.refresh_token
     )
     return tokens
+
+
+@router.post("/resend-verification", response_model=RegisterPendingResponse)
+async def resend_verification(
+    body: ResendVerificationRequest,
+    auth: AuthServiceDep,
+) -> RegisterPendingResponse:
+    return await auth.resend_verification(email=body.email)
 
 
 @router.post("/login", response_model=TokenPairResponse)

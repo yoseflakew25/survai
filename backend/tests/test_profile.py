@@ -1,20 +1,21 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.test_auth import _register_and_verify
+
 
 @pytest.mark.asyncio
-async def test_update_me_profile_and_password(client: AsyncClient) -> None:
-    register = await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": "org@example.com",
-            "password": "SecurePass1!",
-            "organization_name": "DICDO",
-        },
+async def test_update_me_profile_and_password(
+    client: AsyncClient, fixed_otp: str
+) -> None:
+    tokens = await _register_and_verify(
+        client,
+        email="org@example.com",
+        password="SecurePass1!",
+        organization_name="DICDO",
+        code=fixed_otp,
     )
-    assert register.status_code == 201, register.text
-    token = register.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
 
     updated = await client.patch(
         "/api/v1/users/me",
@@ -64,18 +65,17 @@ async def test_update_me_profile_and_password(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_me_removes_organization(client: AsyncClient) -> None:
-    register = await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": "gone@example.com",
-            "password": "SecurePass1!",
-            "organization_name": "Temp Org",
-        },
+async def test_delete_me_removes_organization(
+    client: AsyncClient, fixed_otp: str
+) -> None:
+    tokens = await _register_and_verify(
+        client,
+        email="gone@example.com",
+        password="SecurePass1!",
+        organization_name="Temp Org",
+        code=fixed_otp,
     )
-    assert register.status_code == 201, register.text
-    token = register.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
 
     deleted = await client.delete("/api/v1/users/me", headers=headers)
     assert deleted.status_code == 204

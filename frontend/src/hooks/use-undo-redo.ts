@@ -15,10 +15,14 @@ interface UseUndoRedoOptions {
 interface UseUndoRedoReturn<T> {
   state: T;
   setState: (newState: T | ((prev: T) => T), options?: { addToHistory?: boolean }) => void;
+  /** Replace present and wipe undo/redo stacks (e.g. after AI regenerate). */
+  replaceState: (newState: T) => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  pastCount: number;
+  futureCount: number;
   clearHistory: () => void;
   getHistorySize: () => number;
 }
@@ -109,6 +113,14 @@ export function useUndoRedo<T>(
     }));
   }, []);
 
+  const replaceState = useCallback((newState: T) => {
+    setUndoRedoState({
+      past: [],
+      present: newState,
+      future: []
+    });
+  }, []);
+
   const getHistorySize = useCallback(() => {
     return stateRef.current.past.length + stateRef.current.future.length + 1;
   }, []);
@@ -116,10 +128,13 @@ export function useUndoRedo<T>(
   return {
     state: undoRedoState.present,
     setState,
+    replaceState,
     undo,
     redo,
     canUndo: undoRedoState.past.length > 0,
     canRedo: undoRedoState.future.length > 0,
+    pastCount: undoRedoState.past.length,
+    futureCount: undoRedoState.future.length,
     clearHistory,
     getHistorySize
   };

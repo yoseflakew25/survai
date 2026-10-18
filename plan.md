@@ -59,7 +59,7 @@ these two rules.
 
 | Decision | Choice |
 | --- | --- |
-| AI provider | OpenAI |
+| AI provider | **Gemini** (Google AI) via `google-genai` — OpenAI retired for this repo |
 | Auth (real) | **JWT + httpOnly cookies** — FastAPI issues short-lived access JWT + refresh token in cookies; API validates JWT on every protected route. Users/roles live in Postgres. |
 | Auth (frontend UX) | **Better Auth** — sign-in/sign-up UI, client helpers, Next.js route gating UX only. It does **not** replace JWT+cookies as the security model. |
 | Deployment | Vercel (web) + Render/Railway (API) + managed Postgres |
@@ -149,7 +149,7 @@ Agent-facing copies of this gate also live in:
 - Pydantic v2 + pydantic-settings
 - SQLAlchemy 2.0 (async) + Alembic + `asyncpg` (SSL for managed Postgres)
 - **Clean architecture:** routes → services → repositories → models; DI via FastAPI `Depends`
-- Auth: **JWT + httpOnly cookies** — `python-jose` access JWT; **bcrypt** (passlib) passwords; opaque refresh tokens hashed in DB; email password recovery
+- Auth: **JWT + httpOnly cookies** — `python-jose` access JWT; **bcrypt** (passlib) passwords; opaque refresh tokens hashed in DB; email OTP verify + password recovery (SMTP/Resend)
 - Background jobs: ARQ + Redis *(not scaffolded yet)*
 - Analytics: Pandas *(not scaffolded yet)*
 - AI SDK: `openai` Python SDK + Responses API / Structured Outputs *(not scaffolded yet)*
@@ -184,7 +184,7 @@ survai/
 │   │   ├── main.py
 │   │   ├── core/                # config, security, exceptions
 │   │   ├── db/                  # session, Base, SSL helpers
-│   │   ├── models/              # User, RefreshToken, PasswordResetToken (+ §6 later)
+│   │   ├── models/              # User (RBAC), Organization, RefreshToken, PasswordResetToken (+ §6 later)
 │   │   ├── schemas/
 │   │   ├── repositories/
 │   │   ├── services/            # auth, user, email
@@ -286,13 +286,17 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE TABLE organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    description TEXT,
+    website TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TYPE user_role AS ENUM ('admin', 'researcher', 'viewer');
--- admin = full access; researcher = M&E/Program officer (Planner, Builder,
--- Reviewer, Analytics, Reports); viewer = Program Manager/Executive (reports
--- + chat, read-only elsewhere) — maps directly to PRD §5 personas.
+-- MVP roles (VARCHAR in Alembic; values below). PRD §5 multi-seat personas
+-- (researcher/viewer staff seats) are deferred until multi-user orgs ship.
+-- system_admin = SurvAI platform operators (user management, full access)
+-- organization = org workspace accounts (Planner → Report; default for signup)
+CREATE TYPE user_role AS ENUM ('system_admin', 'organization');
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -300,8 +304,9 @@ CREATE TABLE users (
     email CITEXT UNIQUE NOT NULL,
     hashed_password TEXT NOT NULL,
     full_name TEXT NOT NULL,
-    role user_role NOT NULL DEFAULT 'researcher',
+    role user_role NOT NULL DEFAULT 'organization',
     is_active BOOLEAN NOT NULL DEFAULT true,
+    is_superuser BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -588,11 +593,16 @@ FastAPI as the issuer/validator of credentials.
 
 ### Real auth (API) — **implemented in `backend/`** (org accounts)
 
-Live routes under `/api/v1`: `POST /auth/register` (organization account),
+Live routes under `/api/v1`: `POST /auth/register` (organization account →
+OTP emailed), `POST /auth/verify-email`, `POST /auth/resend-verification`,
 `/auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me`,
 `POST /auth/forgot-password`, `POST /auth/reset-password`.
 
-- **Flow:** login/register → verify **bcrypt** hash → short-lived JWT access
+- **Signup flow:** register creates org + user with `email_verified=false` →
+  6-digit OTP (hashed in `email_verification_otps`, ~10 min TTL) →
+  `verify-email` sets `email_verified=true` and issues tokens. Login is
+  rejected until verified.
+- **Login flow:** verify **bcrypt** hash → short-lived JWT access
   token (≈15 min) + opaque refresh token (stored hashed in `refresh_tokens`,
   rotated on use). Access JWT carries `sub` (user id) and `role`.
 - **Transport:** tokens set as **httpOnly** cookies *and* returned in JSON so
@@ -604,33 +614,53 @@ Live routes under `/api/v1`: `POST /auth/register` (organization account),
   `require_roles`) check JWT then DB user row.
 - **Refresh:** cookie or `{ refresh_token }` body; rotates refresh + issues new
   access token.
-- **Password recovery:** hashed reset tokens in `password_reset_tokens`; SMTP
-  or console log when `SMTP_ENABLED=false`.
+- **Password recovery:** `forgot-password` issues a one-time hashed token in
+  `password_reset_tokens` (prior unused tokens invalidated); email carries a
+  link to `{FRONTEND_URL}{PASSWORD_RESET_PATH}?token=…`. `reset-password`
+  updates the bcrypt hash and revokes all refresh tokens. Delivery failures
+  roll back the token (anti-enumeration still returns a generic 200).
+- **Outbound email:** `app/services/email.py` — Gmail SMTP when
+  `SMTP_ENABLED` + `SMTP_PASSWORD`, else Resend (`RESEND_API_KEY`), else
+  console log (OTP may return `dev_code` only when delivery is unconfigured).
+  Transactional HTML uses SurvAI brand tokens + embedded mark (`cid:survai-mark`).
 
-### Frontend UX (Better Auth)
+### Frontend UX (auth pages + Better Auth)
 
-- Better Auth powers **login/register UI and related client helpers** that
-  talk to the JWT+cookie API above (or a thin BFF that sets those cookies).
-- Auth forms use **RHF + Zod**.
-- Next.js middleware / layout gates for `/dashboard/*` read the same cookie
-  session the API trusts — do not invent a parallel Better Auth–only identity
-  store that the API never sees.
-- **Do not:** reintroduce Clerk; do not put access tokens in `localStorage`.
+- Live pages: `/auth/sign-in`, `/auth/sign-up` (form → OTP step),
+  `/auth/forgot-password`, `/auth/reset-password?token=…` — RHF + Zod;
+  `auth-context` wires `register` / `verifyEmail` / `resendVerification` /
+  `requestPasswordReset` / `confirmPasswordReset` to the JWT+cookie API.
+- Better Auth remains optional FE UX helpers on top of that API (not a second
+  identity store). Prefer cookies (`credentials: 'include'`); **do not** put
+  access tokens in `localStorage` (current FE still uses in-memory +
+  `sessionStorage` fallback — remove when finishing FE↔API auth).
+- Next.js layout gates for `/dashboard/*` should read the same cookie session
+  the API trusts.
+- **Do not:** reintroduce Clerk; do not invent a parallel Better Auth–only
+  identity the API never sees.
 
-### Roles & public routes
+### Roles & public routes (MVP RBAC — live)
 
-- **Roles → access** (from PRD §5 personas):
-  - `admin`: full access, user management.
-  - `researcher`: Planner, Builder, Reviewer, Analytics, Reports — the M&E
-    Officer / Field / Research personas.
-  - `viewer`: Reports + Report Chat, read-only elsewhere — the Program
-    Manager/Executive persona.
-- **Public routes:** only the `/api/v1/public/*` collection endpoints (§11)
-  are unauthenticated, and they are scoped to a single published
-  `survey_version_id` — they cannot enumerate or touch anything else.
+MVP uses **two roles** (multi-seat PRD personas deferred until staff invites):
+
+| Role | Who | Access |
+| --- | --- | --- |
+| `system_admin` | SurvAI operators (seeded from `FIRST_SUPERUSER_*`) | Full access + `/users` admin routes; `is_superuser=true` |
+| `organization` | Every org signup / non-platform account | Org workspace: Planner → Build → Review → Collect → Analytics → Report |
+
+- **Signup** always creates `role=organization` (never `system_admin`).
+- **Bootstrap:** on API startup, `ensure_first_superuser()` creates/syncs the
+  configured system admin and demotes every other account to `organization`.
+- **Deps:** `require_roles(...)` / `AdminUser` gate admin routes to
+  `system_admin` (superusers always pass).
+- **Public routes:** only `/api/v1/public/*` collection endpoints (§11) are
+  unauthenticated, scoped to one published `survey_version_id`.
 - **Password policy:** bcrypt via passlib, min length enforced client- and
   server-side; no password fields in `ai_generation_logs` or `audit_log`
   input_meta.
+
+**Later (post-MVP seats):** reintroduce PRD §5 staff roles (`researcher`,
+`viewer`) *inside* an organization without renaming `system_admin`.
 
 ---
 
@@ -893,7 +923,7 @@ All authenticated routes under `/api/v1`, JSON in/out, versioned from day one.
 | Resource | Method & path | Notes |
 | --- | --- | --- |
 | Auth | `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me` | |
-| Users (admin) | `GET/POST /users`, `PATCH/DELETE /users/{id}` | invite-based creation, no public self-registration in MVP |
+| Users (`system_admin`) | `GET/POST /users`, `PATCH/DELETE /users/{id}` | platform admin only; org self-registration remains via `/auth/register` |
 | Plans | `POST /plans`, `POST /plans/{id}/generate`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/approve` | PLN-01–05 |
 | Surveys | `POST/GET /surveys`, `GET/PATCH/DELETE /surveys/{id}` | |
 | Builder — AI | `POST /surveys/{id}/generate`, `POST /surveys/{id}/sections/{sid}/regenerate` | BLD-01, BLD-02 |
@@ -1040,11 +1070,25 @@ REFRESH_TOKEN_EXPIRE_DAYS=14
 COOKIE_SECURE=false
 COOKIE_SAMESITE=lax
 
-FIRST_SUPERUSER_EMAIL=admin@example.com   # EmailStr rejects .local
-FIRST_SUPERUSER_PASSWORD=
+FIRST_SUPERUSER_EMAIL=yoseflakewdev@gmail.com   # platform system_admin
+FIRST_SUPERUSER_PASSWORD=                       # synced on API startup
+FIRST_SUPERUSER_FULL_NAME=SurvAI System Admin
+FIRST_SUPERUSER_ORGANIZATION_NAME=SurvAI
 
-# SMTP (password reset) — false logs reset links to console in dev
-SMTP_ENABLED=false
+FRONTEND_URL=http://localhost:3000
+PASSWORD_RESET_PATH=/auth/reset-password
+
+# Outbound email — prefer SMTP (e.g. Gmail app password) or Resend.
+# If neither is configured, OTP is logged + returned as `dev_code` (dev only).
+SMTP_ENABLED=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=                    # Gmail app password; spaces stripped
+SMTP_TLS=true
+EMAILS_FROM_EMAIL=                # typically same as SMTP_USER for Gmail
+EMAILS_FROM_NAME=SurvAI
+# RESEND_API_KEY=                 # optional alternative to SMTP
 
 # Later:
 # REDIS_URL=
@@ -1053,7 +1097,7 @@ SMTP_ENABLED=false
 
 # --- frontend/.env ---
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 NEXT_PUBLIC_AUTH_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_SENTRY_DISABLED=true
 
@@ -1068,7 +1112,7 @@ Mapping PRD §15 onto concrete deliverables:
 
 | Week | PRD focus | Technical milestones |
 | --- | --- | --- |
-| 1 | Discovery + architecture | ✅ Repo + auth scaffold (`backend/`); JWT+cookies live; Aiven Postgres; backend CI/CD. Next: full §6 domain Alembic; FE↔API auth without mock/sessionStorage; AI client skeleton (§8) |
+| 1 | Discovery + architecture | ✅ Repo + auth scaffold; JWT+cookies; Aiven Postgres; MVP RBAC; email OTP verify + forgot/reset password UI; branded SMTP/Resend mail; backend CI/CD. Next: full §6 domain Alembic; FE↔API auth without mock/sessionStorage; AI client skeleton (§8) |
 | 2 | Planner + survey model | PLN-01–05 fully working; `surveys`/`sections`/`questions` CRUD; plan→survey handoff |
 | 3 | Builder | BLD-01–08; drag-and-drop reorder; live preview; conditional logic DSL (draft, unconfirmed) |
 | 4 | Reviewer + collection | REV-01–06; `survey_versions` publish flow; public collection routes COL-01–05 |
@@ -1112,8 +1156,9 @@ Current UI reality is tracked in `status.md`. Stack enforcements are in **§2a**
   §9 reconciliation validator, tested against deliberately-poisoned
   (ungrounded) `ReportGenerationOutput` fixtures.
 - **Integration (pytest + httpx.AsyncClient):** full request/response cycle
-  per router, including RBAC (a `viewer` token must 403 on builder routes,
-  etc.), against a test Postgres schema.
+  per router, including RBAC (an `organization` token must 403 on
+  `/users` admin routes; only `system_admin` may manage users), against a
+  test Postgres schema.
 - **AI evaluation (PRD §18.2), not unit tests:** a fixed test set of
   intentionally-flawed questions run through `review_survey()`, asserting
   the expected `issue_type`s are flagged; a fixed known-dataset run through
@@ -1203,33 +1248,38 @@ conflicts, **§2a wins**.
 ## 23. Implementation Status (as of October 2026)
 
 > Tracks frontend + backend. Survey domain data on the FE is still largely mock;
-> auth API + Postgres users are real. Update as milestones ship.
+> auth API + Postgres users/RBAC are real. Update as milestones ship.
 
 ### ✅ Completed — Backend (`backend/`)
 
 | Module | Status | Notes |
 | --- | --- | --- |
 | **Scaffold** | ✅ Done | FastAPI, clean arch, DI, type hints, CORS, Docker Compose, Traefik prod labels |
-| **Auth API (§7 core)** | ✅ Done | register/login/refresh/logout/me + forgot/reset password; JWT + cookies; bcrypt; refresh tokens in DB |
-| **Users** | ✅ Partial | model + admin list/get routes; seed first superuser on startup |
-| **Postgres** | ✅ Dev live | Aiven PostgreSQL 18; Alembic `0001_initial_auth` applied |
-| **Tests / CI** | ✅ Done | Pytest auth+health; GH Actions backend-ci + backend-cd (GHCR) |
+| **Auth API (§7 core)** | ✅ Done | register → email OTP → verify; login/refresh/logout/me; forgot/reset password; JWT + cookies; bcrypt; refresh tokens in DB |
+| **Email delivery** | ✅ Done | SMTP (Gmail) and/or Resend; branded HTML + SurvAI mark CID; `dev_code` only when mail unconfigured |
+| **AI gateway + Planner** | ✅ Milestone 1 | Gemini `app/ai/client.py`; `POST /plans` + `/plans/generate` + `/plans/{id}/generate`; `survey_plans` + `ai_generation_logs` |
+| **RBAC (MVP)** | ✅ Done | Roles: `system_admin` \| `organization`; signup → organization; startup seeds/syncs platform admin from `FIRST_SUPERUSER_*`; demotes others; `AdminUser` → `system_admin` |
+| **Users** | ✅ Partial | model + admin list/get/update routes gated by `system_admin`; org profile self-service on `/auth/me` |
+| **Organizations** | ✅ Partial | 1:1 with login; name + description + website on profile |
+| **Postgres** | ✅ Dev live | Aiven; Alembic through `0007_survey_plans` |
+| **Tests / CI** | ✅ Done | Pytest auth + plans (mocked Gemini) + health; GH Actions backend-ci + backend-cd (GHCR) |
 
 ### ✅ Completed — Frontend
 
 | Module | Pages / Components | Status | Notes |
 | --- | --- | --- | --- |
-| **Auth UI** | Login, Register, Forgot Password | ✅ Done | RHF + Zod; `auth-context` can call live API; still falls back to mock user + `sessionStorage` access token |
+| **Auth UI** | Sign-in, Sign-up + OTP, Forgot / Reset password | ✅ Done | RHF + Zod; live API via `auth-context`; still falls back to mock user + `sessionStorage` access token |
+| **Plans UI** | New Survey + plan editor | ✅ Milestone 1 | `plans/api/service.ts` → live `/plans` + Gemini generate |
 | **Forms stack** | All FE forms on RHF + Zod | ✅ Done | TanStack Form removed; field components under `components/forms/fields` |
 | **Sidebar Navigation** | App sidebar with collapsible/expandable modes | ✅ Done | Logo variants (light/dark × collapsed/expanded); primary icon colors; user dropdown |
 | **Dashboard Overview** | Stat cards, Recent Plans, Quick Actions | ✅ Done | Outline-style cards; primary color accents; grid pattern backgrounds |
 | **Surveys List** | Surveys page with data table, search, filter, sort | ✅ Done | Professional shadcn-style table; column-based sorting; status badges |
-| **New Survey Modal** | Multi-step wizard (Details → Goal → Preview → Generate) | ✅ Done | Progress steps; validation (title ≥3, goal ≥10 chars); AI generation animation |
-| **Plan Editor** | Plan review/edit with inline editing | ✅ Done | EditableList (DnD reorder); ProposedSectionsEditor (collapsible); undo/redo; keyboard shortcuts |
-| **Survey Review** | Question review with inline editing | ✅ Done | DnD reorder within sections; add new questions; change type/required/options inline |
-| **Collect** | Publish flow, collection link, QR code | ✅ Done | Progress indicator; copy link; publish toggle |
+| **New Survey Modal** | Wizard → generate plan → `/dashboard/plans/{id}` | ✅ Done | Plan is first lifecycle step; pill nav Plan→Review→Collect→Analytics→Report |
+| **Plan Editor** | Plan review/edit with SurvaiPanels | ✅ Done | EditableList/sections; stepper; Unsaved/Ready badges; **Back to Surveys** |
+| **Survey Review** | Question review with inline editing | ✅ Done | Sections/questions layout; **Back to Surveys**; no fake “generation theater” |
+| **Collect** | Publish flow, collection link, QR code | ✅ Done | Preview rename; progress; copy link; publish toggle |
 | **Analytics Dashboard** | Summary stats, distributions, cross-tabs | ✅ Done | Recharts integration; saved analyses sidebar |
-| **Report Workspace** | Editable sections, chat sidebar, export buttons | ✅ Done | Section-by-section editing; AI chat; DOCX/PDF export triggers |
+| **Report Workspace** | Editable sections, chat sidebar, export buttons | ✅ Done | Chat restyle; section editing; DOCX/PDF export triggers |
 | **Settings** | Organization settings page | ✅ Done | Professional card-based layout |
 | **Notifications** | Notifications list | ✅ Done | Outline-style notification cards |
 | **Profile** | User profile page | ✅ Done | Avatar upload, form validation, activity section |
@@ -1266,7 +1316,7 @@ conflicts, **§2a wins**.
 ```
 frontend/src/
 ├── app/
-│   ├── (auth)/                          # login, register, forgot-password
+│   ├── auth/                            # sign-in, sign-up (+OTP), forgot-password, reset-password
 │   ├── dashboard/
 │   │   ├── layout.tsx                   # sidebar + topbar shell
 │   │   ├── page.tsx                     # overview redirect
@@ -1316,31 +1366,21 @@ frontend/src/
 ### User Flow — Implemented
 
 ```
-1. Create Survey Modal
-   Title + Research Goal → AI Generation (animated) → Plan Editor
+1. New Survey → Plan (first step)
+   Dialog → AI plan draft → /dashboard/plans/{planId}
+   (existing surveys with planId → /surveys/{id}/plan)
 
-2. Plan Editor (/dashboard/plans/{planId})
-   Review AI-generated content → Edit objectives/questions/sections
-   DnD reorder → Undo/Redo → "Generate Survey Questions"
+2. Plan Editor (/dashboard/plans/{planId} or /surveys/{id}/plan)
+   Refine goal/objectives/questions/respondents/sections
+   Back to Surveys · Build survey when ready
 
-3. Survey Review (/dashboard/surveys/{id}/review)
-   Tabbed: Questions + AI Findings
-   Inline editing: type, required, options, text
-   DnD reorder within sections
-   Add new questions per section
-   "Continue to Collect →"
+3. Pill nav (shared): Plan → Review → Collect → Analytics → Report
 
-4. Collect (/dashboard/surveys/{id}/collect)
-   Publish survey → Collection link + QR code
-   "View Analytics →"
+4. Survey Review (/dashboard/surveys/{id}/review)
+   Sections + questions; inline edit; Back to Surveys
 
-5. Analytics (/dashboard/surveys/{id}/analytics)
-   Summary stats, distributions, cross-tabs
-   "Generate Report →"
-
-6. Report (/dashboard/surveys/{id}/reports)
-   Editable sections, AI chat sidebar, DOCX/PDF export
-   "Back to Analytics"
+5. Collect → Analytics → Report
+   Publish/link · charts · grounded report chat (UI mock until APIs)
 ```
 
 ### Styling System
