@@ -200,7 +200,7 @@ function FindingCard({
           <div className='flex items-center gap-2'>
             <Button
               variant='outline'
-              
+              size='sm'
               onClick={() => handleStatusChange('accepted')}
               disabled={isUpdating}
               className='h-7 text-xs'
@@ -210,7 +210,7 @@ function FindingCard({
             </Button>
             <Button
               variant='ghost'
-              
+              size='sm'
               onClick={() => handleStatusChange('dismissed')}
               disabled={isUpdating}
               className='h-7 text-xs'
@@ -225,7 +225,7 @@ function FindingCard({
       {finding.status !== 'open' && (
         <Button
           variant='ghost'
-          
+          size='sm'
           onClick={() => handleStatusChange('open')}
           disabled={isUpdating}
           className='h-7 text-xs'

@@ -97,25 +97,24 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 6. Known next (priority)
 
-1. **P0** — Surveys / sections / questions schema + builder AI (Phase 4).
-2. **P0** — Finish FE auth against live API (drop mock + sessionStorage; cookie credentials).
-3. **P0** — Publish + public collection (Phase 5).
-4. **P1** — Reviewer AI; analytics engine; report AI (Phases 6–7).
-5. **P1** — Role-aware FE nav/guards if system_admin gets a distinct console.
-6. **P1+** — ARQ / exports / OpenAPI-typed client.
+1. **P0** — Finish FE auth against live API (drop mock + sessionStorage; cookie credentials).
+2. **P0** — Publish + public collection / survey_versions (Phase 5).
+3. **P1** — Reviewer AI; analytics engine; report AI (Phases 6–7).
+4. **P1** — Role-aware FE nav/guards if system_admin gets a distinct console.
+5. **P1+** — ARQ / exports / OpenAPI-typed client; BLD-04 pending conditional logic UI.
 
 ---
 
 ## 7. Files that matter
 
-**Backend:** `backend/app/main.py`, `api/v1/routes/{auth,plans}.py`, `services/{auth,plan,email}.py`, `ai/{client,schemas,prompts/planner_v1,services/planner}.py`, `models/{user,survey_plan,ai_generation_log}.py`, `alembic/versions/0007_survey_plans_ai_logs.py`, `README.md`
+**Backend:** `backend/app/main.py`, `api/v1/routes/{auth,plans,surveys}.py`, `services/{auth,plan,survey,email}.py`, `ai/{client,schemas,prompts/{planner_v1,builder_v1},services/{planner,builder}}.py`, `models/{user,survey_plan,survey,ai_generation_log}.py`, `alembic/versions/0008_surveys_sections_questions.py`, `README.md`
 
-**Frontend:** `frontend/src/lib/auth-context.tsx`, `frontend/src/lib/api.ts`, `features/plans/api/service.ts`, `features/auth/components/*`, `features/plans/components/plan-editor.tsx`, `features/surveys/components/new-survey-dialog.tsx`
+**Frontend:** `frontend/src/lib/auth-context.tsx`, `frontend/src/lib/api.ts`, `features/plans/api/service.ts`, `features/builder/api/service.ts`, `features/auth/components/*`, `features/plans/components/plan-editor.tsx`, `features/surveys/components/new-survey-dialog.tsx`
 
 ---
 
 ## 8. Out of this snapshot
 
-- Per-PRD feature acceptance (PLN/BLD/REV/…) — still UI/mock until domain APIs exist.
+- Per-PRD feature acceptance for collect/reviewer/analytics/report — still mock until Phases 5–7.
 - Password rotation on Aiven if credentials were ever shared outside the machine.
 - Do not commit real `FIRST_SUPERUSER_PASSWORD` / `SMTP_PASSWORD` / `RESEND_API_KEY` into git; keep them in `backend/.env` only.

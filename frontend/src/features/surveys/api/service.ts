@@ -1,155 +1,124 @@
-import type { SurveyListItem, SurveyListResponse, SurveyListFilters } from './types';
+// ============================================================
+// Surveys list — live FastAPI (surveys that have a linked plan)
+// ============================================================
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+import {
+  apiErrorMessage,
+  apiFetch,
+  toUserFacingError
+} from '@/lib/api';
+
+import type {
+  SurveyListFilters,
+  SurveyListItem,
+  SurveyListResponse,
+  SurveyStatus
+} from './types';
+
+type ApiQuestion = { id: string };
+type ApiSection = { questions?: ApiQuestion[] };
+
+type ApiSurvey = {
+  id: string;
+  plan_id: string | null;
+  title: string;
+  description: string | null;
+  status: SurveyStatus;
+  sections?: ApiSection[];
+  created_at: string;
+  updated_at: string;
+};
+
+async function readError(res: Response, fallback: string): Promise<never> {
+  const data = await res.json().catch(() => ({}));
+  throw new Error(
+    toUserFacingError(
+      new Error(apiErrorMessage(data, fallback)),
+      fallback
+    )
+  );
 }
 
-const MOCK_SURVEYS: SurveyListItem[] = [
-  {
-    id: 'sur_001',
-    title: 'Community Health Assessment 2026',
-    description: 'Comprehensive health needs assessment for DICDO target communities',
-    status: 'published',
-    sectionsCount: 5,
-    questionsCount: 24,
-    responsesCount: 142,
-    completionRate: 78.3,
-    lastResponseAt: '2026-09-01T08:30:00Z',
-    createdAt: '2026-08-15T10:00:00Z',
-    updatedAt: '2026-08-28T14:20:00Z'
-  },
-  {
-    id: 'sur_002',
-    title: 'Education Program Evaluation',
-    description: 'Evaluate the effectiveness of the DICDO education support program',
-    status: 'draft',
-    sectionsCount: 4,
-    questionsCount: 18,
-    responsesCount: 0,
-    completionRate: null,
-    lastResponseAt: null,
-    createdAt: '2026-08-20T09:00:00Z',
-    updatedAt: '2026-08-30T11:45:00Z'
-  },
-  {
-    id: 'sur_003',
-    title: 'Water & Sanitation Baseline',
-    description: 'Baseline assessment of water and sanitation conditions in target communities',
-    status: 'closed',
-    sectionsCount: 6,
-    questionsCount: 32,
-    responsesCount: 89,
-    completionRate: 82.1,
-    lastResponseAt: '2026-08-10T16:00:00Z',
-    createdAt: '2026-07-28T10:00:00Z',
-    updatedAt: '2026-08-10T16:00:00Z'
-  },
-  {
-    id: 'sur_004',
-    title: 'Livelihoods Impact Survey',
-    description: 'Measure the impact of livelihood programs on household income',
-    status: 'published',
-    sectionsCount: 4,
-    questionsCount: 20,
-    responsesCount: 67,
-    completionRate: 71.5,
-    lastResponseAt: '2026-08-31T12:00:00Z',
-    createdAt: '2026-08-05T08:00:00Z',
-    updatedAt: '2026-08-31T12:00:00Z'
-  },
-  {
-    id: 'sur_005',
-    title: 'Food Security Assessment',
-    description: 'Assess food availability, access, and utilization in target communities',
-    status: 'draft',
-    sectionsCount: 5,
-    questionsCount: 26,
-    responsesCount: 0,
-    completionRate: null,
-    lastResponseAt: null,
-    createdAt: '2026-08-28T14:00:00Z',
-    updatedAt: '2026-08-30T09:00:00Z'
-  },
-  {
-    id: 'sur_006',
-    title: 'Maternal & Child Health Survey',
-    description: 'Evaluate maternal and child health service delivery in target areas',
-    status: 'published',
-    sectionsCount: 7,
-    questionsCount: 35,
-    responsesCount: 203,
-    completionRate: 85.7,
-    lastResponseAt: '2026-09-01T07:15:00Z',
-    createdAt: '2026-07-15T10:00:00Z',
-    updatedAt: '2026-09-01T07:15:00Z'
-  },
-  {
-    id: 'sur_007',
-    title: 'Youth Employment Needs',
-    description: 'Identify employment needs and skills gaps among youth in target communities',
-    status: 'archived',
-    sectionsCount: 3,
-    questionsCount: 15,
-    responsesCount: 56,
-    completionRate: 68.3,
-    lastResponseAt: '2026-06-20T10:00:00Z',
-    createdAt: '2026-05-10T08:00:00Z',
-    updatedAt: '2026-06-20T10:00:00Z'
-  },
-  {
-    id: 'sur_008',
-    title: 'Governance & Participation Survey',
-    description: 'Assess community participation in local governance processes',
-    status: 'draft',
-    sectionsCount: 4,
-    questionsCount: 22,
-    responsesCount: 0,
-    completionRate: null,
-    lastResponseAt: null,
-    createdAt: '2026-08-30T11:00:00Z',
-    updatedAt: '2026-08-30T11:00:00Z'
-  }
-];
+function mapListItem(s: ApiSurvey): SurveyListItem {
+  const sections = s.sections ?? [];
+  const questionsCount = sections.reduce(
+    (sum, sec) => sum + (sec.questions?.length ?? 0),
+    0
+  );
 
-export async function getSurveysList(
+  return {
+    id: s.id,
+    title: s.title,
+    description: s.description,
+    status: s.status,
+    sectionsCount: sections.length,
+    questionsCount,
+    // Collection / analytics not wired yet (Phase 5+)
+    responsesCount: 0,
+    completionRate: null,
+    lastResponseAt: null,
+    createdAt: s.created_at,
+    updatedAt: s.updated_at
+  };
+}
+
+function applyFilters(
+  items: SurveyListItem[],
   filters: SurveyListFilters
-): Promise<SurveyListResponse> {
-  await delay(200);
+): SurveyListItem[] {
+  let result = items;
 
-  let result = [...MOCK_SURVEYS];
-
-  // Search filter
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
+  if (filters.search?.trim()) {
+    const q = filters.search.trim().toLowerCase();
     result = result.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
-        s.description?.toLowerCase().includes(q)
+        (s.description?.toLowerCase().includes(q) ?? false)
     );
   }
 
-  // Status filter
   if (filters.status) {
     result = result.filter((s) => s.status === filters.status);
   }
 
-  // Sort
   if (filters.sort) {
     const [field, dir] = filters.sort.split(':');
-    result.sort((a, b) => {
+    const desc = dir === 'desc';
+    result = [...result].sort((a, b) => {
       const aVal = a[field as keyof SurveyListItem];
       const bVal = b[field as keyof SurveyListItem];
       if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return dir === 'desc'
-          ? bVal.localeCompare(aVal)
-          : aVal.localeCompare(bVal);
+        return desc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
       }
       if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return dir === 'desc' ? bVal - aVal : aVal - bVal;
+        return desc ? bVal - aVal : aVal - bVal;
       }
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return desc ? -1 : 1;
+      if (bVal == null) return desc ? 1 : -1;
       return 0;
     });
   }
 
-  return { surveys: result, total: result.length };
+  return result;
+}
+
+/**
+ * List org surveys that have a linked research plan (`plan_id` set).
+ * Search / status / sort applied client-side for the table filters.
+ */
+export async function getSurveysList(
+  filters: SurveyListFilters
+): Promise<SurveyListResponse> {
+  const res = await apiFetch('/surveys');
+  if (!res.ok) await readError(res, 'Could not load surveys');
+
+  const data = (await res.json()) as { surveys: ApiSurvey[]; total: number };
+  // Backend already filters to plan-linked surveys; keep a client guard too.
+  const mapped = (data.surveys ?? [])
+    .filter((s) => s.plan_id != null)
+    .map(mapListItem);
+
+  const filtered = applyFilters(mapped, filters);
+  return { surveys: filtered, total: filtered.length };
 }

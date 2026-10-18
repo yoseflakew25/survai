@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -8,8 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
 import type { Plan, ProposedSection } from '../api/types';
-import { generatePlanWithAI, updatePlan } from '../api/service';
-import { createSurveyFromPlan } from '@/features/builder/api/service';
+import { approvePlan, generatePlanWithAI, updatePlan } from '../api/service';
+import {
+  createSurveyFromPlan,
+  generateSurveyDraft
+} from '@/features/builder/api/service';
+import { surveyKeys } from '@/features/builder/api/queries';
+import { reviewerKeys } from '@/features/reviewer/api/queries';
+import { SurveyGenerationProgress } from '@/features/builder/components/survey-generation-progress';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { EditableList } from './editable-list';
@@ -34,6 +41,8 @@ import {
 interface PlanEditorProps {
   plan: Plan;
   onPlanUpdate: (plan: Plan) => void;
+  /** When set (survey hub Plan tab), regenerate that survey instead of creating a new one. */
+  surveyId?: string;
 }
 
 const brandCtaOnLimeClass =
@@ -47,8 +56,9 @@ interface PlanState {
   proposedSections: ProposedSection[];
 }
 
-export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
+export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingSurvey, setIsCreatingSurvey] = useState(false);
@@ -223,37 +233,76 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
     setIsCreatingSurvey(true);
     
     try {
-      // Save changes if requested
-      if (saveChanges) {
-        await updatePlan(localPlan.id, {
+      // Persist plan edits, then approve so builder grounding is stable (PLN-05).
+      if (saveChanges || hasUnsavedChanges()) {
+        const saved = await updatePlan(localPlan.id, {
           researchGoal,
           objectives,
           researchQuestions,
           targetRespondents,
           proposedSections
         });
+        if (saved) {
+          setLocalPlan(saved);
+          onPlanUpdate(saved);
+          lastSavedRef.current = JSON.stringify({
+            researchGoal,
+            objectives,
+            researchQuestions,
+            targetRespondents,
+            proposedSections
+          });
+        }
       }
 
-      // Create survey from plan and generate questions with AI
-      const survey = await createSurveyFromPlan(
-        localPlan.id,
-        localPlan.researchGoal.slice(0, 80)
-      );
-      
-      toast.success('Generating survey questions', {
-        description: 'AI is generating your survey questions. This may take a moment...'
+      if (localPlan.status !== 'approved') {
+        const approved = await approvePlan(localPlan.id);
+        if (approved) {
+          setLocalPlan(approved);
+          onPlanUpdate(approved);
+        }
+      }
+
+      // Existing survey (hub Plan tab): regenerate in place. Else create from plan.
+      const survey = surveyId
+        ? await generateSurveyDraft(surveyId)
+        : await createSurveyFromPlan(
+            localPlan.id,
+            researchGoal.trim().slice(0, 80) || 'Untitled survey'
+          );
+
+      queryClient.setQueryData(surveyKeys.detail(survey.id), survey);
+      // Hard-replace clears reviewer reports on the API — don't keep stale findings.
+      queryClient.setQueryData(reviewerKeys.latest(survey.id), null);
+
+      toast.success('Survey draft ready', {
+        description: 'Review and edit questions before publishing.'
       });
-      
-      // Survey is generated — open Review; Plan stays available in survey nav
       router.push(`/dashboard/surveys/${survey.id}/review`);
-    } catch {
-      toast.error('Failed to proceed', {
-        description: 'Please try again.'
+    } catch (err) {
+      toast.error('Failed to generate survey', {
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Please try again.'
       });
     } finally {
       setIsCreatingSurvey(false);
     }
-  }, [localPlan.id, researchGoal, objectives, researchQuestions, targetRespondents, proposedSections, router]);
+  }, [
+    localPlan.id,
+    localPlan.status,
+    researchGoal,
+    objectives,
+    researchQuestions,
+    targetRespondents,
+    proposedSections,
+    hasUnsavedChanges,
+    onPlanUpdate,
+    router,
+    surveyId,
+    queryClient
+  ]);
 
   const hasContent =
     objectives.length > 0 ||
@@ -571,11 +620,33 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
           showCloseButton={false}
         >
           <DialogHeader className='bg-primary'>
-            <DialogTitle>Generating Survey plan</DialogTitle>
+            <DialogTitle>Generating survey plan</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-4'>
             <PlanGenerationProgress
               active={isGenerating}
+              goalPreview={researchGoal}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isCreatingSurvey}
+        onOpenChange={(next) => {
+          if (!next && isCreatingSurvey) return;
+        }}
+      >
+        <DialogContent
+          className='sm:max-w-md gap-0 overflow-hidden p-0'
+          showCloseButton={false}
+        >
+          <DialogHeader className='bg-primary'>
+            <DialogTitle>Generating survey questions</DialogTitle>
+          </DialogHeader>
+          <div className='px-4 pt-4 pb-4'>
+            <SurveyGenerationProgress
+              active={isCreatingSurvey}
               goalPreview={researchGoal}
             />
           </div>

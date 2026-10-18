@@ -1,657 +1,412 @@
 // ============================================================
-// Builder Service — Mock Data Layer
+// Builder Service — live FastAPI (Gemini builder)
 // ============================================================
 
+import {
+  apiErrorMessage,
+  apiFetch,
+  toUserFacingError
+} from '@/lib/api';
+
 import type {
+  Question,
+  QuestionOption,
+  QuestionType,
+  Section,
   Survey,
   SurveyListResponse,
-  Section,
-  Question,
-  SurveyDraftOutput,
-  QuestionType
+  ValidationRules
 } from './types';
 
-// ---- Helpers ----
+const AI_TIMEOUT_MS = 120_000;
 
-let idCounter = 1000;
-function nextId(prefix: string) {
-  return `${prefix}_${++idCounter}`;
+type ApiQuestionOption = { id: string; label: string; value: string };
+
+type ApiQuestion = {
+  id: string;
+  section_id: string;
+  survey_id: string;
+  type: QuestionType;
+  prompt_text: string;
+  help_text: string | null;
+  is_required: boolean;
+  order_index: number;
+  options: ApiQuestionOption[] | null;
+  validation_rules: Record<string, number | string> | null;
+  conditional_logic: Record<string, unknown> | null;
+  source: 'ai_generated' | 'manual' | 'ai_edited';
+  created_at: string;
+  updated_at: string;
+};
+
+type ApiSection = {
+  id: string;
+  survey_id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  questions: ApiQuestion[];
+  created_at: string;
+  updated_at: string;
+};
+
+type ApiSurvey = {
+  id: string;
+  plan_id: string | null;
+  organization_id: string | null;
+  created_by: string;
+  title: string;
+  description: string | null;
+  status: Survey['status'];
+  anonymous_collection: boolean;
+  current_version_id: string | null;
+  sections: ApiSection[];
+  created_at: string;
+  updated_at: string;
+};
+
+type ApiGenerateResponse = {
+  survey: ApiSurvey;
+  notes: string | null;
+};
+
+async function readError(res: Response, fallback: string): Promise<never> {
+  const data = await res.json().catch(() => ({}));
+  throw new Error(
+    toUserFacingError(
+      new Error(apiErrorMessage(data, fallback)),
+      fallback
+    )
+  );
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function mapOptions(
+  options: ApiQuestionOption[] | null
+): QuestionOption[] | null {
+  if (!options) return null;
+  return options.map((o) => ({ id: o.id, label: o.label, value: o.value }));
 }
 
-// ---- Mock data ----
+function mapValidation(
+  rules: Record<string, number | string> | null
+): ValidationRules | null {
+  if (!rules) return null;
+  return {
+    min: typeof rules.min === 'number' ? rules.min : undefined,
+    max: typeof rules.max === 'number' ? rules.max : undefined,
+    minLength:
+      typeof rules.min_length === 'number' ? rules.min_length : undefined,
+    maxLength:
+      typeof rules.max_length === 'number' ? rules.max_length : undefined,
+    regex: typeof rules.regex === 'string' ? rules.regex : undefined
+  };
+}
 
-const MOCK_QUESTIONS: Question[] = [
-  {
-    id: 'q_001',
-    sectionId: 'sec_001',
-    surveyId: 'sur_001',
-    type: 'single_choice',
-    promptText: 'What is your age group?',
-    helpText: null,
-    isRequired: true,
-    orderIndex: 0,
-    options: [
-      { id: 'opt_1', label: '18-24', value: '18-24' },
-      { id: 'opt_2', label: '25-34', value: '25-34' },
-      { id: 'opt_3', label: '35-44', value: '35-44' },
-      { id: 'opt_4', label: '45-54', value: '45-54' },
-      { id: 'opt_5', label: '55+', value: '55+' }
-    ],
-    validationRules: null,
+function mapQuestion(q: ApiQuestion): Question {
+  return {
+    id: q.id,
+    sectionId: q.section_id,
+    surveyId: q.survey_id,
+    type: q.type,
+    promptText: q.prompt_text,
+    helpText: q.help_text,
+    isRequired: q.is_required,
+    orderIndex: q.order_index,
+    options: mapOptions(q.options),
+    validationRules: mapValidation(q.validation_rules),
     conditionalLogic: null,
-    source: 'ai_generated',
-    createdAt: '2026-08-20T10:00:00Z',
-    updatedAt: '2026-08-20T10:00:00Z'
-  },
-  {
-    id: 'q_002',
-    sectionId: 'sec_001',
-    surveyId: 'sur_001',
-    type: 'single_choice',
-    promptText: 'What is your gender?',
-    helpText: null,
-    isRequired: true,
-    orderIndex: 1,
-    options: [
-      { id: 'opt_6', label: 'Male', value: 'male' },
-      { id: 'opt_7', label: 'Female', value: 'female' },
-      { id: 'opt_8', label: 'Other', value: 'other' },
-      { id: 'opt_9', label: 'Prefer not to say', value: 'prefer_not_to_say' }
-    ],
-    validationRules: null,
-    conditionalLogic: null,
-    source: 'ai_generated',
-    createdAt: '2026-08-20T10:00:00Z',
-    updatedAt: '2026-08-20T10:00:00Z'
-  },
-  {
-    id: 'q_003',
-    sectionId: 'sec_002',
-    surveyId: 'sur_001',
-    type: 'multiple_choice',
-    promptText: 'Which of the following health conditions have you been diagnosed with? (Select all that apply)',
-    helpText: 'Select all that apply',
-    isRequired: true,
-    orderIndex: 0,
-    options: [
-      { id: 'opt_10', label: 'Hypertension', value: 'hypertension' },
-      { id: 'opt_11', label: 'Diabetes', value: 'diabetes' },
-      { id: 'opt_12', label: 'Malaria', value: 'malaria' },
-      { id: 'opt_13', label: 'HIV/AIDS', value: 'hiv_aids' },
-      { id: 'opt_14', label: 'None of the above', value: 'none' }
-    ],
-    validationRules: null,
-    conditionalLogic: null,
-    source: 'ai_generated',
-    createdAt: '2026-08-20T10:01:00Z',
-    updatedAt: '2026-08-20T10:01:00Z'
-  },
-  {
-    id: 'q_004',
-    sectionId: 'sec_002',
-    surveyId: 'sur_001',
-    type: 'rating_scale',
-    promptText: 'How would you rate your overall health?',
-    helpText: '1 = Poor, 5 = Excellent',
-    isRequired: true,
-    orderIndex: 1,
-    options: null,
-    validationRules: { min: 1, max: 5 },
-    conditionalLogic: null,
-    source: 'manual',
-    createdAt: '2026-08-20T10:02:00Z',
-    updatedAt: '2026-08-20T10:02:00Z'
-  },
-  {
-    id: 'q_005',
-    sectionId: 'sec_003',
-    surveyId: 'sur_001',
-    type: 'single_choice',
-    promptText: 'How often do you visit a healthcare facility?',
-    helpText: null,
-    isRequired: true,
-    orderIndex: 0,
-    options: [
-      { id: 'opt_15', label: 'Weekly', value: 'weekly' },
-      { id: 'opt_16', label: 'Monthly', value: 'monthly' },
-      { id: 'opt_17', label: 'Quarterly', value: 'quarterly' },
-      { id: 'opt_18', label: 'Annually', value: 'annually' },
-      { id: 'opt_19', label: 'Never', value: 'never' }
-    ],
-    validationRules: null,
-    conditionalLogic: null,
-    source: 'ai_generated',
-    createdAt: '2026-08-20T10:03:00Z',
-    updatedAt: '2026-08-20T10:03:00Z'
-  },
-  {
-    id: 'q_006',
-    sectionId: 'sec_003',
-    surveyId: 'sur_001',
-    type: 'long_text',
-    promptText: 'What are the main barriers you face when trying to access healthcare?',
-    helpText: 'Please describe any challenges related to distance, cost, availability, or other factors.',
-    isRequired: false,
-    orderIndex: 1,
-    options: null,
-    validationRules: { maxLength: 1000 },
-    conditionalLogic: null,
-    source: 'ai_generated',
-    createdAt: '2026-08-20T10:04:00Z',
-    updatedAt: '2026-08-20T10:04:00Z'
-  }
-];
+    source: q.source,
+    createdAt: q.created_at,
+    updatedAt: q.updated_at
+  };
+}
 
-const MOCK_SECTIONS: Section[] = [
-  {
-    id: 'sec_001',
-    surveyId: 'sur_001',
-    title: 'Household Demographics',
-    description: 'Establish respondent profile and socioeconomic context',
-    orderIndex: 0,
-    questions: MOCK_QUESTIONS.filter((q) => q.sectionId === 'sec_001'),
-    createdAt: '2026-08-20T10:00:00Z',
-    updatedAt: '2026-08-20T10:00:00Z'
-  },
-  {
-    id: 'sec_002',
-    surveyId: 'sur_001',
-    title: 'Health Status & Conditions',
-    description: 'Capture self-reported health conditions and overall health rating',
-    orderIndex: 1,
-    questions: MOCK_QUESTIONS.filter((q) => q.sectionId === 'sec_002'),
-    createdAt: '2026-08-20T10:00:00Z',
-    updatedAt: '2026-08-20T10:00:00Z'
-  },
-  {
-    id: 'sec_003',
-    surveyId: 'sur_001',
-    title: 'Healthcare Access & Utilization',
-    description: 'Measure frequency and barriers to healthcare services',
-    orderIndex: 2,
-    questions: MOCK_QUESTIONS.filter((q) => q.sectionId === 'sec_003'),
-    createdAt: '2026-08-20T10:00:00Z',
-    updatedAt: '2026-08-20T10:00:00Z'
-  }
-];
+function mapSection(s: ApiSection): Section {
+  return {
+    id: s.id,
+    surveyId: s.survey_id,
+    title: s.title,
+    description: s.description,
+    orderIndex: s.order_index,
+    questions: (s.questions ?? [])
+      .map(mapQuestion)
+      .toSorted((a, b) => a.orderIndex - b.orderIndex),
+    createdAt: s.created_at,
+    updatedAt: s.updated_at
+  };
+}
 
-const MOCK_SURVEYS: Survey[] = [
-  {
-    id: 'sur_001',
-    planId: 'plan_001',
-    organizationId: 'org_001',
-    createdBy: 'user_demo_001',
-    title: 'Community Health Assessment 2026',
-    description: 'Comprehensive health needs assessment for DICDO target communities',
-    status: 'draft',
-    anonymousCollection: true,
-    currentVersionId: null,
-    sections: MOCK_SECTIONS,
-    createdAt: '2026-08-20T09:00:00Z',
-    updatedAt: '2026-08-28T14:20:00Z'
-  }
-];
-
-// ---- Service functions ----
+function mapSurvey(s: ApiSurvey): Survey {
+  return {
+    id: s.id,
+    planId: s.plan_id,
+    organizationId: s.organization_id,
+    createdBy: s.created_by,
+    title: s.title,
+    description: s.description,
+    status: s.status,
+    anonymousCollection: s.anonymous_collection,
+    currentVersionId: s.current_version_id,
+    sections: (s.sections ?? [])
+      .map(mapSection)
+      .toSorted((a, b) => a.orderIndex - b.orderIndex),
+    createdAt: s.created_at,
+    updatedAt: s.updated_at
+  };
+}
 
 export async function getSurveys(): Promise<SurveyListResponse> {
-  await delay(200);
-  return { surveys: MOCK_SURVEYS, total: MOCK_SURVEYS.length };
+  const res = await apiFetch('/surveys');
+  if (!res.ok) await readError(res, 'Could not load surveys');
+  const data = (await res.json()) as { surveys: ApiSurvey[]; total: number };
+  return {
+    surveys: (data.surveys ?? []).map(mapSurvey),
+    total: data.total ?? 0
+  };
 }
 
 export async function getSurveyById(id: string): Promise<Survey | null> {
-  await delay(150);
-  const existing = MOCK_SURVEYS.find((s) => s.id === id);
-  if (existing) return existing;
-
-  // For dynamically created survey IDs, create a new mock survey on the fly
-  const newSurvey: Survey = {
-    id,
-    planId: null,
-    organizationId: 'org_001',
-    createdBy: 'user_demo_001',
-    title: 'New Survey',
-    description: 'A new survey created from the plan',
-    status: 'draft',
-    anonymousCollection: true,
-    currentVersionId: null,
-    sections: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  MOCK_SURVEYS.push(newSurvey);
-  return newSurvey;
+  const res = await apiFetch(`/surveys/${id}`);
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not load survey');
+  return mapSurvey((await res.json()) as ApiSurvey);
 }
 
+/**
+ * Create survey from plan and run Gemini builder (hard-replaces any empty tree).
+ * Same survey id is returned — regenerate later keeps that id.
+ */
 export async function createSurveyFromPlan(
   planId: string,
   title: string
 ): Promise<Survey> {
-  await delay(400);
-  const id = `sur_${Date.now()}`;
-  
-  // Generate AI sections and questions
-  const aiSections = generateAIFromPlan();
-  
-  // Create sections with questions
-  const sections: Section[] = aiSections.map((aiSection, sIdx) => {
-    const sectionId = nextId('sec');
-    return {
-      id: sectionId,
-      surveyId: id,
-      title: aiSection.title,
-      description: null,
-      orderIndex: sIdx,
-      questions: aiSection.questions.map((aiQuestion, qIdx) => ({
-        id: nextId('q'),
-        sectionId,
-        surveyId: id,
-        type: aiQuestion.type,
-        promptText: aiQuestion.promptText,
-        helpText: aiQuestion.helpText,
-        isRequired: aiQuestion.isRequired,
-        orderIndex: qIdx,
-        options: aiQuestion.options?.map((opt, oIdx) => ({
-          id: nextId('opt'),
-          label: opt,
-          value: opt.toLowerCase().replace(/\s+/g, '_')
-        })) ?? null,
-        validationRules: aiQuestion.type === 'rating_scale' ? { min: 1, max: 5 } : null,
-        conditionalLogic: null,
-        source: 'ai_generated' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-  });
-  
-  const newSurvey: Survey = {
-    id,
-    planId,
-    organizationId: 'org_001',
-    createdBy: 'user_demo_001',
-    title,
-    description: '',
-    status: 'draft',
-    anonymousCollection: true,
-    currentVersionId: null,
-    sections,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  MOCK_SURVEYS.push(newSurvey);
-  return newSurvey;
-}
-
-// Helper to generate AI content from plan
-function generateAIFromPlan() {
-  return [
+  const res = await apiFetch(
+    '/surveys/from-plan',
     {
-      title: 'Household Demographics',
-      questions: [
-        { promptText: 'What is your age group?', type: 'single_choice' as QuestionType, options: ['18-24', '25-34', '35-44', '45-54', '55+'], isRequired: true, helpText: null },
-        { promptText: 'What is your gender?', type: 'single_choice' as QuestionType, options: ['Male', 'Female', 'Other', 'Prefer not to say'], isRequired: true, helpText: null },
-        { promptText: 'What is the highest level of education completed?', type: 'single_choice' as QuestionType, options: ['No formal education', 'Primary school', 'Secondary school', 'Tertiary education', 'Vocational training'], isRequired: true, helpText: null },
-        { promptText: 'What is your current employment status?', type: 'single_choice' as QuestionType, options: ['Employed full-time', 'Employed part-time', 'Self-employed', 'Unemployed', 'Retired', 'Student'], isRequired: true, helpText: null }
-      ]
+      method: 'POST',
+      body: JSON.stringify({
+        plan_id: planId,
+        title,
+        generate: true
+      })
     },
-    {
-      title: 'Health Status & Conditions',
-      questions: [
-        { promptText: 'Which of the following health conditions have you been diagnosed with?', type: 'multiple_choice' as QuestionType, options: ['Hypertension', 'Diabetes', 'Malaria', 'HIV/AIDS', 'Respiratory illness', 'None of the above'], isRequired: true, helpText: 'Select all that apply' },
-        { promptText: 'How would you rate your overall health?', type: 'rating_scale' as QuestionType, options: null, isRequired: true, helpText: '1 = Poor, 5 = Excellent' },
-        { promptText: 'In the past 3 months, have you experienced any of the following symptoms?', type: 'multiple_choice' as QuestionType, options: ['Fever', 'Headache', 'Diarrhea', 'Cough', 'Fatigue', 'None of the above'], isRequired: true, helpText: null },
-        { promptText: 'Do you have any disabilities that affect your daily activities?', type: 'single_choice' as QuestionType, options: ['Yes', 'No', 'Prefer not to say'], isRequired: true, helpText: null }
-      ]
-    },
-    {
-      title: 'Healthcare Access & Utilization',
-      questions: [
-        { promptText: 'How often do you visit a healthcare facility?', type: 'single_choice' as QuestionType, options: ['Weekly', 'Monthly', 'Quarterly', 'Annually', 'Never'], isRequired: true, helpText: null },
-        { promptText: 'What is the primary healthcare facility you visit?', type: 'short_text' as QuestionType, options: null, isRequired: true, helpText: 'Name or describe the facility' },
-        { promptText: 'How far is the healthcare facility from your home?', type: 'single_choice' as QuestionType, options: ['Less than 1 km', '1-5 km', '5-10 km', '10-20 km', 'More than 20 km'], isRequired: true, helpText: null },
-        { promptText: 'What are the main barriers you face when trying to access healthcare?', type: 'long_text' as QuestionType, options: null, isRequired: false, helpText: 'Please describe any challenges related to distance, cost, availability, or other factors.' },
-        { promptText: 'Do you have health insurance coverage?', type: 'single_choice' as QuestionType, options: ['Yes, full coverage', 'Yes, partial coverage', 'No', 'Not sure'], isRequired: true, helpText: null }
-      ]
-    },
-    {
-      title: 'Satisfaction & Feedback',
-      questions: [
-        { promptText: 'How satisfied are you with the healthcare services in your area?', type: 'rating_scale' as QuestionType, options: null, isRequired: true, helpText: '1 = Very dissatisfied, 5 = Very satisfied' },
-        { promptText: 'What improvements would you like to see in healthcare services?', type: 'long_text' as QuestionType, options: null, isRequired: false, helpText: 'Share your suggestions for better healthcare' },
-        { promptText: 'Would you recommend the healthcare services to others?', type: 'single_choice' as QuestionType, options: ['Definitely yes', 'Probably yes', 'Not sure', 'Probably no', 'Definitely no'], isRequired: true, helpText: null }
-      ]
-    }
-  ];
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not create survey from plan');
+  const payload = (await res.json()) as ApiGenerateResponse;
+  return mapSurvey(payload.survey);
 }
 
 export async function updateSurveyTitle(
   id: string,
   title: string
 ): Promise<Survey | null> {
-  await delay(100);
-  const survey = MOCK_SURVEYS.find((s) => s.id === id);
-  if (!survey) return null;
-  survey.title = title;
-  survey.updatedAt = new Date().toISOString();
-  return survey;
+  const res = await apiFetch(`/surveys/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title })
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not update survey title');
+  return mapSurvey((await res.json()) as ApiSurvey);
+}
+
+/** Permanently delete a survey and its sections/questions (plan row is kept). */
+export async function deleteSurvey(id: string): Promise<boolean> {
+  const res = await apiFetch(`/surveys/${id}`, { method: 'DELETE' });
+  if (res.status === 404) return false;
+  if (!res.ok) await readError(res, 'Could not delete survey');
+  return true;
 }
 
 export async function updateSurveyDescription(
   id: string,
   description: string
 ): Promise<Survey | null> {
-  await delay(100);
-  const survey = MOCK_SURVEYS.find((s) => s.id === id);
-  if (!survey) return null;
-  survey.description = description;
-  survey.updatedAt = new Date().toISOString();
-  return survey;
+  const res = await apiFetch(`/surveys/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ description })
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not update survey description');
+  return mapSurvey((await res.json()) as ApiSurvey);
 }
-
-// ---- Section CRUD ----
 
 export async function addSection(
   surveyId: string,
   title: string,
   description?: string
 ): Promise<Section> {
-  await delay(150);
-  const survey = MOCK_SURVEYS.find((s) => s.id === surveyId);
-  if (!survey) throw new Error('Survey not found');
-
-  const section: Section = {
-    id: nextId('sec'),
-    surveyId,
-    title,
-    description: description ?? null,
-    orderIndex: survey.sections.length,
-    questions: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  survey.sections.push(section);
-  return section;
+  const res = await apiFetch(`/surveys/${surveyId}/sections`, {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      description: description ?? null
+    })
+  });
+  if (!res.ok) await readError(res, 'Could not add section');
+  return mapSection((await res.json()) as ApiSection);
 }
 
 export async function updateSection(
+  surveyId: string,
   sectionId: string,
   data: { title?: string; description?: string }
 ): Promise<Section | null> {
-  await delay(100);
-  for (const survey of MOCK_SURVEYS) {
-    const section = survey.sections.find((s) => s.id === sectionId);
-    if (section) {
-      if (data.title !== undefined) section.title = data.title;
-      if (data.description !== undefined) section.description = data.description;
-      section.updatedAt = new Date().toISOString();
-      return section;
-    }
-  }
-  return null;
+  const body: Record<string, unknown> = {};
+  if (data.title !== undefined) body.title = data.title;
+  if (data.description !== undefined) body.description = data.description;
+  const res = await apiFetch(`/surveys/${surveyId}/sections/${sectionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not update section');
+  return mapSection((await res.json()) as ApiSection);
 }
 
-export async function deleteSection(sectionId: string): Promise<boolean> {
-  await delay(100);
-  for (const survey of MOCK_SURVEYS) {
-    const idx = survey.sections.findIndex((s) => s.id === sectionId);
-    if (idx !== -1) {
-      survey.sections.splice(idx, 1);
-      // Reindex
-      survey.sections.forEach((s, i) => {
-        s.orderIndex = i;
-      });
-      return true;
-    }
-  }
-  return false;
+export async function deleteSection(
+  surveyId: string,
+  sectionId: string
+): Promise<boolean> {
+  const res = await apiFetch(`/surveys/${surveyId}/sections/${sectionId}`, {
+    method: 'DELETE'
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) await readError(res, 'Could not delete section');
+  return true;
 }
 
 export async function reorderSections(
   surveyId: string,
   sectionIds: string[]
 ): Promise<void> {
-  await delay(100);
-  const survey = MOCK_SURVEYS.find((s) => s.id === surveyId);
-  if (!survey) return;
-
-  const sectionMap = new Map(survey.sections.map((s) => [s.id, s]));
-  survey.sections = sectionIds
-    .map((id, i) => {
-      const section = sectionMap.get(id);
-      if (section) section.orderIndex = i;
-      return section;
-    })
-    .filter(Boolean) as Section[];
+  const res = await apiFetch(`/surveys/${surveyId}/sections/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ section_ids: sectionIds })
+  });
+  if (!res.ok) await readError(res, 'Could not reorder sections');
 }
 
-// ---- Question CRUD ----
-
 export async function addQuestion(
+  surveyId: string,
   sectionId: string,
   type: QuestionType,
   promptText: string
 ): Promise<Question> {
-  await delay(150);
-  for (const survey of MOCK_SURVEYS) {
-    const section = survey.sections.find((s) => s.id === sectionId);
-    if (section) {
-      const question: Question = {
-        id: nextId('q'),
-        sectionId,
-        surveyId: survey.id,
-        type,
-        promptText,
-        helpText: null,
-        isRequired: false,
-        orderIndex: section.questions.length,
-        options:
-          type === 'single_choice' || type === 'multiple_choice' || type === 'dropdown'
-            ? [
-                { id: nextId('opt'), label: 'Option 1', value: 'option_1' },
-                { id: nextId('opt'), label: 'Option 2', value: 'option_2' }
-              ]
-            : null,
-        validationRules: type === 'rating_scale' ? { min: 1, max: 5 } : null,
-        conditionalLogic: null,
-        source: 'manual',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      section.questions.push(question);
-      return question;
-    }
-  }
-  throw new Error('Section not found');
+  const options =
+    type === 'single_choice' ||
+    type === 'multiple_choice' ||
+    type === 'dropdown'
+      ? [
+          { id: crypto.randomUUID(), label: 'Option 1', value: 'option_1' },
+          { id: crypto.randomUUID(), label: 'Option 2', value: 'option_2' }
+        ]
+      : null;
+  const res = await apiFetch(`/surveys/${surveyId}/questions`, {
+    method: 'POST',
+    body: JSON.stringify({
+      section_id: sectionId,
+      type,
+      prompt_text: promptText,
+      is_required: false,
+      options
+    })
+  });
+  if (!res.ok) await readError(res, 'Could not add question');
+  return mapQuestion((await res.json()) as ApiQuestion);
 }
 
 export async function updateQuestion(
+  surveyId: string,
   questionId: string,
-  data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options' | 'validationRules'>>
+  data: Partial<
+    Pick<
+      Question,
+      | 'promptText'
+      | 'helpText'
+      | 'isRequired'
+      | 'type'
+      | 'options'
+      | 'validationRules'
+    >
+  >
 ): Promise<Question | null> {
-  await delay(100);
-  for (const survey of MOCK_SURVEYS) {
-    for (const section of survey.sections) {
-      const question = section.questions.find((q) => q.id === questionId);
-      if (question) {
-        Object.assign(question, data, { updatedAt: new Date().toISOString() });
-        return question;
-      }
-    }
+  const body: Record<string, unknown> = {};
+  if (data.promptText !== undefined) body.prompt_text = data.promptText;
+  if (data.helpText !== undefined) body.help_text = data.helpText;
+  if (data.isRequired !== undefined) body.is_required = data.isRequired;
+  if (data.type !== undefined) body.type = data.type;
+  if (data.options !== undefined) body.options = data.options;
+  if (data.validationRules !== undefined) {
+    body.validation_rules = data.validationRules
+      ? {
+          min: data.validationRules.min,
+          max: data.validationRules.max,
+          min_length: data.validationRules.minLength,
+          max_length: data.validationRules.maxLength,
+          regex: data.validationRules.regex
+        }
+      : null;
   }
-  return null;
+  const res = await apiFetch(`/surveys/${surveyId}/questions/${questionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not update question');
+  return mapQuestion((await res.json()) as ApiQuestion);
 }
 
-export async function deleteQuestion(questionId: string): Promise<boolean> {
-  await delay(100);
-  for (const survey of MOCK_SURVEYS) {
-    for (const section of survey.sections) {
-      const idx = section.questions.findIndex((q) => q.id === questionId);
-      if (idx !== -1) {
-        section.questions.splice(idx, 1);
-        section.questions.forEach((q, i) => {
-          q.orderIndex = i;
-        });
-        return true;
-      }
-    }
-  }
-  return false;
+export async function deleteQuestion(
+  surveyId: string,
+  questionId: string
+): Promise<boolean> {
+  const res = await apiFetch(`/surveys/${surveyId}/questions/${questionId}`, {
+    method: 'DELETE'
+  });
+  if (res.status === 404) return false;
+  if (!res.ok) await readError(res, 'Could not delete question');
+  return true;
 }
 
 export async function reorderQuestions(
+  surveyId: string,
   sectionId: string,
   questionIds: string[]
 ): Promise<void> {
-  await delay(100);
-  for (const survey of MOCK_SURVEYS) {
-    const section = survey.sections.find((s) => s.id === sectionId);
-    if (section) {
-      const questionMap = new Map(section.questions.map((q) => [q.id, q]));
-      section.questions = questionIds
-        .map((id, i) => {
-          const q = questionMap.get(id);
-          if (q) q.orderIndex = i;
-          return q;
-        })
-        .filter(Boolean) as Question[];
-      return;
-    }
-  }
+  const res = await apiFetch(`/surveys/${surveyId}/questions/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({
+      section_id: sectionId,
+      question_ids: questionIds
+    })
+  });
+  if (!res.ok) await readError(res, 'Could not reorder questions');
 }
 
-// ---- AI Generation ----
+/** Hard-replace all sections/questions from the linked plan (BLD-01). */
+export async function generateSurveyDraft(surveyId: string): Promise<Survey> {
+  const res = await apiFetch(
+    `/surveys/${surveyId}/generate`,
+    { method: 'POST' },
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'AI could not generate the survey draft');
+  const payload = (await res.json()) as ApiGenerateResponse;
+  return mapSurvey(payload.survey);
+}
 
-export async function generateSurveyDraft(
-  surveyId: string
-): Promise<SurveyDraftOutput> {
-  await delay(3500);
-
-  return {
-    sections: [
-      {
-        title: 'Household Demographics',
-        questions: [
-          {
-            promptText: 'What is your age group?',
-            type: 'single_choice' as QuestionType,
-            options: ['18-24', '25-34', '35-44', '45-54', '55+'],
-            isRequired: true,
-            helpText: null
-          },
-          {
-            promptText: 'What is your gender?',
-            type: 'single_choice' as QuestionType,
-            options: ['Male', 'Female', 'Other', 'Prefer not to say'],
-            isRequired: true,
-            helpText: null
-          },
-          {
-            promptText: 'What is the highest level of education completed?',
-            type: 'single_choice' as QuestionType,
-            options: [
-              'No formal education',
-              'Primary school',
-              'Secondary school',
-              'Tertiary education',
-              'Vocational training'
-            ],
-            isRequired: true,
-            helpText: null
-          }
-        ]
-      },
-      {
-        title: 'Health Status & Conditions',
-        questions: [
-          {
-            promptText:
-              'Which of the following health conditions have you been diagnosed with?',
-            type: 'multiple_choice' as QuestionType,
-            options: [
-              'Hypertension',
-              'Diabetes',
-              'Malaria',
-              'HIV/AIDS',
-              'Respiratory illness',
-              'None of the above'
-            ],
-            isRequired: true,
-            helpText: 'Select all that apply'
-          },
-          {
-            promptText: 'How would you rate your overall health?',
-            type: 'rating_scale' as QuestionType,
-            options: null,
-            isRequired: true,
-            helpText: '1 = Poor, 5 = Excellent'
-          },
-          {
-            promptText:
-              'In the past 3 months, have you experienced any of the following symptoms?',
-            type: 'multiple_choice' as QuestionType,
-            options: [
-              'Fever',
-              'Headache',
-              'Diarrhea',
-              'Cough',
-              'Fatigue',
-              'None of the above'
-            ],
-            isRequired: true,
-            helpText: null
-          }
-        ]
-      },
-      {
-        title: 'Healthcare Access & Utilization',
-        questions: [
-          {
-            promptText: 'How often do you visit a healthcare facility?',
-            type: 'single_choice' as QuestionType,
-            options: ['Weekly', 'Monthly', 'Quarterly', 'Annually', 'Never'],
-            isRequired: true,
-            helpText: null
-          },
-          {
-            promptText:
-              'What is the primary healthcare facility you visit?',
-            type: 'short_text' as QuestionType,
-            options: null,
-            isRequired: true,
-            helpText: 'Name or describe the facility'
-          },
-          {
-            promptText:
-              'How far is the healthcare facility from your home?',
-            type: 'single_choice' as QuestionType,
-            options: [
-              'Less than 1 km',
-              '1-5 km',
-              '5-10 km',
-              '10-20 km',
-              'More than 20 km'
-            ],
-            isRequired: true,
-            helpText: null
-          },
-          {
-            promptText:
-              'What are the main barriers you face when trying to access healthcare?',
-            type: 'long_text' as QuestionType,
-            options: null,
-            isRequired: false,
-            helpText:
-              'Please describe any challenges related to distance, cost, availability, or other factors.'
-          }
-        ]
-      }
-    ]
-  };
+/** Hard-replace one section's questions (BLD-02). */
+export async function regenerateSection(
+  surveyId: string,
+  sectionId: string
+): Promise<Survey> {
+  const res = await apiFetch(
+    `/surveys/${surveyId}/sections/${sectionId}/regenerate`,
+    { method: 'POST' },
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'AI could not regenerate the section');
+  const payload = (await res.json()) as ApiGenerateResponse;
+  return mapSurvey(payload.survey);
 }

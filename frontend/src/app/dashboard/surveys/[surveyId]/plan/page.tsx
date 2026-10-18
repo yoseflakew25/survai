@@ -1,10 +1,7 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
 import PageContainer from '@/components/layout/page-container';
-import { getQueryClient } from '@/lib/query-client';
-import { surveyByIdOptions } from '@/features/builder/api/queries';
 import {
   SurveyPlanSkeleton,
   SurveyPlanView
@@ -14,6 +11,9 @@ export const metadata: Metadata = {
   title: 'Plan'
 };
 
+/**
+ * Auth-gated: do not SSR-prefetch. Server has no browser cookies.
+ */
 export default async function SurveyPlanPage({
   params
 }: {
@@ -21,16 +21,11 @@ export default async function SurveyPlanPage({
 }) {
   const { surveyId } = await params;
 
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(surveyByIdOptions(surveyId));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer>
-        <Suspense fallback={<SurveyPlanSkeleton />}>
-          <SurveyPlanView surveyId={surveyId} />
-        </Suspense>
-      </PageContainer>
-    </HydrationBoundary>
+    <PageContainer>
+      <Suspense fallback={<SurveyPlanSkeleton />}>
+        <SurveyPlanView surveyId={surveyId} />
+      </Suspense>
+    </PageContainer>
   );
 }

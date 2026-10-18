@@ -1,6 +1,3 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/query-client';
-import { latestReviewOptions } from '@/features/reviewer/api/queries';
 import { ReviewerView } from '@/features/reviewer/components/reviewer-view';
 import PageContainer from '@/components/layout/page-container';
 import { Metadata } from 'next';
@@ -11,6 +8,11 @@ export const metadata: Metadata = {
   title: 'Review'
 };
 
+/**
+ * Auth-gated: do not SSR-prefetch survey/review. Server fetch has no browser
+ * cookies, so dehydrate would reject with "Could not validate credentials".
+ * ReviewerView loads via useSuspenseQuery after RequireAuth.
+ */
 export default async function ReviewPage({
   params
 }: {
@@ -18,24 +20,18 @@ export default async function ReviewPage({
 }) {
   const { surveyId } = await params;
 
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(latestReviewOptions(surveyId));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer>
-        <Suspense fallback={<ReviewPageSkeleton />}>
-          <ReviewerView surveyId={surveyId} />
-        </Suspense>
-      </PageContainer>
-    </HydrationBoundary>
+    <PageContainer>
+      <Suspense fallback={<ReviewPageSkeleton />}>
+        <ReviewerView surveyId={surveyId} />
+      </Suspense>
+    </PageContainer>
   );
 }
 
 function ReviewPageSkeleton() {
   return (
     <div className='space-y-4'>
-      {/* Header + stepper row */}
       <div className='flex items-end justify-between gap-6 border-b pb-4'>
         <div className='space-y-2'>
           <Skeleton className='h-8 w-72 rounded' />

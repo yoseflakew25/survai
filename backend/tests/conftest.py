@@ -18,7 +18,12 @@ from app.models import (  # noqa: F401
     EmailVerificationOtp,
     Organization,
     PasswordResetToken,
+    Question,
     RefreshToken,
+    ReviewerFinding,
+    ReviewerReport,
+    Section,
+    Survey,
     SurveyPlan,
     User,
 )

@@ -49,6 +49,7 @@ interface SectionManagerProps {
 // ---- Sortable Section ----
 
 function SortableSection({
+  surveyId,
   section,
   index,
   onEdit,
@@ -57,6 +58,7 @@ function SortableSection({
   onQuestionDelete,
   onAddQuestion
 }: {
+  surveyId: string;
   section: Section;
   index: number;
   onEdit: (sectionId: string, title: string, description: string) => void;
@@ -229,7 +231,8 @@ function SortableSection({
 
                     onAddQuestion(section.id, 'short_text', ''); // trigger parent update
                     // Actually we need to call reorderQuestions
-                    reorderQuestions(
+                    void reorderQuestions(
+                      surveyId,
                       section.id,
                       reordered.map((q) => q.id)
                     );
@@ -328,23 +331,26 @@ export function SectionManager({
 
   const handleEditSection = useCallback(
     async (sectionId: string, title: string, description: string) => {
-      const updated = await updateSection(sectionId, { title, description });
+      const updated = await updateSection(surveyId, sectionId, {
+        title,
+        description
+      });
       if (updated) {
         onSectionsChange(
           sections.map((s) => (s.id === sectionId ? { ...s, title, description } : s))
         );
       }
     },
-    [sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange]
   );
 
   const handleDeleteSection = useCallback(
     async (sectionId: string) => {
-      await deleteSection(sectionId);
+      await deleteSection(surveyId, sectionId);
       onSectionsChange(sections.filter((s) => s.id !== sectionId));
       toast.success('Section deleted');
     },
-    [sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange]
   );
 
   // ---- Question handlers ----
@@ -353,7 +359,12 @@ export function SectionManager({
     async (sectionId: string, type: QuestionType, promptText: string) => {
       if (!promptText.trim()) return;
       try {
-        const question = await addQuestion(sectionId, type, promptText);
+        const question = await addQuestion(
+          surveyId,
+          sectionId,
+          type,
+          promptText
+        );
         onSectionsChange(
           sections.map((s) =>
             s.id === sectionId
@@ -366,7 +377,7 @@ export function SectionManager({
         toast.error('Failed to add question');
       }
     },
-    [sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange]
   );
 
   const handleEditQuestion = useCallback((question: Question) => {
@@ -383,7 +394,11 @@ export function SectionManager({
       options: QuestionOption[] | null;
     }) => {
       if (!editingQuestion) return;
-      const updated = await updateQuestion(editingQuestion.id, data);
+      const updated = await updateQuestion(
+        surveyId,
+        editingQuestion.id,
+        data
+      );
       if (updated) {
         onSectionsChange(
           sections.map((s) =>
@@ -400,12 +415,12 @@ export function SectionManager({
         toast.success('Question updated');
       }
     },
-    [editingQuestion, sections, onSectionsChange]
+    [surveyId, editingQuestion, sections, onSectionsChange]
   );
 
   const handleDeleteQuestion = useCallback(
     async (questionId: string) => {
-      await deleteQuestion(questionId);
+      await deleteQuestion(surveyId, questionId);
       onSectionsChange(
         sections.map((s) => ({
           ...s,
@@ -414,7 +429,7 @@ export function SectionManager({
       );
       toast.success('Question deleted');
     },
-    [sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange]
   );
 
   return (
@@ -433,6 +448,7 @@ export function SectionManager({
             {sections.map((section, index) => (
               <SortableSection
                 key={section.id}
+                surveyId={surveyId}
                 section={section}
                 index={index}
                 onEdit={handleEditSection}

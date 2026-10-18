@@ -8,15 +8,21 @@ import { notFound } from 'next/navigation';
 
 interface PlanDetailViewProps {
   planId: string;
+  /** When opened from a survey hub, regenerate that survey instead of creating another. */
+  surveyId?: string;
 }
 
-export function PlanDetailView({ planId }: PlanDetailViewProps) {
-  return (
-    <PlanDetailContent planId={planId} />
-  );
+export function PlanDetailView({ planId, surveyId }: PlanDetailViewProps) {
+  return <PlanDetailContent planId={planId} surveyId={surveyId} />;
 }
 
-function PlanDetailContent({ planId }: { planId: string }) {
+function PlanDetailContent({
+  planId,
+  surveyId
+}: {
+  planId: string;
+  surveyId?: string;
+}) {
   const { data: plan, refetch } = useSuspenseQuery(planByIdOptions(planId));
 
   if (!plan) {
@@ -26,6 +32,7 @@ function PlanDetailContent({ planId }: { planId: string }) {
   return (
     <PlanEditor
       plan={plan}
+      surveyId={surveyId}
       onPlanUpdate={() => {
         // Refetch to stay in sync
         refetch();

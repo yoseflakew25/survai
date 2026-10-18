@@ -1258,11 +1258,12 @@ conflicts, **§2a wins**.
 | **Auth API (§7 core)** | ✅ Done | register → email OTP → verify; login/refresh/logout/me; forgot/reset password; JWT + cookies; bcrypt; refresh tokens in DB |
 | **Email delivery** | ✅ Done | SMTP (Gmail) and/or Resend; branded HTML + SurvAI mark CID; `dev_code` only when mail unconfigured |
 | **AI gateway + Planner** | ✅ Milestone 1 | Gemini `app/ai/client.py`; `POST /plans` + `/plans/generate` + `/plans/{id}/generate`; `survey_plans` + `ai_generation_logs` |
+| **Builder AI** | ✅ Phase 4 | `surveys`/`sections`/`questions` + Alembic `0008`; `POST /surveys/from-plan`, `/generate`, `/sections/{id}/regenerate`; `builder_v1` prompts; hard-replace drafts |
 | **RBAC (MVP)** | ✅ Done | Roles: `system_admin` \| `organization`; signup → organization; startup seeds/syncs platform admin from `FIRST_SUPERUSER_*`; demotes others; `AdminUser` → `system_admin` |
 | **Users** | ✅ Partial | model + admin list/get/update routes gated by `system_admin`; org profile self-service on `/auth/me` |
 | **Organizations** | ✅ Partial | 1:1 with login; name + description + website on profile |
-| **Postgres** | ✅ Dev live | Aiven; Alembic through `0007_survey_plans` |
-| **Tests / CI** | ✅ Done | Pytest auth + plans (mocked Gemini) + health; GH Actions backend-ci + backend-cd (GHCR) |
+| **Postgres** | ✅ Dev live | Aiven; Alembic through `0008_surveys` |
+| **Tests / CI** | ✅ Done | Pytest auth + plans + surveys (mocked Gemini) + health; GH Actions backend-ci + backend-cd (GHCR) |
 
 ### ✅ Completed — Frontend
 
@@ -1270,6 +1271,7 @@ conflicts, **§2a wins**.
 | --- | --- | --- | --- |
 | **Auth UI** | Sign-in, Sign-up + OTP, Forgot / Reset password | ✅ Done | RHF + Zod; live API via `auth-context`; still falls back to mock user + `sessionStorage` access token |
 | **Plans UI** | New Survey + plan editor | ✅ Milestone 1 | `plans/api/service.ts` → live `/plans` + Gemini generate |
+| **Builder UI** | Plan → survey generate + review edits | ✅ Phase 4 | `builder/api/service.ts` → live `/surveys`; create-from-plan + generate; section/question CRUD |
 | **Forms stack** | All FE forms on RHF + Zod | ✅ Done | TanStack Form removed; field components under `components/forms/fields` |
 | **Sidebar Navigation** | App sidebar with collapsible/expandable modes | ✅ Done | Logo variants (light/dark × collapsed/expanded); primary icon colors; user dropdown |
 | **Dashboard Overview** | Stat cards, Recent Plans, Quick Actions | ✅ Done | Outline-style cards; primary color accents; grid pattern backgrounds |
@@ -1289,16 +1291,14 @@ conflicts, **§2a wins**.
 | Module | Status | What's Left |
 | --- | --- | --- |
 | **FE ↔ API auth** | Partial | Remove mock user + `sessionStorage`; cookie-only / Better Auth UX on live JWT API |
-| **§6 domain schema** | Not migrated | plans, surveys, sections, questions, versions, respondents, analytics, reports tables |
-| **AI Integration** | Mock only | OpenAI Responses API; all FE AI still `setTimeout` |
+| **§6 domain schema** | Partial | plans + surveys/sections/questions live; versions/respondents/analytics/reports still ahead |
+| **AI Integration** | Partial | Gemini planner + builder live; reviewer/report still ahead |
 | **Collection Route** | Partial | `/s/[versionId]` exists; needs real respondent flow against public API |
 
 ### ❌ Not Started (domain + AI)
 
 | Module | PRD Ref | Priority |
 | --- | --- | --- |
-| **Backend Plans CRUD** | §11 | P0 |
-| **Backend Surveys/Sections/Questions** | §11 | P0 |
 | **Backend Reviewer** | §11 | P1 |
 | **Backend Analytics Engine** | §10 | P1 |
 | **Backend Reports + Export** | §13 | P1 |
@@ -1398,10 +1398,9 @@ frontend/src/
 
 | Priority | Task | PRD Ref |
 | --- | --- | --- |
-| P0 | Alembic §6 domain schema + Plans/Surveys CRUD APIs | §6, §11 |
 | P0 | Finish FE auth against live API (drop mock/`sessionStorage`; Better Auth UX) | §7, §2a |
-| P0 | Connect survey/plan features to API via TanStack Query service layer | §11, §2a |
-| P0 | Build public collection route with real respondent flow | COL-01–05 |
+| P0 | Publish + `survey_versions` + public collection route | COL-01–05, §6 |
+| P1 | Reviewer AI + findings API | REV-01–06 |
 | P1 | Add real-time response counter on Collect page | COL-04 |
 | P1 | Implement report export with actual DOCX/PDF generation | §13 |
 | P1 | Add loading skeletons for all async pages | §15 |

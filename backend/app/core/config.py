@@ -85,11 +85,15 @@ class Settings(BaseSettings):
     # AI — Gemini behind app/ai/client.py (never call the vendor from routes)
     ai_provider: Literal["gemini"] = "gemini"
     gemini_api_key: str = ""
-    gemini_model_planner: str = "gemini-3.8-flash"
-    gemini_model_builder: str = "gemini-3.8-flash"
-    gemini_model_reviewer: str = "gemini-3.8-flash"
-    gemini_model_report: str = "gemini-3.8-flash"
-    gemini_model_chat: str = "gemini-3.8-flash"
+    gemini_model_planner: str = "gemini-3.1-flash-lite"
+    gemini_model_builder: str = "gemini-3.1-flash-lite"
+    gemini_model_reviewer: str = "gemini-3.1-flash-lite"
+    gemini_model_report: str = "gemini-3.1-flash-lite"
+    gemini_model_chat: str = "gemini-3.1-flash-lite"
+    # Comma-separated fallbacks tried on 429/503 (quota / high demand).
+    gemini_model_fallbacks: str = (
+        "gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.5-flash"
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -27,9 +27,9 @@ export interface ReviewerFinding {
 export interface ReviewerReport {
   id: string;
   surveyId: string;
-  overallQualityScore: number;
-  estimatedCompletionMinutes: number;
-  requiredQuestionCount: number;
+  overallQualityScore: number | null;
+  estimatedCompletionMinutes: number | null;
+  requiredQuestionCount: number | null;
   scoreCriteria: ScoreCriterion[];
   findings: ReviewerFinding[];
   aiGenerationMeta: {
@@ -37,6 +37,7 @@ export interface ReviewerReport {
     promptVersion: string;
     latencyMs: number;
   } | null;
+  notes?: string | null;
   createdAt: string;
 }
 

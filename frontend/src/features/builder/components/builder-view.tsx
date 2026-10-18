@@ -1,15 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { surveyByIdOptions } from '../api/queries';
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { surveyByIdOptions, surveyKeys } from '../api/queries';
+import { reviewerKeys } from '@/features/reviewer/api/queries';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
-import type { Survey, Section, Question, SurveyDraftOutput, QuestionType } from '../api/types';
+import type { Survey, Section, Question, QuestionType } from '../api/types';
 import { SectionCard } from './section-card';
 import { AIGenerationPanel } from './ai-generation-panel';
 import { SurveyPreview } from './survey-preview';
@@ -44,6 +45,7 @@ export function BuilderView({ surveyId }: BuilderViewProps) {
 }
 
 function BuilderContent({ surveyId }: { surveyId: string }) {
+  const queryClient = useQueryClient();
   const { data: survey, refetch } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -136,7 +138,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
 
   const handleUpdateSection = useCallback(
     async (sectionId: string, data: { title?: string; description?: string }) => {
-      await updateSection(sectionId, data);
+      await updateSection(surveyId, sectionId, data);
       setSurveyState((prev) => ({
         ...prev,
         sections: prev.sections.map((s) =>
@@ -144,19 +146,19 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         )
       }));
     },
-    [setSurveyState]
+    [surveyId, setSurveyState]
   );
 
   const handleDeleteSection = useCallback(
     async (sectionId: string) => {
-      await deleteSection(sectionId);
+      await deleteSection(surveyId, sectionId);
       setSurveyState((prev) => ({
         ...prev,
         sections: prev.sections.filter((s) => s.id !== sectionId)
       }));
       toast.success('Section deleted');
     },
-    [setSurveyState]
+    [surveyId, setSurveyState]
   );
 
   const handleReorderSections = useCallback(
@@ -182,7 +184,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
   // Question handlers
   const handleAddQuestion = useCallback(
     async (sectionId: string, type: QuestionType) => {
-      const newQuestion = await addQuestion(sectionId, type, 'New Question');
+      const newQuestion = await addQuestion(
+        surveyId,
+        sectionId,
+        type,
+        'New Question'
+      );
       setSurveyState((prev) => ({
         ...prev,
         sections: prev.sections.map((s) =>
@@ -192,12 +199,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         )
       }));
     },
-    [setSurveyState]
+    [surveyId, setSurveyState]
   );
 
   const handleUpdateQuestion = useCallback(
     async (questionId: string, data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>) => {
-      await updateQuestion(questionId, data);
+      await updateQuestion(surveyId, questionId, data);
       setSurveyState((prev) => ({
         ...prev,
         sections: prev.sections.map((s) => ({
@@ -208,12 +215,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         }))
       }));
     },
-    [setSurveyState]
+    [surveyId, setSurveyState]
   );
 
   const handleDeleteQuestion = useCallback(
     async (questionId: string, sectionId: string) => {
-      await deleteQuestion(questionId);
+      await deleteQuestion(surveyId, questionId);
       setSurveyState((prev) => ({
         ...prev,
         sections: prev.sections.map((s) =>
@@ -224,12 +231,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
       }));
       toast.success('Question deleted');
     },
-    [setSurveyState]
+    [surveyId, setSurveyState]
   );
 
   const handleReorderQuestions = useCallback(
     async (sectionId: string, questionIds: string[]) => {
-      await reorderQuestions(sectionId, questionIds);
+      await reorderQuestions(surveyId, sectionId, questionIds);
       setSurveyState((prev) => ({
         ...prev,
         sections: prev.sections.map((s) => {
@@ -248,53 +255,26 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         })
       }));
     },
-    [setSurveyState]
+    [surveyId, setSurveyState]
   );
 
-  // AI Generation handler
-  const handleAIGenerateApply = useCallback(
-    (output: SurveyDraftOutput) => {
-      // Convert draft sections to full sections
-      const newSections: Section[] = output.sections.map((ds, i) => ({
-        id: `sec_ai_${Date.now()}_${i}`,
-        surveyId,
-        title: ds.title,
-        description: null,
-        orderIndex: i,
-        questions: ds.questions.map((dq, j) => ({
-          id: `q_ai_${Date.now()}_${i}_${j}`,
-          sectionId: `sec_ai_${Date.now()}_${i}`,
-          surveyId,
-          type: dq.type,
-          promptText: dq.promptText,
-          helpText: dq.helpText,
-          isRequired: dq.isRequired,
-          orderIndex: j,
-          options: dq.options?.map((opt, k) => ({
-            id: `opt_ai_${Date.now()}_${i}_${j}_${k}`,
-            label: opt,
-            value: opt.toLowerCase().replace(/\s+/g, '_')
-          })) ?? null,
-          validationRules: dq.type === 'rating_scale' ? { min: 1, max: 5 } : null,
-          conditionalLogic: null,
-          source: 'ai_generated' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-
-      setSurveyState((prev) => ({
-        ...prev,
-        sections: [...prev.sections, ...newSections]
-      }));
-
-      toast.success('AI content applied', {
-        description: `${newSections.length} sections with ${newSections.reduce((sum, s) => sum + s.questions.length, 0)} questions added.`
+  // AI generate already hard-replaced on the server — sync editor from response.
+  const handleAIGenerateApplied = useCallback(
+    (next: Survey) => {
+      setSurveyState({
+        title: next.title,
+        description: next.description,
+        sections: next.sections
       });
+      lastSavedRef.current = JSON.stringify({
+        title: next.title,
+        description: next.description,
+        sections: next.sections
+      });
+      queryClient.setQueryData(surveyKeys.detail(surveyId), next);
+      queryClient.setQueryData(reviewerKeys.latest(surveyId), null);
     },
-    [surveyId, setSurveyState]
+    [setSurveyState, queryClient, surveyId]
   );
 
   const totalQuestions = sections.reduce((sum, s) => sum + s.questions.length, 0);
@@ -457,7 +437,8 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
               <AIGenerationPanel
                 surveyId={surveyId}
                 planId={survey.planId}
-                onApply={handleAIGenerateApply}
+                goalPreview={survey.title}
+                onApplied={handleAIGenerateApplied}
               />
 
               <Separator />

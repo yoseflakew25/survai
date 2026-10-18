@@ -50,7 +50,7 @@ export function SurveyPlanView({ surveyId }: SurveyPlanViewProps) {
     );
   }
 
-  return <PlanDetailView planId={survey.planId} />;
+  return <PlanDetailView planId={survey.planId} surveyId={surveyId} />;
 }
 
 export function SurveyPlanSkeleton() {

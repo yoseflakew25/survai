@@ -7,8 +7,9 @@ function makeQueryClient() {
         staleTime: 60 * 1000
       },
       dehydrate: {
-        shouldDehydrateQuery: (query) =>
-          defaultShouldDehydrateQuery(query) || query.state.status === 'pending'
+        // Only dehydrate settled successes. Pending auth-gated prefetches
+        // reject on the server (no cookies) and spam the console.
+        shouldDehydrateQuery: (query) => defaultShouldDehydrateQuery(query)
       }
     }
   });

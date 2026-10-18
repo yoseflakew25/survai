@@ -1,23 +1,46 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import { surveyByIdOptions, surveyKeys } from '@/features/builder/api/queries';
-import { latestReviewOptions } from '../api/queries';
+import { surveyListKeys } from '@/features/surveys/api/queries';
+import { latestReviewOptions, reviewerKeys } from '../api/queries';
+import { triggerReview } from '../api/service';
+import type { ReviewerFinding, ReviewerReport } from '../api/types';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { AlertModal } from '@/components/modal/alert-modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { QualityScore } from './quality-score';
-import { updateQuestion } from '@/features/builder/api/service';
+import { FindingsList } from './findings-list';
+import {
+  deleteSurvey,
+  generateSurveyDraft,
+  updateQuestion
+} from '@/features/builder/api/service';
+import { SurveyGenerationProgress } from '@/features/builder/components/survey-generation-progress';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
-import type { Section, Question, QuestionType, QuestionOption } from '@/features/builder/api/types';
+import { useRouter } from 'next/navigation';
+import type {
+  Section,
+  Survey,
+  Question,
+  QuestionType,
+  QuestionOption
+} from '@/features/builder/api/types';
 import { getQuestionTypeMeta, QUESTION_TYPES } from '@/features/builder/api/types';
 import {
   DropdownMenu,
@@ -38,6 +61,36 @@ function isOptionsType(type: QuestionType) {
   );
 }
 
+function optionValueFromLabel(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 64) || 'option';
+}
+
+function patchQuestionInSurveyCache(
+  survey: Survey | undefined,
+  updated: Question
+): Survey | undefined {
+  if (!survey) return survey;
+  return {
+    ...survey,
+    sections: survey.sections.map((section) =>
+      section.id !== updated.sectionId
+        ? section
+        : {
+            ...section,
+            questions: section.questions.map((q) =>
+              q.id === updated.id ? updated : q
+            )
+          }
+    ),
+    updatedAt: updated.updatedAt
+  };
+}
+
 interface ReviewerViewProps {
   surveyId: string;
 }
@@ -47,9 +100,134 @@ export function ReviewerView({ surveyId }: ReviewerViewProps) {
 }
 
 function ReviewerContent({ surveyId }: { surveyId: string }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const { data: report } = useSuspenseQuery(latestReviewOptions(surveyId));
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
+
+  const handleFindingUpdate = useCallback(
+    (finding: ReviewerFinding) => {
+      queryClient.setQueryData<ReviewerReport | null>(
+        reviewerKeys.latest(surveyId),
+        (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            findings: prev.findings.map((f) =>
+              f.id === finding.id ? finding : f
+            )
+          };
+        }
+      );
+    },
+    [queryClient, surveyId]
+  );
+
+  const handleReview = useCallback(async () => {
+    if (isReviewing || isRegenerating) return;
+    const hasQuestions = survey?.sections.some((s) => s.questions.length > 0);
+    if (!hasQuestions) {
+      toast.error('No questions to review', {
+        description: 'Generate or add questions before running AI review.'
+      });
+      return;
+    }
+
+    setIsReviewing(true);
+    try {
+      const next = await triggerReview(surveyId);
+      queryClient.setQueryData(reviewerKeys.latest(surveyId), next);
+      toast.success('Review complete', {
+        description:
+          next.findings.length === 0
+            ? 'No issues flagged — still advisory only.'
+            : `Found ${next.findings.length} potential issue${next.findings.length === 1 ? '' : 's'}.`
+      });
+    } catch (err) {
+      toast.error('Review failed', {
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'AI could not complete the review. Please try again.'
+      });
+    } finally {
+      setIsReviewing(false);
+    }
+  }, [isReviewing, isRegenerating, survey?.sections, surveyId, queryClient]);
+
+  const handleDelete = useCallback(async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const ok = await deleteSurvey(surveyId);
+      if (!ok) {
+        throw new Error('Survey not found');
+      }
+      queryClient.removeQueries({ queryKey: surveyKeys.detail(surveyId) });
+      queryClient.removeQueries({ queryKey: reviewerKeys.latest(surveyId) });
+      await queryClient.invalidateQueries({ queryKey: surveyKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: surveyListKeys.all });
+      setDeleteOpen(false);
+      toast.success('Survey deleted', {
+        description: 'The linked research plan was kept.'
+      });
+      router.replace('/dashboard/surveys');
+    } catch (err) {
+      toast.error('Failed to delete survey', {
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Please try again.'
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [isDeleting, surveyId, queryClient, router]);
+
+  const handleRegenerate = useCallback(async () => {
+    if (!survey?.planId) {
+      toast.error('No linked plan', {
+        description:
+          'This survey has no research plan to regenerate questions from.'
+      });
+      return;
+    }
+    if (isRegenerating) return;
+
+    setConfirmRegenOpen(false);
+    setIsRegenerating(true);
+    try {
+      const next = await generateSurveyDraft(surveyId);
+      // Hard-replace cache — same survey id, no merge with prior sections.
+      queryClient.setQueryData(surveyKeys.detail(surveyId), next);
+      await queryClient.invalidateQueries({
+        queryKey: surveyKeys.detail(surveyId)
+      });
+      await queryClient.invalidateQueries({ queryKey: surveyKeys.list() });
+      // Backend deletes reviewer reports on hard-replace; keep cache in sync.
+      queryClient.setQueryData(reviewerKeys.latest(surveyId), null);
+      await queryClient.invalidateQueries({
+        queryKey: reviewerKeys.latest(surveyId)
+      });
+      toast.success('Survey regenerated', {
+        description: `Replaced with ${next.sections.length} sections from your plan.`
+      });
+    } catch (err) {
+      toast.error('Failed to regenerate survey', {
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Please try again.'
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [survey?.planId, surveyId, isRegenerating, queryClient]);
 
   if (!survey) {
     notFound();
@@ -59,16 +237,104 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     <>
     <AlertModal
       isOpen={deleteOpen}
-      onClose={() => setDeleteOpen(false)}
-      onConfirm={() => {
-        setDeleteOpen(false);
-        toast.success('Survey deleted');
+      onClose={() => {
+        if (!isDeleting) setDeleteOpen(false);
       }}
-      loading={false}
-      title='Delete Survey'
-      description='Are you sure you want to delete this survey? This action cannot be undone.'
-      confirmLabel='Delete'
+      onConfirm={() => void handleDelete()}
+      loading={isDeleting}
+      title='Delete survey?'
+      description='This permanently deletes the questionnaire (sections and questions). The linked research plan is kept so you can generate a new survey from it later.'
+      confirmLabel='Delete survey'
     />
+    <Dialog open={confirmRegenOpen} onOpenChange={setConfirmRegenOpen}>
+      <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
+        <DialogHeader className='bg-primary'>
+          <DialogTitle>Regenerate survey questions?</DialogTitle>
+        </DialogHeader>
+        <div className='px-4 pt-4 pb-2'>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            This permanently replaces every section and question on this survey
+            with a new AI draft from the linked plan. The survey id stays the
+            same — previous questions are not kept or merged.
+          </p>
+        </div>
+        <Separator />
+        <div className='flex items-center justify-end gap-2 px-4 py-3'>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => setConfirmRegenOpen(false)}
+            disabled={isRegenerating}
+          >
+            Cancel
+          </Button>
+          <Button
+            type='button'
+            onClick={() => void handleRegenerate()}
+            disabled={isRegenerating || !survey.planId}
+          >
+            <Icons.sparkles className='size-4' />
+            Replace &amp; regenerate
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    <Dialog
+      open={isRegenerating}
+      onOpenChange={(next) => {
+        if (!next && isRegenerating) return;
+      }}
+    >
+      <DialogContent
+        className='sm:max-w-md gap-0 overflow-hidden p-0'
+        showCloseButton={false}
+      >
+        <DialogHeader className='bg-primary'>
+          <DialogTitle>Generating survey questions</DialogTitle>
+        </DialogHeader>
+        <div className='px-4 pt-4 pb-4'>
+          <SurveyGenerationProgress
+            active={isRegenerating}
+            goalPreview={survey.title}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+    <Dialog
+      open={isReviewing}
+      onOpenChange={(next) => {
+        if (!next && isReviewing) return;
+      }}
+    >
+      <DialogContent
+        className='sm:max-w-md gap-0 overflow-hidden p-0'
+        showCloseButton={false}
+      >
+        <DialogHeader className='bg-primary'>
+          <DialogTitle>Reviewing with AI</DialogTitle>
+        </DialogHeader>
+        <div className='space-y-3 px-4 pt-4 pb-4'>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            Checking wording, ambiguity, and alignment with your research
+            plan…
+          </p>
+          <div className='text-muted-foreground space-y-2 text-xs'>
+            <div className='flex items-center gap-2'>
+              <Icons.spinner className='size-3 animate-spin' />
+              Leading wording &amp; bias
+            </div>
+            <div className='flex items-center gap-2'>
+              <Icons.spinner className='size-3 animate-spin' />
+              Double-barreled &amp; ambiguous questions
+            </div>
+            <div className='flex items-center gap-2'>
+              <Icons.spinner className='size-3 animate-spin' />
+              Objective alignment
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     <div className='space-y-4'>
       {/* Survey Header */}
       <div className='flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6'>
@@ -90,6 +356,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             nativeButton={false}
             className='text-muted-foreground hover:text-foreground h-9 rounded-xl px-3'
             render={<Link href='/dashboard/surveys' />}
+            disabled={isRegenerating || isReviewing}
           >
             <Icons.chevronLeft className='size-4' />
             Back to Surveys
@@ -101,24 +368,46 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               variant='ghost'
               size='sm'
               className='h-9 rounded-xl px-3 text-foreground hover:bg-card'
+              onClick={() => setConfirmRegenOpen(true)}
+              disabled={isRegenerating || isReviewing || !survey.planId}
             >
-              <Icons.sparkles className='mr-1.5 size-3.5 text-brand-strong' />
-              Regenerate
+              {isRegenerating ? (
+                <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+              ) : (
+                <Icons.sparkles className='mr-1.5 size-3.5 text-brand-strong' />
+              )}
+              {isRegenerating ? 'Regenerating…' : 'Regenerate'}
             </Button>
             <Button
               type='button'
               variant='ghost'
               size='sm'
               className='h-9 rounded-xl px-3 text-foreground hover:bg-card'
+              onClick={() => void handleReview()}
+              disabled={isRegenerating || isReviewing || isDeleting}
+              title={
+                report
+                  ? 'Re-run AI quality review'
+                  : 'Run AI quality review'
+              }
             >
-              <Icons.review className='mr-1.5 size-3.5' />
-              Review with AI
+              {isReviewing ? (
+                <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+              ) : (
+                <Icons.review className='mr-1.5 size-3.5' />
+              )}
+              {isReviewing
+                ? 'Reviewing…'
+                : report
+                  ? 'Re-review'
+                  : 'Review with AI'}
             </Button>
             <Button
               type='button'
               variant='ghost'
               size='sm'
               onClick={() => setDeleteOpen(true)}
+              disabled={isRegenerating || isReviewing || isDeleting}
               className='text-destructive hover:bg-destructive/10 hover:text-destructive h-9 rounded-xl px-3'
             >
               <Icons.trash className='mr-1.5 size-3.5' />
@@ -126,20 +415,21 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             </Button>
           </div>
 
-          <Button
-            type='button'
-            size='sm'
-            className={cn(brandCtaClass, 'h-9 px-4')}
-          >
-            <Icons.check className='mr-1.5 size-3.5' />
-            Save Changes
-          </Button>
+          <p className='text-muted-foreground hidden text-xs sm:block'>
+            Edit a question, then save it in place
+          </p>
         </div>
       </div>
 
       <div className='grid gap-6 lg:grid-cols-[1fr_340px]'>
         {/* Main content — surveys in the table are already generated */}
-        <div className='space-y-5'>
+        <div
+          className={cn(
+            'space-y-5 transition-opacity',
+            (isRegenerating || isReviewing) && 'pointer-events-none opacity-50'
+          )}
+          aria-busy={isRegenerating || isReviewing}
+        >
           {survey.sections.map((section, sIdx) => (
             <SectionReviewCard
               key={section.id}
@@ -147,6 +437,13 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               index={sIdx}
             />
           ))}
+
+          {report ? (
+            <FindingsList
+              findings={report.findings}
+              onFindingUpdate={handleFindingUpdate}
+            />
+          ) : null}
         </div>
 
         {/* Sidebar */}
@@ -173,12 +470,12 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             </div>
           </div>
 
-          {report ? (
+          {report?.overallQualityScore != null ? (
             <QualityScore
               score={report.overallQualityScore}
               criteria={report.scoreCriteria}
-              estimatedMinutes={report.estimatedCompletionMinutes}
-              requiredQuestionCount={report.requiredQuestionCount}
+              estimatedMinutes={report.estimatedCompletionMinutes ?? 0}
+              requiredQuestionCount={report.requiredQuestionCount ?? 0}
             />
           ) : null}
         </div>
@@ -269,6 +566,16 @@ function QuestionReviewItem({
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
+  // Keep display state aligned after regenerate / refetch (not while editing).
+  useEffect(() => {
+    if (isEditing) return;
+    setEditPrompt(question.promptText);
+    setEditHelpText(question.helpText ?? '');
+    setEditOptions(question.options ?? []);
+    setEditType(question.type);
+    setEditIsRequired(question.isRequired);
+  }, [question, isEditing]);
+
   const typeMeta = getQuestionTypeMeta(isEditing ? editType : question.type);
   const TypeIcon = Icons[typeMeta.icon as keyof typeof Icons];
   const showOptionsEditor = isEditing && isOptionsType(editType);
@@ -305,44 +612,78 @@ function QuestionReviewItem({
       toast.error('Question text is required');
       return;
     }
+
+    let nextOptions: QuestionOption[] | null = null;
     if (isOptionsType(editType)) {
-      const filled = editOptions.filter((o) => o.label.trim());
+      const filled = editOptions
+        .map((o) => ({
+          ...o,
+          label: o.label.trim(),
+          value: optionValueFromLabel(o.label)
+        }))
+        .filter((o) => o.label.length > 0);
       if (filled.length < 2) {
         toast.error('Add at least two options');
         return;
       }
+      // Ensure unique option values
+      const seen = new Set<string>();
+      nextOptions = filled.map((o) => {
+        let value = o.value;
+        let n = 2;
+        while (seen.has(value)) {
+          value = `${o.value}_${n}`;
+          n += 1;
+        }
+        seen.add(value);
+        return { ...o, value };
+      });
     }
 
     setIsSaving(true);
     try {
-      await updateQuestion(question.id, {
+      const updated = await updateQuestion(question.surveyId, question.id, {
         promptText: trimmed,
         helpText: editHelpText.trim() || null,
         type: editType,
         isRequired: editIsRequired,
-        options: isOptionsType(editType)
-          ? editOptions
-              .filter((o) => o.label.trim())
-              .map((o) => ({
-                ...o,
-                label: o.label.trim(),
-                value: o.label.trim().toLowerCase().replace(/\s+/g, '_')
-              }))
-          : null
+        options: nextOptions,
+        ...(editType === 'rating_scale'
+          ? { validationRules: { min: 1, max: 5 } }
+          : question.type === 'rating_scale'
+            ? { validationRules: null }
+            : {})
       });
-      queryClient.invalidateQueries({
-        queryKey: surveyKeys.detail(question.surveyId)
-      });
+      if (!updated) {
+        throw new Error('Question not found');
+      }
+
+      queryClient.setQueryData<Survey | null | undefined>(
+        surveyKeys.detail(question.surveyId),
+        (prev) => patchQuestionInSurveyCache(prev ?? undefined, updated) ?? prev
+      );
       setIsEditing(false);
-      toast.success('Question updated');
-    } catch {
-      toast.error('Failed to update question');
+      toast.success('Question updated', {
+        description:
+          updated.source === 'ai_edited'
+            ? 'Marked as AI edited'
+            : undefined
+      });
+    } catch (err) {
+      toast.error('Failed to update question', {
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Please try again.'
+      });
     } finally {
       setIsSaving(false);
     }
   }, [
     question.id,
     question.surveyId,
+    question.type,
+    question.validationRules,
     editPrompt,
     editHelpText,
     editType,
@@ -363,31 +704,50 @@ function QuestionReviewItem({
   const startEditing = useCallback(() => {
     setEditPrompt(question.promptText);
     setEditHelpText(question.helpText ?? '');
-    setEditOptions(question.options ?? []);
+    setEditOptions(
+      question.options?.length
+        ? question.options
+        : isOptionsType(question.type)
+          ? [
+              { id: crypto.randomUUID(), label: 'Option 1', value: 'option_1' },
+              { id: crypto.randomUUID(), label: 'Option 2', value: 'option_2' }
+            ]
+          : []
+    );
     setEditType(question.type);
     setEditIsRequired(question.isRequired);
     setIsEditing(true);
   }, [question]);
 
-  const handleTypeChange = useCallback(
-    (newType: QuestionType) => {
-      setEditType(newType);
-      const newMeta = getQuestionTypeMeta(newType);
-      if (newMeta.hasOptions && editOptions.length === 0) {
-        setEditOptions([
-          { id: `opt_new_1`, label: 'Option 1', value: 'option_1' },
-          { id: `opt_new_2`, label: 'Option 2', value: 'option_2' }
-        ]);
-      }
-    },
-    [editOptions.length]
-  );
+  const handleTypeChange = useCallback((newType: QuestionType) => {
+    setEditType(newType);
+    if (isOptionsType(newType)) {
+      setEditOptions((prev) =>
+        prev.length >= 2
+          ? prev
+          : [
+              {
+                id: crypto.randomUUID(),
+                label: 'Option 1',
+                value: 'option_1'
+              },
+              {
+                id: crypto.randomUUID(),
+                label: 'Option 2',
+                value: 'option_2'
+              }
+            ]
+      );
+    } else {
+      setEditOptions([]);
+    }
+  }, []);
 
   const addOption = useCallback(() => {
     setEditOptions((prev) => [
       ...prev,
       {
-        id: `opt_new_${Date.now()}`,
+        id: crypto.randomUUID(),
         label: '',
         value: `option_${prev.length + 1}`
       }
@@ -401,7 +761,7 @@ function QuestionReviewItem({
           ? {
               ...opt,
               label,
-              value: label.toLowerCase().replace(/\s+/g, '_')
+              value: optionValueFromLabel(label)
             }
           : opt
       )

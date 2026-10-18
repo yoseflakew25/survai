@@ -241,9 +241,12 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
       runIdRef.current += 1;
       onOpenChange(false);
       router.push(`/dashboard/plans/${plan.id}`);
-    } catch {
+    } catch (err) {
       toast.error('Could not generate plan', {
-        description: 'Please try again.'
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Please try again.'
       });
     } finally {
       setIsGeneratingPlan(false);

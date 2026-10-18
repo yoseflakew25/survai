@@ -181,7 +181,7 @@ export function SurveyTable() {
               : 'Create your first survey to start collecting responses.'
           }
           onRowClick={(survey) =>
-            router.push(`/dashboard/surveys/${survey.id}/review`)
+            router.push(`/dashboard/surveys/${survey.id}/plan`)
           }
         />
       </div>

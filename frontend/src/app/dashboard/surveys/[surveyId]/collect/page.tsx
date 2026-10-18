@@ -1,7 +1,3 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/query-client';
-import { surveyByIdOptions } from '@/features/builder/api/queries';
-import { collectStatsOptions } from '@/features/collect/api/queries';
 import { CollectView } from '@/features/collect/components/collect-view';
 import PageContainer from '@/components/layout/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +8,9 @@ export const metadata: Metadata = {
   title: 'Collect'
 };
 
+/**
+ * Auth-gated: do not SSR-prefetch. Server has no browser cookies.
+ */
 export default async function CollectPage({
   params
 }: {
@@ -19,25 +18,18 @@ export default async function CollectPage({
 }) {
   const { surveyId } = await params;
 
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(surveyByIdOptions(surveyId));
-  void queryClient.prefetchQuery(collectStatsOptions(surveyId));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer>
-        <Suspense fallback={<CollectPageSkeleton />}>
-          <CollectView surveyId={surveyId} />
-        </Suspense>
-      </PageContainer>
-    </HydrationBoundary>
+    <PageContainer>
+      <Suspense fallback={<CollectPageSkeleton />}>
+        <CollectView surveyId={surveyId} />
+      </Suspense>
+    </PageContainer>
   );
 }
 
 function CollectPageSkeleton() {
   return (
     <div className='space-y-4'>
-      {/* Header + stepper row */}
       <div className='flex items-center justify-between gap-4'>
         <div className='space-y-2'>
           <Skeleton className='h-8 w-52 rounded' />

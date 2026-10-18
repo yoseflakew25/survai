@@ -17,6 +17,8 @@ from app.models.user import User, UserRole
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService
 from app.services.plan import PlanService
+from app.services.reviewer import ReviewerService
+from app.services.survey import SurveyService
 from app.services.user import UserService
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -34,9 +36,19 @@ def get_plan_service(session: DbSession) -> PlanService:
     return PlanService(session)
 
 
+def get_survey_service(session: DbSession) -> SurveyService:
+    return SurveyService(session)
+
+
+def get_reviewer_service(session: DbSession) -> ReviewerService:
+    return ReviewerService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
+SurveyServiceDep = Annotated[SurveyService, Depends(get_survey_service)]
+ReviewerServiceDep = Annotated[ReviewerService, Depends(get_reviewer_service)]
 
 
 def _extract_bearer(authorization: str | None) -> str | None:

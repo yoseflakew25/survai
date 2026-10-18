@@ -14,7 +14,7 @@ from google.genai import types
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.prompts import planner_v1
+from app.ai.prompts import builder_v1, planner_v1, reviewer_v1
 from app.core.config import settings
 from app.core.exceptions import BadRequestError
 from app.models.ai_generation_log import AiGenerationLog
@@ -25,6 +25,8 @@ T = TypeVar("T", bound=BaseModel)
 
 _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
     "planner": planner_v1.PROMPT_VERSION,
+    "builder": builder_v1.PROMPT_VERSION,
+    "reviewer": reviewer_v1.PROMPT_VERSION,
 }
 
 
@@ -55,6 +57,21 @@ def _model_for(feature: str) -> str:
         "report_chat": settings.gemini_model_chat,
     }
     return mapping.get(feature, settings.gemini_model_planner)
+
+
+def _models_for(feature: str) -> list[str]:
+    """Primary model first, then configured fallbacks (deduped)."""
+    primary = _model_for(feature)
+    fallbacks = [
+        m.strip()
+        for m in (settings.gemini_model_fallbacks or "").split(",")
+        if m.strip()
+    ]
+    ordered: list[str] = []
+    for name in [primary, *fallbacks]:
+        if name and name not in ordered:
+            ordered.append(name)
+    return ordered or [primary]
 
 
 def _prompt_version_for(feature: str) -> str:
@@ -115,14 +132,23 @@ async def call_structured(
     input_meta: dict[str, Any] | None = None,
     max_attempts: int = 2,
 ) -> StructuredCallResult:
-    """Call Gemini with JSON schema enforcement; validate with Pydantic."""
-    model = _model_for(feature)
+    """Call Gemini with JSON schema enforcement; validate with Pydantic.
+
+    On quota / high-demand errors, advance to the next model in the fallback
+    list instead of retrying the same exhausted model.
+    """
+    models = _models_for(feature)
     prompt_version = _prompt_version_for(feature)
     request_id = str(uuid.uuid4())
     client = _client()
     last_error: Exception | None = None
+    model_idx = 0
 
-    for attempt in range(1, max_attempts + 1):
+    # attempts across schema retries; capacity errors rotate models.
+    attempt = 0
+    while attempt < max_attempts * len(models) and model_idx < len(models):
+        model = models[model_idx]
+        attempt += 1
         started = time.monotonic()
         try:
             response = await client.aio.models.generate_content(
@@ -159,8 +185,9 @@ async def call_structured(
                 )
                 last_error = exc
                 logger.warning(
-                    "AI schema validation failed feature=%s attempt=%s",
+                    "AI schema validation failed feature=%s model=%s attempt=%s",
                     feature,
+                    model,
                     attempt,
                 )
                 continue
@@ -203,8 +230,75 @@ async def call_structured(
                 status="error",
                 error_message=str(exc)[:2000],
             )
-            logger.exception("AI call failed feature=%s attempt=%s", feature, attempt)
+            logger.exception(
+                "AI call failed feature=%s model=%s attempt=%s",
+                feature,
+                model,
+                attempt,
+            )
+            if _is_fatal_ai_error(exc):
+                break
+            if _is_capacity_ai_error(exc):
+                model_idx += 1
+                logger.warning(
+                    "AI capacity error feature=%s; trying next model (%s/%s)",
+                    feature,
+                    model_idx + 1,
+                    len(models),
+                )
+                continue
+            # Other transient errors: retry same model once, then move on.
+            if attempt % max_attempts == 0:
+                model_idx += 1
 
-    raise BadRequestError(
-        f"AI could not produce a valid {feature} result. Please try again."
-    ) from last_error
+    raise BadRequestError(_user_message_for_ai_error(feature, last_error)) from last_error
+
+
+def _is_capacity_ai_error(exc: BaseException) -> bool:
+    text = str(exc).upper()
+    return any(
+        token in text
+        for token in (
+            "RESOURCE_EXHAUSTED",
+            "UNAVAILABLE",
+            "HIGH DEMAND",
+            "429 ",
+            "503 ",
+        )
+    )
+
+
+def _is_fatal_ai_error(exc: BaseException) -> bool:
+    text = str(exc).upper()
+    return any(
+        token in text
+        for token in (
+            "INVALID_ARGUMENT",
+            "PERMISSION_DENIED",
+            "NOT_FOUND",
+            "404 ",
+        )
+    )
+
+
+def _user_message_for_ai_error(feature: str, exc: BaseException | None) -> str:
+    if exc is None:
+        return f"AI could not produce a valid {feature} result. Please try again."
+    text = str(exc)
+    upper = text.upper()
+    if "RESOURCE_EXHAUSTED" in upper or "429" in upper or "QUOTA" in upper:
+        return (
+            "AI quota exceeded for this model. Wait for the daily limit to reset, "
+            "switch GEMINI_MODEL_* in the backend .env, or enable billing on the "
+            "Gemini API key."
+        )
+    if "UNAVAILABLE" in upper or "HIGH DEMAND" in upper or "503" in upper:
+        return (
+            "AI is temporarily overloaded. Please wait a moment and try again."
+        )
+    if "INVALID_ARGUMENT" in upper:
+        return (
+            f"AI rejected the {feature} request (invalid argument). "
+            "Check the model name and response schema, then try again."
+        )
+    return f"AI could not produce a valid {feature} result. Please try again."
