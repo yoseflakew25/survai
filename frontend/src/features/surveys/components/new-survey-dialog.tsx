@@ -368,7 +368,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                       )}
                     >
                       {complete ? (
-                        <Icons.check className='size-3.5' stroke={2.5} />
+                        <Icons.check className='size-3.5' strokeWidth={2.5} />
                       ) : (
                         n
                       )}
@@ -466,7 +466,7 @@ export function NewSurveyDialog({ open, onOpenChange }: NewSurveyDialogProps) {
                     </p>
                   </div>
                   <span className='bg-card text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm'>
-                    <Icons.check className='size-3.5' stroke={2.5} />
+                    <Icons.check className='size-3.5' strokeWidth={2.5} />
                     3/3
                   </span>
                 </div>

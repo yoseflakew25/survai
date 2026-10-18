@@ -393,7 +393,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                   )}
                 >
                   {complete ? (
-                    <Icons.check className='size-3.5' stroke={2.5} />
+                    <Icons.check className='size-3.5' strokeWidth={2.5} />
                   ) : (
                     step.n
                   )}

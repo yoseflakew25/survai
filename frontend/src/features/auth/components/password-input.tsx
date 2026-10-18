@@ -37,9 +37,9 @@ export function PasswordInput({
         className='text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-50'
       >
         {visible ? (
-          <Icons.eyeOff className='size-4 shrink-0' stroke={1.75} />
+          <Icons.eyeOff className='size-4 shrink-0' strokeWidth={1.75} />
         ) : (
-          <Icons.eye className='size-4 shrink-0' stroke={1.75} />
+          <Icons.eye className='size-4 shrink-0' strokeWidth={1.75} />
         )}
       </button>
     </div>
