@@ -12,18 +12,26 @@ import {
 } from '@/features/board/components/launchpot-mark';
 
 const NAV = [
-  { href: '/', label: 'Board', active: true },
-  { href: '#categories', label: 'Categories', active: false },
-  { href: '#makers', label: 'Makers', active: false },
-  { href: '#', label: 'Meetups', active: false }
+  { href: '#lifecycle', label: 'Lifecycle' },
+  { href: '#contrast', label: 'Why Survai' },
+  { href: '#demo', label: 'Try it' },
+  { href: '#faq', label: 'FAQ' }
 ];
 
 export function BoardHeader() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [activeHash, setActiveHash] = useState('');
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const syncHash = () => setActiveHash(window.location.hash);
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
   }, []);
 
   const isDark = mounted && resolvedTheme === 'dark';
@@ -35,21 +43,27 @@ export function BoardHeader() {
           <SurvaiLogo />
         </Link>
 
-        <nav className='hidden w-max items-center gap-0.5 rounded-full border border-border/60 bg-secondary p-[3px] lg:inline-flex'>
-          {NAV.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              aria-current={item.active ? 'page' : undefined}
-              className={
-                item.active
-                  ? 'h-8 rounded-full bg-card px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors'
-                  : 'h-8 rounded-full px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground'
-              }
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav
+          aria-label='Product sections'
+          className='hidden w-max items-center gap-0.5 rounded-full border border-border/60 bg-secondary p-[3px] lg:inline-flex'
+        >
+          {NAV.map((item) => {
+            const isActive = activeHash === item.href;
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                aria-current={isActive ? 'true' : undefined}
+                className={
+                  isActive
+                    ? 'h-8 rounded-full bg-card px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors'
+                    : 'h-8 rounded-full px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground'
+                }
+              >
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
 
         <div className='flex items-center justify-self-end gap-2'>

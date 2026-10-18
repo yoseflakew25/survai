@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { surveysListQueryOptions } from '@/features/surveys/api/queries';
 import type { SurveyListItem, SurveyStatus } from '@/features/surveys/api/types';
+import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<
   SurveyStatus,
@@ -47,9 +48,9 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
   return (
     <Link
       href={`/dashboard/surveys/${survey.id}`}
-      className='flex items-center rounded-xl px-2.5 py-2.5 transition-colors hover:bg-muted/70'
+      className='group flex items-center rounded-xl border border-transparent px-2.5 py-2.5 transition-all duration-200 hover:border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] hover:bg-brand-soft/50'
     >
-      <Avatar className='flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft'>
+      <Avatar className='flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] bg-brand-soft transition-transform duration-200 group-hover:scale-105'>
         <AvatarFallback className='rounded-xl bg-brand-soft text-xs font-semibold text-foreground'>
           {initials(survey.title)}
         </AvatarFallback>
@@ -70,11 +71,11 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
       </div>
       <Badge
         variant={status.variant}
-        className={
-          survey.status === 'published'
-            ? 'ml-2 shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] text-brand-foreground'
-            : 'ml-2 shrink-0 rounded-full text-[10px]'
-        }
+        className={cn(
+          'ml-2 shrink-0 rounded-full text-[10px]',
+          survey.status === 'published' &&
+            'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
+        )}
       >
         {survey.status === 'published' && (
           <Icons.circleCheck className='mr-1 h-3 w-3' />
@@ -96,20 +97,30 @@ export function RecentSurveys() {
     .slice(0, 5);
 
   return (
-    <Card className='h-full rounded-2xl border-border bg-card shadow-sm'>
-      <CardHeader className='border-b border-border'>
-        <CardTitle className='font-display text-lg font-bold tracking-tight'>
-          Recent Surveys
-        </CardTitle>
-        <CardDescription>
-          {isLoading
-            ? 'Loading surveys...'
-            : `${recentSurveys.length} ${
-                recentSurveys.length === 1 ? 'survey' : 'surveys'
-              } updated recently`}
-        </CardDescription>
+    <Card className='flex h-full min-h-full flex-col gap-0 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card py-0'>
+      <CardHeader className='border-b border-[color-mix(in_srgb,var(--brand)_25%,var(--border))] bg-muted/25 px-5 py-4 sm:px-6'>
+        <div className='flex items-start justify-between gap-3'>
+          <div>
+            <CardTitle className='font-display text-lg font-extrabold tracking-tight'>
+              Recent Surveys
+            </CardTitle>
+            <CardDescription className='mt-0.5'>
+              {isLoading
+                ? 'Loading surveys…'
+                : `${recentSurveys.length} ${
+                    recentSurveys.length === 1 ? 'survey' : 'surveys'
+                  } updated recently`}
+            </CardDescription>
+          </div>
+          <Link
+            href='/dashboard/surveys'
+            className='text-muted-foreground hover:text-foreground hidden text-xs font-medium underline-offset-4 hover:underline sm:inline'
+          >
+            View all
+          </Link>
+        </div>
       </CardHeader>
-      <CardContent className='flex flex-col'>
+      <CardContent className='flex flex-1 flex-col px-3 pt-3 pb-4 sm:px-4 sm:pb-5'>
         {isLoading ? (
           <div className='flex-1 space-y-1'>
             {Array.from({ length: 5 }).map((_, i) => (
@@ -124,10 +135,13 @@ export function RecentSurveys() {
             ))}
           </div>
         ) : recentSurveys.length === 0 ? (
-          <div className='flex flex-col items-center justify-center py-10 text-center'>
-            <Icons.survey className='mb-3 h-10 w-10 text-muted-foreground' />
-            <p className='text-sm text-muted-foreground'>
-              No surveys yet. Create your first survey to get started.
+          <div className='flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center'>
+            <span className='mb-3 flex size-11 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground'>
+              <Icons.survey className='size-5' />
+            </span>
+            <p className='text-sm font-medium text-foreground'>No surveys yet</p>
+            <p className='text-muted-foreground mt-1 max-w-[16rem] text-xs leading-relaxed'>
+              Create your first survey to start collecting grounded responses.
             </p>
           </div>
         ) : (
@@ -137,10 +151,10 @@ export function RecentSurveys() {
                 <SurveyRow key={survey.id} survey={survey} />
               ))}
             </div>
-            <div className='mt-4 border-t border-border pt-4'>
+            <div className='mt-auto border-t border-border pt-4'>
               <Link
                 href='/dashboard/surveys'
-                className='inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]'
+                className='inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_40%,transparent)]'
               >
                 View all surveys
                 <Icons.arrowRight className='size-4' />

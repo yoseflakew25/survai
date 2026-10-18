@@ -92,8 +92,23 @@ html.dark:has(.lp) body {
 .lp .bg-brand {
   background-color: var(--brand);
 }
+.lp .bg-brand-strong {
+  background-color: var(--brand-strong);
+}
+.lp .text-brand-strong {
+  color: var(--brand-strong);
+}
+.lp .from-brand-soft\/50 {
+  --tw-gradient-from: color-mix(in srgb, var(--brand-soft) 50%, transparent);
+}
+.lp .bg-brand-soft {
+  background-color: var(--brand-soft);
+}
 .lp .bg-brand-soft\/60 {
   background-color: color-mix(in srgb, var(--brand-soft) 60%, transparent);
+}
+.lp .bg-brand-soft\/70 {
+  background-color: color-mix(in srgb, var(--brand-soft) 70%, transparent);
 }
 .lp .bg-gold {
   background-color: var(--gold);
@@ -258,11 +273,95 @@ html.dark:has(.lp) body {
   animation: lp-row-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+.lp .landing-section {
+  scroll-margin-top: 6rem;
+}
+
+.lp .landing-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+
+.lp .landing-shell-brand {
+  border: 1px solid color-mix(in srgb, var(--brand) 70%, var(--foreground));
+  background: var(--brand);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.lp .landing-grid-wash {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--foreground) 8%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 20px 20px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 18%,
+    black 82%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 18%,
+    black 82%,
+    transparent
+  );
+}
+
+.lp .landing-rail {
+  width: 3px;
+  border-radius: 9999px;
+  background: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 28%, transparent);
+}
+
+.lp .landing-panel-swap {
+  animation: lp-panel-swap 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes lp-panel-swap {
+  0% {
+    opacity: 0.55;
+    transform: translateY(4px);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp .board-row,
   .lp .live-dot,
-  .lp .rise {
+  .lp .rise,
+  .lp .landing-panel-swap {
     animation: none;
+  }
+
+  .lp #collect li,
+  .lp #principles li,
+  .lp #principles .landing-shell-brand {
+    transition: none !important;
+    transform: none !important;
   }
 }
 
