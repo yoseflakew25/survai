@@ -315,6 +315,14 @@ class SurveyService:
             desc = data["description"]
             survey.description = desc.strip() if isinstance(desc, str) else desc
         if "status" in data and data["status"] is not None:
+            # Publish/close must go through CollectionService (creates a version).
+            if data["status"] in {
+                SurveyStatus.published.value,
+                SurveyStatus.closed.value,
+            }:
+                raise BadRequestError(
+                    "Use POST /surveys/{id}/publish or /close to change status."
+                )
             survey.status = data["status"]
         if "anonymous_collection" in data and data["anonymous_collection"] is not None:
             survey.anonymous_collection = data["anonymous_collection"]

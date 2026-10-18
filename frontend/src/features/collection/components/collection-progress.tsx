@@ -27,52 +27,56 @@ export function CollectionProgress({
     totalRequired > 0
       ? Math.round(Math.min(1, totalAnswered / totalRequired) * 100)
       : 0;
+  const currentTitle = sections[currentSectionIndex]?.title ?? '';
 
   return (
     <div
       className={cn(
-        'rounded-2xl border border-border bg-card px-4 py-3.5 shadow-sm',
+        'overflow-hidden rounded-2xl border border-border bg-white shadow-sm',
         className
       )}
     >
-      <div className='flex flex-wrap items-end justify-between gap-x-4 gap-y-1'>
-        <p className='text-sm font-medium text-foreground'>
-          Section{' '}
-          <span className='font-mono text-[13px] font-semibold tabular-nums'>
-            {currentSectionIndex + 1}
-            <span className='text-muted-foreground font-normal'>
+      <div className='flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 pt-3.5 pb-3 sm:px-5'>
+        <div className='min-w-0 space-y-0.5'>
+          <p className='text-muted-foreground text-[11px] font-semibold tracking-wide uppercase'>
+            Section{' '}
+            <span className='font-mono tabular-nums text-foreground'>
+              {currentSectionIndex + 1}
+            </span>
+            <span className='text-muted-foreground font-normal normal-case tracking-normal'>
               {' '}
               of {sections.length}
             </span>
-          </span>
-          <span className='text-muted-foreground font-normal'>
-            {' '}
-            — {sections[currentSectionIndex]?.title}
-          </span>
-        </p>
-        <p className='text-muted-foreground text-xs tabular-nums'>
-          {totalRequired > 0 ? (
-            <>
-              {Math.min(totalAnswered, totalRequired)} of {totalRequired} required
-              answered
-            </>
-          ) : (
-            `${totalAnswered} answered`
-          )}
-          <span className='ml-2 font-mono text-sm font-semibold text-foreground'>
+          </p>
+          <p className='truncate text-sm font-semibold tracking-tight text-foreground'>
+            {currentTitle}
+          </p>
+        </div>
+        <div className='shrink-0 text-right'>
+          <p className='font-display text-lg font-extrabold tracking-tight tabular-nums text-foreground'>
             {percent}%
-          </span>
-        </p>
+          </p>
+          <p className='text-muted-foreground text-[11px] tabular-nums'>
+            {totalRequired > 0
+              ? `${Math.min(totalAnswered, totalRequired)} of ${totalRequired} required`
+              : `${totalAnswered} answered`}
+          </p>
+        </div>
       </div>
 
-      <div className='mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary'>
-        <div
-          className='h-full rounded-full bg-brand transition-all duration-500 ease-out'
-          style={{ width: `${Math.max(percent, percent > 0 ? 2 : 0)}%` }}
-        />
+      <div className='px-4 sm:px-5'>
+        <div className='h-1.5 w-full overflow-hidden rounded-full bg-secondary'>
+          <div
+            className='h-full rounded-full bg-brand transition-all duration-500 ease-out'
+            style={{ width: `${Math.max(percent, percent > 0 ? 2 : 0)}%` }}
+          />
+        </div>
       </div>
 
-      <div className='mt-3 flex flex-wrap items-center gap-1.5 rounded-full bg-secondary/80 p-1'>
+      <nav
+        aria-label='Survey sections'
+        className='mt-3 flex gap-1.5 overflow-x-auto px-3 pb-3.5 sm:px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+      >
         {sections.map((section, i) => {
           const sectionAnswered = answeredCounts[i] ?? 0;
           const sectionRequired = requiredCounts[i] ?? 0;
@@ -87,15 +91,15 @@ export function CollectionProgress({
             <>
               <span
                 className={cn(
-                  'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                  'flex size-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold tabular-nums',
                   isActive &&
-                    'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground',
+                    'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]',
                   !isActive &&
                     isComplete &&
                     'bg-foreground text-background',
                   !isActive &&
                     !isComplete &&
-                    'bg-muted text-muted-foreground'
+                    'border border-border bg-white text-muted-foreground'
                 )}
               >
                 {isComplete && !isActive ? (
@@ -104,22 +108,30 @@ export function CollectionProgress({
                   i + 1
                 )}
               </span>
-              <span className='truncate'>{section.title}</span>
+              <span
+                className={cn(
+                  'max-w-[10rem] truncate sm:max-w-[14rem]',
+                  isActive ? 'font-semibold' : 'font-medium'
+                )}
+              >
+                {section.title}
+              </span>
             </>
           );
 
           const chipClassName = cn(
-            'inline-flex max-w-full items-center gap-2 rounded-full px-2.5 py-1.5 text-[11px] transition-colors',
+            'inline-flex shrink-0 items-center gap-2 rounded-xl px-2.5 py-1.5 text-[11px] transition-colors',
             isActive &&
-              'bg-card font-semibold text-foreground shadow-sm ring-1 ring-border',
+              'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_8%,transparent)]',
             !isActive &&
               isComplete &&
-              'font-medium text-foreground hover:bg-card/70',
+              'border border-border bg-white text-foreground hover:bg-secondary/60',
             !isActive &&
               !isComplete &&
               isReachable &&
-              'text-foreground/80 hover:bg-card/50',
-            !isReachable && 'cursor-default text-muted-foreground/55'
+              'border border-transparent text-foreground/80 hover:border-border hover:bg-white',
+            !isReachable &&
+              'cursor-default border border-transparent text-muted-foreground/50'
           );
 
           return isReachable && onSelectSection ? (
@@ -142,7 +154,7 @@ export function CollectionProgress({
             </span>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

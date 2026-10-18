@@ -5,31 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
-import type { PublicSurvey, PublicSection, AnswerValue } from '../api/types';
+import type {
+  PublicSurvey,
+  PublicSection,
+  AnswerValue,
+  Respondent
+} from '../api/types';
 import { CollectionProgress } from './collection-progress';
 import { PublicQuestionInput } from './public-question-input';
 import { CollectionComplete } from './collection-complete';
-import { submitAnswer, completeSurvey } from '../api/service';
+import {
+  startRespondent,
+  submitAnswer,
+  completeSurvey
+} from '../api/service';
 
 interface CollectionFormProps {
   survey: PublicSurvey;
-}
-
-/** Hero grid overlay used on the app's primary action cards */
-function HeroPattern() {
-  return (
-    <div
-      className='pointer-events-none absolute inset-0'
-      style={{
-        backgroundImage:
-          'linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)',
-        backgroundSize: '22px 22px',
-        maskImage: 'linear-gradient(to right, transparent, black 25%, black 75%, transparent)',
-        WebkitMaskImage:
-          'linear-gradient(to right, transparent, black 25%, black 75%, transparent)'
-      }}
-    />
-  );
 }
 
 function isAnswered(value: AnswerValue): boolean {
@@ -93,6 +85,34 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [respondent, setRespondent] = useState<Respondent | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setIsStarting(true);
+      setSessionError(null);
+      try {
+        const session = await startRespondent(survey.surveyVersionId);
+        if (!cancelled) setRespondent(session);
+      } catch (err) {
+        if (!cancelled) {
+          setSessionError(
+            err instanceof Error && err.message
+              ? err.message
+              : 'Could not start this survey.'
+          );
+        }
+      } finally {
+        if (!cancelled) setIsStarting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [survey.surveyVersionId]);
 
   const sections = survey.sections;
   const currentSection = sections[currentSectionIndex];
@@ -248,32 +268,90 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       return;
     }
 
+    if (!respondent) {
+      toast.error('Session not ready', {
+        description: 'Please refresh and try again.'
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       for (const [questionId, value] of Object.entries(answers)) {
         if (isAnswered(value)) {
-          await submitAnswer('resp_mock_001', { questionId, value });
+          await submitAnswer(respondent.id, respondent.sessionToken, {
+            questionId,
+            value
+          });
         }
       }
-      await completeSurvey('resp_mock_001');
+      await completeSurvey(respondent.id, respondent.sessionToken);
       setIsCompleted(true);
       window.scrollTo({ top: 0 });
-    } catch {
+    } catch (err) {
       toast.error('Submission failed', {
-        description: 'Something went wrong. Please try again.'
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Something went wrong. Please try again.'
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [sections, currentSectionIndex, answers]);
+  }, [sections, currentSectionIndex, answers, respondent]);
 
   const handleReset = useCallback(() => {
     setAnswers({});
     setErrors({});
     setIsCompleted(false);
     setCurrentSectionIndex(0);
+    setRespondent(null);
+    setSessionError(null);
+    setIsStarting(true);
+    void (async () => {
+      try {
+        const session = await startRespondent(survey.surveyVersionId);
+        setRespondent(session);
+      } catch (err) {
+        setSessionError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Could not start this survey.'
+        );
+      } finally {
+        setIsStarting(false);
+      }
+    })();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [survey.surveyVersionId]);
+
+  if (isStarting) {
+    return (
+      <div className='flex min-h-dvh flex-col items-center justify-center bg-white px-4'>
+        <Icons.spinner className='text-primary size-8 animate-spin' />
+        <p className='text-muted-foreground mt-3 text-sm'>Starting survey…</p>
+      </div>
+    );
+  }
+
+  if (sessionError || !respondent) {
+    return (
+      <div className='flex min-h-dvh flex-col items-center justify-center bg-white px-4'>
+        <div className='w-full max-w-md rounded-xl border border-border bg-white p-8 text-center shadow-sm'>
+          <div className='bg-destructive/10 mx-auto mb-5 flex size-14 items-center justify-center rounded-full'>
+            <Icons.lock className='text-destructive size-6' />
+          </div>
+          <h1 className='text-lg font-bold tracking-tight'>
+            Survey unavailable
+          </h1>
+          <p className='text-muted-foreground mt-1.5 text-sm leading-relaxed'>
+            {sessionError ??
+              'This survey is not accepting responses right now.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isCompleted) {
     return (
@@ -307,24 +385,36 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   }
 
   return (
-    <div className='bg-muted/30 flex min-h-dvh flex-col'>
+    <div className='flex min-h-dvh flex-col bg-white'>
       <main className='mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8'>
-        {/* Hero */}
-        <div className='border-primary/30 relative overflow-hidden rounded-xl border bg-primary shadow-sm'>
-          <HeroPattern />
-          <div className='relative p-6 sm:p-8'>
-            
+        {/* Hero — Survai brand outline (matches SurvaiBrandCard) */}
+        <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
+          <div
+            className='pointer-events-none absolute inset-0 opacity-40'
+            aria-hidden
+            style={{
+              backgroundImage:
+                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+              maskImage:
+                'linear-gradient(to right, transparent, black 25%, black 75%, transparent)',
+              WebkitMaskImage:
+                'linear-gradient(to right, transparent, black 25%, black 75%, transparent)'
+            }}
+          />
+          <div className='relative space-y-5 px-5 py-6 sm:px-7 sm:py-7'>
+            <div className='space-y-2'>
+              <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.75rem] sm:leading-snug'>
+                {survey.title}
+              </h1>
+              {survey.description?.trim() ? (
+                <p className='max-w-2xl text-sm leading-relaxed text-foreground/75'>
+                  {survey.description.trim()}
+                </p>
+              ) : null}
+            </div>
 
-            <h1 className='text-primary-foreground mt-3 text-2xl font-bold tracking-tight sm:text-[1.7rem]'>
-              {survey.title}
-            </h1>
-            {survey.description && (
-              <p className='text-primary-foreground/85 mt-2 max-w-2xl text-sm leading-relaxed'>
-                {survey.description}
-              </p>
-            )}
-
-            <div className='mt-5 flex flex-wrap items-center gap-x-2 gap-y-1.5'>
+            <div className='flex flex-wrap items-center gap-2'>
               {[
                 { icon: Icons.forms, label: `${sections.length} sections` },
                 { icon: Icons.check, label: `${totalQuestions} questions` },
@@ -335,21 +425,21 @@ export function CollectionForm({ survey }: CollectionFormProps) {
               ].map((chip) => (
                 <span
                   key={chip.label}
-                  className='bg-primary-foreground/10 text-primary-foreground/85 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]'
+                  className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 text-[11px] font-medium text-foreground'
                 >
-                  <chip.icon className='size-3' />
+                  <chip.icon className='size-3 opacity-80' />
                   {chip.label}
                 </span>
               ))}
-              {totalRequired > 0 && (
-                <span className='text-primary-foreground/70 text-[11px]'>
-                  <span className='text-primary-foreground font-semibold'>*</span>{' '}
-                  = required
+              {totalRequired > 0 ? (
+                <span className='ml-auto text-[11px] text-foreground/70'>
+                  <span className='font-semibold text-foreground'>*</span>{' '}
+                  required
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Progress rail */}
         <div ref={scrollAnchorRef} className='scroll-mt-6'>
@@ -364,9 +454,9 @@ export function CollectionForm({ survey }: CollectionFormProps) {
         </div>
 
         {/* Section card */}
-        <div className='mt-4 overflow-hidden rounded-xl border bg-background shadow-sm'>
+        <div className='mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm'>
           {/* Section header */}
-          <div className='border-b bg-muted/30 px-5 py-4 sm:px-6'>
+          <div className='border-b border-border bg-white px-5 py-4 sm:px-6'>
             <div className='flex items-start gap-3'>
               <span className='bg-primary text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold'>
                 {currentSectionIndex + 1}
@@ -406,12 +496,12 @@ export function CollectionForm({ survey }: CollectionFormProps) {
           </div>
 
           {/* Footer nav */}
-          <div className='flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-3.5 sm:px-6'>
+          <div className='flex items-center justify-between gap-3 border-t border-border bg-white px-4 py-3.5 sm:px-6'>
             <Button
               variant='outline'
               onClick={handlePrev}
               disabled={currentSectionIndex === 0}
-              className='bg-background min-w-[7rem] shadow-none'
+              className='min-w-[7rem] bg-white shadow-none'
             >
               <Icons.chevronLeft className='mr-1 size-4' />
               Back

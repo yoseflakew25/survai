@@ -19,8 +19,8 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
 
   if (!survey) {
     return (
-      <div className='bg-muted/30 flex min-h-dvh flex-col items-center justify-center px-4'>
-        <div className='w-full max-w-md rounded-xl border bg-background p-8 text-center shadow-sm'>
+      <div className='flex min-h-dvh flex-col items-center justify-center bg-white px-4'>
+        <div className='w-full max-w-md rounded-xl border border-border bg-white p-8 text-center shadow-sm'>
           <div className='bg-primary/10 mx-auto mb-5 flex size-14 items-center justify-center rounded-full'>
             <Icons.lock className='text-primary size-6' />
           </div>
@@ -46,10 +46,10 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
 
 export function CollectionLoading() {
   return (
-    <div className='bg-muted/30 min-h-dvh'>
+    <div className='min-h-dvh bg-white'>
       <div className='mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8'>
         {/* Hero skeleton */}
-        <div className='rounded-xl border bg-background p-6 shadow-sm sm:p-8'>
+        <div className='rounded-xl border border-border bg-white p-6 shadow-sm sm:p-8'>
           <div className='flex items-center justify-between'>
             <Skeleton className='h-4 w-28 rounded' />
             <Skeleton className='h-5 w-24 rounded-full' />
@@ -65,7 +65,7 @@ export function CollectionLoading() {
         </div>
 
         {/* Progress skeleton */}
-        <div className='mt-4 rounded-xl border bg-background px-4 py-3'>
+        <div className='mt-4 rounded-xl border border-border bg-white px-4 py-3'>
           <div className='flex items-center justify-between'>
             <Skeleton className='h-4 w-48 rounded' />
             <Skeleton className='h-4 w-24 rounded' />
@@ -79,8 +79,8 @@ export function CollectionLoading() {
         </div>
 
         {/* Section skeleton */}
-        <div className='mt-4 overflow-hidden rounded-xl border bg-background shadow-sm'>
-          <div className='border-b bg-muted/30 px-5 py-4 sm:px-6'>
+        <div className='mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm'>
+          <div className='border-b border-border bg-white px-5 py-4 sm:px-6'>
             <div className='flex items-center gap-3'>
               <Skeleton className='size-7 rounded-full' />
               <div className='flex-1 space-y-1.5'>
@@ -104,7 +104,7 @@ export function CollectionLoading() {
               </div>
             ))}
           </div>
-          <div className='flex items-center justify-between border-t bg-muted/30 px-4 py-3.5 sm:px-6'>
+          <div className='flex items-center justify-between border-t border-border bg-white px-4 py-3.5 sm:px-6'>
             <Skeleton className='h-9 w-28 rounded-md' />
             <Skeleton className='h-9 w-28 rounded-md' />
           </div>

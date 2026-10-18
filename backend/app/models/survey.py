@@ -80,8 +80,16 @@ class Survey(Base):
     anonymous_collection: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
-    # FK to survey_versions added in Phase 5 (publish)
-    current_version_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    current_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey(
+            "survey_versions.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_surveys_current_version_id",
+        ),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

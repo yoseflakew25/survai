@@ -1,4 +1,5 @@
 from app.models.ai_generation_log import AiGenerationLog
+from app.models.collection import Respondent, ResponseAnswer, SurveyVersion
 from app.models.email_verification import EmailVerificationOtp
 from app.models.organization import Organization
 from app.models.password_reset import PasswordResetToken
@@ -30,6 +31,8 @@ __all__ = [
     "QuestionSource",
     "QuestionType",
     "RefreshToken",
+    "Respondent",
+    "ResponseAnswer",
     "ReviewerFinding",
     "ReviewerFindingStatus",
     "ReviewerIssueType",
@@ -38,6 +41,7 @@ __all__ = [
     "Survey",
     "SurveyPlan",
     "SurveyStatus",
+    "SurveyVersion",
     "User",
     "UserRole",
 ]

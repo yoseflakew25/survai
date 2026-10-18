@@ -20,11 +20,14 @@ from app.models import (  # noqa: F401
     PasswordResetToken,
     Question,
     RefreshToken,
+    Respondent,
+    ResponseAnswer,
     ReviewerFinding,
     ReviewerReport,
     Section,
     Survey,
     SurveyPlan,
+    SurveyVersion,
     User,
 )
 

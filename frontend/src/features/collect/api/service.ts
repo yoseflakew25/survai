@@ -1,31 +1,76 @@
 // ============================================================
-// Collect Service — Mock Data Layer
+// Collect Service — live FastAPI publish / stats
 // ============================================================
 
-import type { CollectStats } from './types';
+import {
+  apiErrorMessage,
+  apiFetch,
+  toUserFacingError
+} from '@/lib/api';
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+import type { CollectStats, PublishResult } from './types';
+
+async function readError(res: Response, fallback: string): Promise<never> {
+  const data = await res.json().catch(() => ({}));
+  throw new Error(
+    toUserFacingError(
+      new Error(apiErrorMessage(data, fallback)),
+      fallback
+    )
+  );
 }
 
-// Mock response counts keyed by survey id (mirrors surveys mock data)
-const MOCK_RESPONSE_COUNTS: Record<string, number> = {
-  sur_001: 142,
-  sur_002: 0,
-  sur_003: 89,
-  sur_004: 67,
-  sur_005: 0,
-  sur_006: 203,
-  sur_007: 56,
-  sur_008: 0
+type ApiStats = {
+  survey_id: string;
+  response_count: number;
+  current_version_id: string | null;
+  status: string;
+  collection_path: string | null;
 };
 
-// ---- Service functions ----
+type ApiPublish = {
+  survey_id: string;
+  version_id: string;
+  version_number: number;
+  status: string;
+  published_at: string;
+  collection_path: string;
+};
+
+function mapStats(s: ApiStats): CollectStats {
+  return {
+    surveyId: s.survey_id,
+    responseCount: s.response_count,
+    currentVersionId: s.current_version_id,
+    status: s.status,
+    collectionPath: s.collection_path
+  };
+}
 
 export async function getCollectStats(surveyId: string): Promise<CollectStats> {
-  await delay(200);
+  const res = await apiFetch(`/surveys/${surveyId}/collect-stats`);
+  if (!res.ok) await readError(res, 'Could not load collect stats');
+  return mapStats((await res.json()) as ApiStats);
+}
+
+export async function publishSurvey(surveyId: string): Promise<PublishResult> {
+  const res = await apiFetch(`/surveys/${surveyId}/publish`, {
+    method: 'POST'
+  });
+  if (!res.ok) await readError(res, 'Could not publish survey');
+  const data = (await res.json()) as ApiPublish;
   return {
-    surveyId,
-    responseCount: MOCK_RESPONSE_COUNTS[surveyId] ?? 0
+    surveyId: data.survey_id,
+    versionId: data.version_id,
+    versionNumber: data.version_number,
+    status: data.status,
+    publishedAt: data.published_at,
+    collectionPath: data.collection_path
   };
+}
+
+export async function closeSurvey(surveyId: string): Promise<CollectStats> {
+  const res = await apiFetch(`/surveys/${surveyId}/close`, { method: 'POST' });
+  if (!res.ok) await readError(res, 'Could not close survey');
+  return mapStats((await res.json()) as ApiStats);
 }

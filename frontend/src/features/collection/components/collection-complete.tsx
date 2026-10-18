@@ -29,10 +29,10 @@ export function CollectionComplete({
   onReset
 }: CollectionCompleteProps) {
   return (
-    <div className='bg-muted/30 flex min-h-dvh flex-col'>
+    <div className='flex min-h-dvh flex-col bg-white'>
       <main className='mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10 sm:px-6'>
-        <div className='overflow-hidden rounded-xl border bg-background shadow-sm'>
-          <div className='border-b bg-muted/30 px-6 py-4 text-center'>
+        <div className='overflow-hidden rounded-xl border border-border bg-white shadow-sm'>
+          <div className='border-b border-border bg-white px-6 py-4 text-center'>
             <p className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
               Response recorded
             </p>

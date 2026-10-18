@@ -6,7 +6,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Response, status
 
-from app.api.deps import CurrentUser, ReviewerServiceDep, SurveyServiceDep
+from app.api.deps import (
+    CollectionServiceDep,
+    CurrentUser,
+    ReviewerServiceDep,
+    SurveyServiceDep,
+)
+from app.schemas.collection import CollectStatsPublic, PublishResponse
 from app.schemas.reviewer import ReviewerReportPublic
 from app.schemas.survey import (
     QuestionCreate,
@@ -104,6 +110,36 @@ async def generate_survey(
 ) -> SurveyGenerateResponse:
     """Hard-replace sections/questions from the linked plan (BLD-01)."""
     return await surveys.generate(user=current_user, survey_id=survey_id)
+
+
+@router.post("/{survey_id}/publish", response_model=PublishResponse)
+async def publish_survey(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    collection: CollectionServiceDep,
+) -> PublishResponse:
+    """Freeze questionnaire into a survey_version and open collection (COL-01)."""
+    return await collection.publish(user=current_user, survey_id=survey_id)
+
+
+@router.post("/{survey_id}/close", response_model=CollectStatsPublic)
+async def close_survey(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    collection: CollectionServiceDep,
+) -> CollectStatsPublic:
+    """Stop accepting new respondents."""
+    return await collection.close(user=current_user, survey_id=survey_id)
+
+
+@router.get("/{survey_id}/collect-stats", response_model=CollectStatsPublic)
+async def collect_stats(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    collection: CollectionServiceDep,
+) -> CollectStatsPublic:
+    """Completed response count + public collection path."""
+    return await collection.get_stats(user=current_user, survey_id=survey_id)
 
 
 @router.post("/{survey_id}/review", response_model=ReviewerReportPublic)

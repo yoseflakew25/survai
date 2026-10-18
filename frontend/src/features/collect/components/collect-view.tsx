@@ -14,12 +14,16 @@ import {
   SurvaiBrandCard,
   SurvaiPanel,
   SurvaiPanelBody,
+  SurvaiPanelFooter,
   SurvaiPanelHeader
 } from '@/components/survai-panel';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { closeSurvey, publishSurvey } from '../api/service';
+import { collectStatsKeys } from '../api/queries';
+import { CollectionQr } from './collection-qr';
 
 interface CollectViewProps {
   surveyId: string;
@@ -31,42 +35,83 @@ export function CollectView({ surveyId }: CollectViewProps) {
   const queryClient = useQueryClient();
 
   const [isPublishing, setIsPublishing] = useState(false);
-  const [publishedOverride, setPublishedOverride] = useState<boolean | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!survey) {
     notFound();
   }
 
-  const isPublished =
-    publishedOverride ?? (survey.status === 'published' || survey.status === 'closed');
-
-  const collectionUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${surveyId}`;
+  const isPublished = survey.status === 'published';
+  const isClosed = survey.status === 'closed';
+  const isLive = isPublished || isClosed;
+  const versionId = stats.currentVersionId ?? survey.currentVersionId;
+  const collectionPath =
+    stats.collectionPath ?? (versionId ? `/s/${versionId}` : null);
+  const collectionUrl =
+    collectionPath && typeof window !== 'undefined'
+      ? `${window.location.origin}${collectionPath}`
+      : collectionPath
+        ? collectionPath
+        : '';
 
   const handlePublish = useCallback(async () => {
+    if (isPublishing) return;
     setIsPublishing(true);
     try {
-      await new Promise((r) => setTimeout(r, 1500));
-      // Simulate a service failure so the error path is exercised
-      if (Math.random() < 0.15) {
-        throw new Error('Publish service unavailable');
-      }
-      setPublishedOverride(true);
-      queryClient.invalidateQueries({ queryKey: surveyKeys.detail(surveyId) });
-      toast.success('Survey published!', {
-        description: 'Your survey is now accepting responses.'
+      const result = await publishSurvey(surveyId);
+      await queryClient.invalidateQueries({
+        queryKey: surveyKeys.detail(surveyId)
       });
-    } catch {
+      await queryClient.invalidateQueries({
+        queryKey: collectStatsKeys.stats(surveyId)
+      });
+      toast.success('Survey published!', {
+        description: `Version ${result.versionNumber} is live at ${result.collectionPath}`
+      });
+    } catch (err) {
       toast.error('Publish failed', {
-        description: 'Could not publish your survey. Please try again.'
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Could not publish your survey. Please try again.'
       });
     } finally {
       setIsPublishing(false);
     }
-  }, [surveyId, queryClient]);
+  }, [surveyId, queryClient, isPublishing]);
+
+  const handleClose = useCallback(async () => {
+    if (isClosing || !isPublished) return;
+    setIsClosing(true);
+    try {
+      await closeSurvey(surveyId);
+      await queryClient.invalidateQueries({
+        queryKey: surveyKeys.detail(surveyId)
+      });
+      await queryClient.invalidateQueries({
+        queryKey: collectStatsKeys.stats(surveyId)
+      });
+      toast.success('Survey closed', {
+        description: 'New respondents can no longer start this survey.'
+      });
+    } catch (err) {
+      toast.error('Close failed', {
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : 'Could not close the survey.'
+      });
+    } finally {
+      setIsClosing(false);
+    }
+  }, [surveyId, queryClient, isClosing, isPublished]);
 
   const handleCopyLink = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(collectionUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
       toast.success('Link copied!', {
         description: 'Collection link copied to clipboard.'
       });
@@ -88,128 +133,191 @@ export function CollectView({ surveyId }: CollectViewProps) {
           variant='outline'
           className={
             isPublished
-              ? 'rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] text-brand-foreground'
-              : 'rounded-full text-[10px]'
+              ? 'rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] font-semibold text-foreground'
+              : isClosed
+                ? 'rounded-full text-[10px]'
+                : 'rounded-full text-[10px]'
           }
         >
-          {isPublished ? 'Published' : 'Draft'}
+          {isPublished ? 'Published' : isClosed ? 'Closed' : 'Draft'}
         </Badge>
       </div>
 
       <div className='grid gap-6 lg:grid-cols-3'>
-        {/* Main content */}
         <div className='space-y-6 lg:col-span-2'>
-          {/* Publish / Link Card */}
           <SurvaiPanel>
             <SurvaiPanelHeader
               icon={<Icons.collect className='size-3.5' />}
-              title='Collection Link'
-              subtitle='Share this link with respondents'
+              title='Share survey'
+              subtitle={
+                isLive
+                  ? 'Link and QR for respondents'
+                  : 'Publish to unlock your collection link'
+              }
               badge={
-                <Badge variant='secondary' className='rounded-full text-[10px]'>
-                  {isPublished ? 'Live' : 'Not published'}
+                <Badge
+                  variant='secondary'
+                  className={cn(
+                    'rounded-full text-[10px] font-semibold',
+                    isPublished &&
+                      'border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground'
+                  )}
+                >
+                  {isPublished ? 'Live' : isClosed ? 'Closed' : 'Not published'}
                 </Badge>
               }
             />
-            <SurvaiPanelBody>
-              {!isPublished ? (
+            <SurvaiPanelBody className='space-y-5'>
+              {!isLive ? (
                 <div className='space-y-4'>
-                  <div className='rounded-xl border border-dashed border-border p-8 text-center'>
-                    <div className='mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-brand-soft text-foreground'>
-                      <Icons.collect className='h-6 w-6' />
+                  <div className='rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center'>
+                    <div className='mx-auto mb-3 flex size-12 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
+                      <Icons.collect className='size-5' />
                     </div>
-                    <p className='mb-1 text-sm font-medium'>This survey is not yet published</p>
-                    <p className='text-muted-foreground text-xs'>
-                      Publish to start collecting responses from respondents
+                    <p className='mb-1 text-sm font-semibold tracking-tight'>
+                      Ready when you are
+                    </p>
+                    <p className='text-muted-foreground mx-auto max-w-sm text-xs leading-relaxed'>
+                      Publishing creates a public link. Respondents can answer
+                      without an account.
                     </p>
                   </div>
                   <Button
-                    onClick={handlePublish}
+                    onClick={() => void handlePublish()}
                     disabled={isPublishing}
                     size='lg'
-                    className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground hover:brightness-105'
+                    className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105'
                   >
                     {isPublishing ? (
                       <>
-                        <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+                        <Icons.spinner className='mr-2 size-4 animate-spin' />
                         Publishing…
                       </>
                     ) : (
                       <>
-                        <Icons.collect className='mr-2 h-4 w-4' />
+                        <Icons.sparkles className='mr-2 size-4' />
                         Publish Survey
                       </>
                     )}
                   </Button>
                 </div>
               ) : (
-                <div className='space-y-4'>
-                  {/* Live status banner */}
-                  <div className='bg-success-muted flex items-center gap-3 rounded-lg p-3'>
-                    <Icons.circleCheck className='text-success h-5 w-5 shrink-0' />
+                <>
+                  <div
+                    className={cn(
+                      'flex items-start gap-3 rounded-xl border p-3.5',
+                      isPublished
+                        ? 'border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft/70'
+                        : 'border-border bg-muted/40'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+                        isPublished
+                          ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'
+                          : 'border border-border bg-white text-muted-foreground'
+                      )}
+                    >
+                      <Icons.circleCheck className='size-4' />
+                    </span>
                     <div className='min-w-0 flex-1'>
-                      <p className='text-success-muted-foreground text-sm font-medium'>
-                        Your survey is live and accepting responses
+                      <p className='text-sm font-semibold tracking-tight text-foreground'>
+                        {isPublished
+                          ? 'Your survey is live'
+                          : 'This survey is closed'}
                       </p>
-                      <p className='text-success-muted-foreground/80 text-xs'>
-                        Share the link below to start collecting responses
+                      <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
+                        {isPublished
+                          ? 'Share the link or QR below. No account required for respondents.'
+                          : 'Existing links no longer accept new starts. Publish again for a new round.'}
                       </p>
                     </div>
                   </div>
 
-                  {/* Collection link */}
-                  <div className='space-y-2'>
-                    <label htmlFor='collection-link' className='text-sm font-medium'>Collection Link</label>
-                    <div className='flex gap-2'>
-                      <Input id='collection-link' value={collectionUrl} readOnly className='font-mono text-sm' />
-                      <Button variant='outline' onClick={handleCopyLink} className='shrink-0'>
-                        <Icons.share className='mr-1 h-4 w-4' />
-                        Copy
-                      </Button>
+                  {collectionUrl ? (
+                    <div className='space-y-2'>
+                      <label
+                        htmlFor='collection-link'
+                        className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'
+                      >
+                        Collection link
+                      </label>
+                      <div className='flex flex-col gap-2 sm:flex-row'>
+                        <Input
+                          id='collection-link'
+                          value={collectionUrl}
+                          readOnly
+                          className='h-11 rounded-xl border-border bg-muted/20 font-mono text-xs sm:text-sm'
+                        />
+                        <Button
+                          type='button'
+                          onClick={() => void handleCopyLink()}
+                          disabled={!collectionUrl}
+                          className={cn(
+                            'h-11 shrink-0 rounded-xl font-semibold sm:min-w-[7.5rem]',
+                            copied
+                              ? 'border border-border bg-foreground text-background hover:bg-foreground/90'
+                              : 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105'
+                          )}
+                        >
+                          {copied ? (
+                            <>
+                              <Icons.check className='mr-1.5 size-4' />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Icons.share className='mr-1.5 size-4' />
+                              Copy
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <p className='text-muted-foreground text-xs'>
-                      Share via SMS, WhatsApp, or email. Respondents do not need an account.
-                    </p>
-                  </div>
-                </div>
+                  ) : null}
+
+                  {collectionUrl ? (
+                    <>
+                      <div className='border-border border-t border-dashed' />
+                      <div className='space-y-2'>
+                        <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
+                          QR code
+                        </p>
+                        <CollectionQr url={collectionUrl} />
+                      </div>
+                    </>
+                  ) : null}
+                </>
               )}
             </SurvaiPanelBody>
-          </SurvaiPanel>
 
-          {/* QR Code */}
-          {isPublished ? (
-            <SurvaiPanel>
-              <SurvaiPanelHeader
-                icon={<Icons.page className='size-3.5' />}
-                title='QR Code'
-                subtitle='Print on paper surveys for easy digital access'
-              />
-              <SurvaiPanelBody>
-                <div className='flex items-center gap-6'>
-                  <div className='flex size-32 shrink-0 items-center justify-center rounded-xl bg-muted'>
-                    <Icons.page className='text-muted-foreground/40 size-12' />
-                  </div>
-                  <div className='space-y-3'>
-                    <p className='text-sm'>
-                      Generate a QR code that links to your collection page.
-                    </p>
-                    <Button variant='outline' className='rounded-xl'>
-                      <Icons.upload className='mr-1 h-3.5 w-3.5' />
-                      Download QR Code
-                    </Button>
-                  </div>
-                </div>
-              </SurvaiPanelBody>
-            </SurvaiPanel>
-          ) : null}
+            {isPublished ? (
+              <SurvaiPanelFooter>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => void handlePublish()}
+                  disabled={isPublishing}
+                  className='h-10 w-full rounded-xl border-border'
+                >
+                  {isPublishing ? (
+                    <Icons.spinner className='mr-2 size-4 animate-spin' />
+                  ) : (
+                    <Icons.sparkles className='mr-2 size-4' />
+                  )}
+                  Publish new version
+                </Button>
+              </SurvaiPanelFooter>
+            ) : null}
+          </SurvaiPanel>
         </div>
 
-        {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-6'>
           <SurvaiBrandCard
             title='View Results?'
             description={
-              isPublished
+              isLive
                 ? `Collecting responses — ${stats.responseCount} received so far`
                 : 'Publish your survey to start collecting responses'
             }
@@ -218,16 +326,16 @@ export function CollectView({ surveyId }: CollectViewProps) {
               href={`/dashboard/surveys/${surveyId}/analytics`}
               className={cn(
                 'block w-full',
-                !isPublished && 'pointer-events-none opacity-50'
+                !isLive && 'pointer-events-none opacity-50'
               )}
             >
               <Button
                 className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
                 size='lg'
-                disabled={!isPublished}
+                disabled={!isLive}
               >
                 View Analytics
-                <Icons.arrowRight className='ml-2 h-4 w-4' />
+                <Icons.arrowRight className='ml-2 size-4' />
               </Button>
             </Link>
           </SurvaiBrandCard>
@@ -236,9 +344,9 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
           <SurvaiPanel>
             <SurvaiPanelBody className='flex flex-col gap-2'>
-              {isPublished ? (
+              {collectionPath ? (
                 <a
-                  href={`/s/${surveyId}`}
+                  href={collectionPath}
                   target='_blank'
                   rel='noopener noreferrer'
                   className='block'
@@ -249,13 +357,21 @@ export function CollectView({ surveyId }: CollectViewProps) {
                   </Button>
                 </a>
               ) : null}
-              <Button
-                variant='outline'
-                className='w-full justify-start rounded-xl text-destructive hover:text-destructive'
-              >
-                <Icons.close className='mr-2 h-4 w-4' />
-                Close Survey
-              </Button>
+              {isPublished ? (
+                <Button
+                  variant='outline'
+                  className='w-full justify-start rounded-xl text-destructive hover:text-destructive'
+                  onClick={() => void handleClose()}
+                  disabled={isClosing}
+                >
+                  {isClosing ? (
+                    <Icons.spinner className='mr-2 size-4 animate-spin' />
+                  ) : (
+                    <Icons.close className='mr-2 size-4' />
+                  )}
+                  Close Survey
+                </Button>
+              ) : null}
             </SurvaiPanelBody>
           </SurvaiPanel>
         </div>
