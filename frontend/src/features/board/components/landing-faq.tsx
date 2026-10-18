@@ -5,24 +5,24 @@ import { cn } from '@/lib/utils';
 
 const FAQS = [
   {
-    q: 'Does Survai generate statistics with AI?',
-    a: 'No. AI helps with plans, question wording, review notes, and report narrative. Aggregations and charts run against stored responses in application code.'
+    q: 'What problem does Survai solve?',
+    a: 'Most teams plan in documents, build in a form tool, analyze in spreadsheets, then write the report by hand. Survai connects that whole journey — from research goal to actionable findings — in one place.'
   },
   {
-    q: 'Can respondents answer without signing up?',
-    a: 'Yes. After you publish, you share a public collection link or QR. Respondents open it and answer — no Survai account required.'
+    q: 'Will AI invent numbers in my reports?',
+    a: 'No. AI helps with planning, question wording, review suggestions, and narrative writing. Every count and percentage comes from your collected responses — or it isn’t shown.'
   },
   {
-    q: 'What happens when I publish a new version?',
-    a: 'Publishing creates a versioned snapshot of the instrument. New respondents get that version. You can close collection when a round is finished.'
+    q: 'Do respondents need an account?',
+    a: 'No. You publish a survey and share a link or QR. People answer on phone or laptop without signing up. You can close the round when collection ends.'
   },
   {
     q: 'Who is Survai for?',
-    a: 'Monitoring & evaluation teams, CSOs, and researchers who need an end-to-end survey workflow where invented numbers are unacceptable.'
+    a: 'Program and M&E officers, CSOs and NGOs, researchers, and policy teams — anyone who needs clearer surveys and reports they can take to donors, boards, or partners.'
   },
   {
-    q: 'Is this a finished product?',
-    a: 'Survai is in active development with a pilot focus. Core Plan → Collect flows are live; analytics and reporting continue to deepen.'
+    q: 'Is Survai ready to use?',
+    a: 'Survai is in active development, shaped with Ethiopian civil society organizations. Core flows from planning through collection are live; analysis and reporting continue to deepen with pilot partners.'
   }
 ] as const;
 
@@ -40,10 +40,11 @@ export function LandingFaq() {
           <div className='relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
             <div className='max-w-lg'>
               <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-                Questions, <span className='hl'>answered</span>
+                Good questions before you <span className='hl'>start</span>
               </h2>
               <p className='mt-2.5 text-sm leading-relaxed text-muted-foreground'>
-                Straight answers about AI, collection, and who Survai is for.
+                What Survai is for, how AI fits in, and what respondents
+                experience.
               </p>
             </div>
             <div className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft px-3 py-1.5 font-mono text-[11px] font-semibold text-foreground'>

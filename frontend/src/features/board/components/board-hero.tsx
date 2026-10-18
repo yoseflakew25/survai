@@ -8,9 +8,9 @@ import { IconChevronRight } from '@/features/board/components/launchpot-mark';
 import { cn } from '@/lib/utils';
 
 const SUGGESTIONS = [
-  'Digital access among community health workers',
-  'Barriers to submitting weekly reports',
-  'Training needs after a new MIS rollout'
+  'How did our training change community practice?',
+  'What barriers keep youth from joining the program?',
+  'Which services do beneficiaries need most next quarter?'
 ] as const;
 
 const STAGES = [
@@ -71,19 +71,22 @@ export function BoardHero() {
 
       <div className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/80 px-3 py-1 font-mono text-[11px] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
         <span className='live-dot' aria-hidden='true' />
-        <span className='font-semibold'>Plan → Report</span>
-        <span className='text-muted-foreground'>· never invents stats</span>
+        <span className='font-semibold'>Survai</span>
+        <span className='text-muted-foreground'>
+          · design · collect · decide
+        </span>
       </div>
 
       <h1 className='font-display mx-auto mt-6 max-w-[18ch] text-[2.65rem] leading-[1.02] font-extrabold tracking-[-0.04em] text-foreground sm:mt-7 sm:max-w-none sm:text-[3.75rem]'>
-        Surveys with numbers
-        <br className='hidden sm:block' /> you can{' '}
-        <span className='hl'>trust</span>.
+        Design smarter surveys.
+        <br className='hidden sm:block' /> Make better{' '}
+        <span className='hl'>decisions</span>.
       </h1>
 
       <p className='mx-auto mt-4 max-w-[34rem] text-[15px] leading-relaxed text-muted-foreground sm:text-base'>
-        The survey lifecycle for teams who report to donors and boards — AI
-        drafts the language, deterministic code owns every figure.
+        From research goal to donor-ready report — plan, build, collect,
+        analyze, and write in one place. AI helps you draft; you stay in
+        control of every finding.
       </p>
 
       <div
@@ -108,8 +111,8 @@ export function BoardHero() {
                 onChange={(e) => setPrompt(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                placeholder='What do you want to learn from respondents?'
-                aria-label='Survey topic or research question'
+                placeholder='What do you need to learn — and decide?'
+                aria-label='Survey goal or research question'
                 className='h-11 min-w-0 flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none'
               />
             </div>
@@ -117,7 +120,7 @@ export function BoardHero() {
               type='submit'
               className='btn-back h-11 w-full shrink-0 px-5 text-sm sm:w-auto'
             >
-              Plan it <IconChevronRight className='h-4 w-4' />
+              Start planning <IconChevronRight className='h-4 w-4' />
             </button>
           </form>
 
@@ -166,14 +169,14 @@ export function BoardHero() {
       </div>
 
       <p className='mt-5 font-mono text-[11px] text-muted-foreground'>
-        0% numerical hallucination · grounded analytics only
+        Shaped with Ethiopian civil society · built to scale
       </p>
 
       <Link
         href='/dashboard/overview'
         className='mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
       >
-        Already working on a survey? Open the dashboard
+        Already have a survey underway? Open the dashboard
         <IconChevronRight className='h-3.5 w-3.5' />
       </Link>
     </section>

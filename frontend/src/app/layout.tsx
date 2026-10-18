@@ -23,11 +23,11 @@ export const metadata: Metadata = {
     template: '%s | Survai'
   },
   description:
-    'AI-powered survey lifecycle platform — Plan, Build, Review, Collect, Analyze, and Report.',
+    'Design smarter surveys. Generate better insights. Make better decisions — from research goal to actionable report.',
   openGraph: {
     title: 'Survai',
     description:
-      'AI-powered survey lifecycle platform — Plan, Build, Review, Collect, Analyze, and Report.',
+      'Design smarter surveys. Generate better insights. Make better decisions — from research goal to actionable report.',
     siteName: 'Survai',
     type: 'website'
   },
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Survai',
     description:
-      'AI-powered survey lifecycle platform — Plan, Build, Review, Collect, Analyze, and Report.'
+      'Design smarter surveys. Generate better insights. Make better decisions — from research goal to actionable report.'
   }
 };
 

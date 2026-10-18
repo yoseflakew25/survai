@@ -14,10 +14,10 @@ const TYPES = [
 type DemoType = (typeof TYPES)[number]['id'];
 
 const CHOICES = [
-  'Smartphone',
-  'Feature phone',
-  'Shared device',
-  'No device'
+  'Learn a new skill',
+  'Support my community',
+  'Find work opportunities',
+  'Something else'
 ] as const;
 
 export function LandingDemo() {
@@ -29,10 +29,11 @@ export function LandingDemo() {
   return (
     <section id='demo' className='landing-section scroll-mt-24 pt-16 sm:pt-20'>
       <h2 className='font-display text-center text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-3xl'>
-        Feel a question before you build
+        See how respondents will answer
       </h2>
       <p className='mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground'>
-        Switch types — this is how respondents experience your instrument.
+        Try a few question types — the same clear experience your community
+        gets on a phone or laptop.
       </p>
 
       <div className='mt-7 overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
@@ -64,11 +65,11 @@ export function LandingDemo() {
             </p>
             <p className='mt-1 text-base font-semibold tracking-tight text-foreground'>
               {type === 'single' &&
-                'Which device do you primarily use for fieldwork?'}
+                'What was the main reason you joined this program?'}
               {type === 'rating' &&
-                'How confident are you using digital reporting tools?'}
+                'How useful was the training for your daily work?'}
               {type === 'open' &&
-                'What is the biggest barrier to submitting reports on time?'}
+                'What would make it easier for you to participate next time?'}
             </p>
           </div>
 
@@ -142,8 +143,8 @@ export function LandingDemo() {
                 })}
               </div>
               <div className='flex justify-between font-mono text-[11px] text-muted-foreground'>
-                <span>Not confident</span>
-                <span>Very confident</span>
+                <span>Not useful</span>
+                <span>Very useful</span>
               </div>
             </div>
           ) : null}
@@ -166,7 +167,7 @@ export function LandingDemo() {
               href='/auth/sign-up'
               className='btn-back h-10 px-4 text-sm'
             >
-              Start a real survey
+              Build your first survey
               <IconChevronRight className='h-4 w-4' />
             </Link>
           </div>

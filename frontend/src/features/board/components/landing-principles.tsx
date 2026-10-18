@@ -1,19 +1,19 @@
 const PRINCIPLES = [
   {
-    title: 'Language ≠ numbers',
-    body: 'Models may draft questions and narrative. Counts, rates, and charts are computed in code from responses.'
+    title: 'AI assists — you decide',
+    body: 'Suggestions, drafts, and explanations are always editable. Nothing publishes or reports without your judgment.'
   },
   {
-    title: 'Human gate before live',
-    body: 'Review catches leading phrasing and weak options. You publish a version — nothing goes live unsupervised.'
+    title: 'Numbers come from your data',
+    body: 'Counts, percentages, and charts are calculated from real responses — never invented to fill a narrative.'
   },
   {
-    title: 'Same data, same figure',
-    body: 'Refresh analytics tomorrow and get the same result. Deterministic pipelines, not a lucky prompt.'
+    title: 'Simple enough for busy teams',
+    body: 'You don’t need a research degree to run a solid survey. Clear defaults; deeper tools when you want them.'
   },
   {
-    title: 'Respondents stay light',
-    body: 'Share a link or QR. No account required to answer. Close the round when collection ends.'
+    title: 'Respect for respondents',
+    body: 'Collect only what you need. Share a simple link. Keep sensitive answers under your organization’s control.'
   }
 ] as const;
 
@@ -28,15 +28,15 @@ export function LandingPrinciples() {
           <div className='landing-grid-wash' aria-hidden='true' />
           <div className='relative'>
             <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground sm:text-[2rem]'>
-              Principles we won’t bend
+              How we earn your trust
             </h2>
             <p className='mt-3 text-sm leading-relaxed text-brand-foreground/75'>
-              Guardrails for teams who put survey results in front of boards,
-              donors, and communities.
+              The same standards we’d want if our own program evidence were on
+              the line — for boards, donors, and communities.
             </p>
             <div className='mt-8 inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card/90 px-3 py-1.5 font-mono text-[11px] font-medium text-foreground shadow-sm transition-all duration-200 group-hover/panel:translate-y-[-1px] group-hover/panel:shadow-md'>
               <span className='live-dot' aria-hidden='true' />
-              Audit-ready by default
+              Human-controlled by design
             </div>
           </div>
         </div>

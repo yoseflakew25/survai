@@ -42,8 +42,8 @@ export function LandingFooter() {
                 <SurvaiLogo />
               </Link>
               <p className='text-sm leading-relaxed text-muted-foreground'>
-                AI-assisted surveys where language is drafted and every figure
-                is computed — built for M&amp;E, CSOs, and researchers.
+                Design smarter surveys. Generate better insights. Make better
+                decisions — from research goal to actionable report.
               </p>
               <div
                 aria-label='Lifecycle stages'
@@ -60,7 +60,7 @@ export function LandingFooter() {
               </div>
               <p className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/70 px-2.5 py-1 font-mono text-[11px] font-medium text-foreground'>
                 <span className='live-dot' aria-hidden='true' />
-                Built for evidence you can defend
+                Shaped with Ethiopian CSOs
               </p>
             </div>
 
@@ -138,9 +138,9 @@ export function LandingFooter() {
             © {year} Survai. All rights reserved.
           </p>
           <p className='text-[11px] text-muted-foreground'>
-            AI drafts the language.{' '}
+            An AI-assisted survey lifecycle —{' '}
             <span className='font-medium text-foreground'>
-              Code owns the numbers.
+              you stay in control.
             </span>
           </p>
         </div>

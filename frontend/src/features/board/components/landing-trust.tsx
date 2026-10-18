@@ -1,17 +1,17 @@
 const CLAIMS = [
   {
-    title: 'AI never invents stats',
-    body: 'Language models draft questions and prose. Percentages, counts, and charts come from your response data — or they don’t appear at all.',
+    title: 'Faster from goal to draft',
+    body: 'Stop starting from a blank page. Describe what you need to learn and get a clear plan and first-draft survey you can reshape in minutes.',
     mark: '01'
   },
   {
-    title: 'Deterministic analytics',
-    body: 'Aggregations run in code against stored answers. Same dataset, same figures — every time you refresh the dashboard.',
+    title: 'Findings you can stand behind',
+    body: 'Every chart and percentage comes from your collected responses — not from an AI guessing. Reports stay tied to real results.',
     mark: '02'
   },
   {
-    title: 'Review before publish',
-    body: 'Structured findings land before a version goes live. You accept, edit, or ignore — nothing ships on autopilot.',
+    title: 'You approve before it ships',
+    body: 'AI suggests, drafts, and explains. You edit, reject, or accept before anything goes live or lands in a donor report.',
     mark: '03'
   }
 ] as const;
@@ -30,11 +30,11 @@ export function LandingTrust() {
           />
           <div className='relative max-w-xl'>
             <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-              Numbers you can <span className='hl'>defend</span>
+              Evidence you can <span className='hl'>act on</span>
             </h2>
             <p className='mt-2.5 text-sm leading-relaxed text-muted-foreground'>
-              Built for M&amp;E and research teams who can’t risk a hallucinated
-              percentage in a donor report.
+              Built for program, research, and policy teams who need answers —
+              not another pile of responses with no clear next step.
             </p>
           </div>
         </div>

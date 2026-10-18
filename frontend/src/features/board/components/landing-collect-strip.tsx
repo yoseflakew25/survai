@@ -4,23 +4,23 @@ import { IconChevronRight } from '@/features/board/components/launchpot-mark';
 const BEATS = [
   {
     label: 'Draft',
-    detail: 'Edit questions freely while the instrument is still soft.',
+    detail: 'Shape questions privately until the survey feels right.',
     hint: 'Private'
   },
   {
     label: 'Publish',
-    detail: 'Freeze a versioned snapshot respondents will actually see.',
-    hint: 'Versioned'
+    detail: 'Go live when you’re ready — respondents see a clear, stable form.',
+    hint: 'Live'
   },
   {
     label: 'Share',
-    detail: 'Send a link or print a QR — no account needed to answer.',
-    hint: 'Public'
+    detail: 'Send a link or print a QR. No account needed to answer.',
+    hint: 'Anywhere'
   },
   {
     label: 'Close',
-    detail: 'Stop new starts when outreach ends. Existing data stays.',
-    hint: 'Sealed'
+    detail: 'End collection when outreach wraps. Your responses stay safe.',
+    hint: 'Done'
   }
 ] as const;
 
@@ -32,11 +32,11 @@ export function LandingCollectStrip() {
     >
       <div className='text-center'>
         <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-          Collection that stays under <span className='hl'>control</span>
+          Collect in the field without the <span className='hl'>chaos</span>
         </h2>
         <p className='mx-auto mt-2.5 max-w-md text-sm leading-relaxed text-muted-foreground'>
-          Publish when ready. Share widely. Close the round when outreach ends —
-          no mystery open forms.
+          Publish when ready, share a link or QR, and close the round when
+          outreach ends — no orphaned open forms.
         </p>
       </div>
 
@@ -77,7 +77,7 @@ export function LandingCollectStrip() {
 
       <div className='mt-7 flex justify-center'>
         <Link href='/auth/sign-up' className='btn-back h-10 px-4 text-sm'>
-          Publish your first round
+          Start collecting
           <IconChevronRight className='h-4 w-4' />
         </Link>
       </div>

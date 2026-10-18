@@ -7,84 +7,84 @@ const STEPS = [
   {
     id: 'plan',
     label: 'Plan',
-    title: 'Shape the research brief',
-    body: 'Turn a research question into sections, objectives, and sampling notes — before a single question is written.',
+    title: 'Start with the decision',
+    body: 'Describe what you need to learn. Survai turns that into clear objectives, audiences, and sections — so you stop writing questions before you know why.',
     preview: {
-      eyebrow: 'Research plan',
+      eyebrow: 'Your plan',
       lines: [
-        'Objective: Measure digital access barriers',
-        'Audience: Community health workers',
-        'Sections: 4 · Est. 12 minutes'
+        'Goal: Understand barriers to program uptake',
+        'Audience: Youth beneficiaries, ages 18–35',
+        'Sections: Access · Experience · Next steps'
       ]
     }
   },
   {
     id: 'build',
     label: 'Build',
-    title: 'Generate the instrument',
-    body: 'AI drafts clear questions and logic. You edit wording, required flags, and branching — the structure stays yours.',
+    title: 'Get a first draft in minutes',
+    body: 'AI proposes questions you can keep, edit, or replace. Build manually anytime — you never lose control of the survey.',
     preview: {
-      eyebrow: 'Question draft',
+      eyebrow: 'Draft question',
       lines: [
         'Q3 · Single choice · Required',
-        'Which devices do you use for work?',
-        '□ Smartphone  □ Feature phone  □ None'
+        'What made it hard to attend sessions?',
+        '□ Distance  □ Timing  □ Cost  □ Other'
       ]
     }
   },
   {
     id: 'review',
     label: 'Review',
-    title: 'Catch bias before publish',
-    body: 'Structured findings flag leading language, missing options, and length risks — you decide what changes.',
+    title: 'Catch weak questions early',
+    body: 'Spot leading wording, double-barreled asks, and surveys that run too long — before respondents ever see them.',
     preview: {
-      eyebrow: 'Review finding',
+      eyebrow: 'Quality check',
       lines: [
-        'Medium · Leading phrasing',
-        '“Don’t you agree that…”',
-        'Suggested: neutral rewrite ready'
+        'Flag: Leading phrasing',
+        '“Don’t you agree the training was useful?”',
+        'Suggestion: Ask how useful — neutrally'
       ]
     }
   },
   {
     id: 'collect',
     label: 'Collect',
-    title: 'Share a live link or QR',
-    body: 'Publish a versioned public form. Respondents need no account. Close the round when you’re done.',
+    title: 'Share a link. Get answers.',
+    body: 'Publish once, share a link or QR, and collect on phone or laptop. Respondents need no account.',
     preview: {
-      eyebrow: 'Collection',
+      eyebrow: 'Live collection',
       lines: [
-        'Status: Live · v2',
-        'Link ready · QR downloadable',
-        '42 responses so far'
+        'Status: Open · Round 1',
+        'Share link · Print QR',
+        '128 responses this week'
       ]
     }
   },
   {
     id: 'analyze',
     label: 'Analyze',
-    title: 'Figures from your data only',
-    body: 'Charts and crosstabs come from stored answers — never invented. Ground every claim in the response set.',
+    title: 'See what the data actually says',
+    body: 'Distributions, filters, and comparisons calculated from real responses — so you spend time interpreting, not wrestling spreadsheets.',
     preview: {
-      eyebrow: 'Analytics',
+      eyebrow: 'Key result',
       lines: [
-        'n = 42 complete',
-        'Device access: 68% smartphone',
-        'Export: CSV · ready'
+        '128 complete responses',
+        'Distance cited by 41% as a barrier',
+        'Ready to explore by gender · location'
       ]
     }
   },
   {
     id: 'report',
     label: 'Report',
-    title: 'Write with receipts',
-    body: 'Narrative stays AI-assisted; every statistic stays tied to a computation. No hallucinated percentages.',
+    title: 'Turn findings into a story',
+    body: 'Generate a structured report for donors, boards, or your team — then chat with it to pull the right takeaway for each audience.',
     preview: {
-      eyebrow: 'Report excerpt',
+      eyebrow: 'Report draft',
       lines: [
-        '“Among 42 respondents…”',
-        'Cite → analyze.device_access',
-        'Confidence: data-backed'
+        'Executive summary · Key findings',
+        'Recommendations tied to results',
+        'Tone: Donor · Internal · Leadership'
       ]
     }
   }
@@ -100,11 +100,11 @@ export function LandingLifecycle() {
       className='landing-section scroll-mt-24 pt-16 sm:pt-20'
     >
       <h2 className='font-display text-center text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-3xl'>
-        One workflow. Six stages.
+        From “we need to learn” to “here’s what to do”
       </h2>
-      <p className='mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground'>
-        From brief to report without leaving Survai — pick a stage to see what
-        happens.
+      <p className='mx-auto mt-2 max-w-lg text-center text-sm leading-relaxed text-muted-foreground'>
+        One continuous journey — no more jumping between docs, form tools,
+        spreadsheets, and Word.
       </p>
 
       <div

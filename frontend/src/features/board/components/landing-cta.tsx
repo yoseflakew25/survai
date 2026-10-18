@@ -20,11 +20,11 @@ export function LandingCta() {
         />
         <div className='relative flex flex-col items-center gap-5 px-6 py-12 text-center sm:px-10 sm:py-14'>
           <h2 className='font-display max-w-lg text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground sm:text-[2rem]'>
-            Ready for surveys you can defend?
+            Ready to turn a research goal into a decision?
           </h2>
           <p className='max-w-sm text-sm leading-relaxed text-brand-foreground/75'>
-            Start from a research question. Survai walks you from plan to report
-            — with numbers you can stand behind.
+            Design smarter surveys. Generate better insights. Make better
+            decisions — starting with your next question.
           </p>
           <div className='flex flex-wrap items-center justify-center gap-2.5'>
             <Link

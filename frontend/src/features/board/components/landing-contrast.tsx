@@ -5,31 +5,31 @@ import { cn } from '@/lib/utils';
 
 const SIDES = [
   {
-    id: 'chatbot',
-    label: 'Generic AI chat',
-    verdict: 'Risky for evidence',
+    id: 'fragmented',
+    label: 'The old way',
+    verdict: 'Scattered & slow',
     tone: 'muted' as const,
     points: [
-      'Can invent percentages that never existed',
-      'No instrument, version, or response store',
-      'Hard to audit what changed before a report'
+      'Plan in docs, build in a form tool, analyze in sheets',
+      'Weeks writing the donor report by hand',
+      'Hundreds of responses — still unclear what to do next'
     ]
   },
   {
     id: 'survai',
     label: 'Survai',
-    verdict: 'Built for M&E',
+    verdict: 'One clear path',
     tone: 'brand' as const,
     points: [
-      'AI drafts language — never invents figures',
-      'Plan → Build → Review → Collect → Analyze → Report',
-      'Every chart and count comes from stored answers'
+      'Plan, build, collect, analyze, and report in one place',
+      'Draft reports in minutes — numbers stay tied to your data',
+      'Chat with findings to brief donors, boards, or your team'
     ]
   }
 ] as const;
 
 export function LandingContrast() {
-  const [focus, setFocus] = useState<'chatbot' | 'survai'>('survai');
+  const [focus, setFocus] = useState<'fragmented' | 'survai'>('survai');
 
   return (
     <section
@@ -43,11 +43,11 @@ export function LandingContrast() {
 
       <div className='text-center'>
         <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-          Not another chatbot that <span className='hl'>guesses</span>
+          Stop stitching tools. Start shipping <span className='hl'>answers</span>
         </h2>
         <p className='mx-auto mt-2.5 max-w-md text-sm leading-relaxed text-muted-foreground'>
-          Same research question. Two systems. Hover or tap a side — Survai is
-          built so figures stay defensible.
+          Same research goal. Two ways of working. Hover or tap a side to see
+          the difference.
         </p>
       </div>
 

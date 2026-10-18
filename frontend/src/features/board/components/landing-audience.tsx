@@ -1,18 +1,23 @@
 const AUDIENCES = [
   {
-    title: 'M&E teams',
-    body: 'Instruments that survive audit — clear logic, versioned publish, figures with a paper trail.',
-    tag: 'Audit trail'
+    title: 'Program & M&E officers',
+    body: 'Move from research goal to donor-ready report without losing weeks in spreadsheets and Word drafts.',
+    tag: 'Impact evidence'
   },
   {
-    title: 'CSOs & programs',
-    body: 'Collect in the field with a link or QR. No respondent accounts. Close the round when outreach ends.',
-    tag: 'Field ready'
+    title: 'CSOs & NGOs',
+    body: 'Run training evaluations, needs assessments, and beneficiary feedback — then share findings with partners and funders.',
+    tag: 'Field to funder'
   },
   {
-    title: 'Researchers',
-    body: 'Draft faster without surrendering rigor. AI shapes language; you keep every methodological call.',
-    tag: 'Method first'
+    title: 'Researchers & policy teams',
+    body: 'Design clearer questions, catch bias early, and explore results until the decision is obvious.',
+    tag: 'Better questions'
+  },
+  {
+    title: 'Leaders & managers',
+    body: 'Skip the raw tables. Get concise summaries and recommendations you can use in the next meeting.',
+    tag: 'Quick clarity'
   }
 ] as const;
 
@@ -29,11 +34,11 @@ export function LandingAudience() {
 
       <div className='text-center'>
         <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-          Built for people who ship <span className='hl'>evidence</span>
+          Built for teams who turn surveys into <span className='hl'>decisions</span>
         </h2>
         <p className='mx-auto mt-2.5 max-w-md text-sm leading-relaxed text-muted-foreground'>
-          Survai fits teams who need trustworthy surveys — not another chatbot
-          dashboard.
+          Shaped with Ethiopian civil society organizations — designed for
+          research and program teams everywhere.
         </p>
       </div>
 
