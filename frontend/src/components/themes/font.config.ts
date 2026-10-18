@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
 
 import { cn } from '@/lib/utils';
 
@@ -12,4 +12,14 @@ const fontMono = Geist_Mono({
   variable: '--font-mono'
 });
 
-export const fontVariables = cn(fontSans.variable, fontMono.variable);
+const fontDisplay = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-bricolage',
+  weight: ['600', '700', '800']
+});
+
+export const fontVariables = cn(
+  fontSans.variable,
+  fontMono.variable,
+  fontDisplay.variable
+);

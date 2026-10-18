@@ -1,13 +1,11 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +25,12 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import {
+  SurvaiPanel,
+  SurvaiPanelBody,
+  SurvaiPanelFooter,
+  SurvaiPanelHeader
+} from '@/components/survai-panel';
 
 const profileSchema = z.object({
   fullName: z
@@ -166,76 +170,90 @@ export default function ProfileViewPage() {
     resetPassword();
   };
 
+  const brandCtaClass =
+    'h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 disabled:opacity-50';
+
   return (
-    <div className='flex flex-1 flex-col px-4 pt-2 pb-4 md:px-6 md:pt-4'>
-      <div className='mb-6'>
-        <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Profile</h1>
-        <p className='text-muted-foreground text-sm'>
-          Manage your personal information and account settings.
+    <div className='mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
+      <header className='mb-6'>
+        <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+          Profile
+        </h1>
+        <p className='text-muted-foreground mt-1 text-sm'>
+          Personal information and account security.
         </p>
+      </header>
+
+      <div
+        role='tablist'
+        aria-label='Profile sections'
+        className='mb-6 flex flex-wrap gap-1 rounded-full bg-secondary p-1'
+      >
+        {navItems.map((item) => {
+          const Icon = Icons[item.icon];
+          const isActive = activeSection === item.id;
+          const isDanger = item.id === 'danger';
+
+          return (
+            <button
+              key={item.id}
+              type='button'
+              role='tab'
+              aria-selected={isActive}
+              onClick={() => setActiveSection(item.id)}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors',
+                isActive && !isDanger && 'bg-card text-foreground shadow-sm',
+                isActive &&
+                  isDanger &&
+                  'bg-destructive/10 text-destructive shadow-sm',
+                !isActive &&
+                  !isDanger &&
+                  'text-muted-foreground hover:text-foreground',
+                !isActive &&
+                  isDanger &&
+                  'text-muted-foreground hover:text-destructive'
+              )}
+            >
+              {Icon ? <Icon className='size-3.5' /> : null}
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className='flex flex-1 gap-6'>
-        {/* Sidebar Nav */}
-        <nav className='w-48 shrink-0'>
-          <div className='space-y-1'>
-            {navItems.map((item) => {
-              const Icon = Icons[item.icon];
-              const isActive = activeSection === item.id;
-              const isDanger = item.id === 'danger';
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                    isDanger && !isActive && 'hover:text-destructive hover:bg-destructive/5',
-                    isDanger && isActive && 'bg-destructive/10 text-destructive'
-                  )}
-                >
-                  <Icon className='size-5' />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+      <div role='tabpanel' className='min-w-0'>
+        {activeSection === 'profile' && (
+          <ProfileSection
+            user={user}
+            initials={initials}
+            avatarImage={avatarImage}
+            registerProfile={registerProfile}
+            handleSubmitProfile={handleSubmitProfile}
+            profileErrors={profileErrors}
+            isProfileDirty={isProfileDirty}
+            watchProfile={watchProfile}
+            isSaving={isSaving}
+            onProfileSubmit={onProfileSubmit}
+            brandCtaClass={brandCtaClass}
+          />
+        )}
 
-        <Separator orientation='vertical' className='h-auto' />
-
-        {/* Content */}
-        <div className='flex-1 min-w-0'>
-          {activeSection === 'profile' && (
-            <ProfileSection
-              user={user}
-              initials={initials}
-              avatarImage={avatarImage}
-              registerProfile={registerProfile}
-              handleSubmitProfile={handleSubmitProfile}
-              profileErrors={profileErrors}
-              isProfileDirty={isProfileDirty}
-              watchProfile={watchProfile}
-              isSaving={isSaving}
-              onProfileSubmit={onProfileSubmit}
-            />
-          )}
-
-          {activeSection === 'activity' && <RecentActivity />}
-          {activeSection === 'security' && (
-            <SecuritySection
-              registerPassword={registerPassword}
-              handleSubmitPassword={handleSubmitPassword}
-              passwordErrors={passwordErrors}
-              isPasswordDirty={isPasswordDirty}
-              isChangingPassword={isChangingPassword}
-              newPasswordValue={newPasswordValue}
-              passwordStrength={passwordStrength}
-              onPasswordSubmit={onPasswordSubmit}
-            />
-          )}
-          {activeSection === 'danger' && <DangerSection />}
-        </div>
+        {activeSection === 'activity' && <RecentActivity />}
+        {activeSection === 'security' && (
+          <SecuritySection
+            registerPassword={registerPassword}
+            handleSubmitPassword={handleSubmitPassword}
+            passwordErrors={passwordErrors}
+            isPasswordDirty={isPasswordDirty}
+            isChangingPassword={isChangingPassword}
+            newPasswordValue={newPasswordValue}
+            passwordStrength={passwordStrength}
+            onPasswordSubmit={onPasswordSubmit}
+            brandCtaClass={brandCtaClass}
+          />
+        )}
+        {activeSection === 'danger' && <DangerSection />}
       </div>
     </div>
   );
@@ -253,7 +271,8 @@ function ProfileSection({
   isProfileDirty,
   watchProfile,
   isSaving,
-  onProfileSubmit
+  onProfileSubmit,
+  brandCtaClass
 }: {
   user: { fullName: string; email: string };
   initials: string;
@@ -265,129 +284,165 @@ function ProfileSection({
   watchProfile: ReturnType<typeof useForm<ProfileFormValues>>['watch'];
   isSaving: boolean;
   onProfileSubmit: (data: ProfileFormValues) => void;
+  brandCtaClass: string;
 }) {
   return (
-    <div className='space-y-6 max-w-2xl'>
-      {/* Avatar Card */}
-      <section>
-        <h2 className='text-lg font-semibold text-primary'>Personal Information</h2>
-        <p className='text-muted-foreground mt-1 text-sm'>
-          Update your profile photo and personal details.
-        </p>
-        <div className='mt-4 rounded-xl border'>
-          <div className='flex flex-col gap-6 p-6 sm:flex-row sm:items-start'>
-            <AvatarUpload initials={initials} currentImage={avatarImage} onImageChange={() => {}} />
-            <div className='flex-1 space-y-4'>
-              <div className='flex items-center gap-3'>
-                <h3 className='text-xl font-semibold'>{user.fullName}</h3>
-                <Badge variant='default' className='capitalize'>
+    <div className='space-y-5'>
+      <SurvaiPanel>
+        <SurvaiPanelHeader
+          icon={<Icons.account className='size-3.5' />}
+          title='Personal Information'
+          subtitle='Update your profile photo and personal details.'
+        />
+        <SurvaiPanelBody>
+          <div className='flex flex-col gap-4 sm:flex-row sm:items-center'>
+            <AvatarUpload
+              initials={initials}
+              currentImage={avatarImage}
+              onImageChange={() => {}}
+            />
+            <div className='min-w-0 flex-1 space-y-1'>
+              <div className='flex flex-wrap items-center gap-2'>
+                <h3 className='font-display text-lg font-extrabold tracking-tight'>
+                  {user.fullName}
+                </h3>
+                <Badge className='rounded-full border-transparent bg-brand text-[10px] text-brand-foreground'>
                   User
                 </Badge>
               </div>
               <p className='text-muted-foreground text-sm'>{user.email}</p>
             </div>
           </div>
-        </div>
-      </section>
+        </SurvaiPanelBody>
+      </SurvaiPanel>
 
-      {/* Form Fields */}
-      <form onSubmit={handleSubmitProfile(onProfileSubmit)} className='rounded-xl border'>
-        <div className='space-y-4 p-6'>
-          <div className='grid gap-4 sm:grid-cols-2'>
+      <form onSubmit={handleSubmitProfile(onProfileSubmit)}>
+        <SurvaiPanel>
+          <SurvaiPanelHeader
+            icon={<Icons.edit className='size-3.5' />}
+            title='Details'
+            subtitle='Name, contact, and bio.'
+          />
+          <SurvaiPanelBody className='space-y-4'>
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <div className='space-y-2'>
+                <Label htmlFor='fullName'>
+                  Full Name <span className='text-destructive'>*</span>
+                </Label>
+                <Input
+                  id='fullName'
+                  {...registerProfile('fullName')}
+                  className={cn(
+                    'h-11 rounded-xl',
+                    profileErrors.fullName &&
+                      'border-destructive focus-visible:ring-destructive/20'
+                  )}
+                />
+                {profileErrors.fullName ? (
+                  <p className='text-destructive text-xs'>
+                    {profileErrors.fullName.message}
+                  </p>
+                ) : null}
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='email'>Email Address</Label>
+                <Input
+                  id='email'
+                  value={user.email}
+                  disabled
+                  className='h-11 rounded-xl'
+                />
+                <p className='text-muted-foreground text-xs'>
+                  Contact support to change your email
+                </p>
+              </div>
+            </div>
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <div className='space-y-2'>
+                <Label htmlFor='phone'>Phone Number</Label>
+                <Input
+                  id='phone'
+                  {...registerProfile('phone')}
+                  placeholder='+1 (555) 000-0000'
+                  className={cn(
+                    'h-11 rounded-xl',
+                    profileErrors.phone &&
+                      'border-destructive focus-visible:ring-destructive/20'
+                  )}
+                />
+                {profileErrors.phone ? (
+                  <p className='text-destructive text-xs'>
+                    {profileErrors.phone.message}
+                  </p>
+                ) : null}
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='jobTitle'>Job Title</Label>
+                <Input
+                  id='jobTitle'
+                  {...registerProfile('jobTitle')}
+                  placeholder='e.g. Research Director'
+                  className={cn(
+                    'h-11 rounded-xl',
+                    profileErrors.jobTitle &&
+                      'border-destructive focus-visible:ring-destructive/20'
+                  )}
+                />
+                {profileErrors.jobTitle ? (
+                  <p className='text-destructive text-xs'>
+                    {profileErrors.jobTitle.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
             <div className='space-y-2'>
-              <Label htmlFor='fullName'>
-                Full Name <span className='text-destructive'>*</span>
-              </Label>
-              <Input
-                id='fullName'
-                {...registerProfile('fullName')}
+              <Label htmlFor='bio'>Bio</Label>
+              <Textarea
+                id='bio'
+                {...registerProfile('bio')}
+                placeholder='Tell us a little about yourself...'
                 className={cn(
-                  'h-11',
-                  profileErrors.fullName && 'border-destructive focus-visible:ring-destructive/20'
+                  'min-h-[100px] rounded-xl',
+                  profileErrors.bio &&
+                    'border-destructive focus-visible:ring-destructive/20'
                 )}
               />
-              {profileErrors.fullName && (
-                <p className='text-destructive text-xs'>{profileErrors.fullName.message}</p>
-              )}
+              <div className='flex items-center justify-between'>
+                {profileErrors.bio ? (
+                  <p className='text-destructive text-xs'>
+                    {profileErrors.bio.message}
+                  </p>
+                ) : null}
+                <p className='text-muted-foreground ml-auto font-mono text-xs tabular-nums'>
+                  {watchProfile('bio')?.length || 0}/500
+                </p>
+              </div>
             </div>
-            <div className='space-y-2'>
-              <Label htmlFor='email'>Email Address</Label>
-              <Input id='email' value={user.email} disabled className='h-11' />
-              <p className='text-muted-foreground text-xs'>Contact support to change your email</p>
-            </div>
-          </div>
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <div className='space-y-2'>
-              <Label htmlFor='phone'>Phone Number</Label>
-              <Input
-                id='phone'
-                {...registerProfile('phone')}
-                placeholder='+1 (555) 000-0000'
-                className={cn(
-                  'h-11',
-                  profileErrors.phone && 'border-destructive focus-visible:ring-destructive/20'
-                )}
-              />
-              {profileErrors.phone && (
-                <p className='text-destructive text-xs'>{profileErrors.phone.message}</p>
-              )}
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='jobTitle'>Job Title</Label>
-              <Input
-                id='jobTitle'
-                {...registerProfile('jobTitle')}
-                placeholder='e.g. Research Director'
-                className={cn(
-                  'h-11',
-                  profileErrors.jobTitle && 'border-destructive focus-visible:ring-destructive/20'
-                )}
-              />
-              {profileErrors.jobTitle && (
-                <p className='text-destructive text-xs'>{profileErrors.jobTitle.message}</p>
-              )}
-            </div>
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='bio'>Bio</Label>
-            <Textarea
-              id='bio'
-              {...registerProfile('bio')}
-              placeholder='Tell us a little about yourself...'
-              className={cn(
-                'min-h-[100px]',
-                profileErrors.bio && 'border-destructive focus-visible:ring-destructive/20'
-              )}
-            />
-            <div className='flex items-center justify-between'>
-              {profileErrors.bio && (
-                <p className='text-destructive text-xs'>{profileErrors.bio.message}</p>
-              )}
-              <p className='text-muted-foreground ml-auto text-xs'>
-                {watchProfile('bio')?.length || 0}/500
+          </SurvaiPanelBody>
+          <SurvaiPanelFooter className='flex items-center justify-between gap-3'>
+            {isProfileDirty ? (
+              <p className='text-muted-foreground text-xs'>
+                You have unsaved changes
               </p>
-            </div>
-          </div>
-        </div>
-        <div className='border-t px-6 py-4'>
-          <div className='flex items-center justify-between'>
-            {isProfileDirty && (
-              <p className='text-muted-foreground text-xs'>You have unsaved changes</p>
+            ) : (
+              <span />
             )}
-            <div className='ml-auto'>
-              <Button type='submit' disabled={!isProfileDirty || isSaving}>
-                {isSaving ? (
-                  <>
-                    <Icons.spinner className='mr-2 size-4 animate-spin' />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
+            <Button
+              type='submit'
+              disabled={!isProfileDirty || isSaving}
+              className={brandCtaClass}
+            >
+              {isSaving ? (
+                <>
+                  <Icons.spinner className='mr-2 size-4 animate-spin' />
+                  Saving…
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </SurvaiPanelFooter>
+        </SurvaiPanel>
       </form>
     </div>
   );
@@ -403,7 +458,8 @@ function SecuritySection({
   isChangingPassword,
   newPasswordValue,
   passwordStrength,
-  onPasswordSubmit
+  onPasswordSubmit,
+  brandCtaClass
 }: {
   registerPassword: ReturnType<typeof useForm<PasswordFormValues>>['register'];
   handleSubmitPassword: ReturnType<typeof useForm<PasswordFormValues>>['handleSubmit'];
@@ -413,110 +469,113 @@ function SecuritySection({
   newPasswordValue: string;
   passwordStrength: { score: number; label: string; color: string };
   onPasswordSubmit: (data: PasswordFormValues) => void;
+  brandCtaClass: string;
 }) {
   return (
-    <div className='space-y-6 max-w-2xl'>
-      <section>
-        <h2 className='text-lg font-semibold text-primary'>Change Password</h2>
-        <p className='text-muted-foreground mt-1 text-sm'>
-          Ensure your account stays secure with a strong password.
-        </p>
-        <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className='mt-4 rounded-xl border'>
-          <div className='space-y-4 p-6'>
+    <form onSubmit={handleSubmitPassword(onPasswordSubmit)}>
+      <SurvaiPanel>
+        <SurvaiPanelHeader
+          icon={<Icons.lock className='size-3.5' />}
+          title='Change Password'
+          subtitle='Ensure your account stays secure with a strong password.'
+        />
+        <SurvaiPanelBody className='space-y-4'>
+          <div className='space-y-2'>
+            <Label htmlFor='currentPassword'>Current Password</Label>
+            <Input
+              id='currentPassword'
+              type='password'
+              {...registerPassword('currentPassword')}
+              className={cn(
+                'h-11 rounded-xl',
+                passwordErrors.currentPassword &&
+                  'border-destructive focus-visible:ring-destructive/20'
+              )}
+            />
+            {passwordErrors.currentPassword ? (
+              <p className='text-destructive text-xs'>
+                {passwordErrors.currentPassword.message}
+              </p>
+            ) : null}
+          </div>
+          <div className='grid gap-4 sm:grid-cols-2'>
             <div className='space-y-2'>
-              <Label htmlFor='currentPassword'>Current Password</Label>
+              <Label htmlFor='newPassword'>New Password</Label>
               <Input
-                id='currentPassword'
+                id='newPassword'
                 type='password'
-                {...registerPassword('currentPassword')}
+                {...registerPassword('newPassword')}
                 className={cn(
-                  'h-11 max-w-md',
-                  passwordErrors.currentPassword &&
+                  'h-11 rounded-xl',
+                  passwordErrors.newPassword &&
                     'border-destructive focus-visible:ring-destructive/20'
                 )}
               />
-              {passwordErrors.currentPassword && (
+              {passwordErrors.newPassword ? (
                 <p className='text-destructive text-xs'>
-                  {passwordErrors.currentPassword.message}
+                  {passwordErrors.newPassword.message}
                 </p>
-              )}
-            </div>
-            <div className='grid gap-4 sm:grid-cols-2'>
-              <div className='space-y-2'>
-                <Label htmlFor='newPassword'>New Password</Label>
-                <Input
-                  id='newPassword'
-                  type='password'
-                  {...registerPassword('newPassword')}
-                  className={cn(
-                    'h-11',
-                    passwordErrors.newPassword &&
-                      'border-destructive focus-visible:ring-destructive/20'
-                  )}
-                />
-                {passwordErrors.newPassword && (
-                  <p className='text-destructive text-xs'>{passwordErrors.newPassword.message}</p>
-                )}
-                {newPasswordValue && (
-                  <div >
-                    <div className='flex gap-1'>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            'h-1 flex-1 rounded-full transition-colors',
-                            i <= passwordStrength.score ? passwordStrength.color : 'bg-muted'
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <p className='text-muted-foreground text-xs'>
-                      {passwordStrength.label} — use 8+ characters with upper, lower, and numbers
-                    </p>
+              ) : null}
+              {newPasswordValue ? (
+                <div className='space-y-1.5'>
+                  <div className='flex gap-1'>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          'h-1.5 flex-1 rounded-full transition-colors',
+                          i <= passwordStrength.score
+                            ? passwordStrength.color
+                            : 'bg-muted'
+                        )}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='confirmPassword'>Confirm New Password</Label>
-                <Input
-                  id='confirmPassword'
-                  type='password'
-                  {...registerPassword('confirmPassword')}
-                  className={cn(
-                    'h-11',
-                    passwordErrors.confirmPassword &&
-                      'border-destructive focus-visible:ring-destructive/20'
-                  )}
-                />
-                {passwordErrors.confirmPassword && (
-                  <p className='text-destructive text-xs'>
-                    {passwordErrors.confirmPassword.message}
+                  <p className='text-muted-foreground text-xs'>
+                    {passwordStrength.label} — use 8+ characters with upper,
+                    lower, and numbers
                   </p>
+                </div>
+              ) : null}
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='confirmPassword'>Confirm New Password</Label>
+              <Input
+                id='confirmPassword'
+                type='password'
+                {...registerPassword('confirmPassword')}
+                className={cn(
+                  'h-11 rounded-xl',
+                  passwordErrors.confirmPassword &&
+                    'border-destructive focus-visible:ring-destructive/20'
                 )}
-              </div>
+              />
+              {passwordErrors.confirmPassword ? (
+                <p className='text-destructive text-xs'>
+                  {passwordErrors.confirmPassword.message}
+                </p>
+              ) : null}
             </div>
           </div>
-          <div className='border-t px-6 py-4'>
-            <div className='flex justify-end'>
-              <Button
-                type='submit'
-                variant='outline'
-                disabled={!isPasswordDirty || isChangingPassword}
-              >
-                {isChangingPassword ? (
-                  <>
-                    <Icons.spinner className='mr-2 size-4 animate-spin' />
-                    Updating...
-                  </>
-                ) : (
-                  'Update Password'
-                )}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </section>
-    </div>
+        </SurvaiPanelBody>
+        <SurvaiPanelFooter className='flex justify-end'>
+          <Button
+            type='submit'
+            disabled={!isPasswordDirty || isChangingPassword}
+            className={brandCtaClass}
+          >
+            {isChangingPassword ? (
+              <>
+                <Icons.spinner className='mr-2 size-4 animate-spin' />
+                Updating…
+              </>
+            ) : (
+              'Update Password'
+            )}
+          </Button>
+        </SurvaiPanelFooter>
+      </SurvaiPanel>
+    </form>
   );
 }
 
@@ -524,43 +583,46 @@ function SecuritySection({
 
 function DangerSection() {
   return (
-    <div className='space-y-6 max-w-2xl'>
-      <section>
-        <h2 className='text-lg font-semibold text-destructive'>Danger Zone</h2>
-        <p className='text-muted-foreground mt-1 text-sm'>
-          Irreversible actions for your account.
-        </p>
-        <div className='mt-4 rounded-xl border border-destructive/30 divide-y divide-destructive/20'>
-          <div className='flex items-center justify-between px-6 py-4'>
-            <div>
-              <p className='font-medium text-sm'>Delete Account</p>
-              <p className='text-muted-foreground text-xs'>
-                Permanently delete your account and all associated data.
-              </p>
-            </div>
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button variant='destructive' size='sm' />}>
-                Delete Account
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account and remove
-                    all your data including surveys, responses, and reports.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className='bg-destructive text-destructive-foreground hover:bg-destructive/90'>
-                    Yes, delete my account
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+    <SurvaiPanel className='border-destructive/30'>
+      <SurvaiPanelHeader
+        icon={<Icons.warning className='size-3.5' />}
+        title='Danger Zone'
+        subtitle='Irreversible actions for your account.'
+        className='bg-destructive/5'
+      />
+      <div className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5'>
+        <div>
+          <p className='text-sm font-medium'>Delete Account</p>
+          <p className='text-muted-foreground text-xs'>
+            Permanently delete your account and all associated data.
+          </p>
         </div>
-      </section>
-    </div>
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button variant='destructive' size='sm' className='shrink-0 rounded-xl' />
+            }
+          >
+            Delete Account
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your
+                account and remove all your data including surveys, responses,
+                and reports.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction className='bg-destructive text-destructive-foreground hover:bg-destructive/90'>
+                Yes, delete my account
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </SurvaiPanel>
   );
 }

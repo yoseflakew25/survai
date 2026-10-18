@@ -1,5 +1,6 @@
 'use client';
 
+import { Controller } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Field,
@@ -11,18 +12,11 @@ import {
   FieldSet
 } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
-import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';
+import { useFormField, type BaseFieldProps } from '@/lib/form-context';
 
-/**
- * Multi-select checkbox group over a `string[]` value. Use with
- * `mode='array'` on the `<form.AppField>`:
- *
- * ```tsx
- * <form.AppField name='interests' mode='array'
- *   children={(field) => <field.CheckboxGroupField label='Interests' options={…} />} />
- * ```
- */
+/** Multi-select checkbox group over a `string[]` value. */
 export function CheckboxGroupField({
+  name,
   label,
   description,
   required,
@@ -33,44 +27,49 @@ export function CheckboxGroupField({
   /** Layout for the option grid, e.g. 'grid grid-cols-2 gap-3'. */
   className?: string;
 }) {
-  const field = useFieldContext<string[]>();
-  const isInvalid = useFieldInvalid();
+  const { control, isInvalid, errorMessage } = useFormField(name);
 
   return (
-    <FieldSet>
-      <FieldLegend variant='label'>
-        {label}
-        {required && ' *'}
-      </FieldLegend>
-      {description && <FieldDescription>{description}</FieldDescription>}
-      <FieldGroup data-slot='checkbox-group' className={cn('gap-3', className)}>
-        {options.map((opt) => (
-          <Field key={opt.value} orientation='horizontal' data-invalid={isInvalid}>
-            <Checkbox
-              id={`${field.name}-${opt.value}`}
-              name={field.name}
-              disabled={opt.disabled}
-              aria-invalid={isInvalid}
-              aria-describedby={isInvalid ? `${field.name}-error` : undefined}
-              checked={field.state.value.includes(opt.value)}
-              onCheckedChange={(checked) => {
-                if (checked) {
-                  field.pushValue(opt.value);
-                } else {
-                  const index = field.state.value.indexOf(opt.value);
-                  if (index > -1) {
-                    field.removeValue(index);
-                  }
-                }
-              }}
-            />
-            <FieldLabel htmlFor={`${field.name}-${opt.value}`} className='font-normal'>
-              {opt.label}
-            </FieldLabel>
-          </Field>
-        ))}
-      </FieldGroup>
-      {isInvalid && <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />}
-    </FieldSet>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => {
+        const values: string[] = field.value || [];
+        return (
+          <FieldSet>
+            <FieldLegend variant='label'>
+              {label}
+              {required ? ' *' : null}
+            </FieldLegend>
+            {description ? <FieldDescription>{description}</FieldDescription> : null}
+            <FieldGroup data-slot='checkbox-group' className={cn('gap-3', className)}>
+              {options.map((opt) => (
+                <Field key={opt.value} orientation='horizontal' data-invalid={isInvalid}>
+                  <Checkbox
+                    id={`${name}-${opt.value}`}
+                    name={name}
+                    disabled={opt.disabled}
+                    aria-invalid={isInvalid}
+                    aria-describedby={isInvalid ? `${name}-error` : undefined}
+                    checked={values.includes(opt.value)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        field.onChange([...values, opt.value]);
+                      } else {
+                        field.onChange(values.filter((v) => v !== opt.value));
+                      }
+                    }}
+                  />
+                  <FieldLabel htmlFor={`${name}-${opt.value}`} className='font-normal'>
+                    {opt.label}
+                  </FieldLabel>
+                </Field>
+              ))}
+            </FieldGroup>
+            {isInvalid ? <FieldError id={`${name}-error`} errors={errorMessage} /> : null}
+          </FieldSet>
+        );
+      }}
+    />
   );
 }

@@ -38,14 +38,14 @@ export function DataTable<TData>({
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
 
   return (
-    <div className='flex flex-1 flex-col space-y-4'>
+    <div className='flex flex-col space-y-4'>
       {children}
 
       {/* Selection indicator */}
       {selectedCount > 0 && (
-        <div className='bg-primary/5 flex items-center gap-2 rounded-lg border border-primary/20 px-3 py-2 text-sm'>
-          <Icons.circleCheck className='text-primary size-4' />
-          <span className='text-primary font-medium'>
+        <div className='flex items-center gap-2 rounded-xl border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
+          <Icons.circleCheck className='size-4 text-foreground' />
+          <span className='font-medium text-foreground'>
             {selectedCount} selected
           </span>
           <span className='text-muted-foreground'>
@@ -54,91 +54,89 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {/* Table */}
-      <div className='relative flex flex-1'>
-        <div className='absolute inset-0 flex overflow-hidden rounded-lg border'>
-          <ScrollArea className='h-full w-full'>
-            <Table>
-              <TableHeader className='bg-muted/50 sticky top-0 z-10 border-b'>
-                {table.getHeaderGroups().map((headerGroup) => (
+      {/* Table — size to content, not viewport fill */}
+      <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+        <ScrollArea className='w-full'>
+          <Table>
+            <TableHeader className='border-b border-border bg-card'>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow
+                  key={headerGroup.id}
+                  className='hover:bg-transparent'
+                >
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      className='bg-card first:pl-4 last:pr-2'
+                      style={{
+                        ...getCommonPinningStyles({ column: header.column })
+                      }}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
                   <TableRow
-                    key={headerGroup.id}
-                    className='hover:bg-transparent'
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className='first:pl-4 last:pr-4'
                   >
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        colSpan={header.colSpan}
-                        className='first:pl-4 last:pr-4'
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className='bg-card first:pl-4 last:pr-2'
                         style={{
-                          ...getCommonPinningStyles({ column: header.column })
+                          ...getCommonPinningStyles({ column: cell.column })
                         }}
                       >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
                     ))}
                   </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                      className='first:pl-4 last:pr-4'
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className='first:pl-4 last:pr-4'
-                          style={{
-                            ...getCommonPinningStyles({ column: cell.column })
-                          }}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={table.getAllColumns().length}
-                      className='h-40'
-                    >
-                      <div className='flex flex-col items-center justify-center gap-3 text-center'>
-                        {emptyIcon ?? (
-                          <div className='bg-muted flex size-12 items-center justify-center rounded-full'>
-                            <Icons.search className='text-muted-foreground/50 size-5' />
-                          </div>
-                        )}
-                        <div>
-                          <p className='text-sm font-medium'>
-                            {emptyTitle ?? 'No results found'}
-                          </p>
-                          <p className='text-muted-foreground mt-0.5 text-xs'>
-                            {emptyDescription ??
-                              'Try adjusting your search or filter criteria'}
-                          </p>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={table.getAllColumns().length}
+                    className='h-40'
+                  >
+                    <div className='flex flex-col items-center justify-center gap-3 text-center'>
+                      {emptyIcon ?? (
+                        <div className='bg-muted flex size-12 items-center justify-center rounded-full'>
+                          <Icons.search className='text-muted-foreground/50 size-5' />
                         </div>
+                      )}
+                      <div>
+                        <p className='text-sm font-medium'>
+                          {emptyTitle ?? 'No results found'}
+                        </p>
+                        <p className='text-muted-foreground mt-0.5 text-xs'>
+                          {emptyDescription ??
+                            'Try adjusting your search or filter criteria'}
+                        </p>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            <ScrollBar orientation='horizontal' />
-          </ScrollArea>
-        </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <ScrollBar orientation='horizontal' />
+        </ScrollArea>
       </div>
 
       {/* Pagination */}

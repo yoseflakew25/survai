@@ -1,6 +1,7 @@
 'use client';
 
-import { useAppForm } from '@/lib/form';
+import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
@@ -15,6 +16,9 @@ import {
 } from '@/components/ui/sheet';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
+import { TextField } from '@/components/forms/fields/text-field';
+import { TextareaField } from '@/components/forms/fields/textarea-field';
+import { SelectField } from '@/components/forms/fields/select-field';
 
 const productSchema = z.object({
   name: z.string().min(2, 'Product name must be at least 2 characters'),
@@ -33,22 +37,21 @@ const categoryOptions = [
 export default function SheetProductForm() {
   const [open, setOpen] = useState(false);
 
-  const form = useAppForm({
+  const form = useForm({
+    resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       category: '',
-      price: undefined as number | undefined,
+      price: undefined as unknown as number,
       description: ''
-    },
-    validators: {
-      onSubmit: productSchema
-    },
-    onSubmit: () => {
-      alert('Product created successfully!');
-      setOpen(false);
-      form.reset();
     }
   });
+
+  function onSubmit() {
+    alert('Product created successfully!');
+    setOpen(false);
+    form.reset();
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -63,63 +66,47 @@ export default function SheetProductForm() {
         </SheetHeader>
 
         <div className='flex-1 overflow-auto'>
-          <form
-            id='sheet-product-form'
-            className='space-y-4 p-4 md:p-4'
-            onSubmit={(e) => {
-              e.preventDefault();
-              form.handleSubmit();
-            }}
-          >
-            <FieldGroup>
-              <form.AppField
-                name='name'
-                children={(field) => (
-                  <field.TextField label='Product Name' required placeholder='Enter product name' />
-                )}
-              />
-
-              <form.AppField
-                name='category'
-                children={(field) => (
-                  <field.SelectField
-                    label='Category'
-                    required
-                    options={categoryOptions}
-                    placeholder='Select category'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='price'
-                children={(field) => (
-                  <field.TextField
-                    label='Price'
-                    required
-                    type='number'
-                    min={0}
-                    step='0.01'
-                    placeholder='Enter price'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='description'
-                children={(field) => (
-                  <field.TextareaField
-                    label='Description'
-                    required
-                    placeholder='Enter product description'
-                    maxLength={500}
-                    rows={4}
-                    showCount
-                  />
-                )}
-              />
-            </FieldGroup>
-          </form>
+          <FormProvider {...form}>
+            <form
+              id='sheet-product-form'
+              className='space-y-4 p-4 md:p-4'
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <FieldGroup>
+                <TextField
+                  name='name'
+                  label='Product Name'
+                  required
+                  placeholder='Enter product name'
+                />
+                <SelectField
+                  name='category'
+                  label='Category'
+                  required
+                  options={categoryOptions}
+                  placeholder='Select category'
+                />
+                <TextField
+                  name='price'
+                  label='Price'
+                  required
+                  type='number'
+                  min={0}
+                  step='0.01'
+                  placeholder='Enter price'
+                />
+                <TextareaField
+                  name='description'
+                  label='Description'
+                  required
+                  placeholder='Enter product description'
+                  maxLength={500}
+                  rows={4}
+                  showCount
+                />
+              </FieldGroup>
+            </form>
+          </FormProvider>
         </div>
 
         <SheetFooter>

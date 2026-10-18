@@ -1,7 +1,6 @@
 'use client';
 
 import type { Column, ColumnDef } from '@tanstack/react-table';
-import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +21,20 @@ export const STATUS_OPTIONS: Option[] = [
   { label: 'Partial', value: 'partial', icon: Icons.clock }
 ];
 
-const STATUS_CONFIG: Record<RespondentStatus, { label: string; variant: 'default' | 'secondary' }> =
-  {
-    completed: { label: 'Completed', variant: 'default' },
-    partial: { label: 'Partial', variant: 'secondary' }
-  };
+const STATUS_CONFIG: Record<
+  RespondentStatus,
+  { label: string; className: string }
+> = {
+  completed: {
+    label: 'Completed',
+    className:
+      'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
+  },
+  partial: {
+    label: 'Partial',
+    className: 'border-transparent bg-secondary text-secondary-foreground'
+  }
+};
 
 function initialsOf(name: string): string {
   return name
@@ -52,7 +60,9 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
 }
 
-export function createColumns(surveyId: string): ColumnDef<Respondent>[] {
+export function createColumns(
+  onSelectRespondent: (respondentId: string) => void
+): ColumnDef<Respondent>[] {
   return [
     {
       id: 'name',
@@ -70,11 +80,12 @@ export function createColumns(surveyId: string): ColumnDef<Respondent>[] {
         </div>
       ),
       cell: ({ row }) => (
-        <Link
-          href={`/dashboard/surveys/${surveyId}/respondents/${row.original.id}`}
-          className='group flex items-center gap-3 rounded-md focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none'
+        <button
+          type='button'
+          onClick={() => onSelectRespondent(row.original.id)}
+          className='group flex w-full items-center gap-3 rounded-md text-left focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none'
         >
-          <div className='bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold'>
+          <div className='flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-[11px] font-bold text-foreground'>
             {initialsOf(row.original.name)}
           </div>
           <div className='min-w-0'>
@@ -83,7 +94,7 @@ export function createColumns(surveyId: string): ColumnDef<Respondent>[] {
             </p>
             <p className='text-muted-foreground truncate text-xs'>{row.original.email}</p>
           </div>
-        </Link>
+        </button>
       ),
       meta: {
         label: 'Respondent',
@@ -153,8 +164,13 @@ export function createColumns(surveyId: string): ColumnDef<Respondent>[] {
         const status = cell.getValue<RespondentStatus>();
         const config = STATUS_CONFIG[status];
         return (
-          <Badge variant={config.variant} className='text-xs'>
-            {status === 'completed' && <Icons.circleCheck className='mr-1 h-3 w-3' />}
+          <Badge
+            variant='outline'
+            className={`rounded-full text-[10px] font-medium ${config.className}`}
+          >
+            {status === 'completed' ? (
+              <Icons.circleCheck className='mr-1 h-3 w-3' />
+            ) : null}
             {config.label}
           </Badge>
         );

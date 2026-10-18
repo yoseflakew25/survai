@@ -257,7 +257,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
       {/* Header */}
       <div className='grid items-center gap-4 lg:grid-cols-5'>
         <div className='min-w-0  lg:col-span-2'>
-          <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Review Survey Plan</h1>
+          <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>Review Survey Plan</h1>
           <p className='text-muted-foreground text-sm'>
             Review and refine your AI-generated plan before building the survey
           </p>
@@ -307,7 +307,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
             <CardHeader>
               <div className='flex items-start justify-between gap-2'>
                 <div>
-                  <CardTitle className='text-primary font-semibold'>Research Goal</CardTitle>
+                  <CardTitle className='font-display font-bold tracking-tight text-foreground'>Research Goal</CardTitle>
                   <CardDescription>
                     Review the AI-generated research goal or refine it
                   </CardDescription>
@@ -330,7 +330,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
           {/* Objectives */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-primary font-semibold'>Objectives</CardTitle>
+              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Objectives</CardTitle>
               <CardDescription>
                 Review, edit, or add objectives that this survey will achieve
               </CardDescription>
@@ -351,7 +351,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
           {/* Research Questions */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-primary font-semibold'>Research Questions</CardTitle>
+              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Research Questions</CardTitle>
               <CardDescription>
                 Review, edit, or add questions the survey should answer
               </CardDescription>
@@ -372,7 +372,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
           {/* Target Respondents */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-primary font-semibold'>Target Respondents</CardTitle>
+              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Target Respondents</CardTitle>
               <CardDescription>
                 Review or define who should participate in this survey
               </CardDescription>
@@ -393,7 +393,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
           {/* Proposed Sections */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-primary font-semibold'>Proposed Sections</CardTitle>
+              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Proposed Sections</CardTitle>
               <CardDescription>
                 Review, reorder, or add sections that organize your survey questions
               </CardDescription>
@@ -460,7 +460,7 @@ export function PlanEditor({ plan, onPlanUpdate }: PlanEditorProps) {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-primary font-semibold'>Quick Actions</CardTitle>
+              <CardTitle className='font-display font-bold tracking-tight text-foreground'>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className='space-y-2'>
               {/* Undo/Redo buttons */}

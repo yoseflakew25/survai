@@ -1,17 +1,25 @@
 'use client';
 
+import { FormProvider, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldGroup } from '@/components/ui/field';
-import { useAppForm } from '@/lib/form';
+import { TextField } from '@/components/forms/fields/text-field';
+import { TextareaField } from '@/components/forms/fields/textarea-field';
+import { SelectField } from '@/components/forms/fields/select-field';
+import { FileUploadField } from '@/components/forms/fields/file-upload-field';
 import { categoryOptions } from '@/features/products/constants/product-options';
-import { productSchema, type ProductFormValues } from '@/features/products/schemas/product';
+import { productSchema } from '@/features/products/schemas/product';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/lib/toast';
 import { createProductMutation, updateProductMutation } from '../api/mutations';
 import type { Product } from '../api/types';
+import type { z } from 'zod';
+
+type ProductFormValues = z.infer<typeof productSchema>;
 
 export default function ProductForm({
   initialData,
@@ -45,32 +53,31 @@ export default function ProductForm({
     }
   });
 
-  const form = useAppForm({
+  const form = useForm({
+    resolver: zodResolver(productSchema),
     defaultValues: {
       image: undefined,
       name: initialData?.name ?? '',
       category: initialData?.category ?? '',
       price: initialData?.price,
       description: initialData?.description ?? ''
-    } as ProductFormValues,
-    validators: {
-      onSubmit: productSchema
-    },
-    onSubmit: ({ value }) => {
-      const payload = {
-        name: value.name,
-        category: value.category,
-        price: value.price!,
-        description: value.description
-      };
-
-      if (isEdit) {
-        updateMutation.mutate({ id: initialData.id, values: payload });
-      } else {
-        createMutation.mutate(payload);
-      }
     }
   });
+
+  function onSubmit(value: ProductFormValues) {
+    const payload = {
+      name: value.name,
+      category: value.category,
+      price: value.price,
+      description: value.description
+    };
+
+    if (isEdit) {
+      updateMutation.mutate({ id: initialData.id, values: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
@@ -80,84 +87,59 @@ export default function ProductForm({
         <CardTitle className='text-left text-2xl font-bold'>{pageTitle}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form
-          className='space-y-8'
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <FieldGroup>
-            <form.AppField
-              name='image'
-              children={(field) => (
-                <field.FileUploadField
-                  label='Product Image'
-                  description='Upload a product image'
-                  maxSize={5 * 1024 * 1024}
-                  maxFiles={4}
-                />
-              )}
-            />
-
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-              <form.AppField
-                name='name'
-                children={(field) => (
-                  <field.TextField label='Product Name' required placeholder='Enter product name' />
-                )}
+        <FormProvider {...form}>
+          <form className='space-y-8' onSubmit={form.handleSubmit(onSubmit)}>
+            <FieldGroup>
+              <FileUploadField
+                name='image'
+                label='Product Image'
+                description='Upload a product image'
+                maxSize={5 * 1024 * 1024}
+                maxFiles={4}
               />
 
-              <form.AppField
-                name='category'
-                children={(field) => (
-                  <field.SelectField
-                    label='Category'
-                    required
-                    options={categoryOptions}
-                    placeholder='Select category'
-                  />
-                )}
-              />
+              <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                <TextField name='name' label='Product Name' required placeholder='Enter product name' />
 
-              <form.AppField
-                name='price'
-                children={(field) => (
-                  <field.TextField
-                    label='Price'
-                    required
-                    type='number'
-                    min={0}
-                    step={0.01}
-                    placeholder='Enter price'
-                  />
-                )}
-              />
-            </div>
-
-            <form.AppField
-              name='description'
-              children={(field) => (
-                <field.TextareaField
-                  label='Description'
+                <SelectField
+                  name='category'
+                  label='Category'
                   required
-                  placeholder='Enter product description'
-                  maxLength={500}
-                  rows={4}
+                  options={categoryOptions}
+                  placeholder='Select category'
                 />
-              )}
-            />
-          </FieldGroup>
 
-          <div className='flex justify-end gap-2'>
-            <Button type='button' variant='outline' onClick={() => router.back()}>
-              Cancel
-            </Button>
-            <LoadingButton loading={isPending} type='submit'>
-              {isEdit ? 'Update Product' : 'Add Product'}
-            </LoadingButton>
-          </div>
-        </form>
+                <TextField
+                  name='price'
+                  label='Price'
+                  required
+                  type='number'
+                  min={0}
+                  step={0.01}
+                  placeholder='Enter price'
+                />
+              </div>
+
+              <TextareaField
+                name='description'
+                label='Description'
+                required
+                placeholder='Enter product description'
+                maxLength={500}
+                rows={4}
+              />
+            </FieldGroup>
+
+            <div className='flex justify-end gap-2'>
+              <Button type='button' variant='outline' onClick={() => router.back()}>
+                Cancel
+              </Button>
+              <LoadingButton loading={isPending} type='submit'>
+                {isEdit ? 'Update Product' : 'Add Product'}
+              </LoadingButton>
+            </div>
+          </form>
+        </FormProvider>
       </CardContent>
     </Card>
   );

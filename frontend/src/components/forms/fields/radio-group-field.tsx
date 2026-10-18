@@ -1,5 +1,6 @@
 'use client';
 
+import { Controller } from 'react-hook-form';
 import {
   Field,
   FieldDescription,
@@ -9,9 +10,10 @@ import {
   FieldSet
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';
+import { useFormField, type BaseFieldProps } from '@/lib/form-context';
 
 export function RadioGroupField({
+  name,
   label,
   description,
   required,
@@ -19,44 +21,49 @@ export function RadioGroupField({
 }: BaseFieldProps & {
   options: { value: string; label: string; disabled?: boolean }[];
 }) {
-  const field = useFieldContext<string>();
-  const isInvalid = useFieldInvalid();
+  const { control, isInvalid, errorMessage } = useFormField(name);
 
   return (
-    <FieldSet>
-      <FieldLegend variant='label'>
-        {label}
-        {required && ' *'}
-      </FieldLegend>
-      {description && <FieldDescription>{description}</FieldDescription>}
-      <RadioGroup
-        name={field.name}
-        value={field.state.value}
-        onValueChange={field.handleChange}
-        onBlur={field.handleBlur}
-        className='flex flex-wrap gap-x-6 gap-y-2'
-      >
-        {options.map((opt) => (
-          <Field
-            key={opt.value}
-            orientation='horizontal'
-            data-invalid={isInvalid}
-            className='w-auto'
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <FieldSet>
+          <FieldLegend variant='label'>
+            {label}
+            {required ? ' *' : null}
+          </FieldLegend>
+          {description ? <FieldDescription>{description}</FieldDescription> : null}
+          <RadioGroup
+            name={field.name}
+            value={field.value}
+            onValueChange={field.onChange}
+            onBlur={field.onBlur}
+            className='flex flex-wrap gap-x-6 gap-y-2'
           >
-            <RadioGroupItem
-              value={opt.value}
-              id={`${field.name}-${opt.value}`}
-              disabled={opt.disabled}
-              aria-invalid={isInvalid}
-              aria-describedby={isInvalid ? `${field.name}-error` : undefined}
-            />
-            <FieldLabel htmlFor={`${field.name}-${opt.value}`} className='font-normal'>
-              {opt.label}
-            </FieldLabel>
-          </Field>
-        ))}
-      </RadioGroup>
-      {isInvalid && <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />}
-    </FieldSet>
+            {options.map((opt) => (
+              <Field
+                key={opt.value}
+                orientation='horizontal'
+                data-invalid={isInvalid}
+                className='w-auto'
+              >
+                <RadioGroupItem
+                  value={opt.value}
+                  id={`${name}-${opt.value}`}
+                  disabled={opt.disabled}
+                  aria-invalid={isInvalid}
+                  aria-describedby={isInvalid ? `${name}-error` : undefined}
+                />
+                <FieldLabel htmlFor={`${name}-${opt.value}`} className='font-normal'>
+                  {opt.label}
+                </FieldLabel>
+              </Field>
+            ))}
+          </RadioGroup>
+          {isInvalid ? <FieldError id={`${name}-error`} errors={errorMessage} /> : null}
+        </FieldSet>
+      )}
+    />
   );
 }

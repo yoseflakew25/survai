@@ -24,8 +24,14 @@ export interface NotificationCardProps {
   createdAt?: string | Date;
   actions?: NotificationAction[];
   onMarkAsRead?: (id: string) => void;
-  onAction?: (notificationId: string, actionId: string, actionType: ActionType) => void;
+  onAction?: (
+    notificationId: string,
+    actionId: string,
+    actionType: ActionType
+  ) => void;
   loadingActionId?: string;
+  /** Tighter spacing for popovers / drawers. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -49,7 +55,7 @@ const formatDate = (date: string | Date): string => {
 };
 
 const getActionIcon = (actionType: ActionType) => {
-  const iconProps = { size: 12, strokeWidth: 2.5 };
+  const iconProps = { className: 'size-3', strokeWidth: 2.5 };
   switch (actionType) {
     case 'redirect':
       return <Icons.externalLink {...iconProps} />;
@@ -74,6 +80,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
   onMarkAsRead,
   onAction,
   loadingActionId,
+  compact = false,
   className
 }) => {
   const isUnread = status === 'unread';
@@ -81,96 +88,108 @@ export const NotificationCard: FC<NotificationCardProps> = ({
   return (
     <div
       className={cn(
-        'group relative flex items-start gap-3 px-6 py-4 transition-colors hover:bg-muted/30',
-        isUnread && 'bg-primary/[0.02]',
+        'group relative transition-colors',
+        compact ? 'px-3.5 py-3' : 'px-5 py-3.5',
+        isUnread ? 'bg-brand-soft/35' : 'hover:bg-muted/40',
         className
       )}
     >
-      {/* Unread indicator */}
-      <div className='mt-1.5'>
-        {isUnread ? (
-          <div className='h-2 w-2 rounded-full bg-primary' />
-        ) : (
-          <div className='h-2 w-2 rounded-full bg-transparent' />
-        )}
-      </div>
-
-      {/* Content */}
-      <div className='flex-1 min-w-0 space-y-1'>
-        <div className='flex items-start justify-between gap-2'>
-          <h3
-            className={cn(
-              'text-sm leading-snug',
-              isUnread ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'
-            )}
-          >
-            {title}
-          </h3>
-          <div className='flex items-center gap-2 shrink-0'>
-            {createdAt && (
-              <span className='text-muted-foreground text-xs whitespace-nowrap'>
-                {formatDate(createdAt)}
-              </span>
-            )}
-            {isUnread && onMarkAsRead && (
-              <button
-                type='button'
-                onClick={() => onMarkAsRead(id)}
-                className='rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100'
-                aria-label='Mark as read'
-              >
-                <Icons.check size={14} />
-              </button>
-            )}
-          </div>
+      <div className='flex gap-2.5'>
+        <div className='mt-1.5 w-2 shrink-0'>
+          {isUnread ? (
+            <span className='block size-2 rounded-full bg-brand shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_35%,transparent)]' />
+          ) : null}
         </div>
 
-        <p className={cn('text-sm', isUnread ? 'text-muted-foreground' : 'text-muted-foreground/70')}>
-          {body}
-        </p>
-
-        {/* Actions */}
-        {actions.length > 0 && (
-          <div className={cn('flex flex-wrap items-center gap-2 pt-1', !isUnread && 'opacity-60')}>
-            {actions.map((action) => {
-              const isLoading = loadingActionId === action.id;
-              const isExecuted = action.executed || false;
-              const showLoading = isLoading && action.type !== 'modal';
-
-              return (
+        <div className='min-w-0 flex-1'>
+          <div className='flex items-start gap-3'>
+            <h3
+              className={cn(
+                'min-w-0 flex-1 text-sm leading-snug',
+                isUnread
+                  ? 'font-semibold text-foreground'
+                  : 'font-medium text-muted-foreground'
+              )}
+            >
+              {title}
+            </h3>
+            <div className='flex shrink-0 items-center gap-1'>
+              {createdAt ? (
+                <span className='font-mono text-[11px] whitespace-nowrap tabular-nums text-muted-foreground'>
+                  {formatDate(createdAt)}
+                </span>
+              ) : null}
+              {isUnread && onMarkAsRead ? (
                 <button
-                  key={action.id}
                   type='button'
-                  disabled={isLoading || isExecuted}
-                  onClick={() => onAction?.(id, action.id, action.type)}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition-colors',
-                    action.style === 'primary'
-                      ? 'border-primary/30 text-primary hover:bg-primary/5'
-                      : action.style === 'danger'
-                        ? 'border-destructive/30 text-destructive hover:bg-destructive/5'
-                        : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                    showLoading && 'opacity-50',
-                    isExecuted && 'cursor-not-allowed opacity-60'
-                  )}
+                  onClick={() => onMarkAsRead(id)}
+                  className='rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100'
+                  aria-label='Mark as read'
                 >
-                  {showLoading ? (
-                    <Icons.spinner size={12} className='animate-spin' />
-                  ) : (
-                    <>
-                      <span>{action.label}</span>
-                      {isExecuted ? (
-                        <Icons.check size={12} strokeWidth={2.5} />
-                      ) : (
-                        getActionIcon(action.type)
-                      )}
-                    </>
-                  )}
+                  <Icons.check className='size-3.5' />
                 </button>
-              );
-            })}
+              ) : null}
+            </div>
           </div>
-        )}
+
+          <p
+            className={cn(
+              'mt-1 text-xs leading-relaxed',
+              isUnread ? 'text-muted-foreground' : 'text-muted-foreground/75',
+              compact && 'line-clamp-2'
+            )}
+          >
+            {body}
+          </p>
+
+          {actions.length > 0 ? (
+            <div
+              className={cn(
+                'mt-2 flex flex-wrap items-center gap-1.5',
+                !isUnread && 'opacity-70'
+              )}
+            >
+              {actions.map((action) => {
+                const isLoading = loadingActionId === action.id;
+                const isExecuted = action.executed || false;
+                const showLoading = isLoading && action.type !== 'modal';
+                const isPrimary = action.style === 'primary';
+
+                return (
+                  <button
+                    key={action.id}
+                    type='button'
+                    disabled={isLoading || isExecuted}
+                    onClick={() => onAction?.(id, action.id, action.type)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
+                      isPrimary
+                        ? 'border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground hover:brightness-95'
+                        : action.style === 'danger'
+                          ? 'border border-destructive/30 text-destructive hover:bg-destructive/5'
+                          : 'border border-border bg-card text-muted-foreground hover:text-foreground',
+                      showLoading && 'opacity-50',
+                      isExecuted && 'cursor-not-allowed opacity-60'
+                    )}
+                  >
+                    {showLoading ? (
+                      <Icons.spinner className='size-3 animate-spin' />
+                    ) : (
+                      <>
+                        <span>{action.label}</span>
+                        {isExecuted ? (
+                          <Icons.check className='size-3' strokeWidth={2.5} />
+                        ) : (
+                          getActionIcon(action.type)
+                        )}
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

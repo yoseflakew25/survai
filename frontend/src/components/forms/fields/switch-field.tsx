@@ -1,5 +1,6 @@
 'use client';
 
+import { Controller } from 'react-hook-form';
 import {
   Field,
   FieldContent,
@@ -8,30 +9,35 @@ import {
   FieldLabel
 } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
-import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';
+import { useFormField, type BaseFieldProps } from '@/lib/form-context';
 
-export function SwitchField({ label, description, required }: BaseFieldProps) {
-  const field = useFieldContext<boolean>();
-  const isInvalid = useFieldInvalid();
+export function SwitchField({ name, label, description, required }: BaseFieldProps) {
+  const { control, isInvalid, errorMessage } = useFormField(name);
 
   return (
-    <Field orientation='horizontal' data-invalid={isInvalid}>
-      <FieldContent>
-        <FieldLabel htmlFor={field.name}>
-          {label}
-          {required && ' *'}
-        </FieldLabel>
-        {description && <FieldDescription>{description}</FieldDescription>}
-        {isInvalid && <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />}
-      </FieldContent>
-      <Switch
-        id={field.name}
-        name={field.name}
-        checked={field.state.value}
-        onCheckedChange={field.handleChange}
-        aria-invalid={isInvalid}
-        aria-describedby={isInvalid ? `${field.name}-error` : undefined}
-      />
-    </Field>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <Field orientation='horizontal' data-invalid={isInvalid}>
+          <FieldContent>
+            <FieldLabel htmlFor={name}>
+              {label}
+              {required ? ' *' : null}
+            </FieldLabel>
+            {description ? <FieldDescription>{description}</FieldDescription> : null}
+            {isInvalid ? <FieldError id={`${name}-error`} errors={errorMessage} /> : null}
+          </FieldContent>
+          <Switch
+            id={name}
+            name={field.name}
+            checked={field.value}
+            onCheckedChange={field.onChange}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? `${name}-error` : undefined}
+          />
+        </Field>
+      )}
+    />
   );
 }

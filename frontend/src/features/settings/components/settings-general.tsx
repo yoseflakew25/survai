@@ -16,7 +16,7 @@ export function SettingsGeneral() {
       {/* Organization */}
       <div className='rounded-xl border bg-card'>
         <div className='border-b px-6 py-4'>
-          <h3 className='font-semibold text-primary'>Organization</h3>
+          <h3 className='font-display font-bold tracking-tight text-foreground'>Organization</h3>
           <p className='text-muted-foreground mt-0.5 text-sm'>
             Basic information about your organization.
           </p>

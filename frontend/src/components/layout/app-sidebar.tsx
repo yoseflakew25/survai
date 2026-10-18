@@ -31,10 +31,75 @@ import { useFilteredNavGroups } from '@/hooks/use-nav';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { Icons } from '../icons';
 import { useLogo } from '@/hooks/use-logo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+
+/** True when pathname is the href or a nested child route under it. */
+function isNavActive(pathname: string, href: string): boolean {
+  if (!href || href === '#') return false;
+  if (pathname === href) return true;
+  const base = href.endsWith('/') ? href.slice(0, -1) : href;
+  return pathname.startsWith(`${base}/`);
+}
+
+function NavCollapsibleItem({
+  item,
+  isActive,
+  IconComponent,
+  pathname
+}: {
+  item: {
+    title: string;
+    url: string;
+    items?: { title: string; url: string }[];
+  };
+  isActive: boolean;
+  IconComponent: ComponentType<React.SVGProps<SVGSVGElement>> | null;
+  pathname: string;
+}) {
+  const [open, setOpen] = useState(isActive);
+
+  useEffect(() => {
+    if (isActive) setOpen(true);
+  }, [isActive]);
+
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      render={<SidebarMenuItem />}
+    >
+      <CollapsibleTrigger
+        render={
+          <SidebarMenuButton tooltip={item.title} isActive={isActive} />
+        }
+      >
+        {IconComponent ? <IconComponent className='size-4 shrink-0' /> : null}
+        <span className='flex-1 group-data-[collapsible=icon]:hidden'>
+          {item.title}
+        </span>
+        <Icons.chevronRight className='ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden group-data-panel-open/collapsible:rotate-90' />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {item.items?.map((subItem) => (
+            <SidebarMenuSubItem key={subItem.title}>
+              <SidebarMenuSubButton
+                render={<Link href={subItem.url} aria-label={subItem.title} />}
+                isActive={isNavActive(pathname, subItem.url)}
+              >
+                <span>{subItem.title}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -79,42 +144,19 @@ export default function AppSidebar() {
                   ? (Icons[item.icon] as ComponentType<React.SVGProps<SVGSVGElement>>)
                   : null;
                 const hasChildren = item?.items && item?.items.length > 0;
-                const isActive = pathname === item.url || item.items?.some((sub) => pathname === sub.url);
+                const isActive =
+                  isNavActive(pathname, item.url) ||
+                  Boolean(item.items?.some((sub) => isNavActive(pathname, sub.url)));
 
                 if (hasChildren) {
                   return (
-                    <Collapsible
+                    <NavCollapsibleItem
                       key={item.title}
-                      defaultOpen={isActive}
-                      render={<SidebarMenuItem />}
-                    >
-                      <CollapsibleTrigger
-                        render={
-                          <SidebarMenuButton
-                            tooltip={item.title}
-                            isActive={isActive}
-                          />
-                        }
-                      >
-                        {IconComponent && <IconComponent className='size-4 shrink-0' />}
-                        <span className='flex-1 group-data-[collapsible=icon]:hidden'>{item.title}</span>
-                        <Icons.chevronRight className='ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden group-data-panel-open/collapsible:rotate-90' />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items?.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton
-                                render={<Link href={subItem.url} aria-label={subItem.title} />}
-                                isActive={pathname === subItem.url}
-                              >
-                                <span>{subItem.title}</span>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </Collapsible>
+                      item={item}
+                      isActive={isActive}
+                      IconComponent={IconComponent}
+                      pathname={pathname}
+                    />
                   );
                 }
 
@@ -123,7 +165,7 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       render={<Link href={item.url} aria-label={item.title} />}
                       tooltip={item.title}
-                      isActive={pathname === item.url}
+                      isActive={isNavActive(pathname, item.url)}
                     >
                       {IconComponent && <IconComponent className='size-4 shrink-0' />}
                       <span className='flex-1 group-data-[collapsible=icon]:hidden'>{item.title}</span>

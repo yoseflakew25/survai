@@ -8,7 +8,7 @@ import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Review Survey | Survey Copilot'
+  title: 'Review'
 };
 
 export default async function ReviewPage({

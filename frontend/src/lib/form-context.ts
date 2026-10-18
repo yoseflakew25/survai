@@ -1,23 +1,46 @@
 'use client';
 
-import { createFormHookContexts } from '@tanstack/react-form';
+import { useFormContext, type FieldError as RHFFieldError } from 'react-hook-form';
 
-export const { fieldContext, formContext, useFieldContext, useFormContext } =
-  createFormHookContexts();
-
-/**
- * The doc's "touched + invalid" check, shared by every field component:
- * errors surface after the user interacts with a field or a submit paints it.
- */
-export function useFieldInvalid() {
-  const field = useFieldContext();
-  return field.state.meta.isTouched && !field.state.meta.isValid;
-}
-
-/** Props every field component shares. */
+/** Props every field component shares. `name` binds the field to RHF. */
 export type BaseFieldProps = {
+  name: string;
   label: string;
   description?: string;
   /** Appends ' *' to the label. Purely visual — rules live in the schema. */
   required?: boolean;
 };
+
+function getPath(obj: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((acc, key) => {
+    if (acc == null || typeof acc !== 'object') return undefined;
+    return (acc as Record<string, unknown>)[key];
+  }, obj);
+}
+
+/**
+ * Shared field state for RHF + FormProvider. Errors show after the field is
+ * touched or the form has been submitted.
+ */
+export function useFormField(name: string) {
+  const {
+    control,
+    formState: { errors, touchedFields, dirtyFields, isSubmitted, isSubmitting }
+  } = useFormContext();
+
+  const error = getPath(errors, name) as RHFFieldError | undefined;
+  const touched = !!getPath(touchedFields, name);
+  const dirty = !!getPath(dirtyFields, name);
+  const isInvalid = !!error && (touched || dirty || isSubmitted);
+  const errorMessage = error?.message
+    ? [{ message: String(error.message) }]
+    : undefined;
+
+  return {
+    control,
+    name,
+    isInvalid,
+    errorMessage,
+    isSubmitting
+  };
+}

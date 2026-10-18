@@ -1,0 +1,32 @@
+---
+description: Canonical frontend stack — prefer these libraries for all new work
+globs: **/*.{ts,tsx,js,jsx}
+alwaysApply: false
+---
+
+# Frontend stack (canonical)
+
+Use these libraries for **all new frontend work**. Do not introduce alternatives.
+
+| Concern | Library |
+| --- | --- |
+| UI primitives | **shadcn/ui** (`src/components/ui/`) |
+| Auth security | **JWT + httpOnly cookies** (API issues/validates — see `plan.md` §7) |
+| Auth FE UX | **Better Auth** (sign-in/up UI + client helpers on top of JWT+cookies) |
+| Server/async state | **TanStack Query** (`@tanstack/react-query`) |
+| Forms | **React Hook Form** + **Zod** (via `@hookform/resolvers`) |
+| Client UI state | **Zustand** |
+| Validation / schemas | **Zod** |
+
+## Rules
+
+- **Forms**: `useForm` + `FormProvider` + Zod (`zodResolver`) + `@/components/forms/fields`. Never use TanStack Form.
+- **Data fetching**: TanStack Query only (`queryOptions`, `useSuspenseQuery` / `useQuery`, `useMutation`). No SWR, no ad-hoc `useEffect` + `fetch` for feature data.
+- **Auth**: JWT + cookies are the real security model. Better Auth is FE UX only — do not treat it as a parallel auth backend. No Clerk. No access tokens in `localStorage`.
+- **UI**: Extend or compose shadcn components; do not add parallel UI kits (MUI, Chakra, etc.).
+- **Local state**: Zustand for cross-component client state; React state for local UI; nuqs for URL state (tables/filters).
+
+## Legacy (do not expand)
+
+- TanStack Form — removed; do not reintroduce.
+- Clerk docs / cleanup templates — ignore for new features.

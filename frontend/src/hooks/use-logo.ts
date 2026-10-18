@@ -21,7 +21,7 @@ export function useLogo(collapsed: boolean = false) {
       ? '/images/logo/logo-full-dark-mode.svg'
       : '/images/logo/logo-full-light-mode.svg';
 
-  const alt = 'SurvAI';
+  const alt = 'Survai';
 
   return { logo, alt, isDark };
 }

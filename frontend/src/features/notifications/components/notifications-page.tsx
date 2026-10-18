@@ -3,22 +3,22 @@
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { NotificationCard } from '@/components/ui/notification-card';
 import { useRouter } from 'next/navigation';
 import { useNotificationStore, type Notification } from '../utils/store';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { SurvaiPanel } from '@/components/survai-panel';
 
 type NotifTab = 'all' | 'unread' | 'surveys' | 'reviews' | 'reports' | 'team';
 
-const navItems: { id: NotifTab; label: string; icon: keyof typeof Icons }[] = [
-  { id: 'all', label: 'All', icon: 'notification' },
-  { id: 'unread', label: 'Unread', icon: 'mail' },
-  { id: 'surveys', label: 'Surveys', icon: 'survey' },
-  { id: 'reviews', label: 'Reviews', icon: 'review' },
-  { id: 'reports', label: 'Reports', icon: 'report' },
-  { id: 'team', label: 'Team', icon: 'teams' }
+const filters: { id: NotifTab; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
+  { id: 'surveys', label: 'Surveys' },
+  { id: 'reviews', label: 'Reviews' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'team', label: 'Team' }
 ];
 
 const actionRoutes: Record<string, string> = {
@@ -26,7 +26,8 @@ const actionRoutes: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
-  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotificationStore();
+  const { notifications, markAsRead, markAllAsRead, unreadCount } =
+    useNotificationStore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<NotifTab>('all');
   const count = unreadCount();
@@ -39,131 +40,146 @@ export default function NotificationsPage() {
 
   const getFilteredNotifications = () => {
     switch (activeTab) {
-      case 'all': return notifications;
-      case 'unread': return unreadNotifications;
-      case 'surveys': return surveyNotifications;
-      case 'reviews': return reviewNotifications;
-      case 'reports': return reportNotifications;
-      case 'team': return teamNotifications;
-      default: return notifications;
+      case 'all':
+        return notifications;
+      case 'unread':
+        return unreadNotifications;
+      case 'surveys':
+        return surveyNotifications;
+      case 'reviews':
+        return reviewNotifications;
+      case 'reports':
+        return reportNotifications;
+      case 'team':
+        return teamNotifications;
+      default:
+        return notifications;
     }
   };
 
   const getCount = (tab: NotifTab) => {
     switch (tab) {
-      case 'all': return notifications.length;
-      case 'unread': return count;
-      case 'surveys': return surveyNotifications.length;
-      case 'reviews': return reviewNotifications.length;
-      case 'reports': return reportNotifications.length;
-      case 'team': return teamNotifications.length;
-      default: return 0;
+      case 'all':
+        return notifications.length;
+      case 'unread':
+        return count;
+      case 'surveys':
+        return surveyNotifications.length;
+      case 'reviews':
+        return reviewNotifications.length;
+      case 'reports':
+        return reportNotifications.length;
+      case 'team':
+        return teamNotifications.length;
+      default:
+        return 0;
     }
   };
 
-  const renderList = (items: Notification[]) => {
-    if (items.length === 0) {
-      return (
-        <div className='flex flex-col items-center justify-center py-20'>
-          <div className='bg-muted/50 mb-4 rounded-full p-4'>
-            <Icons.notification className='text-muted-foreground/30 size-8' />
-          </div>
-          <p className='text-foreground font-medium'>No notifications</p>
-          <p className='text-muted-foreground mt-1 text-sm'>
-            You&apos;re all caught up. Check back later.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className='rounded-xl border divide-y'>
-        {items.map((notification) => (
-          <NotificationCard
-            key={notification.id}
-            id={notification.id}
-            title={notification.title}
-            body={notification.body}
-            status={notification.status}
-            createdAt={notification.createdAt}
-            actions={notification.actions}
-            onMarkAsRead={markAsRead}
-            onAction={(notifId, actionId) => {
-              const route = actionRoutes[actionId];
-              if (route) {
-                markAsRead(notifId);
-                router.push(route);
-              }
-            }}
-          />
-        ))}
-      </div>
-    );
-  };
+  const filtered = getFilteredNotifications();
 
   return (
-    <div className='flex flex-1 flex-col px-4 pt-2 pb-4 md:px-6 md:pt-4'>
-      <div className='mb-6'>
-        <h1 className='text-2xl font-bold tracking-tight text-primary dark:text-white'>Notifications</h1>
-        <p className='text-muted-foreground text-sm'>
-          Stay updated on your surveys, reviews, and team activity.
-        </p>
-      </div>
+    <div className='mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
+      <header className='mb-5 flex flex-wrap items-end justify-between gap-3'>
+        <div>
+          <div className='flex flex-wrap items-center gap-2.5'>
+            <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+              Notifications
+            </h1>
+            {count > 0 ? (
+              <Badge className='border-transparent bg-brand text-brand-foreground'>
+                {count} unread
+              </Badge>
+            ) : null}
+          </div>
+          <p className='text-muted-foreground mt-1 text-sm'>
+            Surveys, reviews, reports, and team activity.
+          </p>
+        </div>
+        {count > 0 ? (
+          <Button variant='outline' size='sm' onClick={markAllAsRead}>
+            <Icons.check className='mr-1.5 size-3.5' />
+            Mark all as read
+          </Button>
+        ) : null}
+      </header>
 
-      <div className='flex flex-1 gap-6'>
-        {/* Sidebar */}
-        <nav className='w-48 shrink-0'>
-          <div className='space-y-1'>
-            {navItems.map((item) => {
-              const Icon = Icons[item.icon];
-              const isActive = activeTab === item.id;
-              const tabCount = getCount(item.id);
-              const hasUnread = item.id === 'unread' && count > 0;
+      <div
+        role='tablist'
+        aria-label='Notification filters'
+        className='mb-4 flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+      >
+        {filters.map((item) => {
+          const isActive = activeTab === item.id;
+          const tabCount = getCount(item.id);
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+          return (
+            <button
+              key={item.id}
+              type='button'
+              role='tab'
+              aria-selected={isActive}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-foreground text-background'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {item.label}
+              {tabCount > 0 ? (
+                <span
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    'font-mono text-[11px] tabular-nums',
+                    isActive ? 'text-background/70' : 'text-muted-foreground'
                   )}
                 >
-                  <Icon className='size-5' />
-                  <span className='flex-1 text-left'>{item.label}</span>
-                  {tabCount > 0 && (
-                    <Badge
-                      variant={hasUnread ? 'default' : 'secondary'}
-                      className='h-5 px-1.5 text-[10px]'
-                    >
-                      {tabCount}
-                    </Badge>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Mark all as read */}
-          {count > 0 && (
-            <div className='mt-6 pt-4 border-t'>
-              <Button variant='outline' size='sm' className='w-full' onClick={markAllAsRead}>
-                <Icons.check className='mr-2 size-4' />
-                Mark all as read
-              </Button>
-            </div>
-          )}
-        </nav>
-
-        <Separator orientation='vertical' className='h-auto' />
-
-        {/* Content */}
-        <div className='flex-1 min-w-0'>
-          {renderList(getFilteredNotifications())}
-        </div>
+                  {tabCount}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
+
+      <SurvaiPanel>
+        {filtered.length === 0 ? (
+          <div className='flex flex-col items-center justify-center px-6 py-16 text-center'>
+            <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-foreground'>
+              <Icons.notification className='size-5' />
+            </div>
+            <p className='font-display font-bold tracking-tight text-foreground'>
+              No notifications
+            </p>
+            <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
+              You&apos;re all caught up. New activity will show up here.
+            </p>
+          </div>
+        ) : (
+          <div className='divide-y divide-border'>
+            {filtered.map((notification) => (
+              <NotificationCard
+                key={notification.id}
+                id={notification.id}
+                title={notification.title}
+                body={notification.body}
+                status={notification.status}
+                createdAt={notification.createdAt}
+                actions={notification.actions}
+                onMarkAsRead={markAsRead}
+                onAction={(notifId, actionId) => {
+                  const route = actionRoutes[actionId];
+                  if (route) {
+                    markAsRead(notifId);
+                    router.push(route);
+                  }
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </SurvaiPanel>
     </div>
   );
 }

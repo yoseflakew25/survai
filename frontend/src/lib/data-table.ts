@@ -14,14 +14,15 @@ export function getCommonPinningStyles<TData>({
 
   return {
     boxShadow: isLastLeftPinnedColumn
-      ? '-5px 0 5px -5px var(--border) inset'
+      ? '-4px 0 8px -6px color-mix(in srgb, var(--foreground) 12%, transparent)'
       : isFirstRightPinnedColumn
-        ? '5px 0 5px -5px var(--border) inset'
+        ? '4px 0 8px -6px color-mix(in srgb, var(--foreground) 12%, transparent)'
         : undefined,
     left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
     right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
     position: isPinned ? 'sticky' : 'relative',
-    background: isPinned ? 'var(--background)' : undefined,
+    // Match table card surface — paper `--background` looked like a beige stripe
+    background: isPinned ? 'var(--card)' : undefined,
     width: column.getSize(),
     zIndex: isPinned ? 1 : 0
   };

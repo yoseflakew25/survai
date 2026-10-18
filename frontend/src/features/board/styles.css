@@ -1,0 +1,348 @@
+/* Launchpot board visual system — scoped to .lp so dashboard themes stay intact */
+
+html:has(.lp),
+html:has(.lp) body {
+  background: #f7f7f2 !important;
+}
+
+html.dark:has(.lp),
+html.dark:has(.lp) body {
+  background: #0d0e0b !important;
+}
+
+.lp {
+  --background: #f7f7f2;
+  --foreground: #111210;
+  --card: #fff;
+  --card-foreground: #111210;
+  --popover: #fff;
+  --popover-foreground: #111210;
+  --primary: #111210;
+  --primary-foreground: #fbfbf7;
+  --secondary: #efefe8;
+  --secondary-foreground: #111210;
+  --muted: #f1f1eb;
+  --muted-foreground: #62655e;
+  --accent: #f1f1eb;
+  --accent-foreground: #111210;
+  --destructive: #ef4444;
+  --border: #e6e6de;
+  --input: #e6e6de;
+  --ring: #111210;
+  --brand: #c6f432;
+  --brand-foreground: #111210;
+  --brand-strong: #3d7a00;
+  --brand-soft: #f1fccf;
+  --gold: #f5b300;
+  --radius: 0.875rem;
+  --shadow-sm: 0 1px 3px 0 #0000001a, 0 1px 2px -1px #0000001a;
+  --font-display: var(--font-bricolage), 'Bricolage Grotesque', Geist, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans), Geist, sans-serif;
+}
+
+.dark .lp,
+.lp.dark {
+  --background: #0d0e0b;
+  --foreground: #f4f5ef;
+  --card: #171814;
+  --card-foreground: #f4f5ef;
+  --popover: #171814;
+  --popover-foreground: #f4f5ef;
+  --primary: #f4f5ef;
+  --primary-foreground: #0d0e0b;
+  --secondary: #24261f;
+  --secondary-foreground: #f4f5ef;
+  --muted: #1c1d18;
+  --muted-foreground: #a3a69b;
+  --accent: #202119;
+  --accent-foreground: #f4f5ef;
+  --destructive: #f87171;
+  --border: #2a2c24;
+  --input: #2a2c24;
+  --ring: #f4f5ef;
+  --brand: #c6f432;
+  --brand-foreground: #111210;
+  --brand-strong: #c6f432;
+  --brand-soft: #232b0f;
+  --gold: #ffc53d;
+}
+
+.lp .font-display {
+  font-family: var(--font-bricolage), 'Bricolage Grotesque', Geist, sans-serif !important;
+}
+
+.lp .font-mono {
+  font-family: var(--font-mono), 'Geist Mono', ui-monospace, monospace !important;
+}
+
+.lp .bg-background {
+  background-color: var(--background);
+}
+.lp .bg-card {
+  background-color: var(--card);
+}
+.lp .bg-secondary {
+  background-color: var(--secondary);
+}
+.lp .bg-muted {
+  background-color: var(--muted);
+}
+.lp .bg-brand {
+  background-color: var(--brand);
+}
+.lp .bg-brand-soft\/60 {
+  background-color: color-mix(in srgb, var(--brand-soft) 60%, transparent);
+}
+.lp .bg-gold {
+  background-color: var(--gold);
+}
+.lp .bg-foreground {
+  background-color: var(--foreground);
+}
+.lp .bg-accent {
+  background-color: var(--accent);
+}
+
+.lp .text-foreground {
+  color: var(--foreground);
+}
+.lp .text-muted-foreground {
+  color: var(--muted-foreground);
+}
+.lp .text-background {
+  color: var(--background);
+}
+.lp .text-brand-foreground {
+  color: var(--brand-foreground);
+}
+
+.lp .border-border {
+  border-color: var(--border);
+}
+.lp .border-border\/60 {
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
+}
+.lp .border-foreground {
+  border-color: var(--foreground);
+}
+.lp .border-foreground\/40 {
+  border-color: color-mix(in srgb, var(--foreground) 40%, transparent);
+}
+
+.lp .pill-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+  box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 2px;
+}
+
+.lp .pill-card:hover {
+  border-color: color-mix(in srgb, var(--foreground) 16%, var(--border));
+}
+
+.lp .btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: var(--brand);
+  color: var(--brand-foreground);
+  border: 1px solid color-mix(in srgb, var(--brand) 70%, var(--foreground));
+  border-radius: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 25%, transparent);
+  transition:
+    transform 0.15s,
+    filter 0.15s,
+    box-shadow 0.15s;
+}
+
+.lp .btn-back:hover {
+  filter: brightness(1.04) saturate(1.1);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 35%, transparent);
+}
+
+.lp .btn-back:active {
+  transform: scale(0.97);
+}
+
+.lp .board {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  border-radius: 1.125rem;
+  overflow: hidden;
+}
+
+.lp .board-row {
+  transition: background-color 0.15s;
+  animation: lp-row-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.lp .board-row + .board-row {
+  border-top: 1px solid var(--border);
+}
+
+.lp .board-row:hover {
+  background: color-mix(in srgb, var(--muted) 80%, var(--card));
+}
+
+@keyframes lp-row-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lp .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--brand-strong);
+  animation: lp-live-pulse 2.2s ease-out infinite;
+}
+
+.dark .lp .live-dot,
+.lp.dark .live-dot {
+  background: var(--brand);
+}
+
+@keyframes lp-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 70%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.lp .hl {
+  background: linear-gradient(
+    transparent 58%,
+    var(--brand) 58%,
+    var(--brand) 92%,
+    transparent 92%
+  );
+  padding: 0 0.08em;
+}
+
+.dark .lp .hl,
+.lp.dark .hl {
+  color: var(--brand);
+  background: none;
+}
+
+.lp .dot-grid {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 12%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 18px 18px;
+  mask-image: linear-gradient(rgb(0, 0, 0), rgba(0, 0, 0, 0) 85%);
+}
+
+.lp .rise {
+  animation: lp-row-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp .board-row,
+  .lp .live-dot,
+  .lp .rise {
+    animation: none;
+  }
+}
+
+.lp ::selection {
+  background: color-mix(in srgb, var(--brand) 55%, transparent);
+  color: var(--foreground);
+}
+
+/* Auth showcase panel */
+.lp .bg-grid {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--foreground) 6%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--foreground) 6%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  mask-image: radial-gradient(85% 65% at 50% 0px, #000 8%, transparent 80%);
+}
+
+.lp .matrix-rain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.3;
+  background-image: radial-gradient(circle at center, var(--foreground) 0 1px, transparent 1.3px);
+  background-size: 7px 7px;
+  mask-image:
+    linear-gradient(#000 0%, #000 12%, transparent 88%),
+    radial-gradient(64% 86% at 76% 4%, #000 8%, transparent 76%);
+  mask-composite: intersect;
+}
+
+.lp .bg-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    58% 52% at 50% 0%,
+    color-mix(in oklab, var(--foreground) 9%, transparent),
+    transparent 74%
+  );
+}
+
+.lp .ghost-drift {
+  animation: lp-ghost-drift 40s ease-in-out infinite;
+}
+
+@keyframes lp-ghost-drift {
+  0%,
+  100% {
+    transform: translate(0%);
+  }
+  50% {
+    transform: translate(-1.5%, -1%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp .ghost-drift {
+    animation: none;
+  }
+}
+
+.lp .auth-panel-tint {
+  background: color-mix(in srgb, var(--foreground) 2%, transparent);
+}
+
+.dark .lp .auth-panel-tint,
+.lp.dark .auth-panel-tint {
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}

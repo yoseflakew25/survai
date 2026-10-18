@@ -1,5 +1,6 @@
 'use client';
 
+import { Controller } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Field,
@@ -8,31 +9,36 @@ import {
   FieldError,
   FieldLabel
 } from '@/components/ui/field';
-import { useFieldContext, useFieldInvalid, type BaseFieldProps } from '@/lib/form-context';
+import { useFormField, type BaseFieldProps } from '@/lib/form-context';
 
 /** Single boolean checkbox (terms, consent, …). */
-export function CheckboxField({ label, description, required }: BaseFieldProps) {
-  const field = useFieldContext<boolean>();
-  const isInvalid = useFieldInvalid();
+export function CheckboxField({ name, label, description, required }: BaseFieldProps) {
+  const { control, isInvalid, errorMessage } = useFormField(name);
 
   return (
-    <Field orientation='horizontal' data-invalid={isInvalid}>
-      <Checkbox
-        id={field.name}
-        name={field.name}
-        checked={field.state.value}
-        onCheckedChange={(checked) => field.handleChange(checked === true)}
-        aria-invalid={isInvalid}
-        aria-describedby={isInvalid ? `${field.name}-error` : undefined}
-      />
-      <FieldContent>
-        <FieldLabel htmlFor={field.name} className='font-normal'>
-          {label}
-          {required && ' *'}
-        </FieldLabel>
-        {description && <FieldDescription>{description}</FieldDescription>}
-        {isInvalid && <FieldError id={`${field.name}-error`} errors={field.state.meta.errors} />}
-      </FieldContent>
-    </Field>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <Field orientation='horizontal' data-invalid={isInvalid}>
+          <Checkbox
+            id={name}
+            name={field.name}
+            checked={field.value}
+            onCheckedChange={(checked) => field.onChange(checked === true)}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? `${name}-error` : undefined}
+          />
+          <FieldContent>
+            <FieldLabel htmlFor={name} className='font-normal'>
+              {label}
+              {required ? ' *' : null}
+            </FieldLabel>
+            {description ? <FieldDescription>{description}</FieldDescription> : null}
+            {isInvalid ? <FieldError id={`${name}-error`} errors={errorMessage} /> : null}
+          </FieldContent>
+        </Field>
+      )}
+    />
   );
 }

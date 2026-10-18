@@ -60,29 +60,37 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
         const IconComponent = Icons[stat.icon];
 
         return (
-          <div key={stat.title} className='rounded-lg bg-muted/40 p-3'>
+          <div
+            key={stat.title}
+            className='rounded-xl border border-border bg-muted/40 p-3'
+          >
             <div className='flex items-center justify-between gap-2'>
               <p className='text-muted-foreground text-[10px] font-medium tracking-wide uppercase'>
                 {stat.title}
               </p>
-              {IconComponent && (
-                <IconComponent className='text-primary h-4 w-4 shrink-0' />
-              )}
+              {IconComponent ? (
+                <IconComponent className='size-4 shrink-0 text-foreground' />
+              ) : null}
             </div>
-          <div className='mt-1 flex items-center justify-between gap-2'>
-            <p className='text-xl font-semibold tabular-nums'>{stat.value}</p>
-            {stat.trend && (
-              <Badge variant='outline' className='text-[10px]'>
-                {stat.trendUp ? (
-                  <Icons.trendingUp className='h-2.5 w-2.5' />
-                ) : (
-                  <Icons.trendingDown className='h-2.5 w-2.5' />
-                )}
-                {stat.trend}
-              </Badge>
-            )}
-          </div>
-          <p className='text-muted-foreground mt-1 text-xs'>{stat.description}</p>
+            <div className='mt-1 flex items-center justify-between gap-2'>
+              <p className='font-display text-xl font-extrabold tracking-tight tabular-nums'>
+                {stat.value}
+              </p>
+              {stat.trend ? (
+                <Badge
+                  variant='outline'
+                  className='rounded-full border-transparent bg-brand-soft text-[10px] text-foreground'
+                >
+                  {stat.trendUp ? (
+                    <Icons.trendingUp className='h-2.5 w-2.5' />
+                  ) : (
+                    <Icons.trendingDown className='h-2.5 w-2.5' />
+                  )}
+                  {stat.trend}
+                </Badge>
+              ) : null}
+            </div>
+            <p className='text-muted-foreground mt-1 text-xs'>{stat.description}</p>
           </div>
         );
       })}

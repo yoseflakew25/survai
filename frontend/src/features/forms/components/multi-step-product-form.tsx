@@ -1,19 +1,19 @@
 'use client';
 
-import * as React from 'react';
-import { revalidateLogic, useStore } from '@tanstack/react-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '@/lib/toast';
 import * as z from 'zod';
 import { Icons } from '@/components/icons';
 import { FieldDescription, FieldGroup } from '@/components/ui/field';
 import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAppForm } from '@/lib/form';
 import { useFormStepper } from '@/hooks/use-stepper';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-
-// --- Schema ---
+import { TextField } from '@/components/forms/fields/text-field';
+import { TextareaField } from '@/components/forms/fields/textarea-field';
+import { SelectField } from '@/components/forms/fields/select-field';
 
 const productFormSchema = z.object({
   name: z.string().min(2, 'Product name must be at least 2 characters'),
@@ -23,11 +23,8 @@ const productFormSchema = z.object({
 });
 
 const stepSchemas = [
-  // Step 1: Basic Info
   productFormSchema.pick({ name: true, category: true, price: true }),
-  // Step 2: Details
   productFormSchema.pick({ description: true }),
-  // Step 3: Review (no validation)
   z.object({})
 ];
 
@@ -38,16 +35,14 @@ const categoryOptions = [
   { value: 'sports', label: 'Sports & Outdoors' }
 ];
 
-// --- Review summary (reads form values) ---
-
 function ReviewSummary({
   values
 }: {
   values: {
-    name: string;
-    category: string;
+    name?: string;
+    category?: string;
     price?: number;
-    description: string;
+    description?: string;
   };
 }) {
   return (
@@ -75,187 +70,149 @@ function ReviewSummary({
   );
 }
 
-// --- Main Form ---
-
-type ProductFormValues = {
-  name: string;
-  category: string;
-  price: number | undefined;
-  description: string;
-};
+type ProductFormValues = z.infer<typeof productFormSchema>;
 
 export default function MultiStepProductForm() {
-  const {
-    currentValidator,
-    step,
-    currentStep,
-    isFirstStep,
-    handleCancelOrBack,
-    handleNextStepOrSubmit
-  } = useFormStepper(stepSchemas, { fullSchema: productFormSchema });
+  const { step, currentStep, isFirstStep, handleCancelOrBack, handleNextStepOrSubmit } =
+    useFormStepper(stepSchemas, { fullSchema: productFormSchema });
 
-  const form = useAppForm({
+  const form = useForm({
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: '',
       category: '',
-      price: undefined,
+      price: undefined as unknown as number,
       description: ''
-    } as ProductFormValues,
-    validationLogic: revalidateLogic(),
-    validators: {
-      onDynamic: currentValidator as typeof productFormSchema,
-      onDynamicAsyncDebounceMs: 500
     },
-    onSubmit: () => {
-      toast.success('Product created successfully!');
-    }
+    mode: 'onSubmit'
   });
 
-  const isDefault = useStore(form.store, (state) => state.isDefaultValue);
-  const formValues = useStore(form.store, (state) => state.values);
+  const formValues = useWatch({ control: form.control });
+  const isDirty = form.formState.isDirty;
+
+  function onSubmit(_values: ProductFormValues) {
+    toast.success('Product created successfully!');
+  }
 
   const handleNext = async () => {
-    await handleNextStepOrSubmit(form);
+    await handleNextStepOrSubmit(form, onSubmit);
   };
 
   const totalSteps = 3;
 
   return (
-    /* Every submit (Enter key, the review step's submit button) routes
-       through the stepper gate — calling form.handleSubmit directly on a
-       non-final step would validate only that step's schema and submit. */
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        void handleNext();
-      }}
-      noValidate
-      className='mx-auto flex w-full flex-col gap-2 p-0'
-    >
-      <div className='flex flex-col gap-2 pt-3'>
-        <div className='flex flex-col items-center justify-start gap-1'>
-          <span className='text-muted-foreground text-sm'>
-            Step {currentStep} of {totalSteps}
-          </span>
-          <Progress value={(currentStep / totalSteps) * 100} />
-        </div>
+    <FormProvider {...form}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void handleNext();
+        }}
+        noValidate
+        className='mx-auto flex w-full flex-col gap-2 p-0'
+      >
+        <div className='flex flex-col gap-2 pt-3'>
+          <div className='flex flex-col items-center justify-start gap-1'>
+            <span className='text-muted-foreground text-sm'>
+              Step {currentStep} of {totalSteps}
+            </span>
+            <Progress value={(currentStep / totalSteps) * 100} />
+          </div>
 
-        <AnimatePresence mode='popLayout'>
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -15 }}
-            transition={{ duration: 0.4, type: 'spring' }}
-            className='flex flex-col gap-2'
-          >
-            {currentStep === 1 && (
-              <FieldGroup className='space-y-4'>
-                <h3 className='text-lg font-semibold'>Basic Info</h3>
-                <FieldDescription>Enter the product name, category, and price.</FieldDescription>
+          <AnimatePresence mode='popLayout'>
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -15 }}
+              transition={{ duration: 0.4, type: 'spring' }}
+              className='flex flex-col gap-2'
+            >
+              {currentStep === 1 ? (
+                <FieldGroup className='space-y-4'>
+                  <h3 className='text-lg font-semibold'>Basic Info</h3>
+                  <FieldDescription>Enter the product name, category, and price.</FieldDescription>
+                  <TextField
+                    name='name'
+                    label='Product Name'
+                    required
+                    placeholder='Enter product name'
+                  />
+                  <SelectField
+                    name='category'
+                    label='Category'
+                    required
+                    options={categoryOptions}
+                    placeholder='Select category'
+                  />
+                  <TextField
+                    name='price'
+                    label='Price'
+                    required
+                    type='number'
+                    min={0}
+                    step={0.01}
+                    placeholder='Enter price'
+                  />
+                </FieldGroup>
+              ) : null}
 
-                <form.AppField
-                  name='name'
-                  children={(field) => (
-                    <field.TextField
-                      label='Product Name'
-                      required
-                      placeholder='Enter product name'
-                    />
-                  )}
-                />
+              {currentStep === 2 ? (
+                <FieldGroup className='space-y-4'>
+                  <h3 className='text-lg font-semibold'>Details</h3>
+                  <FieldDescription>Add a detailed product description.</FieldDescription>
+                  <TextareaField
+                    name='description'
+                    label='Description'
+                    required
+                    placeholder='Enter product description'
+                    maxLength={500}
+                    rows={5}
+                  />
+                </FieldGroup>
+              ) : null}
 
-                <form.AppField
-                  name='category'
-                  children={(field) => (
-                    <field.SelectField
-                      label='Category'
-                      required
-                      options={categoryOptions}
-                      placeholder='Select category'
-                    />
-                  )}
-                />
+              {currentStep === 3 ? (
+                <div className='space-y-4'>
+                  <h3 className='text-lg font-semibold'>Review & Submit</h3>
+                  <FieldDescription>Review the details below before submitting.</FieldDescription>
+                  <ReviewSummary values={formValues} />
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
 
-                <form.AppField
-                  name='price'
-                  children={(field) => (
-                    <field.TextField
-                      label='Price'
-                      required
-                      type='number'
-                      min={0}
-                      step={0.01}
-                      placeholder='Enter price'
-                    />
-                  )}
-                />
-              </FieldGroup>
-            )}
-
-            {currentStep === 2 && (
-              <FieldGroup className='space-y-4'>
-                <h3 className='text-lg font-semibold'>Details</h3>
-                <FieldDescription>Add a detailed product description.</FieldDescription>
-
-                <form.AppField
-                  name='description'
-                  children={(field) => (
-                    <field.TextareaField
-                      label='Description'
-                      required
-                      placeholder='Enter product description'
-                      maxLength={500}
-                      rows={5}
-                    />
-                  )}
-                />
-              </FieldGroup>
-            )}
-
-            {currentStep === 3 && (
-              <div className='space-y-4'>
-                <h3 className='text-lg font-semibold'>Review & Submit</h3>
-                <FieldDescription>Review the details below before submitting.</FieldDescription>
-                <ReviewSummary values={formValues} />
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-
-        <div className='flex w-full items-center justify-between gap-3 pt-3'>
-          <Button
-            
-            variant='ghost'
-            type='button'
-            disabled={isFirstStep}
-            onClick={() => handleCancelOrBack({ onBack: () => {} })}
-          >
-            <Icons.chevronLeft /> Previous
-          </Button>
-          <div className='flex w-full items-center justify-end gap-3 pt-3'>
-            {!isDefault && (
-              <Button
-                type='button'
-                onClick={() => form.reset()}
-                className='rounded-lg'
-                variant='outline'
-                
-              >
-                Reset
-              </Button>
-            )}
-            {step.isCompleted ? (
-              <Button type='submit'>Submit</Button>
-            ) : (
-              <Button  variant='ghost' type='button' onClick={() => void handleNext()}>
-                Next <Icons.chevronRight />
-              </Button>
-            )}
+          <div className='flex w-full items-center justify-between gap-3 pt-3'>
+            <Button
+              variant='ghost'
+              type='button'
+              disabled={isFirstStep}
+              onClick={() => handleCancelOrBack({ onBack: () => {} })}
+            >
+              <Icons.chevronLeft /> Previous
+            </Button>
+            <div className='flex w-full items-center justify-end gap-3 pt-3'>
+              {isDirty ? (
+                <Button
+                  type='button'
+                  onClick={() => form.reset()}
+                  className='rounded-lg'
+                  variant='outline'
+                >
+                  Reset
+                </Button>
+              ) : null}
+              {step.isCompleted ? (
+                <Button type='submit'>Submit</Button>
+              ) : (
+                <Button variant='ghost' type='button' onClick={() => void handleNext()}>
+                  Next <Icons.chevronRight />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </FormProvider>
   );
 }

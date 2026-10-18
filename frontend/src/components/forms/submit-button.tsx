@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { useFormContext } from 'react-hook-form';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useFormContext } from '@/lib/form-context';
 
 /** Submit button that shows a no-layout-shift spinner while the form submits. */
 export function SubmitButton({
@@ -10,20 +10,18 @@ export function SubmitButton({
   disabled,
   ...props
 }: React.ComponentProps<typeof LoadingButton>) {
-  const form = useFormContext();
+  const {
+    formState: { isSubmitting }
+  } = useFormContext();
 
   return (
-    <form.Subscribe selector={(state) => state.isSubmitting}>
-      {(isSubmitting) => (
-        <LoadingButton
-          type='submit'
-          {...props}
-          loading={isSubmitting}
-          disabled={disabled || isSubmitting}
-        >
-          {children}
-        </LoadingButton>
-      )}
-    </form.Subscribe>
+    <LoadingButton
+      type='submit'
+      {...props}
+      loading={isSubmitting}
+      disabled={disabled || isSubmitting}
+    >
+      {children}
+    </LoadingButton>
   );
 }

@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useStore } from '@tanstack/react-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAppForm } from '@/lib/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldGroup } from '@/components/ui/field';
@@ -12,11 +12,28 @@ import { Separator } from '@/components/ui/separator';
 import { ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { DateRange } from 'react-day-picker';
 import { Icons } from '@/components/icons';
+import { TextField } from '@/components/forms/fields/text-field';
+import { TextareaField } from '@/components/forms/fields/textarea-field';
+import { SelectField } from '@/components/forms/fields/select-field';
+import { ComboboxField } from '@/components/forms/fields/combobox-field';
+import { CheckboxGroupField } from '@/components/forms/fields/checkbox-group-field';
+import { RadioGroupField } from '@/components/forms/fields/radio-group-field';
+import { SwitchField } from '@/components/forms/fields/switch-field';
+import { ToggleGroupField } from '@/components/forms/fields/toggle-group-field';
+import { CheckboxField } from '@/components/forms/fields/checkbox-field';
+import { SliderField } from '@/components/forms/fields/slider-field';
+import { DatePickerField, DateRangeField } from '@/components/forms/fields/date-picker-field';
+import { OtpField } from '@/components/forms/fields/otp-field';
+import { ColorField } from '@/components/forms/fields/color-field';
+import { TagsField } from '@/components/forms/fields/tags-field';
+import { FileUploadField } from '@/components/forms/fields/file-upload-field';
+import { SubmitButton } from '@/components/forms/submit-button';
 
-// Schema — validated on submit, errors display next to each field
 const demoFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.email('Invalid email address'),
+  email: z
+    .email('Invalid email address')
+    .refine((v) => v !== 'taken@example.com', 'This email is already registered'),
   age: z.number({ error: 'Age is required' }).min(18, 'Must be at least 18 years old'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   phone: z.string().min(10, 'Phone must be at least 10 digits'),
@@ -84,69 +101,43 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Form ───
-
-type DemoFormValues = {
-  name: string;
-  email: string;
-  age?: number;
-  password: string;
-  phone: string;
-  website: string;
-  bio: string;
-  country: string;
-  framework: string;
-  interests: string[];
-  gender: string;
-  newsletter: boolean;
-  rating: number;
-  birthDate?: Date;
-  dateRange?: DateRange;
-  eventTime?: string;
-  favoriteColor?: string;
-  otp: string;
-  formatting?: string[];
-  tags: string[];
-  terms: boolean;
-  avatar?: File[];
-};
+type DemoFormValues = z.infer<typeof demoFormSchema>;
 
 export default function DemoForm() {
-  const form = useAppForm({
+  const form = useForm({
+    resolver: zodResolver(demoFormSchema),
     defaultValues: {
       name: '',
       email: '',
-      age: undefined,
+      age: undefined as unknown as number,
       password: '',
       phone: '',
       website: '',
       bio: '',
       country: '',
       framework: '',
-      interests: [],
+      interests: [] as string[],
       gender: '',
       newsletter: false,
       rating: 5,
-      birthDate: undefined,
-      dateRange: undefined,
+      birthDate: undefined as Date | undefined,
+      dateRange: undefined as DateRange | undefined,
       eventTime: '',
       favoriteColor: '#6366f1',
       otp: '',
-      formatting: [],
-      tags: [],
+      formatting: [] as string[],
+      tags: [] as string[],
       terms: false,
-      avatar: []
-    } as DemoFormValues,
-    validators: {
-      onSubmit: demoFormSchema
-    },
-    onSubmit: () => {
-      alert('Form submitted successfully!');
+      avatar: [] as File[]
     }
   });
 
-  const formValues = useStore(form.store, (s) => s.values);
-  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+  const formValues = useWatch({ control: form.control });
+  const interests = formValues.interests ?? [];
+
+  function onSubmit() {
+    alert('Form submitted successfully!');
+  }
 
   return (
     <div className='grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]'>
@@ -154,333 +145,206 @@ export default function DemoForm() {
         <CardHeader>
           <CardTitle className='text-2xl font-bold'>All Form Inputs Demo</CardTitle>
           <p className='text-muted-foreground'>
-            Every possible form input — built with TanStack Form + shadcn/ui
+            Every possible form input — built with React Hook Form + Zod + shadcn/ui
           </p>
         </CardHeader>
         <CardContent>
-          <form
-            className='space-y-6'
-            noValidate
-            aria-busy={isSubmitting}
-            onSubmit={(e) => {
-              e.preventDefault();
-              form.handleSubmit();
-            }}
-          >
-            {/* ─── TEXT INPUTS ─── */}
-            <SectionTitle>Text Inputs</SectionTitle>
+          <FormProvider {...form}>
+            <form
+              className='space-y-6'
+              noValidate
+              aria-busy={form.formState.isSubmitting}
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <SectionTitle>Text Inputs</SectionTitle>
 
-            <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-              <form.AppField
-                name='name'
-                children={(field) => (
-                  <field.TextField label='Full Name' required placeholder='John Doe' />
-                )}
-              />
-
-              {/* Async validation: simulated server-side email check */}
-              <form.AppField
-                name='email'
-                asyncDebounceMs={500}
-                validators={{
-                  onChangeAsync: async ({ value }) => {
-                    if (!value || value.length < 3) return undefined;
-                    await new Promise((r) => setTimeout(r, 500));
-                    if (value === 'taken@example.com') {
-                      return { message: 'This email is already registered' };
-                    }
-                    return undefined;
-                  }
-                }}
-                children={(field) => (
-                  <field.TextField
-                    label='Email'
-                    required
-                    type='email'
-                    placeholder='john@example.com'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='password'
-                children={(field) => (
-                  <field.TextField
-                    label='Password'
-                    required
-                    type='password'
-                    placeholder='Min 8 characters'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='age'
-                children={(field) => (
-                  <field.TextField
-                    label='Age'
-                    required
-                    type='number'
-                    min={18}
-                    max={100}
-                    placeholder='18'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='phone'
-                children={(field) => (
-                  <field.TextField
-                    label='Phone'
-                    required
-                    type='tel'
-                    placeholder='+1 (555) 000-0000'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='website'
-                children={(field) => (
-                  <field.TextField label='Website' type='url' placeholder='https://example.com' />
-                )}
-              />
-            </FieldGroup>
-
-            {/* ─── TEXTAREA ─── */}
-            <form.AppField
-              name='bio'
-              children={(field) => (
-                <field.TextareaField
-                  label='Bio'
+              <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <TextField name='name' label='Full Name' required placeholder='John Doe' />
+                <TextField
+                  name='email'
+                  label='Email'
                   required
-                  placeholder='Tell us about yourself...'
-                  maxLength={500}
-                  rows={4}
-                  showCount
+                  type='email'
+                  placeholder='john@example.com'
                 />
-              )}
-            />
-
-            {/* ─── SELECT & COMBOBOX ─── */}
-            <SectionTitle>Select & Combobox</SectionTitle>
-
-            <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-              <form.AppField
-                name='country'
-                children={(field) => (
-                  <field.SelectField
-                    label='Country'
-                    required
-                    options={countryOptions}
-                    placeholder='Select your country'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='framework'
-                children={(field) => (
-                  <field.ComboboxField
-                    label='Framework'
-                    required
-                    description='Searchable dropdown'
-                    options={frameworkOptions}
-                    placeholder='Search frameworks...'
-                  />
-                )}
-              />
-            </FieldGroup>
-
-            {/* ─── CHECKBOX & RADIO ─── */}
-            <SectionTitle>Checkbox & Radio</SectionTitle>
-
-            <form.AppField
-              name='interests'
-              mode='array'
-              children={(field) => (
-                <field.CheckboxGroupField
-                  label='Interests'
+                <TextField
+                  name='password'
+                  label='Password'
                   required
-                  description='Select all that apply'
-                  options={interestOptions}
-                  className='grid grid-cols-2 gap-3 md:grid-cols-3'
+                  type='password'
+                  placeholder='Min 8 characters'
                 />
-              )}
-            />
-            {formValues.interests.length > 0 && (
-              <div className='flex flex-wrap gap-2'>
-                {formValues.interests.map((v) => (
-                  <Badge key={v} variant='secondary'>
-                    {interestOptions.find((o) => o.value === v)?.label || v}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            <form.AppField
-              name='gender'
-              children={(field) => (
-                <field.RadioGroupField label='Gender' required options={genderOptions} />
-              )}
-            />
-
-            {/* ─── TOGGLE & SWITCH ─── */}
-            <SectionTitle>Toggle & Switch</SectionTitle>
-
-            <form.AppField
-              name='newsletter'
-              children={(field) => (
-                <field.SwitchField
-                  label='Subscribe to Newsletter'
-                  description='Receive updates about new features and products'
-                />
-              )}
-            />
-
-            <form.AppField
-              name='formatting'
-              mode='array'
-              children={(field) => (
-                <field.ToggleGroupField
-                  label='Text Formatting'
-                  description='Multi-select toggle group'
-                >
-                  <ToggleGroupItem value='bold' aria-label='Bold'>
-                    <Icons.bold className='h-4 w-4' />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value='italic' aria-label='Italic'>
-                    <Icons.italic className='h-4 w-4' />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value='underline' aria-label='Underline'>
-                    <Icons.underline className='h-4 w-4' />
-                  </ToggleGroupItem>
-                </field.ToggleGroupField>
-              )}
-            />
-
-            <form.AppField
-              name='terms'
-              children={(field) => (
-                <field.CheckboxField label='I agree to the Terms and Conditions' required />
-              )}
-            />
-
-            {/* ─── SLIDER ─── */}
-            <SectionTitle>Slider</SectionTitle>
-
-            <form.AppField
-              name='rating'
-              children={(field) => (
-                <field.SliderField
-                  label='Overall Rating'
-                  description='Rate your experience (0-10)'
-                  min={0}
-                  max={10}
-                  step={0.5}
-                />
-              )}
-            />
-
-            {/* ─── DATE & TIME ─── */}
-            <SectionTitle>Date & Time</SectionTitle>
-
-            <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-              <form.AppField
-                name='birthDate'
-                children={(field) => (
-                  <field.DatePickerField
-                    label='Birth Date'
-                    disabledDates={(date) => date > new Date()}
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='eventTime'
-                children={(field) => <field.TextField label='Event Time' type='time' />}
-              />
-            </FieldGroup>
-
-            <form.AppField
-              name='dateRange'
-              children={(field) => <field.DateRangeField label='Date Range' />}
-            />
-
-            {/* ─── SPECIAL INPUTS ─── */}
-            <SectionTitle>Special Inputs</SectionTitle>
-
-            <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-              <form.AppField
-                name='otp'
-                children={(field) => (
-                  <field.OtpField
-                    label='Verification Code'
-                    required
-                    description='6-digit OTP input'
-                  />
-                )}
-              />
-
-              <form.AppField
-                name='favoriteColor'
-                children={(field) => (
-                  <field.ColorField
-                    label='Favorite Color'
-                    description='Native color picker with hex'
-                  />
-                )}
-              />
-            </FieldGroup>
-
-            <form.AppField
-              name='tags'
-              mode='array'
-              children={(field) => (
-                <field.TagsField
-                  label='Tags'
+                <TextField
+                  name='age'
+                  label='Age'
                   required
-                  description='Press Enter or click Add to create tags'
+                  type='number'
+                  min={18}
+                  max={100}
+                  placeholder='18'
                 />
-              )}
-            />
-
-            {/* ─── FILE UPLOAD ─── */}
-            <SectionTitle>File Upload</SectionTitle>
-
-            <form.AppField
-              name='avatar'
-              children={(field) => (
-                <field.FileUploadField
-                  label='Profile Picture'
-                  description='Drag & drop or click to upload (max 5MB)'
-                  maxSize={5000000}
-                  maxFiles={1}
+                <TextField
+                  name='phone'
+                  label='Phone'
+                  required
+                  type='tel'
+                  placeholder='+1 (555) 000-0000'
                 />
-              )}
-            />
+                <TextField name='website' label='Website' type='url' placeholder='https://example.com' />
+              </FieldGroup>
 
-            {/* ─── SUBMIT ─── */}
-            <Separator />
-            <div className='flex gap-4 pt-2'>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => form.reset()}
-                className='flex-1'
+              <TextareaField
+                name='bio'
+                label='Bio'
+                required
+                placeholder='Tell us about yourself...'
+                maxLength={500}
+                rows={4}
+                showCount
+              />
+
+              <SectionTitle>Select & Combobox</SectionTitle>
+
+              <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <SelectField
+                  name='country'
+                  label='Country'
+                  required
+                  options={countryOptions}
+                  placeholder='Select your country'
+                />
+                <ComboboxField
+                  name='framework'
+                  label='Framework'
+                  required
+                  description='Searchable dropdown'
+                  options={frameworkOptions}
+                  placeholder='Search frameworks...'
+                />
+              </FieldGroup>
+
+              <SectionTitle>Checkbox & Radio</SectionTitle>
+
+              <CheckboxGroupField
+                name='interests'
+                label='Interests'
+                required
+                description='Select all that apply'
+                options={interestOptions}
+                className='grid grid-cols-2 gap-3 md:grid-cols-3'
+              />
+              {interests.length > 0 ? (
+                <div className='flex flex-wrap gap-2'>
+                  {interests.map((v) => (
+                    <Badge key={v} variant='secondary'>
+                      {interestOptions.find((o) => o.value === v)?.label || v}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+
+              <RadioGroupField name='gender' label='Gender' required options={genderOptions} />
+
+              <SectionTitle>Toggle & Switch</SectionTitle>
+
+              <SwitchField
+                name='newsletter'
+                label='Subscribe to Newsletter'
+                description='Receive updates about new features and products'
+              />
+
+              <ToggleGroupField
+                name='formatting'
+                label='Text Formatting'
+                description='Multi-select toggle group'
               >
-                Reset
-              </Button>
-              <form.AppForm>
-                <form.SubmitButton className='flex-1'>Submit Form</form.SubmitButton>
-              </form.AppForm>
-            </div>
-          </form>
+                <ToggleGroupItem value='bold' aria-label='Bold'>
+                  <Icons.bold className='h-4 w-4' />
+                </ToggleGroupItem>
+                <ToggleGroupItem value='italic' aria-label='Italic'>
+                  <Icons.italic className='h-4 w-4' />
+                </ToggleGroupItem>
+                <ToggleGroupItem value='underline' aria-label='Underline'>
+                  <Icons.underline className='h-4 w-4' />
+                </ToggleGroupItem>
+              </ToggleGroupField>
+
+              <CheckboxField name='terms' label='I agree to the Terms and Conditions' required />
+
+              <SectionTitle>Slider</SectionTitle>
+
+              <SliderField
+                name='rating'
+                label='Overall Rating'
+                description='Rate your experience (0-10)'
+                min={0}
+                max={10}
+                step={0.5}
+              />
+
+              <SectionTitle>Date & Time</SectionTitle>
+
+              <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <DatePickerField
+                  name='birthDate'
+                  label='Birth Date'
+                  disabledDates={(date) => date > new Date()}
+                />
+                <TextField name='eventTime' label='Event Time' type='time' />
+              </FieldGroup>
+
+              <DateRangeField name='dateRange' label='Date Range' />
+
+              <SectionTitle>Special Inputs</SectionTitle>
+
+              <FieldGroup className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <OtpField
+                  name='otp'
+                  label='Verification Code'
+                  required
+                  description='6-digit OTP input'
+                />
+                <ColorField
+                  name='favoriteColor'
+                  label='Favorite Color'
+                  description='Native color picker with hex'
+                />
+              </FieldGroup>
+
+              <TagsField
+                name='tags'
+                label='Tags'
+                required
+                description='Press Enter or click Add to create tags'
+              />
+
+              <SectionTitle>File Upload</SectionTitle>
+
+              <FileUploadField
+                name='avatar'
+                label='Profile Picture'
+                description='Drag & drop or click to upload (max 5MB)'
+                maxSize={5000000}
+                maxFiles={1}
+              />
+
+              <Separator />
+              <div className='flex gap-4 pt-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => form.reset()}
+                  className='flex-1'
+                >
+                  Reset
+                </Button>
+                <SubmitButton className='flex-1'>Submit Form</SubmitButton>
+              </div>
+            </form>
+          </FormProvider>
         </CardContent>
       </Card>
 
-      {/* Form Data Preview - sticky sidebar */}
       <div className='xl:sticky xl:top-16 xl:self-start'>
         <Card>
           <CardHeader>

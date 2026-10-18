@@ -11,8 +11,8 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
 
 const META_THEME_COLORS = {
-  light: '#fdfcff',
-  dark: '#07060f'
+  light: '#f7f7f2',
+  dark: '#0d0e0b'
 };
 
 export const metadata: Metadata = {
@@ -20,21 +20,21 @@ export const metadata: Metadata = {
     ? { metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL) }
     : {}),
   title: {
-    default: 'Survey Copilot',
-    template: '%s | Survey Copilot'
+    default: 'Survai',
+    template: '%s | Survai'
   },
   description:
     'AI-powered survey lifecycle platform — Plan, Build, Review, Collect, Analyze, and Report.',
   openGraph: {
-    title: 'Survey Copilot',
+    title: 'Survai',
     description:
       'AI-powered survey lifecycle platform — Plan, Build, Review, Collect, Analyze, and Report.',
-    siteName: 'Survey Copilot',
+    siteName: 'Survai',
     type: 'website'
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Survey Copilot',
+    title: 'Survai',
     description:
       'AI-powered survey lifecycle platform — Plan, Build, Review, Collect, Analyze, and Report.'
   }

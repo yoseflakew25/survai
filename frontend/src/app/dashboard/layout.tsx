@@ -9,8 +9,8 @@ import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Dashboard | Survey Copilot',
-    template: '%s | Survey Copilot'
+    default: 'Dashboard | Survai',
+    template: '%s | Survai'
   },
   description: 'AI-powered survey lifecycle platform',
   robots: {

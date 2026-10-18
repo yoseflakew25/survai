@@ -4,17 +4,33 @@ import type { Column, ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import { Icons } from '@/components/icons';
+import { cn } from '@/lib/utils';
 import type { SurveyListItem, SurveyStatus } from '../../api/types';
 import { CellActions } from './cell-actions';
 
 const STATUS_CONFIG: Record<
   SurveyStatus,
-  { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }
+  { label: string; className: string; icon?: typeof Icons.circleCheck }
 > = {
-  published: { label: 'Published', variant: 'default' },
-  draft: { label: 'Draft', variant: 'secondary' },
-  closed: { label: 'Closed', variant: 'outline' },
-  archived: { label: 'Archived', variant: 'outline' }
+  published: {
+    label: 'Published',
+    className:
+      'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground',
+    icon: Icons.circleCheck
+  },
+  draft: {
+    label: 'Draft',
+    className: 'border-transparent bg-secondary text-secondary-foreground'
+  },
+  closed: {
+    label: 'Closed',
+    className: 'border-border bg-card text-foreground'
+  },
+  archived: {
+    label: 'Archived',
+    className:
+      'border-transparent bg-[color-mix(in_srgb,var(--gold)_22%,white)] text-foreground'
+  }
 };
 
 export const columns: ColumnDef<SurveyListItem>[] = [
@@ -28,8 +44,8 @@ export const columns: ColumnDef<SurveyListItem>[] = [
       const survey = row.original;
       return (
         <div className='flex items-center gap-3'>
-          <div className='bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-lg'>
-            <span className='text-primary text-xs font-bold'>
+          <div className='flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft'>
+            <span className='text-xs font-semibold text-foreground'>
               {survey.title
                 .split(' ')
                 .map((w) => w[0])
@@ -39,12 +55,14 @@ export const columns: ColumnDef<SurveyListItem>[] = [
             </span>
           </div>
           <div className='min-w-0'>
-            <p className='truncate text-sm font-medium'>{survey.title}</p>
-            {survey.description && (
+            <p className='truncate text-sm font-semibold tracking-tight'>
+              {survey.title}
+            </p>
+            {survey.description ? (
               <p className='text-muted-foreground truncate text-xs'>
                 {survey.description}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
       );
@@ -66,11 +84,13 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     cell: ({ cell }) => {
       const status = cell.getValue<SurveyStatus>();
       const config = STATUS_CONFIG[status];
+      const StatusIcon = config.icon;
       return (
-        <Badge variant={config.variant} className='text-xs'>
-          {status === 'published' && (
-            <Icons.circleCheck className='mr-1 h-3 w-3' />
-          )}
+        <Badge
+          variant='outline'
+          className={cn('rounded-full text-[10px] font-medium', config.className)}
+        >
+          {StatusIcon ? <StatusIcon className='mr-1 h-3 w-3' /> : null}
           {config.label}
         </Badge>
       );
@@ -96,7 +116,7 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     cell: ({ cell }) => {
       const count = cell.getValue<number>();
       return (
-        <span className='text-muted-foreground text-sm tabular-nums'>
+        <span className='text-muted-foreground font-mono text-sm tabular-nums'>
           {count}
         </span>
       );
@@ -111,7 +131,7 @@ export const columns: ColumnDef<SurveyListItem>[] = [
     cell: ({ cell }) => {
       const count = cell.getValue<number>();
       return (
-        <span className='text-sm font-medium tabular-nums'>
+        <span className='font-mono text-sm font-medium tabular-nums'>
           {count.toLocaleString()}
         </span>
       );
@@ -130,13 +150,13 @@ export const columns: ColumnDef<SurveyListItem>[] = [
       }
       return (
         <div className='flex items-center gap-2'>
-          <div className='bg-muted h-1.5 w-16 overflow-hidden rounded-full'>
+          <div className='h-1.5 w-16 overflow-hidden rounded-full bg-secondary'>
             <div
-              className='bg-primary h-full rounded-full'
+              className='h-full rounded-full bg-brand'
               style={{ width: `${rate}%` }}
             />
           </div>
-          <span className='text-muted-foreground text-xs tabular-nums'>
+          <span className='text-muted-foreground font-mono text-xs tabular-nums'>
             {rate}%
           </span>
         </div>
@@ -169,6 +189,13 @@ export const columns: ColumnDef<SurveyListItem>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <CellActions data={row.original} />
+    size: 52,
+    enableSorting: false,
+    enableHiding: false,
+    cell: ({ row }) => (
+      <div className='flex justify-end pr-1'>
+        <CellActions data={row.original} />
+      </div>
+    )
   }
 ];

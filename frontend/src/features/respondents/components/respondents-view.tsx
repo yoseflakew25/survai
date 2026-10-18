@@ -20,9 +20,10 @@ import {
 import { DataTablePagination } from '@/components/ui/table/data-table-pagination';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { respondentsOptions } from '../api/queries';
 import { createColumns } from './columns';
+import { RespondentDetailSheet } from './respondent-detail-sheet';
 import type { Respondent, RespondentStatus } from '../api/types';
 import type { Icon } from '@/components/icons';
 
@@ -40,7 +41,6 @@ function formatDuration(totalSeconds: number): string {
 const SORTABLE_COLUMN_IDS = ['name', 'submittedAt', 'durationSeconds'];
 
 export function RespondentsView({ surveyId }: RespondentsViewProps) {
-  const columns = useMemo(() => createColumns(surveyId), [surveyId]);
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -48,8 +48,25 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
     status: parseAsString,
     question: parseAsString,
     answer: parseAsString,
+    respondent: parseAsString,
     sort: getSortingStateParser<Respondent>(SORTABLE_COLUMN_IDS).withDefault([])
   });
+
+  const openRespondent = useCallback(
+    (respondentId: string) => {
+      void setParams({ respondent: respondentId });
+    },
+    [setParams]
+  );
+
+  const closeRespondent = useCallback(() => {
+    void setParams({ respondent: null });
+  }, [setParams]);
+
+  const columns = useMemo(
+    () => createColumns(openRespondent),
+    [openRespondent]
+  );
 
   const filters = {
     page: params.page,
@@ -120,16 +137,22 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
+      <RespondentDetailSheet
+        surveyId={surveyId}
+        respondentId={params.respondent}
+        onClose={closeRespondent}
+      />
+
       {/* No responses yet — CTA instead of the table */}
       {noResponsesYet ? (
-        <div className='flex flex-col items-center justify-center rounded-lg border bg-background px-6 py-16 text-center'>
+        <div className='flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-16 text-center shadow-sm'>
           <Icons.teams className='text-muted-foreground mb-3 h-10 w-10' />
-          <h3 className='font-semibold'>No responses yet</h3>
+          <h3 className='font-display font-bold tracking-tight'>No responses yet</h3>
           <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
             Publish your survey and share the collection link to start receiving responses.
           </p>
           <Link href={`/dashboard/surveys/${surveyId}/collect`} className='mt-4'>
-            <Button>
+            <Button className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground hover:brightness-105'>
               <Icons.send className='mr-1.5 h-3.5 w-3.5' />
               Go to Collect
             </Button>
@@ -150,13 +173,13 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
                 return (
                   <div
                     key={stat.label}
-                    className='flex items-center gap-3 rounded-lg border bg-muted/40 p-2'
+                    className='flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 shadow-sm'
                   >
                     <div className='min-w-0'>
                       <p className='text-muted-foreground truncate text-[10px] font-medium tracking-wide uppercase'>
                         {stat.label}
                       </p>
-                      <p className='truncate text-xl font-semibold tracking-tight text-primary tabular-nums'>
+                      <p className='font-display truncate text-xl font-extrabold tracking-tight tabular-nums'>
                         {stat.value}
                       </p>
                     </div>
@@ -169,7 +192,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
 
           {/* Analytics drill-down context */}
           {data.activeFilter && (
-            <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border bg-primary/5 px-3 py-2 text-sm'>
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
               <span className='text-muted-foreground text-xs'>
                 Respondents who answered
               </span>
@@ -177,7 +200,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
                 {data.activeFilter.questionText}
               </span>
               <Icons.arrowRight className='text-muted-foreground h-3 w-3' />
-              <span className='text-primary font-semibold'>
+              <span className='font-semibold text-foreground'>
                 {data.activeFilter.answer}
               </span>
               <Badge variant='secondary' className='text-[10px]'>
@@ -197,10 +220,10 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
             </div>
           )}
 
-          <div className='overflow-hidden rounded-lg border bg-background'>
+          <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
             {/* Table */}
             <Table>
-              <TableHeader className='bg-muted/50'>
+              <TableHeader className='bg-card'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className='hover:bg-transparent'>
                   {headerGroup.headers.map((header) => (
@@ -219,7 +242,16 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
             <TableBody>
               {table.getRowModel().rows.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow
+                    key={row.id}
+                    className='cursor-pointer'
+                    data-state={
+                      params.respondent === row.original.id
+                        ? 'selected'
+                        : undefined
+                    }
+                    onClick={() => openRespondent(row.original.id)}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className='first:pl-4 last:pr-4'>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

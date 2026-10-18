@@ -17,6 +17,9 @@
 - **§20 (Explicitly Out of Scope)** is a guardrail — if an AI suggestion
   drifts into template libraries, multi-language generation, offline
   collection, etc., point it back to that section.
+- **§2a (Frontend stack enforcements)** is a hard gate for any `frontend/`
+  work — shadcn, TanStack Query, RHF+Zod, Zustand, Better Auth (FE UX only).
+  Real auth is **JWT + cookies** (§7). Reject alternate FE libraries.
 - This plan assumes a solo/small-team build. It over-specifies schemas and
   contracts deliberately, because that's what keeps independent AI-assisted
   sessions (planner today, analytics next week) consistent with each other.
@@ -57,12 +60,19 @@ these two rules.
 | Decision | Choice |
 | --- | --- |
 | AI provider | OpenAI |
-| Auth model | Custom JWT auth in FastAPI (self-managed `users` table + roles), not a third-party auth provider |
+| Auth (real) | **JWT + httpOnly cookies** — FastAPI issues short-lived access JWT + refresh token in cookies; API validates JWT on every protected route. Users/roles live in Postgres. |
+| Auth (frontend UX) | **Better Auth** — sign-in/sign-up UI, client helpers, Next.js route gating UX only. It does **not** replace JWT+cookies as the security model. |
 | Deployment | Vercel (web) + Render/Railway (API) + managed Postgres |
+| Frontend UI | **shadcn/ui** + Tailwind |
+| Frontend server state | **TanStack Query** (`@tanstack/react-query`) |
+| Frontend forms | **React Hook Form + Zod** (`zodResolver`) — every form |
+| Frontend client UI state | **Zustand** |
+| Validation / schemas (FE) | **Zod** |
 
-**My recommended defaults for everything the PRD leaves open** (all are
-swappable — flagged here so you can override any of them before we build
-against them):
+Frontend library choices above are **non-negotiable for new work**. Auth security model is JWT+cookies (§7); Better Auth is FE UX only. See §2a.
+
+**Recommended defaults for everything the PRD leaves open** (swappable —
+override before building against them):
 
 | Area | Default | Why |
 | --- | --- | --- |
@@ -72,30 +82,73 @@ against them):
 | Analytics engine | Pandas (not Polars) | Simpler ecosystem, integrates cleanly with docxtpl/WeasyPrint export step; revisit Polars only if response volumes get large |
 | DOCX export | `docxtpl` (Jinja2-templated `python-docx`) | Lets you template the DOCX shell once and inject structured report sections |
 | PDF export | WeasyPrint over an HTML/Jinja2 template | Same template partials can render the in-app report preview and the PDF |
-| UI components | shadcn/ui (Radix primitives) + Tailwind | Accessible by default (WCAG target in PRD §13), no component-library lock-in |
-| Frontend data layer | TanStack Query + Zod-validated typed client generated from FastAPI's OpenAPI schema | Removes an entire class of frontend/backend drift bugs |
-| Frontend forms | React Hook Form + Zod | Pairs with the generated types |
+| FE ↔ API types | Zod-validated typed client from FastAPI OpenAPI (`openapi-typescript` + thin fetch wrapper) | Removes frontend/backend drift bugs |
+
+---
+
+## 2a. Frontend stack enforcements (do not violate)
+
+Use this section as a hard gate in AI coding sessions. If a suggestion uses an
+alternate library for any of these concerns, reject it and redirect here.
+
+| Concern | Required | Forbidden (do not add) |
+| --- | --- | --- |
+| UI primitives | **shadcn/ui** in `frontend/src/components/ui/` | MUI, Chakra, Ant Design, raw Radix-only kits that bypass shadcn |
+| Auth security | **JWT + httpOnly / Secure / SameSite cookies** (API is source of truth) | Access tokens in `localStorage` / `sessionStorage`; trusting client-only role claims |
+| Auth FE UX | **Better Auth** for sign-in/up UI + client helpers that sit on top of JWT+cookies | Clerk; treating Better Auth as a second auth backend that bypasses FastAPI JWT |
+| Server / async data | **TanStack Query** | SWR, ad-hoc `useEffect` + `fetch` for feature data, React Query v3 APIs |
+| Forms | **React Hook Form + Zod** (`useForm` + `FormProvider` + `zodResolver`) | TanStack Form, Formik, uncontrolled `useState` form blobs for validated flows |
+| Client UI state | **Zustand** | Redux, Jotai, Recoil for new global UI state |
+| Schemas / validation | **Zod** | Yup, Joi, io-ts for new FE schemas |
+
+**Form pattern (canonical):**
+
+```tsx
+const form = useForm({
+  resolver: zodResolver(schema),
+  defaultValues: { /* … */ }
+});
+
+<FormProvider {...form}>
+  <form onSubmit={form.handleSubmit(onSubmit)}>
+    {/* fields from @/components/forms/fields or register/Controller */}
+  </form>
+</FormProvider>
+```
+
+**Data pattern (canonical):** feature `api/types.ts` → `api/service.ts` →
+`api/queries.ts` (query key factories + `queryOptions`); pages prefetch with
+TanStack Query; mutations invalidate via key factories.
+
+**Also keep:** `nuqs` for URL table/filter state; icons only via
+`@/components/icons` (Tabler registry) — never import icon packages in feature
+files.
+
+Agent-facing copies of this gate also live in:
+`frontend/.cursor/rules/frontend-stack.mdc`, `frontend/AGENTS.md`, `PRODUCT.md`.
 
 ---
 
 ## 3. Tech Stack
 
-### Frontend — `apps/web`
-- **Next.js 15+ (App Router), TypeScript (strict mode)**
-- Tailwind CSS + shadcn/ui
-- TanStack Query v5 (server state) + Zustand (local UI/wizard state — e.g. in-progress builder drafts)
-- React Hook Form + Zod
-- API client: generated from the backend's OpenAPI schema via `openapi-typescript` (types) + a thin typed fetch wrapper — regenerate on every backend schema change
+### Frontend — `frontend/` (Next.js App Router; formerly planned as `apps/web`)
+- **Next.js 16 (App Router), TypeScript (strict mode), React 19**
+- Tailwind CSS v4 + **shadcn/ui**
+- **Auth UX:** Better Auth for sign-in/sign-up UI and related client helpers; cookies carry JWT/refresh from the API
+- **TanStack Query v5** (server state) + **Zustand** (local UI / wizard drafts)
+- **React Hook Form + Zod** for all forms (`FormProvider` + field components in `src/components/forms/fields`)
+- **nuqs** for URL search-param state (tables, filters, pagination)
+- API client: generated from the backend's OpenAPI schema via `openapi-typescript` (types) + a thin typed fetch wrapper — regenerate on every backend schema change; send credentials (cookies) on API calls
 - Charts: Recharts (distributions, cross-tabs)
-- Rich text: Tiptap (report section editing)
-- Drag-and-drop: `dnd-kit` (question/section reordering)
-- Icons: lucide-react
+- Rich text: Tiptap (report section editing) when needed
+- Drag-and-drop: `@dnd-kit/*` (question/section reordering)
+- Icons: `@tabler/icons-react` **only through** `src/components/icons.tsx`
 
-### Backend — `apps/api`
+### Backend — `apps/api` (planned)
 - **FastAPI, Python 3.12+**
 - Pydantic v2 (request/response + AI structured-output schemas share the same modeling layer)
 - SQLAlchemy 2.0 (async) + Alembic migrations, `asyncpg` driver
-- Auth: `python-jose` (JWT), `argon2-cffi` (password hashing)
+- Auth: **JWT + cookies** — `python-jose` (or equivalent) for access JWT; argon2 password hashing; refresh tokens hashed in `refresh_tokens`. Better Auth does not own backend identity.
 - Background jobs: ARQ + Redis
 - Analytics: Pandas
 - AI SDK: `openai` Python SDK, using the **Responses API** with **Structured Outputs** (`response_format` / strict JSON schema)
@@ -536,15 +589,38 @@ CREATE TABLE audit_log (
 
 ## 7. Authentication & Authorization
 
+**Security model: JWT + cookies.** Better Auth is **frontend UX only**
+(sign-in/up screens, client helpers, Next.js gating UX) — it does not replace
+FastAPI as the issuer/validator of credentials.
+
+### Real auth (API)
+
 - **Flow:** `POST /auth/login` → verify argon2 hash → issue short-lived JWT
-  access token (15 min) + opaque refresh token (7–30 days, stored hashed in
-  `refresh_tokens`, rotated on use). Access token carries `sub` (user id) and
+  access token (≈15 min) + opaque refresh token (7–30 days, stored hashed in
+  `refresh_tokens`, rotated on use). Access JWT carries `sub` (user id) and
   `role`.
-- **Transport:** access token in memory on the client (not localStorage);
-  refresh token in an `httpOnly`, `Secure`, `SameSite=Strict` cookie.
-- **Server-side authorization:** a FastAPI dependency (`require_role(*roles)`)
-  on every non-public route; never trust a role claim without also checking
-  it against the current DB row (covers role changes/revocation mid-session).
+- **Transport:** both tokens live in **httpOnly, Secure, SameSite** cookies
+  (not `localStorage`). Browser sends cookies on API requests
+  (`credentials: 'include'`). Access JWT may also be held in memory on the
+  client for Authorization headers if needed — never persist it in storage.
+- **Server-side authorization:** FastAPI dependency (`require_role(*roles)`)
+  on every non-public route; verify JWT signature/expiry, then prefer checking
+  role against the current DB row (covers mid-session role changes).
+- **Refresh:** `POST /auth/refresh` rotates the refresh cookie and issues a
+  new access JWT cookie.
+
+### Frontend UX (Better Auth)
+
+- Better Auth powers **login/register UI and related client helpers** that
+  talk to the JWT+cookie API above (or a thin BFF that sets those cookies).
+- Auth forms use **RHF + Zod**.
+- Next.js middleware / layout gates for `/dashboard/*` read the same cookie
+  session the API trusts — do not invent a parallel Better Auth–only identity
+  store that the API never sees.
+- **Do not:** reintroduce Clerk; do not put access tokens in `localStorage`.
+
+### Roles & public routes
+
 - **Roles → access** (from PRD §5 personas):
   - `admin`: full access, user management.
   - `researcher`: Planner, Builder, Reviewer, Analytics, Reports — the M&E
@@ -554,9 +630,8 @@ CREATE TABLE audit_log (
 - **Public routes:** only the `/api/v1/public/*` collection endpoints (§11)
   are unauthenticated, and they are scoped to a single published
   `survey_version_id` — they cannot enumerate or touch anything else.
-- **Password policy:** argon2id, min length enforced client- and
-  server-side; no password fields ever appear in `ai_generation_logs` or
-  `audit_log` input_meta.
+- **Password policy:** argon2id, min length enforced client- and server-side;
+  no password fields in `ai_generation_logs` or `audit_log` input_meta.
 
 ---
 
@@ -973,9 +1048,12 @@ SENTRY_DSN=
 ENVIRONMENT=development          # development | staging | production
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 
-# --- apps/web/.env.local ---
+# --- frontend/.env.local ---
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 NEXT_PUBLIC_SENTRY_DSN=
+
+# Better Auth (FE UX helpers only — does not replace JWT_SECRET / cookie auth)
+# Add only the vars required by the Better Auth client / UI wiring you choose
 ```
 
 ---
@@ -997,29 +1075,27 @@ Mapping PRD §15 onto concrete deliverables:
 
 ## 18a. Frontend UI implementation notes (update this section as the UI progresses)
 
-The frontend is not a separate repo anymore — it is a single Next.js App Router
-app at `frontend/`. The roadmap above still defines the product/week shape, but
-the UI work so far has been implementation-first: normalize the shell, fix the
-survey hub, then build out the survey module pages and their sub-pages.
+The frontend is a single Next.js App Router app at `frontend/`. The roadmap
+above still defines the product/week shape; UI work has been implementation-
+first: shell → survey hub → module pages.
 
-Current UI reality is tracked in `status.md`. The points below are the parts of
-the plan most affected by how the UI is actually being built right now:
+Current UI reality is tracked in `status.md`. Stack enforcements are in **§2a**
+— follow those for every new frontend change.
 
-- **Nav and shell first.** Sidebar nav is driven by `src/config/nav-config.ts`;
-  every nav item that needs an icon must add its key to `src/components/icons.tsx`
-  (Tabler import or inline SVG shim) before it lands, because `AppSidebar`
-  renders `Icons[item.icon]` directly. Missing keys render nothing.
-- **Survey module consistency.** Hub uses `SurveyDetailPage` and module cards.
-  Every survey sub-page (Build, Review, Collect, Analytics, Reports) should share
-  the same header + stepper treatment so the five modules read as one system.
-- **Respondents and detail are the current UI focus.** The respondents list page
-  is moving toward: heading alone, then a single row with sort controls, stats,
-  and the table toolbar; status as a column-header dropdown filter; respondent
-  search in the column header. The respondent detail page is moving toward a
-  prefilled-survey-form look, not a generic key/value list.
-- **Mock work is explicit.** Overview and the module interiors are still mostly
-  mock/hardcoded until the backend is live; skeletons and page shells exist, but
-  real query wiring is deferred.
+- **Stack gate.** New UI must use shadcn + TanStack Query + RHF/Zod + Zustand.
+  Auth security = JWT+cookies (§7); Better Auth = FE UX only. Forms already
+  migrated off TanStack Form; do not reintroduce it.
+- **Nav and shell.** Sidebar nav is driven by `src/config/nav-config.ts`; every
+  nav icon key must exist in `src/components/icons.tsx` before it lands
+  (`AppSidebar` renders `Icons[item.icon]` — missing keys render nothing).
+- **Survey module consistency.** Hub + Build / Review / Collect / Analytics /
+  Reports should share header + stepper treatment so modules read as one system.
+- **Respondents.** List: heading, then sort/stats/toolbar row; status as column
+  header filter; search in column header. Detail: prefilled survey-form look,
+  not a generic key/value dump.
+- **Mock work is explicit.** Overview and module interiors may stay on mock
+  services until the backend is live; when wiring real data, use the feature
+  `api/types → service → queries` + TanStack Query pattern — not ad-hoc fetch.
 
 ---
 
@@ -1088,8 +1164,14 @@ will shape config, not architecture, once answered:
 | AI Survey Builder | Generates a draft questionnaire from a research goal |
 | Survey Reviewer | Checks questions for common quality problems, suggests improvements |
 | Deterministic analytics | Calculations from normal software logic — same input always yields same output |
+| Cross-tabulation | A table comparing responses across two variables |
+| LLM | Large Language Model |
+| Prompt | Instructions sent to an AI model to guide its response |
+| RAG | Retrieval-Augmented Generation |
+| Human-in-the-loop | A person reviews and controls AI output rather than the AI acting autonomously |
+| MVP | Minimum Viable Product |
 
-## 23. Appendix: Frontend source-of-truth files for UI work
+## 22a. Appendix: Frontend source-of-truth files for UI work
 
 When picking up a UI task, start from these files instead of inferring structure
 from screenshots or older sessions:
@@ -1104,22 +1186,17 @@ from screenshots or older sessions:
 - `frontend/src/features/respondents/components/columns.tsx` — respondents table columns + header filters
 - `frontend/src/features/respondents/components/respondent-detail-view.tsx` — respondent detail
 - `status.md` — current UI progress snapshot
+- `frontend/.cursor/rules/frontend-stack.mdc` — stack enforcement rule (§2a)
 
 `plan.md` is the architectural source of truth; `status.md` is the current
 frontend implementation status. If they disagree, status.md is usually the more
-recent picture of the UI.
-| Cross-tabulation | A table comparing responses across two variables |
-| LLM | Large Language Model |
-| Prompt | Instructions sent to an AI model to guide its response |
-| RAG | Retrieval-Augmented Generation |
-| Human-in-the-loop | A person reviews and controls AI output rather than the AI acting autonomously |
-| MVP | Minimum Viable Product |
+recent picture of the UI. For library choice conflicts, **§2a wins**.
 
 ---
 
 ## 23. Implementation Status — Frontend (as of September 2026)
 
-> This section tracks what has been built in the frontend (`apps/web`).
+> This section tracks what has been built in the frontend (`frontend/`).
 > Backend API is still mock-data only; all services use in-memory arrays.
 > Update this section as each milestone ships.
 
@@ -1127,7 +1204,8 @@ recent picture of the UI.
 
 | Module | Pages / Components | Status | Notes |
 | --- | --- | --- | --- |
-| **Auth** | Login, Register, Forgot Password | ✅ Done | React Hook Form + Zod validation; JWT pattern mocked |
+| **Auth** | Login, Register, Forgot Password | ✅ Done | RHF + Zod forms; JWT+cookie API not wired yet (mock submit) |
+| **Forms stack** | All FE forms on RHF + Zod | ✅ Done | TanStack Form removed; field components under `components/forms/fields` |
 | **Sidebar Navigation** | App sidebar with collapsible/expandable modes | ✅ Done | Logo variants (light/dark × collapsed/expanded); primary icon colors; user dropdown |
 | **Dashboard Overview** | Stat cards, Recent Plans, Quick Actions | ✅ Done | Outline-style cards; primary color accents; grid pattern backgrounds |
 | **Surveys List** | Surveys page with data table, search, filter, sort | ✅ Done | Professional shadcn-style table; column-based sorting; status badges |
@@ -1147,7 +1225,7 @@ recent picture of the UI.
 | --- | --- | --- |
 | **AI Integration** | Mock only | All AI features (planner, reviewer, report) use `setTimeout` delays; need real OpenAI Responses API integration |
 | **Backend API** | Not started | FastAPI + PostgreSQL + Alembic schema from §6; all frontend currently uses mock services |
-| **Authentication** | Mock only | Frontend forms exist; need real JWT flow with refresh tokens |
+| **Authentication** | Mock only | Frontend forms exist; need FastAPI JWT+cookie auth + Better Auth FE UX (§7) |
 | **Collection Route** | Partial | `/s/[versionId]` exists; needs real respondent flow, validation, progress saving |
 
 ### ❌ Not Started
@@ -1268,8 +1346,8 @@ frontend/src/
 
 | Priority | Task | PRD Ref |
 | --- | --- | --- |
-| P0 | Connect frontend to real backend API (replace mock services) | §11 |
-| P0 | Implement real auth flow (JWT + refresh tokens) | §7 |
+| P0 | Connect frontend to real backend API (replace mock services; TanStack Query service layer) | §11, §2a |
+| P0 | Wire **JWT + cookie** auth API + Better Auth FE UX (replace mock auth) | §7, §2a |
 | P0 | Build public collection route with real respondent flow | COL-01–05 |
 | P1 | Add real-time response counter on Collect page | COL-04 |
 | P1 | Implement report export with actual DOCX/PDF generation | §13 |
