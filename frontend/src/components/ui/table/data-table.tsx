@@ -24,6 +24,7 @@ interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   emptyTitle?: string;
   emptyDescription?: string;
   rowNoun?: string;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData>({
@@ -33,7 +34,8 @@ export function DataTable<TData>({
   emptyIcon,
   emptyTitle,
   emptyDescription,
-  rowNoun = 'surveys'
+  rowNoun = 'surveys',
+  onRowClick
 }: DataTableProps<TData>) {
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
 
@@ -90,7 +92,16 @@ export function DataTable<TData>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className='first:pl-4 last:pr-4'
+                    className={
+                      onRowClick
+                        ? 'cursor-pointer first:pl-4 last:pr-4'
+                        : 'first:pl-4 last:pr-4'
+                    }
+                    onClick={
+                      onRowClick
+                        ? () => onRowClick(row.original)
+                        : undefined
+                    }
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell

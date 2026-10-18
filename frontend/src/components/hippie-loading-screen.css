@@ -1,0 +1,134 @@
+/* Outline loading mark — stroke-first, paper + lime */
+
+@keyframes hl-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hl-orbit {
+  to {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes hl-check {
+  0%,
+  8% {
+    stroke-dashoffset: 36;
+  }
+  35%,
+  72% {
+    stroke-dashoffset: 0;
+  }
+  90%,
+  100% {
+    stroke-dashoffset: 36;
+  }
+}
+
+@keyframes hl-box-pulse {
+  0%,
+  100% {
+    stroke: color-mix(in srgb, var(--foreground, #111210) 55%, transparent);
+  }
+  40% {
+    stroke: color-mix(in srgb, var(--brand-strong, #3d7a00) 50%, var(--foreground, #111210));
+  }
+}
+
+.hl-screen {
+  position: relative;
+  display: flex;
+  min-height: 100svh;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--background, #f7f7f2);
+  color: var(--foreground, #111210);
+}
+
+.hl-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 42% 34% at 50% 44%,
+    color-mix(in srgb, var(--brand, #c6f432) 18%, transparent),
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+.hl-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.35rem;
+  animation: hl-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hl-mark {
+  width: min(28vw, 112px);
+  aspect-ratio: 1;
+}
+
+.hl-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hl-orbit {
+  fill: none;
+  stroke: color-mix(in srgb, var(--foreground, #111210) 22%, transparent);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 9;
+  stroke-linecap: round;
+  animation: hl-orbit 7s linear infinite;
+}
+
+.hl-box {
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  animation: hl-box-pulse 2.8s ease-in-out infinite;
+}
+
+.hl-check {
+  fill: none;
+  stroke: var(--brand-strong, #3d7a00);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: hl-check 2.8s cubic-bezier(0.45, 0, 0.15, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-orbit,
+  .hl-check,
+  .hl-box,
+  .hl-stage {
+    animation: none !important;
+  }
+
+  .hl-stage {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hl-check {
+    stroke-dashoffset: 0;
+  }
+}

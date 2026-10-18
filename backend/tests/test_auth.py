@@ -7,15 +7,18 @@ async def test_register_login_me_refresh_logout(client: AsyncClient) -> None:
     register = await client.post(
         "/api/v1/auth/register",
         json={
-            "email": "researcher@example.com",
+            "email": "ops@dicdo.example.com",
             "password": "SecurePass1!",
-            "full_name": "Researcher One",
+            "organization_name": "DICDO",
         },
     )
     assert register.status_code == 201, register.text
     body = register.json()
     assert body["token_type"] == "bearer"
-    assert body["user"]["email"] == "researcher@example.com"
+    assert body["user"]["email"] == "ops@dicdo.example.com"
+    assert body["user"]["organization_name"] == "DICDO"
+    assert body["user"]["full_name"] == "DICDO"
+    assert body["user"]["role"] == "admin"
     assert body["access_token"]
 
     me = await client.get(
@@ -23,11 +26,11 @@ async def test_register_login_me_refresh_logout(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {body['access_token']}"},
     )
     assert me.status_code == 200
-    assert me.json()["full_name"] == "Researcher One"
+    assert me.json()["organization_name"] == "DICDO"
 
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "researcher@example.com", "password": "SecurePass1!"},
+        json={"email": "ops@dicdo.example.com", "password": "SecurePass1!"},
     )
     assert login.status_code == 200
     refresh_cookie = login.cookies.get("refresh_token") or login.json()["refresh_token"]
@@ -46,14 +49,14 @@ async def test_login_wrong_password(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
         json={
-            "email": "user@example.com",
+            "email": "ops@acme.example.com",
             "password": "SecurePass1!",
-            "full_name": "User",
+            "organization_name": "Acme Org",
         },
     )
     bad = await client.post(
         "/api/v1/auth/login",
-        json={"email": "user@example.com", "password": "wrong-password"},
+        json={"email": "ops@acme.example.com", "password": "wrong-password"},
     )
     assert bad.status_code == 401
 

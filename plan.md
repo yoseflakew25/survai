@@ -76,7 +76,7 @@ override before building against them):
 
 | Area | Default | Why |
 | --- | --- | --- |
-| Postgres host | Neon (or Render Postgres if you want single-vendor billing) | Serverless branching = free preview DBs per PR, painless with AI-assisted iteration |
+| Postgres host | **Aiven** for current local/dev (running); Neon/Render still fine for preview branches later | Managed Postgres + SSL; keep pool small (Aiven free ≈ 20 conns) |
 | Queue/broker | Redis + **ARQ** (not Celery) | ARQ is asyncio-native, pairs directly with FastAPI's async style, far less boilerplate for a solo build |
 | Object storage | Cloudflare R2 (S3-compatible) | Zero egress fees on exports users will download repeatedly; swap for AWS S3 with no code change (same API) |
 | Analytics engine | Pandas (not Polars) | Simpler ecosystem, integrates cleanly with docxtpl/WeasyPrint export step; revisit Polars only if response volumes get large |
@@ -144,25 +144,25 @@ Agent-facing copies of this gate also live in:
 - Drag-and-drop: `@dnd-kit/*` (question/section reordering)
 - Icons: `@tabler/icons-react` **only through** `src/components/icons.tsx`
 
-### Backend — `apps/api` (planned)
+### Backend — `backend/` (scaffold live; domain APIs still to build)
 - **FastAPI, Python 3.12+**
-- Pydantic v2 (request/response + AI structured-output schemas share the same modeling layer)
-- SQLAlchemy 2.0 (async) + Alembic migrations, `asyncpg` driver
-- Auth: **JWT + cookies** — `python-jose` (or equivalent) for access JWT; argon2 password hashing; refresh tokens hashed in `refresh_tokens`. Better Auth does not own backend identity.
-- Background jobs: ARQ + Redis
-- Analytics: Pandas
-- AI SDK: `openai` Python SDK, using the **Responses API** with **Structured Outputs** (`response_format` / strict JSON schema)
-- Report export: `docxtpl` (DOCX), WeasyPrint (PDF)
-- Rate limiting: `slowapi`
-- Logging: `structlog`
-- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient`
+- Pydantic v2 + pydantic-settings
+- SQLAlchemy 2.0 (async) + Alembic + `asyncpg` (SSL for managed Postgres)
+- **Clean architecture:** routes → services → repositories → models; DI via FastAPI `Depends`
+- Auth: **JWT + httpOnly cookies** — `python-jose` access JWT; **bcrypt** (passlib) passwords; opaque refresh tokens hashed in DB; email password recovery
+- Background jobs: ARQ + Redis *(not scaffolded yet)*
+- Analytics: Pandas *(not scaffolded yet)*
+- AI SDK: `openai` Python SDK + Responses API / Structured Outputs *(not scaffolded yet)*
+- Report export: `docxtpl` / WeasyPrint *(not scaffolded yet)*
+- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient` (auth + health suite green)
+- Docker Compose (dev/prod) + Traefik labels; GH Actions `backend-ci.yml` / `backend-cd.yml`
 
 ### Data & Infra
-- PostgreSQL 16 (Neon or Render Postgres)
-- Redis (Upstash or Render Redis) — ARQ queue + response caching
+- PostgreSQL (Aiven currently for dev — `defaultdb`; Docker Compose Postgres also available locally)
+- Redis (Upstash or Render Redis) — ARQ queue + response caching *(later)*
 - Object storage: Cloudflare R2 (or AWS S3)
-- Hosting: Vercel (web), Render or Railway (API + ARQ worker as a separate service)
-- CI/CD: GitHub Actions (lint + typecheck + test on PR; deploy on merge to `main`)
+- Hosting: Vercel (web), Docker Compose + Traefik (API) or Render/Railway
+- CI/CD: GitHub Actions (backend lint/test/image; frontend TBD)
 - Error tracking: Sentry (both apps)
 
 ### AI
@@ -174,53 +174,37 @@ Agent-facing copies of this gate also live in:
 
 ## 4. Repository Structure
 
+**Actual layout (SurvAI repo):**
+
 ```
-ai-survey-copilot/
-├── apps/
-│   ├── web/                     # Next.js app
-│   │   ├── app/
-│   │   │   ├── (auth)/
-│   │   │   ├── (dashboard)/
-│   │   │   │   ├── plans/
-│   │   │   │   ├── surveys/[surveyId]/build/
-│   │   │   │   ├── surveys/[surveyId]/review/
-│   │   │   │   ├── surveys/[surveyId]/analytics/
-│   │   │   │   └── reports/[reportId]/
-│   │   │   └── s/[versionId]/        # public respondent collection route
-│   │   ├── components/
-│   │   ├── lib/api-client/           # generated types + fetch wrapper
-│   │   └── lib/stores/               # Zustand stores
-│   └── api/                     # FastAPI app
-│       ├── app/
-│       │   ├── main.py
-│       │   ├── core/                 # config, security, deps
-│       │   ├── db/                   # session, base, alembic env
-│       │   ├── models/               # SQLAlchemy models (mirrors §6)
-│       │   ├── schemas/              # Pydantic request/response schemas
-│       │   ├── api/v1/               # routers, one file per resource (§11)
-│       │   ├── ai/
-│       │   │   ├── client.py         # OpenAI Responses API wrapper
-│       │   │   ├── schemas.py        # structured-output Pydantic models (§8)
-│       │   │   ├── prompts/          # versioned prompt templates (planner_v1.py, ...)
-│       │   │   ├── services/         # generate_plan(), review_survey(), ...
-│       │   │   └── reconciliation.py # metric-grounding validator (§9)
-│       │   ├── analytics/            # deterministic engine (§10)
-│       │   ├── reports/              # docxtpl + WeasyPrint export pipeline (§13)
-│       │   ├── jobs/                 # ARQ task definitions
-│       │   └── tests/
-│       └── alembic/
-├── infra/
-│   └── docker-compose.yml       # local: postgres, redis
+survai/
+├── frontend/                    # Next.js App Router (live UI)
+├── backend/                     # FastAPI (auth scaffold live)
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── core/                # config, security, exceptions
+│   │   ├── db/                  # session, Base, SSL helpers
+│   │   ├── models/              # User, RefreshToken, PasswordResetToken (+ §6 later)
+│   │   ├── schemas/
+│   │   ├── repositories/
+│   │   ├── services/            # auth, user, email
+│   │   └── api/v1/routes/       # health, auth, users
+│   ├── alembic/
+│   ├── tests/
+│   ├── docker-compose.yml
+│   ├── docker-compose.prod.yml  # Traefik + Let's Encrypt
+│   └── README.md
 ├── .github/workflows/
-│   ├── ci.yml
-│   └── deploy.yml
-├── docs/
-│   └── plan.md                  # this file
-└── README.md
+│   ├── backend-ci.yml
+│   └── backend-cd.yml
+├── plan.md
+├── status.md
+└── PRODUCT.md
 ```
 
-Two apps, one repo, no shared build tooling needed across languages — a plain
-top-level `docker-compose.yml` is enough for local dev.
+Still planned under `backend/app/` (not created yet): `ai/`, `analytics/`,
+`reports/`, `jobs/` — see earlier architecture notes in this section’s history /
+§8–§14. Frontend feature modules stay under `frontend/src/features/`.
 
 ---
 
@@ -228,7 +212,7 @@ top-level `docker-compose.yml` is enough for local dev.
 
 ```mermaid
 flowchart LR
-    subgraph Web[Next.js — apps/web]
+    subgraph Web[Next.js — frontend/]
       Planner[Planner UI]
       Builder[Builder UI]
       Reviewer[Reviewer UI]
@@ -237,7 +221,7 @@ flowchart LR
       ReportUI[Report Workspace + Chat]
     end
 
-    subgraph Api[FastAPI — apps/api]
+    subgraph Api[FastAPI — backend/]
       RBAC[Auth / RBAC middleware]
       PlanSvc[Planner service]
       BuildSvc[Builder service]
@@ -593,21 +577,35 @@ CREATE TABLE audit_log (
 (sign-in/up screens, client helpers, Next.js gating UX) — it does not replace
 FastAPI as the issuer/validator of credentials.
 
-### Real auth (API)
+### Tenancy language (MVP)
 
-- **Flow:** `POST /auth/login` → verify argon2 hash → issue short-lived JWT
-  access token (≈15 min) + opaque refresh token (7–30 days, stored hashed in
-  `refresh_tokens`, rotated on use). Access JWT carries `sub` (user id) and
-  `role`.
-- **Transport:** both tokens live in **httpOnly, Secure, SameSite** cookies
-  (not `localStorage`). Browser sends cookies on API requests
-  (`credentials: 'include'`). Access JWT may also be held in memory on the
-  client for Authorization headers if needed — never persist it in storage.
-- **Server-side authorization:** FastAPI dependency (`require_role(*roles)`)
-  on every non-public route; verify JWT signature/expiry, then prefer checking
-  role against the current DB row (covers mid-session role changes).
-- **Refresh:** `POST /auth/refresh` rotates the refresh cookie and issues a
-  new access JWT cookie.
+- **Organization** = the account / workspace that owns surveys. Signup creates
+  one org login that does **everything** (no staff seats yet).
+- **User** (DB) = credential row for that org (1:1 for MVP). Not a separate
+  “team member” product concept yet.
+- **Respondent** = form-filler on public collection links — **no account**,
+  never hits `/auth/register`.
+
+### Real auth (API) — **implemented in `backend/`** (org accounts)
+
+Live routes under `/api/v1`: `POST /auth/register` (organization account),
+`/auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me`,
+`POST /auth/forgot-password`, `POST /auth/reset-password`.
+
+- **Flow:** login/register → verify **bcrypt** hash → short-lived JWT access
+  token (≈15 min) + opaque refresh token (stored hashed in `refresh_tokens`,
+  rotated on use). Access JWT carries `sub` (user id) and `role`.
+- **Transport:** tokens set as **httpOnly** cookies *and* returned in JSON so
+  the Next.js client can use cookies (`credentials: 'include'`) and/or Bearer.
+  Prefer cookies long-term; **do not** persist access tokens in
+  `localStorage` / `sessionStorage` (current FE still uses `sessionStorage` —
+  remove when wiring Better Auth UX properly).
+- **Server-side authorization:** FastAPI deps (`get_current_user`,
+  `require_roles`) check JWT then DB user row.
+- **Refresh:** cookie or `{ refresh_token }` body; rotates refresh + issues new
+  access token.
+- **Password recovery:** hashed reset tokens in `password_reset_tokens`; SMTP
+  or console log when `SMTP_ENABLED=false`.
 
 ### Frontend UX (Better Auth)
 
@@ -630,8 +628,9 @@ FastAPI as the issuer/validator of credentials.
 - **Public routes:** only the `/api/v1/public/*` collection endpoints (§11)
   are unauthenticated, and they are scoped to a single published
   `survey_version_id` — they cannot enumerate or touch anything else.
-- **Password policy:** argon2id, min length enforced client- and server-side;
-  no password fields in `ai_generation_logs` or `audit_log` input_meta.
+- **Password policy:** bcrypt via passlib, min length enforced client- and
+  server-side; no password fields in `ai_generation_logs` or `audit_log`
+  input_meta.
 
 ---
 
@@ -962,7 +961,7 @@ frontend polls or subscribes to job status.
 
 ## 14. Background Jobs & Async Processing
 
-ARQ worker (`apps/api/app/jobs/`), separate Render/Railway service from the
+ARQ worker (`backend/app/jobs/`), separate Render/Railway service from the
 API, sharing the same Redis instance as the cache.
 
 | Job | Trigger | Notes |
@@ -1024,36 +1023,41 @@ Directly implementing PRD §14:
 ## 17. Environment Variables
 
 ```bash
-# --- apps/api/.env ---
-DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/survey_copilot
-REDIS_URL=redis://host:6379/0
+# --- backend/.env (gitignored; see backend/.env.example) ---
+ENVIRONMENT=development
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/defaultdb
+DATABASE_SSL=true                 # required for Aiven / most managed Postgres
+# DATABASE_SSL_CA=./certs/aiven-ca.pem   # optional full cert verify
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=5
 
-JWT_SECRET=
-JWT_ACCESS_TTL_MINUTES=15
-JWT_REFRESH_TTL_DAYS=14
+CORS_ORIGINS=http://localhost:3000
+FRONTEND_URL=http://localhost:3000
 
-OPENAI_API_KEY=
-OPENAI_MODEL_PLANNER=            # set to a current strict-structured-output model
-OPENAI_MODEL_BUILDER=
-OPENAI_MODEL_REVIEWER=
-OPENAI_MODEL_REPORT=
-OPENAI_MODEL_CHAT=               # faster/cheaper variant acceptable here
+JWT_SECRET_KEY=
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=14
+COOKIE_SECURE=false
+COOKIE_SAMESITE=lax
 
-S3_ENDPOINT_URL=                 # Cloudflare R2 or AWS S3 endpoint
-S3_ACCESS_KEY_ID=
-S3_SECRET_ACCESS_KEY=
-S3_BUCKET_NAME=
+FIRST_SUPERUSER_EMAIL=admin@example.com   # EmailStr rejects .local
+FIRST_SUPERUSER_PASSWORD=
 
-SENTRY_DSN=
-ENVIRONMENT=development          # development | staging | production
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+# SMTP (password reset) — false logs reset links to console in dev
+SMTP_ENABLED=false
 
-# --- frontend/.env.local ---
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_SENTRY_DSN=
+# Later:
+# REDIS_URL=
+# OPENAI_API_KEY=
+# OPENAI_MODEL_*=
+
+# --- frontend/.env ---
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
+NEXT_PUBLIC_AUTH_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_SENTRY_DISABLED=true
 
 # Better Auth (FE UX helpers only — does not replace JWT_SECRET / cookie auth)
-# Add only the vars required by the Better Auth client / UI wiring you choose
 ```
 
 ---
@@ -1064,7 +1068,7 @@ Mapping PRD §15 onto concrete deliverables:
 
 | Week | PRD focus | Technical milestones |
 | --- | --- | --- |
-| 1 | Discovery + architecture | Repo scaffold (§4); §6 schema + first Alembic migration; auth (§7) end-to-end; CI pipeline; AI client/schema/prompt skeleton (§8) with one working call (planner) |
+| 1 | Discovery + architecture | ✅ Repo + auth scaffold (`backend/`); JWT+cookies live; Aiven Postgres; backend CI/CD. Next: full §6 domain Alembic; FE↔API auth without mock/sessionStorage; AI client skeleton (§8) |
 | 2 | Planner + survey model | PLN-01–05 fully working; `surveys`/`sections`/`questions` CRUD; plan→survey handoff |
 | 3 | Builder | BLD-01–08; drag-and-drop reorder; live preview; conditional logic DSL (draft, unconfirmed) |
 | 4 | Reviewer + collection | REV-01–06; `survey_versions` publish flow; public collection routes COL-01–05 |
@@ -1093,9 +1097,10 @@ Current UI reality is tracked in `status.md`. Stack enforcements are in **§2a**
 - **Respondents.** List: heading, then sort/stats/toolbar row; status as column
   header filter; search in column header. Detail: prefilled survey-form look,
   not a generic key/value dump.
-- **Mock work is explicit.** Overview and module interiors may stay on mock
-  services until the backend is live; when wiring real data, use the feature
-  `api/types → service → queries` + TanStack Query pattern — not ad-hoc fetch.
+- **Mock work is explicit.** Auth API is live; survey/plan/analytics/report
+  feature data is still mock. When wiring real data, use
+  `api/types → service → queries` + TanStack Query — not ad-hoc fetch.
+  Point `NEXT_PUBLIC_API_BASE_URL` at the FastAPI `/api/v1` base.
 
 ---
 
@@ -1189,22 +1194,32 @@ from screenshots or older sessions:
 - `frontend/.cursor/rules/frontend-stack.mdc` — stack enforcement rule (§2a)
 
 `plan.md` is the architectural source of truth; `status.md` is the current
-frontend implementation status. If they disagree, status.md is usually the more
-recent picture of the UI. For library choice conflicts, **§2a wins**.
+implementation snapshot (frontend + backend). If they disagree, status.md is
+usually the more recent picture of what is running. For library choice
+conflicts, **§2a wins**.
 
 ---
 
-## 23. Implementation Status — Frontend (as of September 2026)
+## 23. Implementation Status (as of October 2026)
 
-> This section tracks what has been built in the frontend (`frontend/`).
-> Backend API is still mock-data only; all services use in-memory arrays.
-> Update this section as each milestone ships.
+> Tracks frontend + backend. Survey domain data on the FE is still largely mock;
+> auth API + Postgres users are real. Update as milestones ship.
 
-### ✅ Completed
+### ✅ Completed — Backend (`backend/`)
+
+| Module | Status | Notes |
+| --- | --- | --- |
+| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, type hints, CORS, Docker Compose, Traefik prod labels |
+| **Auth API (§7 core)** | ✅ Done | register/login/refresh/logout/me + forgot/reset password; JWT + cookies; bcrypt; refresh tokens in DB |
+| **Users** | ✅ Partial | model + admin list/get routes; seed first superuser on startup |
+| **Postgres** | ✅ Dev live | Aiven PostgreSQL 18; Alembic `0001_initial_auth` applied |
+| **Tests / CI** | ✅ Done | Pytest auth+health; GH Actions backend-ci + backend-cd (GHCR) |
+
+### ✅ Completed — Frontend
 
 | Module | Pages / Components | Status | Notes |
 | --- | --- | --- | --- |
-| **Auth** | Login, Register, Forgot Password | ✅ Done | RHF + Zod forms; JWT+cookie API not wired yet (mock submit) |
+| **Auth UI** | Login, Register, Forgot Password | ✅ Done | RHF + Zod; `auth-context` can call live API; still falls back to mock user + `sessionStorage` access token |
 | **Forms stack** | All FE forms on RHF + Zod | ✅ Done | TanStack Form removed; field components under `components/forms/fields` |
 | **Sidebar Navigation** | App sidebar with collapsible/expandable modes | ✅ Done | Logo variants (light/dark × collapsed/expanded); primary icon colors; user dropdown |
 | **Dashboard Overview** | Stat cards, Recent Plans, Quick Actions | ✅ Done | Outline-style cards; primary color accents; grid pattern backgrounds |
@@ -1223,16 +1238,15 @@ recent picture of the UI. For library choice conflicts, **§2a wins**.
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **AI Integration** | Mock only | All AI features (planner, reviewer, report) use `setTimeout` delays; need real OpenAI Responses API integration |
-| **Backend API** | Not started | FastAPI + PostgreSQL + Alembic schema from §6; all frontend currently uses mock services |
-| **Authentication** | Mock only | Frontend forms exist; need FastAPI JWT+cookie auth + Better Auth FE UX (§7) |
-| **Collection Route** | Partial | `/s/[versionId]` exists; needs real respondent flow, validation, progress saving |
+| **FE ↔ API auth** | Partial | Remove mock user + `sessionStorage`; cookie-only / Better Auth UX on live JWT API |
+| **§6 domain schema** | Not migrated | plans, surveys, sections, questions, versions, respondents, analytics, reports tables |
+| **AI Integration** | Mock only | OpenAI Responses API; all FE AI still `setTimeout` |
+| **Collection Route** | Partial | `/s/[versionId]` exists; needs real respondent flow against public API |
 
-### ❌ Not Started
+### ❌ Not Started (domain + AI)
 
 | Module | PRD Ref | Priority |
 | --- | --- | --- |
-| **Backend Auth** | §7 | P0 — blocks all real data flows |
 | **Backend Plans CRUD** | §11 | P0 |
 | **Backend Surveys/Sections/Questions** | §11 | P0 |
 | **Backend Reviewer** | §11 | P1 |
@@ -1241,8 +1255,6 @@ recent picture of the UI. For library choice conflicts, **§2a wins**.
 | **Background Jobs (ARQ)** | §14 | P1 |
 | **AI Orchestration Layer** | §8 | P1 |
 | **Anti-Hallucination Reconciliation** | §9 | P1 |
-| **Database (PostgreSQL)** | §6 | P0 |
-| **CI/CD Pipeline** | §4 | P2 |
 | **E2E Tests (Playwright)** | §19 | P2 |
 
 ---
@@ -1342,12 +1354,13 @@ frontend/src/
 
 ---
 
-## 25. Next Milestones — Remaining Frontend Work
+## 25. Next Milestones
 
 | Priority | Task | PRD Ref |
 | --- | --- | --- |
-| P0 | Connect frontend to real backend API (replace mock services; TanStack Query service layer) | §11, §2a |
-| P0 | Wire **JWT + cookie** auth API + Better Auth FE UX (replace mock auth) | §7, §2a |
+| P0 | Alembic §6 domain schema + Plans/Surveys CRUD APIs | §6, §11 |
+| P0 | Finish FE auth against live API (drop mock/`sessionStorage`; Better Auth UX) | §7, §2a |
+| P0 | Connect survey/plan features to API via TanStack Query service layer | §11, §2a |
 | P0 | Build public collection route with real respondent flow | COL-01–05 |
 | P1 | Add real-time response counter on Collect page | COL-04 |
 | P1 | Implement report export with actual DOCX/PDF generation | §13 |

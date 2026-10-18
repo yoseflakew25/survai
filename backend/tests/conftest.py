@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models import PasswordResetToken, RefreshToken, User  # noqa: F401
+from app.models import Organization, PasswordResetToken, RefreshToken, User  # noqa: F401
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 

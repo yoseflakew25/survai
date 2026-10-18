@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     first_superuser_email: str = "admin@example.com"
     first_superuser_password: str = "ChangeMe123!"
     first_superuser_full_name: str = "SurvAI Admin"
+    first_superuser_organization_name: str = "SurvAI"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

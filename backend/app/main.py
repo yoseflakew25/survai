@@ -22,12 +22,16 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if settings.environment != "test":
-        async with AsyncSessionLocal() as session:
-            service = UserService(session)
-            created = await service.ensure_first_superuser()
-            await session.commit()
-            if created:
-                logger.info("Created first superuser: %s", created.email)
+        try:
+            async with AsyncSessionLocal() as session:
+                service = UserService(session)
+                created = await service.ensure_first_superuser()
+                await session.commit()
+                if created:
+                    logger.info("Created first superuser: %s", created.email)
+        except Exception:
+            # Don't block the API if seed/bootstrap fails (e.g. pending migrations).
+            logger.exception("Startup bootstrap failed — API will still serve requests")
     yield
 
 

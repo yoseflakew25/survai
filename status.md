@@ -1,97 +1,99 @@
-# Codebase Progress — AI Survey Copilot
+# Codebase Progress — SurvAI / AI Survey Copilot
 
-> Living snapshot of what has been implemented in the frontend UI so far,
-> what is still in mock/hardcoded form, and where the known gaps are.
-> Updated after the latest session work (sidebar icon completion, dead-build
-> card removal, respondents + respondent-detail UI work).
+> Living snapshot of what is implemented vs mock vs next.
+> Last updated: October 2026 (FastAPI auth scaffold + Aiven Postgres).
+
+Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
 ---
 
 ## 1. Project Shape
 
-- **One Next.js app** (`frontend/`) on the App Router with a
-  `dashboard/*` shell and `(auth)/*` pages.
-- **Sidebar nav** is driven by `src/config/nav-config.ts` (groups →
-  items → optional sub-items), rendered in `AppSidebar`.
-- **Icons** live in `src/components/icons.tsx`: a mix of Tabler imports and
-  inline SVG shims, all keyed into the `Icons` record. Nav items reference
-  them by string key (`icon: 'dashboard'`).
-- **Stepper/header consistency** across the survey modules (Build, Review,
-  Collect, Analytics, Reports) is currently the one area still being normalized.
+| Layer | Path | Status |
+| --- | --- | --- |
+| Frontend | `frontend/` | Next.js App Router UI — survey modules largely mock data |
+| Backend | `backend/` | FastAPI auth + orgs live against Aiven Postgres |
+| Docs | `plan.md`, `PRODUCT.md`, this file | Plan updated for `backend/` layout |
 
-## 2. Completed (frontend UI, recent)
+### Domain language (do not confuse)
 
-- **Sidebar dashboard icon:** nav config already had `icon: 'dashboard'`;
-  `Icons.dashboard` was wired up and updated to the requested multi-panel
-  dashboard SVG (`#564597` fill, `viewBox 0 0 24 24`). Dashboard row now
-  renders its icon.
-- **Survey detail (hub) page:** the dead "Build" card was removed;
-  module cards now expose only Build / Review / Collect / Analytics / Reports,
-  each wired to its real route via `MODULES` config.
-- **Respondents page:**
-  - Heading on its own at the top.
-  - Single row below it: sort pills (Date & time, Alphabetically) + stats
-    cards (Total / Completed / Partial / Avg. Duration) + existing toolbar
-    (search + status filter).
-  - Status column header is now a dropdown filter (All / Completed / Partial).
-  - Respondent column header has an in-header search input.
-  - View/hide-columns button removed everywhere (DataTableViewOptions
-    neutralized; surveys table cleaned up too).
-- **Respondent detail page:**
-  - Breadcrumb: Survey → Respondents → respondent name.
-  - Header shows name/email, status, submitted time, duration, answered count.
-  - Answers rendered as section cards with prefilled-survey-style question
-    prompt + answer value (checked chips for multi, highlighted value for
-    single/dropdown/text/number, small scale bar + n/max for ratings).
-  - Sidebar keeps Submission and Survey summary cards on wider screens.
+| Term | Meaning |
+| --- | --- |
+| **Organization** | The account/workspace that owns surveys (e.g. DICDO). Does everything in MVP. |
+| **User (DB)** | Login credentials for that org (1:1 for now). Not multi-seat staff yet. |
+| **Respondent** | Person who *fills* a published survey. **No account** — public link only. |
 
-## 3. Still mock / hardcoded
+- **Sidebar nav:** `frontend/src/config/nav-config.ts` → `AppSidebar`; icons via `src/components/icons.tsx`.
+- **Auth security:** JWT + httpOnly cookies issued by FastAPI (`plan.md` §7). Better Auth = FE UX only (not wired as security backend yet).
+- **FE env:** `frontend/.env` → `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1` (use `localhost`, not `127.0.0.1`, for cookies).
 
-- **Overview dashboard** (`dashboard/overview/*`): area/bar/pie stats and the
-  surveys list all render hardcoded numbers and mock shapes; no real query
-  wiring yet.
-- **Survey module interiors** (Build, Review, Collect, Analytics, Reports):
-  scaffolding + skeletons exist, but most content is still mock-detail-level;
-  stepper/header styling consistency across all five is still being normalized.
-- **Survey list table** and **respondents/surveys pagination** are real in
-  structure, but the underlying data is still mock until the API is live.
+---
 
-## 4. Known gaps / next-ish
+## 2. Backend — done
 
-- Finish normalizing the stepper + header row across all five survey modules
-  so they all look like one system (compact stepper, side-by-side header
-  where appropriate).
-- Wire the dashboard overview to real query hooks once the backend is up.
-- Take the same compact, consistent treatment into the Reports, Analytics, and
-  Review pages where it has not yet landed.
-- Keep icon coverage in sync: any new nav item or UI feature that expects an
-  icon must also add the key to `Icons` (Tabler import or inline shim) before
-  it lands.
+- FastAPI + SQLAlchemy 2 async + Alembic + Pydantic settings.
+- Clean architecture: **routes → services → repositories → models**, DI, type hints.
+- **Auth (org account):** register creates **Organization + login User (1:1)**; login / refresh / logout / me / forgot/reset password. No staff invites yet.
+- JWT access + opaque refresh tokens (hashed in DB); bcrypt passwords; CORS for `localhost:3000`.
+- Tables on Aiven: `organizations`, `users`, `refresh_tokens`, `password_reset_tokens`, `alembic_version`.
+- Docker Compose (dev + Traefik prod), Pytest (auth/health), GH Actions `backend-ci` / `backend-cd`.
+- Default superuser seed: `admin@example.com` under org **SurvAI** (see `backend/.env`).
 
-## 5. Nav / sidebar health
+**Run API locally:**
+```bash
+cd backend && source .venv/bin/activate
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+# Docs: http://127.0.0.1:8000/docs
+```
 
-- Nav config: Dashboard, Surveys, Account (+ Profile, Settings, Notifications
-  sub-items).
-- Icon keys in `Icons` for: `dashboard`, `survey`, `account`, `profile`,
-  `settings`, `notification`, `chevronRight`, `chevronsDown`, `logout`.
-- Sidebar renders `Icons[item.icon]` for every item, so a missing key would
-  show nothing — that is the failure mode to watch for on new nav items.
+---
 
-## 6. Files that matter for "where are we"
+## 3. Backend — not done yet
 
-- `frontend/src/config/nav-config.ts`
-- `frontend/src/components/icons.tsx`
-- `frontend/src/components/layout/app-sidebar.tsx`
-- `frontend/src/app/dashboard/surveys/[surveyId]/page.tsx`
-- `frontend/src/app/dashboard/surveys/[surveyId]/respondents/page.tsx`
-- `frontend/src/features/respondents/components/respondents-view.tsx`
-- `frontend/src/features/respondents/components/columns.tsx`
-- `frontend/src/features/respondents/components/respondent-detail-view.tsx`
-- `frontend/src/app/dashboard/overview/layout.tsx`
+- Full §6 domain schema (plans, surveys, sections, questions, versions, respondents, analytics, reports).
+- Plans / surveys / review / collect / analytics / reports APIs.
+- AI orchestration (§8), reconciliation (§9), Pandas analytics (§10), ARQ jobs (§14).
+- OpenAPI-typed FE client regeneration.
 
-## 7. Not in scope for this snapshot
+---
 
-- Backend schema, API routes, AI orchestration — this file tracks frontend UI
-  progress only, per the current session focus.
-- Auth pages redesign notes are out of date and should be re-captured
-  separately if they still matter.
+## 4. Frontend — done (UI)
+
+- RHF + Zod forms stack; field components under `components/forms/fields`.
+- Dashboard shell, surveys list/hub, Build / Review / Collect / Analytics / Reports scaffolding.
+- Respondents list + detail views (mock data).
+- Auth pages (login / register / forgot) with RHF+Zod; `auth-context` can call live `/api/v1/auth/*`.
+
+---
+
+## 5. Frontend — still mock / gaps
+
+- Overview + survey module interiors: hardcoded / mock services.
+- Auth still seeds a **mock user** when no token, and stores access token in **`sessionStorage`** (plan forbids durable token storage — fix when finishing FE↔API auth).
+- Better Auth UX not integrated on top of JWT cookies yet.
+- Survey/plan/analytics/report features not on TanStack Query against real APIs.
+
+---
+
+## 6. Known next (priority)
+
+1. **P0** — Alembic migrations for §6 domain tables + Plans/Surveys CRUD.
+2. **P0** — Finish FE auth against live API (drop mock + sessionStorage; cookie credentials).
+3. **P0** — Wire survey features via TanStack Query service layer.
+4. **P0** — Public collection route against real API.
+5. **P1+** — AI layer, analytics engine, reports/export, ARQ.
+
+---
+
+## 7. Files that matter
+
+**Backend:** `backend/app/main.py`, `api/v1/routes/auth.py`, `services/auth.py`, `models/`, `alembic/versions/0001_initial_auth.py`, `README.md`
+
+**Frontend:** `frontend/src/lib/auth-context.tsx`, `frontend/.env`, `config/nav-config.ts`, `components/icons.tsx`, survey/respondent feature folders under `src/features/` and `src/app/dashboard/`
+
+---
+
+## 8. Out of this snapshot
+
+- Per-PRD feature acceptance (PLN/BLD/REV/…) — still UI/mock until domain APIs exist.
+- Password rotation on Aiven if credentials were ever shared outside the machine.

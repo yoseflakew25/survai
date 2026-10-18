@@ -7,18 +7,21 @@ body {
 
 :root {
   --header-height: calc(var(--spacing, 0.25rem) * 12 + 1px);
+  /* Landing fonts — used app-wide (same as / board) */
+  --font-sans: var(--font-geist-sans), Geist, ui-sans-serif, sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  --font-display: var(--font-bricolage), 'Bricolage Grotesque', var(--font-sans);
+  --font-serif: Georgia, serif;
 }
 
-/* Apply theme fonts to body for all themes */
-/* This ensures theme-specific fonts override Next.js font variables */
-/* Font variables are defined on [data-theme] (html element) */
-/* We need to override Next.js font variables on body to use html's values */
-/* Using initial removes the property, allowing parent (html) values to cascade */
-[data-theme] body {
-  /* Remove Next.js font variables to allow theme variables from html to cascade */
-  --font-sans: initial;
-  --font-mono: initial;
-  --font-serif: initial;
-  /* Apply font-family - will now resolve from html's [data-theme] variables */
+body {
   font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }

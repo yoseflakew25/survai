@@ -6,7 +6,6 @@ import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-h
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import type { SurveyListItem, SurveyStatus } from '../../api/types';
-import { CellActions } from './cell-actions';
 
 const STATUS_CONFIG: Record<
   SurveyStatus,
@@ -186,16 +185,5 @@ export const columns: ColumnDef<SurveyListItem>[] = [
         <span className='text-muted-foreground text-sm'>{relative}</span>
       );
     }
-  },
-  {
-    id: 'actions',
-    size: 52,
-    enableSorting: false,
-    enableHiding: false,
-    cell: ({ row }) => (
-      <div className='flex justify-end pr-1'>
-        <CellActions data={row.original} />
-      </div>
-    )
   }
 ];

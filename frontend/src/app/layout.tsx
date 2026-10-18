@@ -3,7 +3,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { fontVariables } from '@/components/themes/font.config';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
 import ThemeProvider from '@/components/themes/theme-provider';
-import { cn } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import NextTopLoader from 'nextjs-toploader';
@@ -51,13 +50,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const themeToApply = isValidTheme ? activeThemeValue! : DEFAULT_THEME;
 
   return (
-    <html lang='en' suppressHydrationWarning data-theme={themeToApply}>
-      <body
-        className={cn(
-          'bg-background overflow-x-hidden overscroll-none font-sans antialiased',
-          fontVariables
-        )}
-      >
+    <html
+      lang='en'
+      suppressHydrationWarning
+      data-theme={themeToApply}
+      className={fontVariables}
+    >
+      <body className='bg-background overflow-x-hidden overscroll-none font-sans antialiased'>
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
           <ThemeProvider

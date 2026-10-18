@@ -17,15 +17,11 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   ],
   '/dashboard/profile': [
     { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Profile', link: '/dashboard/profile' }
+    { title: 'Account', link: '/dashboard/profile' }
   ],
   '/dashboard/settings': [
     { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Settings', link: '/dashboard/settings' }
-  ],
-  '/dashboard/notifications': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Notifications', link: '/dashboard/notifications' }
+    { title: 'Account', link: '/dashboard/profile' }
   ],
   '/dashboard/plans': [
     { title: 'Dashboard', link: '/dashboard' },

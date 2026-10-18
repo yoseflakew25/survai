@@ -234,13 +234,8 @@ export default function AppSidebar() {
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
                     <Icons.account className='text-muted-foreground mr-2 size-4' />
-                    <span>Profile</span>
+                    <span>Account</span>
                     <span className='text-muted-foreground ml-auto text-xs'>⌘P</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
-                    <Icons.settings className='text-muted-foreground mr-2 size-4' />
-                    <span>Settings</span>
-                    <span className='text-muted-foreground ml-auto text-xs'>⌘S</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

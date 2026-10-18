@@ -59,7 +59,13 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot='dialog-close'
-            render={<Button variant='ghost' className='absolute top-2 right-2 text-white' size='icon-sm' />}
+            render={
+              <Button
+                variant='ghost'
+                className='absolute top-2 right-2 text-current'
+                size='icon-sm'
+              />
+            }
           >
             <IconX />
             <span className='sr-only'>Close</span>
@@ -70,38 +76,16 @@ function DialogContent({
   );
 }
 
-function DialogHeader({ className, children, ...props }: React.ComponentProps<'div'>) {
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot='dialog-header'
       className={cn(
-        'relative overflow-hidden bg-primary p-4 text-white',
+        'bg-primary p-4 text-primary-foreground',
         className
       )}
-    >
-      {/* Line grid — masked to fade left→right */}
-      <div
-        className='pointer-events-none absolute inset-0'
-        style={{
-          maskImage: 'linear-gradient(to right, transparent 0%, transparent 10%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.5) 60%, black 85%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, transparent 10%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.5) 60%, black 85%)'
-        }}
-      >
-        <div
-          className='h-full w-full'
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='32' height='32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0v32M0 0h32' stroke='white' stroke-width='0.5' opacity='0.2'/%3E%3C/svg%3E")`,
-            backgroundSize: '32px 32px'
-          }}
-        />
-      </div>
-      {/* Subtle vignette */}
-      <div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-black/10' />
-      {/* Content */}
-      <div className='relative' {...props}>
-        {children}
-      </div>
-    </div>
+      {...props}
+    />
   );
 }
 

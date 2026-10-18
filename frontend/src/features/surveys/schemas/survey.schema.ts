@@ -7,9 +7,8 @@ export const newSurveySchema = z.object({
     .max(200, 'Title must be under 200 characters'),
   description: z
     .string()
-    .max(500, 'Description must be under 500 characters')
-    .optional()
-    .or(z.literal('')),
+    .min(3, 'Description must be at least 3 characters')
+    .max(500, 'Description must be under 500 characters'),
   researchGoal: z
     .string()
     .min(10, 'Research goal must be at least 10 characters for better AI results')

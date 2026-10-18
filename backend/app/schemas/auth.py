@@ -13,7 +13,11 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    full_name: str = Field(min_length=1, max_length=255)
+    # Optional contact label; defaults to organization_name when omitted.
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+    # Creates the Organization account (workspace). MVP: no staff invites.
+    # Respondents never register — they only fill public forms.
+    organization_name: str = Field(min_length=1, max_length=255)
 
 
 class TokenPairResponse(BaseModel):

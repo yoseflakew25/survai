@@ -55,9 +55,10 @@
   --primary-800: #213f00;
   --primary-900: #162900;
   --primary-950: #0c1600;
-  --font-sans: Geist, sans-serif;
+  --font-sans: var(--font-geist-sans), Geist, ui-sans-serif, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: Geist Mono, monospace;
+  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  --font-display: var(--font-bricolage), 'Bricolage Grotesque', var(--font-sans);
   --radius: 0.875rem;
   --shadow-x: 0px;
   --shadow-y: 1px;
@@ -132,9 +133,10 @@
   --primary-800: #213f00;
   --primary-900: #162900;
   --primary-950: #0c1600;
-  --font-sans: Geist, sans-serif;
+  --font-sans: var(--font-geist-sans), Geist, ui-sans-serif, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: Geist Mono, monospace;
+  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  --font-display: var(--font-bricolage), 'Bricolage Grotesque', var(--font-sans);
   --radius: 0.875rem;
   --shadow-2xs: 0 1px 2px 0 #00000040;
   --shadow-xs: 0 1px 2px 0 #00000040;
@@ -205,6 +207,7 @@
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
     --font-serif: var(--font-serif);
+    --font-display: var(--font-display);
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);

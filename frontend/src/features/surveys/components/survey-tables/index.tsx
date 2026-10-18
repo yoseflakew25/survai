@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/ui/table/data-table';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -35,6 +36,7 @@ const brandCtaClass =
   'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
 
 export function SurveyTable() {
+  const router = useRouter();
   const [newSurveyOpen, setNewSurveyOpen] = useState(false);
 
   const [params, setParams] = useQueryStates({
@@ -152,7 +154,12 @@ export function SurveyTable() {
           </div>
         </div>
 
-        <DataTable table={table} />
+        <DataTable
+          table={table}
+          onRowClick={(survey) =>
+            router.push(`/dashboard/surveys/${survey.id}/review`)
+          }
+        />
       </div>
 
       <NewSurveyDialog open={newSurveyOpen} onOpenChange={setNewSurveyOpen} />

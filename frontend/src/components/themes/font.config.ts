@@ -2,14 +2,15 @@ import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
 
 import { cn } from '@/lib/utils';
 
+/** Loaded faces — keep names distinct from theme tokens so themes can reference them. */
 const fontSans = Geist({
   subsets: ['latin'],
-  variable: '--font-sans'
+  variable: '--font-geist-sans'
 });
 
 const fontMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-mono'
+  variable: '--font-geist-mono'
 });
 
 const fontDisplay = Bricolage_Grotesque({

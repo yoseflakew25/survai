@@ -17,9 +17,11 @@ from app.core.security import (
     hash_token,
     verify_password,
 )
+from app.models.organization import Organization
 from app.models.password_reset import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
+from app.repositories.organization import OrganizationRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
@@ -32,25 +34,41 @@ class AuthService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.users = UserRepository(session)
+        self.organizations = OrganizationRepository(session)
         self.refresh_tokens = RefreshTokenRepository(session)
         self.password_resets = PasswordResetRepository(session)
 
     async def register(
-        self, *, email: str, password: str, full_name: str
+        self,
+        *,
+        email: str,
+        password: str,
+        full_name: str,
+        organization_name: str,
     ) -> TokenPairResponse:
         existing = await self.users.get_by_email(email)
         if existing:
             raise BadRequestError("Email already registered")
 
+        org = Organization(name=organization_name.strip())
+        await self.organizations.add(org)
+        await self.session.flush()
+
+        # MVP: one login per organization (no staff seats). Role reserved for later.
+        display_name = full_name.strip() or org.name
         user = User(
             email=email.lower().strip(),
             hashed_password=hash_password(password),
-            full_name=full_name.strip(),
-            role=UserRole.researcher,
+            full_name=display_name,
+            role=UserRole.admin,
+            organization_id=org.id,
             is_active=True,
             is_superuser=False,
         )
         await self.users.add(user)
+        await self.session.flush()
+        # Ensure relationship is available for UserPublic
+        user.organization = org
         tokens = await self._issue_token_pair(user)
         await self.session.commit()
         return tokens
@@ -73,9 +91,12 @@ class AuthService:
         if not stored.user.is_active:
             raise UnauthorizedError("Inactive user")
 
-        # Rotate: revoke old, issue new pair
         await self.refresh_tokens.revoke(stored)
-        tokens = await self._issue_token_pair(stored.user)
+        # Reload with organization for response
+        user = await self.users.get_by_id(stored.user_id)
+        if user is None:
+            raise UnauthorizedError("Invalid refresh token")
+        tokens = await self._issue_token_pair(user)
         await self.session.commit()
         return tokens
 

@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
+import { PasswordInput } from '@/features/auth/components/password-input';
 import { IconGoogle, IconMail } from '@/features/auth/components/survai-mark';
 import { GOOGLE_OAUTH_REDIRECT_URL } from '@/lib/auth-env';
 import { useAuth } from '@/lib/auth-context';
@@ -19,7 +20,10 @@ const magicSchema = z.object({
 
 const passwordSchema = z
   .object({
-    fullName: z.string().min(1, 'Name is required').min(2, 'At least 2 characters'),
+    organizationName: z
+      .string()
+      .min(1, 'Organization name is required')
+      .min(2, 'At least 2 characters'),
     email: z.string().min(1, 'Email is required').email('Enter a valid email'),
     password: z
       .string()
@@ -41,9 +45,9 @@ const inputClass =
   'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function SignUpViewPage() {
-  const { register: registerUser, isSignedIn } = useAuth();
+  const { register: registerUser, isSignedIn, isLoading } = useAuth();
   const router = useRouter();
-  const [mode, setMode] = useState<'magic' | 'password'>('magic');
+  const [mode, setMode] = useState<'magic' | 'password'>('password');
   const [serverError, setServerError] = useState<string | null>(null);
 
   const magicForm = useForm<MagicValues>({
@@ -54,17 +58,18 @@ export default function SignUpViewPage() {
   const passwordForm = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
-      fullName: '',
+      organizationName: '',
       email: '',
       password: '',
       confirmPassword: ''
     }
   });
 
-  if (isSignedIn) {
-    router.push('/dashboard/overview');
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && isSignedIn) {
+      router.replace('/dashboard/overview');
+    }
+  }, [isLoading, isSignedIn, router]);
 
   async function onMagicSubmit(values: MagicValues) {
     setServerError(null);
@@ -79,18 +84,21 @@ export default function SignUpViewPage() {
     setServerError(null);
     try {
       await registerUser({
-        fullName: values.fullName,
+        organizationName: values.organizationName,
         email: values.email,
         password: values.password
       });
-      toast.success('Account created!', {
-        description: 'Welcome to Survai. Your account is ready.'
+      toast.success('Organization created!', {
+        description: 'Your organization account is ready to build surveys.'
       });
       router.push('/dashboard/overview');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed';
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Could not create your organization. Please try again.';
       setServerError(message);
-      toast.error('Registration failed', { description: message });
+      toast.error('Could not create workspace', { description: message });
     }
   }
 
@@ -98,40 +106,26 @@ export default function SignUpViewPage() {
     <AuthShell>
       <div className='mb-6'>
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
-          Create your account
+          Create your organization
         </h1>
         <p className='mt-1.5 text-[15px] text-muted-foreground'>
           {mode === 'magic'
             ? "No password needed. We'll email you a code."
-            : 'Start building surveys you can trust.'}
+            : 'One organization account to plan, build, collect, and analyze surveys.'}
         </p>
       </div>
 
       <div className='space-y-4'>
-        <div className='flex gap-2'>
-          <button
-            type='button'
-            className='flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium transition-colors hover:border-foreground/40'
-            onClick={() => {
-              toast.info('GitHub sign-in is coming soon');
-            }}
-          >
-            <svg className='h-4 w-4' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'>
-              <path d='M12 2C6.477 2 2 6.486 2 12.021c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.866-.013-1.7-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.339-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.56 9.56 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.31.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.025 10.025 0 0 0 22 12.021C22 6.486 17.523 2 12 2z' />
-            </svg>
-            GitHub
-          </button>
-          <button
-            type='button'
-            className='flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium transition-colors hover:border-foreground/40'
-            onClick={() => {
-              window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
-            }}
-          >
-            <IconGoogle className='h-4 w-4' />
-            Google
-          </button>
-        </div>
+        <button
+          type='button'
+          className='flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium transition-colors hover:border-foreground/40'
+          onClick={() => {
+            window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
+          }}
+        >
+          <IconGoogle className='h-4 w-4' />
+          Continue with Google
+        </button>
 
         <div className='relative'>
           <div className='absolute inset-0 flex items-center'>
@@ -175,15 +169,15 @@ export default function SignUpViewPage() {
         ) : (
           <form className='space-y-2' onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
             <input
-              placeholder='Full name'
-              autoComplete='name'
-              aria-label='Full name'
+              placeholder='Organization name'
+              autoComplete='organization'
+              aria-label='Organization name'
               className={inputClass}
-              {...passwordForm.register('fullName')}
+              {...passwordForm.register('organizationName')}
             />
-            {passwordForm.formState.errors.fullName && (
+            {passwordForm.formState.errors.organizationName && (
               <p className='text-sm text-destructive'>
-                {passwordForm.formState.errors.fullName.message}
+                {passwordForm.formState.errors.organizationName.message}
               </p>
             )}
             <input
@@ -199,8 +193,7 @@ export default function SignUpViewPage() {
                 {passwordForm.formState.errors.email.message}
               </p>
             )}
-            <input
-              type='password'
+            <PasswordInput
               placeholder='Password'
               autoComplete='new-password'
               aria-label='Password'
@@ -212,8 +205,7 @@ export default function SignUpViewPage() {
                 {passwordForm.formState.errors.password.message}
               </p>
             )}
-            <input
-              type='password'
+            <PasswordInput
               placeholder='Confirm password'
               autoComplete='new-password'
               aria-label='Confirm password'
@@ -230,7 +222,9 @@ export default function SignUpViewPage() {
               disabled={passwordForm.formState.isSubmitting}
               className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
             >
-              {passwordForm.formState.isSubmitting ? 'Creating…' : 'Create account'}
+              {passwordForm.formState.isSubmitting
+                ? 'Creating…'
+                : 'Create organization'}
             </button>
           </form>
         )}
@@ -247,7 +241,7 @@ export default function SignUpViewPage() {
         </button>
 
         <p className='text-center text-[13px] text-muted-foreground'>
-          Already have an account?{' '}
+          Already have a workspace?{' '}
           <Link href='/auth/sign-in' className='font-semibold text-foreground hover:underline'>
             Sign in
           </Link>

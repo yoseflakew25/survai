@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.refresh_token import RefreshToken
+from app.models.user import User
 from app.repositories.base import BaseRepository
 
 
@@ -19,7 +20,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
         now = datetime.now(UTC)
         result = await self.session.execute(
             select(RefreshToken)
-            .options(selectinload(RefreshToken.user))
+            .options(selectinload(RefreshToken.user).selectinload(User.organization))
             .where(
                 RefreshToken.token_hash == token_hash,
                 RefreshToken.revoked_at.is_(None),

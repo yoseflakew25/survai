@@ -34,7 +34,10 @@ async def register(
     auth: AuthServiceDep,
 ) -> TokenPairResponse:
     tokens = await auth.register(
-        email=body.email, password=body.password, full_name=body.full_name
+        email=body.email,
+        password=body.password,
+        full_name=body.full_name or body.organization_name,
+        organization_name=body.organization_name,
     )
     set_auth_cookies(
         response, access_token=tokens.access_token, refresh_token=tokens.refresh_token

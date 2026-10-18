@@ -37,13 +37,13 @@ export function AuthShell({ children }: AuthShellProps) {
           <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground/30'>
             <span>© {new Date().getFullYear()} Survai</span>
             <Link
-              href='#'
+              href='/privacy'
               className='transition-colors hover:text-muted-foreground/60'
             >
               Privacy
             </Link>
             <Link
-              href='#'
+              href='/terms'
               className='transition-colors hover:text-muted-foreground/60'
             >
               Terms

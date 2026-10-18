@@ -3,6 +3,7 @@ import {
   IconAdjustments,
   IconAlertCircle,
   IconArrowRight,
+  IconBell,
   IconBrightness,
   IconBold,
   IconCalendar,
@@ -19,12 +20,13 @@ import {
   IconCreditCard,
   IconEdit,
   IconEye,
+  IconEyeOff,
   IconExternalLink,
-  IconEyeDown,
   IconFileZip,
   IconForms,
   IconGripVertical,
   IconItalic,
+  IconLoader,
   IconLock,
   IconMusic,
   IconNotification,
@@ -256,11 +258,6 @@ const IconChevronUp = (props: React.SVGProps<SVGSVGElement>) => (
     <><path d='m18 15-6-6-6 6' /></>
   </InlineIcon>
 );
-const IconEyeOff = (props: React.SVGProps<SVGSVGElement>) => (
-  <InlineIcon {...props}>
-    <><path d='M3.9 4.2h16.2' /><path d='M12 2a10 10 0 0 0-7.07 17.07' /><path d='M12 2v10' /><path d='M17.95 21.95A10 10 0 1 1 12 7' /></>
-  </InlineIcon>
-);
 const IconFileTypeDoc = (props: React.SVGProps<SVGSVGElement>) => (
   <InlineIcon {...props}>
     <><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' /><path d='M14 2v6h6' /><path d='m6 11 3-3 3 3' /><path d='M9 14h6' /></>
@@ -284,11 +281,6 @@ const IconPlusCircle = (props: React.SVGProps<SVGSVGElement>) => (
 const IconSparkles = (props: React.SVGProps<SVGSVGElement>) => (
   <InlineIcon {...props}>
     <><path d='M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z' /></>
-  </InlineIcon>
-);
-const IconSpinner = (props: React.SVGProps<SVGSVGElement>) => (
-  <InlineIcon {...props}>
-    <><path d='M13 12h9' /><path d='M11 12H2m0 7l2-9 5 7-3 3z' /><path d='M2 22h4m12-9l2 9 5-7-3-3z' /></>
   </InlineIcon>
 );
 const IconText = (props: React.SVGProps<SVGSVGElement>) => (
@@ -350,7 +342,7 @@ export const Icons: Record<string, AnyIcon> = {
   edit: _AsAnyIcon(IconEdit),
   ellipsis: IconEllipsis,
   eye: _AsAnyIcon(IconEye),
-  eyeOff: IconEyeOff,
+  eyeOff: _AsAnyIcon(IconEyeOff),
   externalLink: _AsAnyIcon(IconExternalLink),
   fileTypeDoc: IconFileTypeDoc,
   fileTypePdf: IconFileTypePdf,
@@ -372,7 +364,7 @@ export const Icons: Record<string, AnyIcon> = {
   minus: IconClose,
   plus: IconAdd,
   music: _AsAnyIcon(IconMusic),
-  notification: _AsAnyIcon(IconNotification),
+  notification: _AsAnyIcon(IconBell),
   openInNew: IconOpenInNew,
   page: IconPage,
   palette: _AsAnyIcon(IconPalette),
@@ -389,7 +381,7 @@ export const Icons: Record<string, AnyIcon> = {
   settings: _AsAnyIcon(IconSettings),
   slash: _AsAnyIcon(IconSlash),
   sparkles: IconSparkles,
-  spinner: IconSpinner,
+  spinner: _AsAnyIcon(IconLoader),
   survey: IconSurvey,
   text: IconText,
   teams: IconTeams,

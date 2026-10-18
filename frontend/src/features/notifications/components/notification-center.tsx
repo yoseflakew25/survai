@@ -1,16 +1,32 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icons } from '@/components/icons';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NotificationCard } from '@/components/ui/notification-card';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from '@/components/ui/sheet';
 import { useNotificationStore } from '../utils/store';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-const MAX_VISIBLE = 5;
+type NotifTab = 'all' | 'unread' | 'surveys' | 'reviews' | 'reports' | 'team';
+
+const filters: { id: NotifTab; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
+  { id: 'surveys', label: 'Surveys' },
+  { id: 'reviews', label: 'Reviews' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'team', label: 'Team' }
+];
 
 const actionRoutes: Record<string, string> = {
   view: '/dashboard/surveys'
@@ -20,35 +36,86 @@ export function NotificationCenter() {
   const { notifications, markAsRead, markAllAsRead, unreadCount } =
     useNotificationStore();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<NotifTab>('all');
   const count = unreadCount();
-  const visibleNotifications = notifications.slice(0, MAX_VISIBLE);
+
+  const surveyNotifications = notifications.filter((n) => n.type === 'survey');
+  const reviewNotifications = notifications.filter((n) => n.type === 'review');
+  const reportNotifications = notifications.filter((n) => n.type === 'report');
+  const teamNotifications = notifications.filter((n) => n.type === 'team');
+  const unreadNotifications = notifications.filter((n) => n.status === 'unread');
+
+  const filtered = (() => {
+    switch (activeTab) {
+      case 'unread':
+        return unreadNotifications;
+      case 'surveys':
+        return surveyNotifications;
+      case 'reviews':
+        return reviewNotifications;
+      case 'reports':
+        return reportNotifications;
+      case 'team':
+        return teamNotifications;
+      default:
+        return notifications;
+    }
+  })();
+
+  const getCount = (tab: NotifTab) => {
+    switch (tab) {
+      case 'all':
+        return notifications.length;
+      case 'unread':
+        return count;
+      case 'surveys':
+        return surveyNotifications.length;
+      case 'reviews':
+        return reviewNotifications.length;
+      case 'reports':
+        return reportNotifications.length;
+      case 'team':
+        return teamNotifications.length;
+      default:
+        return 0;
+    }
+  };
+
+  const handleAction = (notifId: string, actionId: string) => {
+    const route = actionRoutes[actionId];
+    if (!route) return;
+    markAsRead(notifId);
+    setOpen(false);
+    router.push(route);
+  };
 
   return (
-    <Popover>
-      <PopoverTrigger
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
         render={
           <Button
             variant='ghost'
             size='icon'
-            className='relative h-8 w-8 rounded-xl'
+            className='relative size-8'
           />
         }
       >
-        <Icons.notification className='size-4' />
+        <Icons.notification className='size-5' />
         {count > 0 ? (
-          <span className='absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 font-mono text-[10px] font-bold text-brand-foreground shadow-[0_0_0_2px_var(--background)]'>
-            {count > 9 ? '9+' : count}
-          </span>
+          <span className='bg-brand text-brand-foreground absolute top-1 right-1 size-2 rounded-full' />
         ) : null}
-        <span className='sr-only'>Notifications</span>
-      </PopoverTrigger>
+        <span className='sr-only'>
+          Notifications{count > 0 ? ` (${count} unread)` : ''}
+        </span>
+      </SheetTrigger>
 
-      <PopoverContent
-        align='end'
-        sideOffset={8}
-        className='w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-border p-0 shadow-lg sm:w-[420px]'
+      <SheetContent
+        side='right'
+        showCloseButton
+        className='!w-full gap-0 overflow-hidden p-0 sm:!max-w-none md:!w-1/2'
       >
-        <div className='relative border-b border-border bg-card'>
+        <SheetHeader className='relative shrink-0 space-y-0 border-b border-border bg-card p-0 text-left'>
           <div
             className='pointer-events-none absolute inset-0 opacity-60'
             style={{
@@ -56,47 +123,97 @@ export function NotificationCenter() {
                 'radial-gradient(ellipse 90% 140% at 0% 0%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 55%)'
             }}
           />
-          <div className='relative flex items-center justify-between gap-3 px-4 py-3'>
-            <div className='flex min-w-0 items-center gap-2'>
-              <h4 className='font-display text-sm font-extrabold tracking-tight text-foreground'>
-                Notifications
-              </h4>
+          <div className='relative space-y-3 px-4 py-4 pr-12'>
+            <div className='flex flex-wrap items-start justify-between gap-3'>
+              <div className='min-w-0'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <SheetTitle className='font-display text-lg font-extrabold tracking-tight'>
+                    Notifications
+                  </SheetTitle>
+                  {count > 0 ? (
+                    <span className='rounded-full bg-brand px-2 py-0.5 font-mono text-[10px] font-bold text-brand-foreground'>
+                      {count} unread
+                    </span>
+                  ) : null}
+                </div>
+                <SheetDescription className='mt-0.5'>
+                  Surveys, reviews, reports, and team activity.
+                </SheetDescription>
+              </div>
               {count > 0 ? (
-                <span className='rounded-full bg-brand px-2 py-0.5 font-mono text-[10px] font-bold text-brand-foreground'>
-                  {count} new
-                </span>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='shrink-0 rounded-xl'
+                  onClick={markAllAsRead}
+                >
+                  <Icons.check className='mr-1.5 size-3.5' />
+                  Mark all as read
+                </Button>
               ) : null}
             </div>
-            {count > 0 ? (
-              <Button
-                variant='ghost'
-                size='sm'
-                className='text-muted-foreground h-7 shrink-0 rounded-lg px-2 text-xs hover:text-foreground'
-                onClick={markAllAsRead}
-              >
-                <Icons.check className='mr-1 size-3.5' />
-                Mark all read
-              </Button>
-            ) : null}
-          </div>
-        </div>
 
-        <ScrollArea className='h-[min(420px,60vh)]'>
-          {notifications.length === 0 ? (
-            <div className='flex flex-col items-center justify-center px-6 py-14 text-center'>
-              <div className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-brand-soft text-foreground'>
+            <div
+              role='tablist'
+              aria-label='Notification filters'
+              className='flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+            >
+              {filters.map((item) => {
+                const isActive = activeTab === item.id;
+                const tabCount = getCount(item.id);
+
+                return (
+                  <button
+                    key={item.id}
+                    type='button'
+                    role='tab'
+                    aria-selected={isActive}
+                    onClick={() => setActiveTab(item.id)}
+                    className={cn(
+                      'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-foreground text-background'
+                        : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {item.label}
+                    {tabCount > 0 ? (
+                      <span
+                        className={cn(
+                          'font-mono text-[11px] tabular-nums',
+                          isActive
+                            ? 'text-background/70'
+                            : 'text-muted-foreground'
+                        )}
+                      >
+                        {tabCount}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </SheetHeader>
+
+        <ScrollArea className='min-h-0 flex-1'>
+          {filtered.length === 0 ? (
+            <div className='flex flex-col items-center justify-center px-6 py-16 text-center'>
+              <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-foreground'>
                 <Icons.notification className='size-5' />
               </div>
-              <p className='font-display text-sm font-bold tracking-tight'>
-                All caught up
+              <p className='font-display font-bold tracking-tight text-foreground'>
+                {notifications.length === 0 ? 'All caught up' : 'No matches'}
               </p>
-              <p className='text-muted-foreground mt-1 text-xs'>
-                New survey activity will show up here.
+              <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
+                {notifications.length === 0
+                  ? 'New survey activity will show up here.'
+                  : 'Try another filter to see more notifications.'}
               </p>
             </div>
           ) : (
             <div className='divide-y divide-border'>
-              {visibleNotifications.map((notification) => (
+              {filtered.map((notification) => (
                 <NotificationCard
                   key={notification.id}
                   id={notification.id}
@@ -105,36 +222,14 @@ export function NotificationCenter() {
                   status={notification.status}
                   createdAt={notification.createdAt}
                   actions={notification.actions}
-                  compact
                   onMarkAsRead={markAsRead}
-                  onAction={(notifId, actionId) => {
-                    const route = actionRoutes[actionId];
-                    if (route) {
-                      markAsRead(notifId);
-                      router.push(route);
-                    }
-                  }}
+                  onAction={handleAction}
                 />
               ))}
             </div>
           )}
         </ScrollArea>
-
-        {notifications.length > 0 ? (
-          <div className='border-t border-border bg-muted/30 px-3 py-2'>
-            <Link
-              href='/dashboard/notifications'
-              className={cn(
-                'flex h-9 items-center justify-center gap-1.5 rounded-xl text-xs font-semibold text-foreground transition-colors',
-                'hover:bg-card'
-              )}
-            >
-              View all notifications
-              <Icons.chevronRight className='size-3.5' />
-            </Link>
-          </div>
-        ) : null}
-      </PopoverContent>
-    </Popover>
+      </SheetContent>
+    </Sheet>
   );
 }

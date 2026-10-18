@@ -27,29 +27,11 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: 'Account',
-        url: '#',
+        url: '/dashboard/profile',
         icon: 'account',
-        isActive: true,
-        items: [
-          {
-            title: 'Profile',
-            url: '/dashboard/profile',
-            icon: 'profile',
-            shortcut: ['m', 'm']
-          },
-          {
-            title: 'Settings',
-            url: '/dashboard/settings',
-            icon: 'settings',
-            shortcut: ['t', 't']
-          },
-          {
-            title: 'Notifications',
-            url: '/dashboard/notifications',
-            icon: 'notification',
-            shortcut: ['n', 'n']
-          }
-        ]
+        isActive: false,
+        shortcut: ['m', 'm'],
+        items: []
       }
     ]
   }
