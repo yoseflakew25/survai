@@ -1,0 +1,79 @@
+# Local development stack: API + Postgres (+ optional Mailpit + Traefik)
+# Usage from repo root or backend/:
+#   docker compose -f backend/docker-compose.yml up --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: survai
+      POSTGRES_PASSWORD: survai
+      POSTGRES_DB: survai
+    ports:
+      - "5432:5432"
+    volumes:
+      - survai_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U survai -d survai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.22
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # UI
+      - "1025:1025" # SMTP
+    profiles: ["mail"]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://survai:survai@db:5432/survai
+      CORS_ORIGINS: http://localhost:3000
+      FRONTEND_URL: http://localhost:3000
+      SMTP_ENABLED: "false"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.survai-api.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.survai-api.entrypoints=web"
+      - "traefik.http.services.survai-api.loadbalancer.server.port=8000"
+
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    profiles: ["proxy"]
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8088:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - api
+
+volumes:
+  survai_pg_data:

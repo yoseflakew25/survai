@@ -1,0 +1,98 @@
+# Production-oriented stack with Traefik (HTTP + HTTPS / Let's Encrypt)
+# Prerequisites:
+#   - DNS A/AAAA records for api.example.com (and optionally app.example.com)
+#   - Copy .env.production.example → .env.production and fill secrets
+#
+# Start:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - survai_pg_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ENVIRONMENT: production
+      COOKIE_SECURE: "true"
+      COOKIE_SAMESITE: none
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=survai_edge"
+      - "traefik.http.routers.survai-api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.survai-api.entrypoints=websecure"
+      - "traefik.http.routers.survai-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.survai-api.loadbalancer.server.port=8000"
+      # Optional HTTP → HTTPS redirect router
+      - "traefik.http.routers.survai-api-http.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.survai-api-http.entrypoints=web"
+      - "traefik.http.routers.survai-api-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+    networks:
+      - internal
+      - edge
+
+  # Frontend reverse proxy example (Next.js static/SSR container or external).
+  # Point APP_DOMAIN at your frontend service and set its Traefik labels similarly.
+  # frontend:
+  #   image: your-registry/survai-frontend:latest
+  #   ...
+
+  traefik:
+    image: traefik:v3.3
+    restart: always
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=survai_edge
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --api.dashboard=false
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - survai_letsencrypt:/letsencrypt
+    networks:
+      - edge
+
+networks:
+  internal:
+    name: survai_internal
+  edge:
+    name: survai_edge
+
+volumes:
+  survai_pg_data_prod:
+  survai_letsencrypt:
