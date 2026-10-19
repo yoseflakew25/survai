@@ -10,9 +10,6 @@
 
 <br />
 
-<div align="center">
-  <img src="frontend/public/shadcn-dashboard.png" alt="Survai" style="max-width: 100%; border-radius: 8px;" />
-</div>
 
 <br />
 
