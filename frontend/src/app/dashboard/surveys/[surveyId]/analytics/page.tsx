@@ -1,8 +1,6 @@
-import {
-  AnalyticsDashboard,
-  AnalyticsDashboardSkeleton
-} from '@/features/analytics/components/analytics-dashboard';
+import { AnalyticsDashboard } from '@/features/analytics/components/analytics-dashboard';
 import PageContainer from '@/components/layout/page-container';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 
@@ -23,7 +21,9 @@ export default async function AnalyticsPage({
 
   return (
     <PageContainer>
-      <Suspense fallback={<AnalyticsDashboardSkeleton />}>
+      <Suspense
+        fallback={<SurveyActivityFallback activity='fetch-analytics' />}
+      >
         <AnalyticsDashboard surveyId={surveyId} />
       </Suspense>
     </PageContainer>

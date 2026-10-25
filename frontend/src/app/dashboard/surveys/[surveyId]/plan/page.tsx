@@ -2,10 +2,8 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
 import PageContainer from '@/components/layout/page-container';
-import {
-  SurveyPlanSkeleton,
-  SurveyPlanView
-} from '@/features/surveys/components/survey-plan-view';
+import { SurveyPlanView } from '@/features/surveys/components/survey-plan-view';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 
 export const metadata: Metadata = {
   title: 'Plan'
@@ -23,7 +21,7 @@ export default async function SurveyPlanPage({
 
   return (
     <PageContainer>
-      <Suspense fallback={<SurveyPlanSkeleton />}>
+      <Suspense fallback={<SurveyActivityFallback activity='fetch-plan' />}>
         <SurveyPlanView surveyId={surveyId} />
       </Suspense>
     </PageContainer>

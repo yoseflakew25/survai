@@ -18,13 +18,34 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { reportChatOptions, reportKeys, reportOptions } from '../api/queries';
 import {
-  downloadReportExport,
+  downloadReportPdf,
   generateReport,
   regenerateReportSection,
   sendReportChat,
   updateReport
 } from '../api/service';
-import type { ReportSection, SurveyReport } from '../api/types';
+import type {
+  ChatConfidence,
+  ReportChatMessage,
+  ReportSection,
+  SurveyReport
+} from '../api/types';
+import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+
+const CHAT_STARTERS = [
+  'What are the top findings?',
+  'Summarize this for a donor brief',
+  'What should we do next?',
+  'Any limitations I should mention?'
+] as const;
+
+function confidenceLabel(c: ChatConfidence | null): string | null {
+  if (c === 'grounded') return 'Grounded';
+  if (c === 'partial') return 'Partial';
+  if (c === 'insufficient_data') return 'Insufficient data';
+  return null;
+}
 
 interface ReportViewProps {
   surveyId: string;
@@ -84,18 +105,20 @@ const brandCtaClass =
 
 export function ReportView({ surveyId }: ReportViewProps) {
   const queryClient = useQueryClient();
+  const { run, activeId } = useSurveyActivity();
   const { data: report, isLoading, isError, error, refetch } = useQuery(
     reportOptions(surveyId)
   );
   const [sections, setSections] = useState<ReportSection[]>([]);
   const [reportTitle, setReportTitle] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [draftSection, setDraftSection] = useState<ReportSection | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const isGenerating =
+    activeId === 'generate-report' || activeId === 'regenerate-report';
   const [chatInput, setChatInput] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -136,17 +159,21 @@ export function ReportView({ surveyId }: ReportViewProps) {
   );
 
   const handleGenerateReport = useCallback(async () => {
-    setIsGenerating(true);
     setActiveSection(null);
     setDraftSection(null);
+    const activity = report ? 'regenerate-report' : 'generate-report';
     try {
-      const next = await generateReport(surveyId);
-      applyReport(next);
-      await queryClient.invalidateQueries({
-        queryKey: reportKeys.chat(next.id)
+      await run(activity, async () => {
+        const next = await generateReport(surveyId);
+        applyReport(next);
+        await queryClient.invalidateQueries({
+          queryKey: reportKeys.chat(next.id)
+        });
       });
-      toast.success('Report generated', {
-        description: 'AI drafted a grounded report from your metrics snapshot.'
+      toast.success(report ? 'Report regenerated' : 'Report generated', {
+        description: report
+          ? 'Rewrote the full report from the current metrics snapshot.'
+          : 'AI drafted a grounded report from your metrics snapshot.'
       });
     } catch (err) {
       toast.error('Generation failed', {
@@ -155,10 +182,8 @@ export function ReportView({ surveyId }: ReportViewProps) {
             ? err.message
             : 'Could not generate the report. Please try again.'
       });
-    } finally {
-      setIsGenerating(false);
     }
-  }, [applyReport, queryClient, surveyId]);
+  }, [applyReport, queryClient, report, run, surveyId]);
 
   const startEditSection = useCallback((section: ReportSection) => {
     setDraftSection({ ...section });
@@ -252,8 +277,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
       setActiveSection(null);
       setDraftSection(null);
       try {
-        const next = await regenerateReportSection(report.id, sectionId);
-        applyReport(next);
+        await run('regenerate-section', async () => {
+          const next = await regenerateReportSection(report.id, sectionId);
+          applyReport(next);
+        });
         toast.success('Section regenerated', {
           description: 'Rewrote this section from the same metrics snapshot.'
         });
@@ -268,7 +295,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
         setRegeneratingId(null);
       }
     },
-    [activeSection, applyReport, draftSection, report, sections]
+    [activeSection, applyReport, draftSection, report, run, sections]
   );
 
   const handleSendMessage = useCallback(
@@ -277,10 +304,30 @@ export function ReportView({ surveyId }: ReportViewProps) {
       if (!message || isReplying || !report) return;
       setChatInput('');
       setIsReplying(true);
+
+      const optimistic: ReportChatMessage = {
+        id: `optimistic-${Date.now()}`,
+        role: 'user',
+        content: message,
+        metricRefs: [],
+        confidence: null,
+        createdAt: new Date().toISOString()
+      };
+      const previous =
+        queryClient.getQueryData<ReportChatMessage[]>(
+          reportKeys.chat(report.id)
+        ) ?? [];
+      queryClient.setQueryData(reportKeys.chat(report.id), [
+        ...previous,
+        optimistic
+      ]);
+
       try {
         const messages = await sendReportChat(report.id, message);
         queryClient.setQueryData(reportKeys.chat(report.id), messages);
       } catch (err) {
+        queryClient.setQueryData(reportKeys.chat(report.id), previous);
+        setChatInput(message);
         toast.error('Chat failed', {
           description:
             err instanceof Error ? err.message : 'Could not send message.'
@@ -292,36 +339,26 @@ export function ReportView({ surveyId }: ReportViewProps) {
     [chatInput, isReplying, queryClient, report]
   );
 
-  const handleExport = useCallback(
-    async (format: 'docx' | 'pdf') => {
-      if (!report) return;
-      setIsExporting(true);
-      try {
-        await downloadReportExport(report.id, format, report.title);
-        toast.success(`Exported as ${format.toUpperCase()}`, {
-          description:
-            'Download started (text fallback until binary renderers ship).'
-        });
-      } catch (err) {
-        toast.error('Export failed', {
-          description:
-            err instanceof Error
-              ? err.message
-              : `Could not export as ${format.toUpperCase()}.`
-        });
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [report]
-  );
+  const handleSavePdf = useCallback(async () => {
+    if (!report) return;
+    setIsExporting(true);
+    try {
+      await downloadReportPdf(report.id, report.title);
+      toast.success('PDF saved', {
+        description: 'Your report downloaded as a PDF.'
+      });
+    } catch (err) {
+      toast.error('PDF export failed', {
+        description:
+          err instanceof Error ? err.message : 'Could not save as PDF.'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [report]);
 
   if (isLoading) {
-    return (
-      <div className='flex min-h-[40vh] items-center justify-center'>
-        <Icons.spinner className='text-muted-foreground size-6 animate-spin' />
-      </div>
-    );
+    return <SurveyActivityFallback activity='fetch-report' />;
   }
 
   if (isError) {
@@ -415,7 +452,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   reportTitle || 'AI-Generated Report'
                 )
               }
-              subtitle='Grounded narrative from your survey metrics'
+              // subtitle='Grounded narrative from your survey metrics'
               badge={
                 <Badge
                   variant='secondary'
@@ -487,34 +524,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   ver {report.surveyVersionId.slice(0, 8)}
                 </span>
               </div>
-              {!report.integrity.matchesCurrentVersion ? (
-                <div
-                  role='status'
-                  className='rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs leading-relaxed text-foreground'
-                >
-                  This report is pinned to a previous survey version. Analytics
-                  and respondents use the current published version — regenerate
-                  the report to stay aligned.
-                </div>
-              ) : report.integrity.isStale ? (
-                <div
-                  role='status'
-                  className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/50 px-3 py-2.5 text-xs leading-relaxed text-foreground'
-                >
-                  New responses since this snapshot (
-                  {report.integrity.snapshotResponseCount}
-                  {report.integrity.liveResponseCount != null
-                    ? ` → ${report.integrity.liveResponseCount}`
-                    : ''}
-                  ). Numbers in the text stay frozen to the original metrics —
-                  regenerate for an up-to-date report.
-                </div>
-              ) : (
-                <p className='text-muted-foreground text-[11px]'>
-                  Grounded on the current published version metrics snapshot —
-                  same scope as analytics and respondents.
-                </p>
-              )}
+        
             </SurvaiPanelBody>
           </SurvaiPanel>
 
@@ -667,15 +677,13 @@ export function ReportView({ surveyId }: ReportViewProps) {
                 }}
               />
               <div className='relative flex items-start gap-3'>
-                <div className='flex size-9 shrink-0 items-center justify-center rounded-xl bg-card text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_20%,transparent)]'>
-                  <Icons.chat className='size-4' />
-                </div>
+               
                 <div className='min-w-0 flex-1'>
-                  <h3 className='font-display text-base font-extrabold tracking-tight text-foreground'>
-                    Report Chat
+                  <h3 className='font-display text-xl font-extrabold tracking-tight text-foreground'>
+                    Chat with the report
                   </h3>
                   <p className='mt-0.5 text-xs leading-relaxed text-foreground/70'>
-                    Ask questions grounded in the metrics snapshot
+                    Ask questions anad chat with the report for better insights.
                   </p>
                 </div>
               </div>
@@ -693,40 +701,89 @@ export function ReportView({ surveyId }: ReportViewProps) {
                 backgroundSize: 'auto, 16px 16px'
               }}
             >
-              {chatMessages.length === 0 ? (
-                <p className='text-muted-foreground px-1 text-sm'>
-                  Ask about findings in the report. Answers stay grounded in
-                  the snapshot.
-                </p>
-              ) : null}
-              {chatMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    'flex gap-2.5 animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both',
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  {msg.role === 'assistant' ? (
-                    <div
-                      className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
-                      aria-hidden
-                    >
-                      <Icons.sparkles className='size-3.5' />
-                    </div>
-                  ) : null}
-                  <div
-                    className={cn(
-                      'max-w-[min(100%,18rem)] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-                      msg.role === 'user'
-                        ? 'rounded-br-md bg-foreground text-background'
-                        : 'rounded-bl-md border border-border bg-card/95 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
-                    )}
-                  >
-                    {msg.content}
+              {chatMessages.length === 0 && !isReplying ? (
+                <div className='space-y-3 px-1'>
+                  <p className='text-muted-foreground text-sm leading-relaxed'>
+                    Ask about findings, donors, or next steps. Answers stay
+                    grounded in the metrics snapshot.
+                  </p>
+                  <div className='flex flex-wrap gap-1.5'>
+                    {CHAT_STARTERS.map((starter) => (
+                      <button
+                        key={starter}
+                        type='button'
+                        disabled={isReplying}
+                        onClick={() => void handleSendMessage(starter)}
+                        className='rounded-full border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-brand-soft'
+                      >
+                        {starter}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              ))}
+              ) : null}
+              {chatMessages.map((msg) => {
+                const conf = confidenceLabel(msg.confidence);
+                return (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      'flex gap-2.5 animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both',
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    )}
+                  >
+                    {msg.role === 'assistant' ? (
+                      <div
+                        className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                        aria-hidden
+                      >
+                        <Icons.sparkles className='size-3.5' />
+                      </div>
+                    ) : null}
+                    <div
+                      className={cn(
+                        'max-w-[min(100%,18rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                        msg.role === 'user'
+                          ? 'rounded-br-md bg-foreground text-background'
+                          : 'rounded-bl-md border border-border bg-card/95 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                      )}
+                    >
+                      <p className='whitespace-pre-wrap break-words'>
+                        {msg.content}
+                      </p>
+                      {msg.role === 'assistant' &&
+                      (conf || msg.metricRefs.length > 0) ? (
+                        <div className='flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-2'>
+                          {conf ? (
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase',
+                                msg.confidence === 'grounded' &&
+                                  'bg-brand-soft text-foreground',
+                                msg.confidence === 'partial' &&
+                                  'bg-muted text-foreground/80',
+                                msg.confidence === 'insufficient_data' &&
+                                  'bg-destructive/10 text-destructive'
+                              )}
+                            >
+                              {conf}
+                            </span>
+                          ) : null}
+                          {msg.metricRefs.slice(0, 4).map((ref) => (
+                            <span
+                              key={ref}
+                              className='inline-flex max-w-full truncate rounded-full border border-border bg-background/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground'
+                              title={ref}
+                            >
+                              {ref}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
               {isReplying ? (
                 <div
                   className='flex gap-2.5 animate-in fade-in duration-200'
@@ -790,37 +847,29 @@ export function ReportView({ surveyId }: ReportViewProps) {
           <SurvaiPanel>
             <SurvaiPanelBody className='space-y-3'>
               <Button
-                onClick={() => void handleGenerateReport()}
-                disabled={isGenerating || !!regeneratingId}
+                disabled={isExporting || !report}
+                onClick={() => void handleSavePdf()}
                 className={cn(brandCtaClass, 'w-full')}
               >
-                {isGenerating ? (
+                {isExporting ? (
                   <Icons.spinner className='mr-2 size-4 animate-spin' />
                 ) : (
-                  <Icons.sparkles className='mr-2 size-4' />
+                  <Icons.fileTypePdf className='mr-2 size-4' />
                 )}
-                Regenerate full report
+                save as pdf
               </Button>
-              <div className='grid grid-cols-2 gap-2'>
-                <Button
-                  variant='outline'
-                  disabled={isExporting}
-                  onClick={() => void handleExport('docx')}
-                  className='h-10 rounded-xl'
-                >
-                  <Icons.fileTypeDoc className='mr-1.5 size-4' />
-                  DOCX
-                </Button>
-                <Button
-                  variant='outline'
-                  disabled={isExporting}
-                  onClick={() => void handleExport('pdf')}
-                  className='h-10 rounded-xl'
-                >
-                  <Icons.fileTypePdf className='mr-1.5 size-4' />
-                  PDF
-                </Button>
-              </div>
+              <Button
+                disabled={isGenerating || !!regeneratingId}
+                onClick={() => void handleGenerateReport()}
+                className='h-10 w-full rounded-xl bg-black text-white hover:bg-black/90 hover:text-white'
+              >
+                {isGenerating ? (
+                  <Icons.spinner className='mr-1.5 size-4 animate-spin' />
+                ) : (
+                  <Icons.sparkles className='mr-1.5 size-4' />
+                )}
+                regenerate
+              </Button>
 
               <Separator />
 

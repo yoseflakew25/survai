@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { closeSurvey, publishSurvey } from '../api/service';
 import { collectStatsKeys } from '../api/queries';
 import { CollectionQr } from './collection-qr';
+import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
 
 interface CollectViewProps {
   surveyId: string;
@@ -33,8 +34,9 @@ export function CollectView({ surveyId }: CollectViewProps) {
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const { data: stats } = useSuspenseQuery(collectStatsOptions(surveyId));
   const queryClient = useQueryClient();
+  const { run, activeId } = useSurveyActivity();
 
-  const [isPublishing, setIsPublishing] = useState(false);
+  const isPublishing = activeId === 'publish-survey';
   const [isClosing, setIsClosing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -61,14 +63,16 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
   const handlePublish = useCallback(async () => {
     if (isPublishing) return;
-    setIsPublishing(true);
     try {
-      const result = await publishSurvey(surveyId);
-      await queryClient.invalidateQueries({
-        queryKey: surveyKeys.detail(surveyId)
-      });
-      await queryClient.invalidateQueries({
-        queryKey: collectStatsKeys.stats(surveyId)
+      const result = await run('publish-survey', async () => {
+        const published = await publishSurvey(surveyId);
+        await queryClient.invalidateQueries({
+          queryKey: surveyKeys.detail(surveyId)
+        });
+        await queryClient.invalidateQueries({
+          queryKey: collectStatsKeys.stats(surveyId)
+        });
+        return published;
       });
       toast.success('Survey published!', {
         description: `Live form ready at ${result.collectionPath}`
@@ -80,10 +84,8 @@ export function CollectView({ surveyId }: CollectViewProps) {
             ? err.message
             : 'Could not publish your survey. Please try again.'
       });
-    } finally {
-      setIsPublishing(false);
     }
-  }, [surveyId, queryClient, isPublishing]);
+  }, [surveyId, queryClient, isPublishing, run]);
 
   const handleClose = useCallback(async () => {
     if (isClosing || !isPublished) return;
@@ -128,31 +130,14 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
   return (
     <div className='space-y-4'>
-      <div className='flex items-end justify-between gap-4'>
-        <Heading
-          title='Collect Responses'
-          description='Publish your survey and share it with respondents'
-        />
-        <Badge
-          variant='outline'
-          className={
-            isPublished
-              ? 'rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-[10px] font-semibold text-foreground'
-              : isClosed
-                ? 'rounded-full text-[10px]'
-                : 'rounded-full text-[10px]'
-          }
-        >
-          {isPublished ? 'Published' : isClosed ? 'Closed' : 'Draft'}
-        </Badge>
-      </div>
+     
 
       <div className='grid gap-6 lg:grid-cols-3'>
         <div className='space-y-6 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              icon={<Icons.collect className='size-3.5' />}
-              title='Share survey'
+              // icon={<Icons.collect className='size-3.5' />}
+              title='Collect Responses'
               subtitle={
                 isLive
                   ? 'Link and QR for respondents'

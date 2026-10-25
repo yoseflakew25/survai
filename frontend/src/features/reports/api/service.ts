@@ -80,6 +80,9 @@ type ApiExport = {
   type: ExportResult['type'];
   status: string;
   content_text: string | null;
+  content_base64?: string | null;
+  filename?: string | null;
+  mime_type?: string | null;
   file_url: string | null;
   created_at: string;
 };
@@ -148,6 +151,9 @@ function mapExport(e: ApiExport): ExportResult {
     type: e.type,
     status: e.status,
     contentText: e.content_text,
+    contentBase64: e.content_base64 ?? null,
+    filename: e.filename ?? null,
+    mimeType: e.mime_type ?? null,
     fileUrl: e.file_url,
     createdAt: e.created_at
   };
@@ -244,13 +250,15 @@ export async function sendReportChat(
   reportId: string,
   message: string
 ): Promise<ReportChatMessage[]> {
+  // Chat answers are short — don't wait the full report-gen ceiling.
+  const CHAT_TIMEOUT_MS = 45_000;
   const res = await apiFetch(
     `/reports/${reportId}/chat`,
     {
       method: 'POST',
       body: JSON.stringify({ message })
     },
-    AI_TIMEOUT_MS
+    CHAT_TIMEOUT_MS
   );
   if (!res.ok) await readError(res, 'Could not send message');
   const data = (await res.json()) as { messages: ApiChatMessage[] };
@@ -259,7 +267,7 @@ export async function sendReportChat(
 
 export async function exportReport(
   reportId: string,
-  type: 'docx' | 'pdf' | 'markdown'
+  type: 'pdf' | 'markdown' = 'pdf'
 ): Promise<ExportResult> {
   const res = await apiFetch(`/reports/${reportId}/export`, {
     method: 'POST',
@@ -269,8 +277,7 @@ export async function exportReport(
   return mapExport((await res.json()) as ApiExport);
 }
 
-function downloadText(filename: string, text: string, mime: string) {
-  const blob = new Blob([text], { type: mime });
+function triggerDownload(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -279,18 +286,28 @@ function downloadText(filename: string, text: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function downloadReportExport(
+function base64ToBlob(b64: string, mime: string): Blob {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
+/** Download the grounded report as a real PDF file. */
+export async function downloadReportPdf(
   reportId: string,
-  type: 'docx' | 'pdf' | 'markdown',
   title: string
 ): Promise<void> {
-  const result = await exportReport(reportId, type);
-  const text = result.contentText ?? '';
+  const result = await exportReport(reportId, 'pdf');
   const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
-  if (type === 'markdown') {
-    downloadText(`${safe}.md`, text, 'text/markdown;charset=utf-8');
-  } else {
-    // Text fallback until binary DOCX/PDF renderers are wired
-    downloadText(`${safe}.${type}.txt`, text, 'text/plain;charset=utf-8');
+  if (!result.contentBase64) {
+    throw new Error('PDF export returned no file data');
   }
+  const blob = base64ToBlob(
+    result.contentBase64,
+    result.mimeType ?? 'application/pdf'
+  );
+  triggerDownload(result.filename ?? `${safe}.pdf`, blob);
 }

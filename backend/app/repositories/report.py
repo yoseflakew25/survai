@@ -62,13 +62,26 @@ class ReportChatRepository(BaseRepository[ReportChatMessage]):
         super().__init__(session, ReportChatMessage)
 
     async def list_for_report(
-        self, *, report_id: UUID
+        self, *, report_id: UUID, limit: int | None = None
     ) -> list[ReportChatMessage]:
-        result = await self.session.execute(
+        stmt = (
             select(ReportChatMessage)
             .where(ReportChatMessage.report_id == report_id)
             .order_by(ReportChatMessage.created_at.asc())
         )
+        if limit is not None and limit > 0:
+            # Newest N, then restore chronological order for the UI/prompt.
+            stmt = (
+                select(ReportChatMessage)
+                .where(ReportChatMessage.report_id == report_id)
+                .order_by(ReportChatMessage.created_at.desc())
+                .limit(limit)
+            )
+            result = await self.session.execute(stmt)
+            rows = list(result.scalars().all())
+            rows.reverse()
+            return rows
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
 

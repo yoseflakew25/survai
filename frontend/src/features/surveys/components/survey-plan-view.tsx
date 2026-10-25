@@ -5,13 +5,11 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { notFound } from 'next/navigation';
 
 import { surveyByIdOptions } from '@/features/builder/api/queries';
-import {
-  PlanDetailView,
-  PlanDetailSkeleton
-} from '@/features/plans/components/plan-detail-view';
+import { PlanDetailView } from '@/features/plans/components/plan-detail-view';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 
 interface SurveyPlanViewProps {
   surveyId: string;
@@ -19,7 +17,9 @@ interface SurveyPlanViewProps {
 
 export function SurveyPlanView({ surveyId }: SurveyPlanViewProps) {
   return (
-    <AuthQueryBoundary fallback={<SurveyPlanSkeleton />}>
+    <AuthQueryBoundary
+      fallback={<SurveyActivityFallback activity='fetch-plan' />}
+    >
       <SurveyPlanContent surveyId={surveyId} />
     </AuthQueryBoundary>
   );
@@ -60,8 +60,4 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
   }
 
   return <PlanDetailView planId={survey.planId} surveyId={surveyId} />;
-}
-
-export function SurveyPlanSkeleton() {
-  return <PlanDetailSkeleton />;
 }

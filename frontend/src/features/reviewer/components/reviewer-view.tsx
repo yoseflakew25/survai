@@ -30,10 +30,10 @@ import {
   generateSurveyDraft,
   updateQuestion
 } from '@/features/builder/api/service';
-import { SurveyGenerationProgress } from '@/features/builder/components/survey-generation-progress';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
 import type {
   Section,
   Survey,
@@ -112,13 +112,14 @@ export function ReviewerView({ surveyId }: ReviewerViewProps) {
 function ReviewerContent({ surveyId }: { surveyId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { run, activeId } = useSurveyActivity();
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const { data: report } = useSuspenseQuery(latestReviewOptions(surveyId));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [isReviewing, setIsReviewing] = useState(false);
+  const isRegenerating = activeId === 'regenerate-survey';
+  const isReviewing = activeId === 'run-review';
 
   const handleFindingUpdate = useCallback(
     (finding: ReviewerFinding) => {
@@ -148,10 +149,12 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       return;
     }
 
-    setIsReviewing(true);
     try {
-      const next = await triggerReview(surveyId);
-      queryClient.setQueryData(reviewerKeys.latest(surveyId), next);
+      const next = await run('run-review', async () => {
+        const result = await triggerReview(surveyId);
+        queryClient.setQueryData(reviewerKeys.latest(surveyId), result);
+        return result;
+      });
       toast.success('Review complete', {
         description:
           next.findings.length === 0
@@ -165,10 +168,15 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             ? err.message
             : 'AI could not complete the review. Please try again.'
       });
-    } finally {
-      setIsReviewing(false);
     }
-  }, [isReviewing, isRegenerating, survey?.sections, surveyId, queryClient]);
+  }, [
+    isReviewing,
+    isRegenerating,
+    survey?.sections,
+    surveyId,
+    queryClient,
+    run
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (isDeleting) return;
@@ -222,20 +230,26 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     if (isRegenerating) return;
 
     setConfirmRegenOpen(false);
-    setIsRegenerating(true);
     try {
-      const next = await generateSurveyDraft(surveyId);
-      // Hard-replace cache — same survey id, no merge with prior sections.
-      queryClient.setQueryData(surveyKeys.detail(surveyId), next);
-      await queryClient.invalidateQueries({
-        queryKey: surveyKeys.detail(surveyId)
-      });
-      await queryClient.invalidateQueries({ queryKey: surveyKeys.list() });
-      // Backend deletes reviewer reports on hard-replace; keep cache in sync.
-      queryClient.setQueryData(reviewerKeys.latest(surveyId), null);
-      await queryClient.invalidateQueries({
-        queryKey: reviewerKeys.latest(surveyId)
-      });
+      const next = await run(
+        'regenerate-survey',
+        async () => {
+          const draft = await generateSurveyDraft(surveyId);
+          // Hard-replace cache — same survey id, no merge with prior sections.
+          queryClient.setQueryData(surveyKeys.detail(surveyId), draft);
+          await queryClient.invalidateQueries({
+            queryKey: surveyKeys.detail(surveyId)
+          });
+          await queryClient.invalidateQueries({ queryKey: surveyKeys.list() });
+          // Backend deletes reviewer reports on hard-replace; keep cache in sync.
+          queryClient.setQueryData(reviewerKeys.latest(surveyId), null);
+          await queryClient.invalidateQueries({
+            queryKey: reviewerKeys.latest(surveyId)
+          });
+          return draft;
+        },
+        { previewText: survey?.title }
+      );
       toast.success('Survey regenerated', {
         description: `Replaced with ${next.sections.length} sections from your plan.`
       });
@@ -246,15 +260,15 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             ? err.message
             : 'Please try again.'
       });
-    } finally {
-      setIsRegenerating(false);
     }
   }, [
     questionsLocked,
     survey?.planId,
+    survey?.title,
     surveyId,
     isRegenerating,
-    queryClient
+    queryClient,
+    run
   ]);
 
   if (!survey) {
@@ -317,62 +331,6 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             <Icons.sparkles className='size-4' />
             Replace &amp; regenerate
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    <Dialog
-      open={isRegenerating}
-      onOpenChange={(next) => {
-        if (!next && isRegenerating) return;
-      }}
-    >
-      <DialogContent
-        className='sm:max-w-md gap-0 overflow-hidden p-0'
-        showCloseButton={false}
-      >
-        <DialogHeader className='bg-primary'>
-          <DialogTitle>Generating survey questions</DialogTitle>
-        </DialogHeader>
-        <div className='px-4 pt-4 pb-4'>
-          <SurveyGenerationProgress
-            active={isRegenerating}
-            goalPreview={title}
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
-    <Dialog
-      open={isReviewing}
-      onOpenChange={(next) => {
-        if (!next && isReviewing) return;
-      }}
-    >
-      <DialogContent
-        className='sm:max-w-md gap-0 overflow-hidden p-0'
-        showCloseButton={false}
-      >
-        <DialogHeader className='bg-primary'>
-          <DialogTitle>Reviewing with AI</DialogTitle>
-        </DialogHeader>
-        <div className='space-y-3 px-4 pt-4 pb-4'>
-          <p className='text-muted-foreground text-sm leading-relaxed'>
-            Checking wording, ambiguity, and alignment with your research
-            plan…
-          </p>
-          <div className='text-muted-foreground space-y-2 text-xs'>
-            <div className='flex items-center gap-2'>
-              <Icons.spinner className='size-3 animate-spin' />
-              Leading wording &amp; bias
-            </div>
-            <div className='flex items-center gap-2'>
-              <Icons.spinner className='size-3 animate-spin' />
-              Double-barreled &amp; ambiguous questions
-            </div>
-            <div className='flex items-center gap-2'>
-              <Icons.spinner className='size-3 animate-spin' />
-              Objective alignment
-            </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

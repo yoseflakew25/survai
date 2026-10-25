@@ -29,6 +29,9 @@ T = TypeVar("T", bound=BaseModel)
 _GENERATE_TIMEOUT_S = 45.0
 _REPORT_GENERATE_TIMEOUT_S = 120.0
 _REPORT_MAX_OUTPUT_TOKENS = 8192
+# Chat answers are short briefings — cap output to cut latency.
+_CHAT_MAX_OUTPUT_TOKENS = 512
+_CHAT_GENERATE_TIMEOUT_S = 25.0
 
 _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
     "planner": planner_v1.PROMPT_VERSION,
@@ -42,6 +45,8 @@ _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
 def _timeout_for(feature: str) -> float:
     if feature == "report":
         return _REPORT_GENERATE_TIMEOUT_S
+    if feature == "report_chat":
+        return _CHAT_GENERATE_TIMEOUT_S
     return _GENERATE_TIMEOUT_S
 
 
@@ -166,11 +171,17 @@ async def call_structured(
         attempt += 1
         started = time.monotonic()
         try:
+            temperature = 0.4
+            if feature == "report":
+                temperature = 0.55
+            elif feature == "report_chat":
+                temperature = 0.2
+
             gen_config_kwargs: dict[str, Any] = {
                 "system_instruction": system,
                 "response_mime_type": "application/json",
                 "response_schema": schema,
-                "temperature": 0.4 if feature != "report" else 0.55,
+                "temperature": temperature,
                 # Structured JSON only — AFC can hang on some models.
                 "automatic_function_calling": types.AutomaticFunctionCallingConfig(
                     disable=True
@@ -178,6 +189,13 @@ async def call_structured(
             }
             if feature == "report":
                 gen_config_kwargs["max_output_tokens"] = _REPORT_MAX_OUTPUT_TOKENS
+            elif feature == "report_chat":
+                gen_config_kwargs["max_output_tokens"] = _CHAT_MAX_OUTPUT_TOKENS
+                # Gemini 3 Flash-Lite rejects thinking_budget=0 (400). Use
+                # minimal thinking_level instead — lowest-latency chat path.
+                gen_config_kwargs["thinking_config"] = types.ThinkingConfig(
+                    thinking_level=types.ThinkingLevel.MINIMAL
+                )
 
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
@@ -263,7 +281,19 @@ async def call_structured(
                 attempt,
             )
             if _is_fatal_ai_error(exc):
-                break
+                # Auth/not-found are hard stops; invalid_argument is often
+                # model-specific (e.g. thinking config) — try the next model.
+                if not _is_invalid_argument_ai_error(exc):
+                    break
+                model_idx += 1
+                logger.warning(
+                    "AI invalid argument feature=%s model=%s; trying next (%s/%s)",
+                    feature,
+                    model,
+                    model_idx + 1,
+                    len(models),
+                )
+                continue
             if isinstance(exc, TimeoutError) or _is_capacity_ai_error(exc):
                 model_idx += 1
                 logger.warning(
@@ -292,6 +322,11 @@ def _is_capacity_ai_error(exc: BaseException) -> bool:
             "503 ",
         )
     )
+
+
+def _is_invalid_argument_ai_error(exc: BaseException) -> bool:
+    text = str(exc).upper()
+    return "INVALID_ARGUMENT" in text or "400 " in text
 
 
 def _is_fatal_ai_error(exc: BaseException) -> bool:

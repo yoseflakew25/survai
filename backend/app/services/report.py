@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import csv
 import io
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -55,8 +57,11 @@ from app.schemas.report import (
     SavedAnalysisPublic,
 )
 from app.services.analytics import AnalyticsService
+from app.services.report_pdf import build_report_pdf
 
 logger = logging.getLogger(__name__)
+
+_SAFE_FILENAME = re.compile(r"[^\w\-]+")
 
 _SECTION_ORDER = [
     ("executive_summary", "Executive Summary"),
@@ -307,19 +312,32 @@ class ReportService:
         if report is None:
             raise NotFoundError("Report not found")
 
+        question = body.message.strip()
+        if not question:
+            raise BadRequestError("Message cannot be empty.")
+
+        # Prior turns for multi-turn context (before appending this user message).
+        prior = await self.chats.list_for_report(report_id=report.id)
+        history = [
+            {"role": m.role, "content": m.content}
+            for m in prior
+            if m.content
+        ]
+
         user_msg = ReportChatMessage(
             report_id=report.id,
             role="user",
-            content=body.message.strip(),
+            content=question,
             created_by=user.id,
         )
         self.session.add(user_msg)
         await self.session.flush()
 
         call = await answer_report_chat(
-            question=body.message,
+            question=question,
             sections=list(report.sections or []),
             snapshot=report.metrics_snapshot or {},
+            history=history,
             user_id=user.id,
             session=self.session,
         )
@@ -330,6 +348,11 @@ class ReportService:
         confidence = chat_out.confidence
         refs = list(chat_out.metric_refs or [])
         if violations:
+            logger.warning(
+                "Chat reconciliation violations report_id=%s: %s",
+                report.id,
+                violations,
+            )
             answer = (
                 "I could not ground that answer fully in the stored metrics. "
                 "Please rephrase, or ask about a specific metric key from the report."
@@ -348,9 +371,13 @@ class ReportService:
         self.session.add(assistant)
         await self.session.commit()
 
-        messages = await self.chats.list_for_report(report_id=report.id)
+        # Avoid a second full-history query — stitch from what we already have.
         return ReportChatResponse(
-            messages=[self._chat_public(m) for m in messages]
+            messages=[
+                *[self._chat_public(m) for m in prior],
+                self._chat_public(user_msg),
+                self._chat_public(assistant),
+            ]
         )
 
     async def chat_history(
@@ -376,27 +403,47 @@ class ReportService:
         )
         if report is None:
             raise NotFoundError("Report not found")
+        survey = await self.surveys.get_for_org_meta(
+            survey_id=report.survey_id, organization_id=org_id
+        )
+        survey_title = survey.title if survey is not None else "Survey"
 
         md = self._report_markdown(report)
-        # MVP: return markdown body for all types (DOCX/PDF clients can convert).
-        # Content is deterministic from stored sections — no LLM.
+        safe_name = _SAFE_FILENAME.sub("_", (report.title or "report")).strip("_")[
+            :60
+        ] or "report"
+        content_b64: str | None = None
+        filename: str | None = None
+        mime: str | None = None
+        content_text: str | None = md
+
+        if body.type == "pdf":
+            pdf_bytes = build_report_pdf(
+                title=report.title,
+                survey_title=survey_title,
+                sections=list(report.sections or []),
+                generated_label=report.created_at.strftime("%d %b %Y")
+                if report.created_at
+                else None,
+            )
+            content_b64 = base64.b64encode(pdf_bytes).decode("ascii")
+            filename = f"{safe_name}.pdf"
+            mime = "application/pdf"
+            # Keep a short note in content_text for audit; binary lives in base64.
+            content_text = f"PDF export ({len(pdf_bytes)} bytes)"
+        else:
+            filename = f"{safe_name}.md"
+            mime = "text/markdown;charset=utf-8"
+
         export = ExportRecord(
             report_id=report.id,
             survey_id=report.survey_id,
-            type=body.type if body.type != "markdown" else "markdown",
+            type=body.type,
             status="completed",
-            content_text=md,
+            content_text=content_text,
             requested_by=user.id,
             completed_at=datetime.now(UTC),
         )
-        if body.type in {"docx", "pdf"}:
-            # Placeholder typed export — markdown payload until WeasyPrint/docxtpl wired.
-            export.type = body.type
-            export.content_text = (
-                f"# {report.title}\n\n"
-                f"_Export format: {body.type} (text fallback)_\n\n"
-                f"{md}"
-            )
         self.session.add(export)
         await self.session.commit()
         await self.session.refresh(export)
@@ -405,6 +452,9 @@ class ReportService:
             type=export.type,  # type: ignore[arg-type]
             status=export.status,
             content_text=export.content_text,
+            content_base64=content_b64,
+            filename=filename,
+            mime_type=mime,
             file_url=export.file_url,
             created_at=export.created_at,
         )

@@ -91,12 +91,15 @@ class ExportPublic(BaseModel):
     type: Literal["docx", "pdf", "csv", "markdown"]
     status: str
     content_text: str | None = None
+    content_base64: str | None = None
+    filename: str | None = None
+    mime_type: str | None = None
     file_url: str | None = None
     created_at: datetime
 
 
 class ExportRequest(BaseModel):
-    type: Literal["docx", "pdf", "markdown"] = "markdown"
+    type: Literal["pdf", "markdown"] = "pdf"
 
 
 class SavedAnalysisPublic(BaseModel):

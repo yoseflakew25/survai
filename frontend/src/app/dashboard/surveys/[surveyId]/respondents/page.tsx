@@ -1,6 +1,6 @@
 import { RespondentsView } from '@/features/respondents/components/respondents-view';
 import PageContainer from '@/components/layout/page-container';
-import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 
@@ -21,15 +21,7 @@ export default async function RespondentsPage({
   return (
     <PageContainer>
       <Suspense
-        fallback={
-          <DataTableSkeleton
-            columnCount={5}
-            rowCount={6}
-            filterCount={0}
-            withViewOptions={false}
-            cellWidths={['12rem', '10rem', '6rem', '8rem', '5rem']}
-          />
-        }
+        fallback={<SurveyActivityFallback activity='fetch-respondents' />}
       >
         <RespondentsView surveyId={surveyId} />
       </Suspense>

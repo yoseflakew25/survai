@@ -59,6 +59,9 @@ export interface ExportResult {
   type: 'docx' | 'pdf' | 'csv' | 'markdown';
   status: string;
   contentText: string | null;
+  contentBase64: string | null;
+  filename: string | null;
+  mimeType: string | null;
   fileUrl: string | null;
   createdAt: string;
 }

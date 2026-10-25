@@ -45,6 +45,7 @@ async def answer_report_chat(
     question: str,
     sections: list[dict[str, Any]],
     snapshot: dict[str, Any],
+    history: list[dict[str, Any]] | None = None,
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
 ) -> StructuredCallResult:
@@ -52,7 +53,10 @@ async def answer_report_chat(
         feature="report_chat",
         system=chat_v1.SYSTEM,
         user=chat_v1.user_prompt_chat(
-            question=question, sections=sections, snapshot=snapshot
+            question=question,
+            sections=sections,
+            snapshot=snapshot,
+            history=history,
         ),
         schema=ReportChatOutput,
         user_id=user_id,
@@ -60,5 +64,6 @@ async def answer_report_chat(
         input_meta={
             "survey_id": snapshot.get("survey_id"),
             "question_chars": len(question),
+            "history_turns": len(history or []),
         },
     )
