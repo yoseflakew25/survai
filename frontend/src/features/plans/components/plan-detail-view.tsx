@@ -5,6 +5,7 @@ import { planByIdOptions } from '../api/queries';
 import { PlanEditor } from './plan-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { notFound } from 'next/navigation';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 
 interface PlanDetailViewProps {
   planId: string;
@@ -13,7 +14,11 @@ interface PlanDetailViewProps {
 }
 
 export function PlanDetailView({ planId, surveyId }: PlanDetailViewProps) {
-  return <PlanDetailContent planId={planId} surveyId={surveyId} />;
+  return (
+    <AuthQueryBoundary fallback={<PlanDetailSkeleton />}>
+      <PlanDetailContent planId={planId} surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
 }
 
 function PlanDetailContent({

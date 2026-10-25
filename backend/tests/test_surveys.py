@@ -127,13 +127,16 @@ async def test_survey_from_plan_generate_and_section_regen(
     survey_id = survey["id"]
     assert survey["plan_id"] == plan_id
     assert survey["title"] == "Rural Health Survey"
-    assert len(survey["sections"]) == 2
-    assert survey["sections"][0]["questions"][0]["source"] == "ai_generated"
-    assert survey["sections"][0]["questions"][0]["options"][0]["label"] == "18-24"
+    # Identity section is always first; AI draft adds two more.
+    assert len(survey["sections"]) == 3
+    assert survey["sections"][0]["title"] == "Respondent details"
+    content_sections = survey["sections"][1:]
+    assert content_sections[0]["questions"][0]["source"] == "ai_generated"
+    assert content_sections[0]["questions"][0]["options"][0]["label"] == "18-24"
     assert body["notes"] == "Review wording before publish."
 
     # Manual question update marks ai_edited
-    qid = survey["sections"][0]["questions"][0]["id"]
+    qid = content_sections[0]["questions"][0]["id"]
     updated_q = await client.patch(
         f"/api/v1/surveys/{survey_id}/questions/{qid}",
         headers=headers,
@@ -144,9 +147,9 @@ async def test_survey_from_plan_generate_and_section_regen(
     assert "OLD" not in updated_q.json()["prompt_text"]
 
     # Section regenerate hard-replaces that section only
-    section_id = survey["sections"][1]["id"]
-    other_section_id = survey["sections"][0]["id"]
-    old_health_prompt = survey["sections"][1]["questions"][0]["prompt_text"]
+    section_id = content_sections[1]["id"]
+    other_section_id = content_sections[0]["id"]
+    old_health_prompt = content_sections[1]["questions"][0]["prompt_text"]
 
     section_out = SectionDraftOutput(
         title="Health status (revised)",
@@ -182,7 +185,7 @@ async def test_survey_from_plan_generate_and_section_regen(
     )
     assert regen.status_code == 200, regen.text
     regen_survey = regen.json()["survey"]
-    assert len(regen_survey["sections"]) == 2
+    assert len(regen_survey["sections"]) == 3
     demo = next(s for s in regen_survey["sections"] if s["id"] == other_section_id)
     health = next(s for s in regen_survey["sections"] if s["id"] == section_id)
     assert demo["questions"][0]["prompt_text"] == "What age group are you in?"
@@ -267,7 +270,9 @@ async def test_from_plan_reuses_same_survey_id(
     )
     assert first.status_code == 201, first.text
     survey_id = first.json()["survey"]["id"]
-    assert first.json()["survey"]["sections"][0]["title"] == "FIRST_DRAFT_SECTION"
+    first_titles = [s["title"] for s in first.json()["survey"]["sections"]]
+    assert first_titles[0] == "Respondent details"
+    assert "FIRST_DRAFT_SECTION" in first_titles
 
     second = await client.post(
         "/api/v1/surveys/from-plan",
@@ -279,7 +284,9 @@ async def test_from_plan_reuses_same_survey_id(
     blob = str(second.json()["survey"])
     assert "FIRST_DRAFT_SECTION" not in blob
     assert "FIRST_DRAFT_QUESTION" not in blob
-    assert second.json()["survey"]["sections"][0]["title"] == "SECOND_DRAFT_SECTION"
+    second_titles = [s["title"] for s in second.json()["survey"]["sections"]]
+    assert second_titles[0] == "Respondent details"
+    assert "SECOND_DRAFT_SECTION" in second_titles
 
 
 @pytest.mark.asyncio
@@ -364,5 +371,6 @@ async def test_generate_hard_replaces_prior_sections(
     blob = str(survey)
     assert "OLD_SECTION_MARKER" not in blob
     assert "OLD_QUESTION_MARKER" not in blob
-    assert survey["sections"][0]["title"] == "NEW_SECTION_ONLY"
-    assert survey["sections"][0]["questions"][0]["prompt_text"] == "NEW_QUESTION_ONLY"
+    assert survey["sections"][0]["title"] == "Respondent details"
+    assert survey["sections"][1]["title"] == "NEW_SECTION_ONLY"
+    assert survey["sections"][1]["questions"][0]["prompt_text"] == "NEW_QUESTION_ONLY"

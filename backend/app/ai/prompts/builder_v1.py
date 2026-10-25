@@ -23,7 +23,9 @@ For rating_scale, set help_text like "1 = Poor, 5 = Excellent" (UI uses 1–5).
 plan's estimated length when provided.
 - is_required: mark core measurement questions required; demographics optional unless essential.
 - Write neutral, non-leading wording suitable for NGO / community research.
-- Do not request unnecessary personally identifying information.
+- Do NOT add First Name, Last Name, Email, or a "Respondent details" / contact \
+section — the system always injects those required fields separately.
+- Do not request other unnecessary personally identifying information.
 - notes: one-sentence guidance for the human editor, or "" if none.
 """
 
@@ -37,7 +39,8 @@ Rules:
 - Use only: short_text, long_text, single_choice, multiple_choice, dropdown, \
 rating_scale, number, date.
 - Choice types need 2–8 options. Non-choice / rating_scale: options [] + scale help_text.
-- Neutral, non-leading wording. No unnecessary PII. notes: string (may be "").
+- Neutral, non-leading wording. Do not add First Name / Last Name / Email \
+(system-owned). notes: string (may be "").
 """
 
 

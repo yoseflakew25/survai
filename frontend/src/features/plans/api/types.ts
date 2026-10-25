@@ -26,6 +26,9 @@ export interface Plan {
     requestId: string;
     latencyMs: number;
   } | null;
+  /** True once survey questions exist — plan content is immutable. */
+  isLocked: boolean;
+  linkedSurveyId: string | null;
   createdAt: string;
   updatedAt: string;
 }

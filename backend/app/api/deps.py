@@ -15,9 +15,11 @@ from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.repositories.user import UserRepository
+from app.services.analytics import AnalyticsService
 from app.services.auth import AuthService
 from app.services.collection import CollectionService
 from app.services.plan import PlanService
+from app.services.respondents import RespondentsService
 from app.services.reviewer import ReviewerService
 from app.services.survey import SurveyService
 from app.services.user import UserService
@@ -49,12 +51,24 @@ def get_collection_service(session: DbSession) -> CollectionService:
     return CollectionService(session)
 
 
+def get_analytics_service(session: DbSession) -> AnalyticsService:
+    return AnalyticsService(session)
+
+
+def get_respondents_service(session: DbSession) -> RespondentsService:
+    return RespondentsService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
 SurveyServiceDep = Annotated[SurveyService, Depends(get_survey_service)]
 ReviewerServiceDep = Annotated[ReviewerService, Depends(get_reviewer_service)]
 CollectionServiceDep = Annotated[CollectionService, Depends(get_collection_service)]
+AnalyticsServiceDep = Annotated[AnalyticsService, Depends(get_analytics_service)]
+RespondentsServiceDep = Annotated[
+    RespondentsService, Depends(get_respondents_service)
+]
 
 
 def _extract_bearer(authorization: str | None) -> str | None:

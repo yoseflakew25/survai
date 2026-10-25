@@ -25,6 +25,8 @@ type ApiSurvey = {
   description: string | null;
   status: SurveyStatus;
   sections?: ApiSection[];
+  sections_count?: number | null;
+  questions_count?: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -41,7 +43,7 @@ async function readError(res: Response, fallback: string): Promise<never> {
 
 function mapListItem(s: ApiSurvey): SurveyListItem {
   const sections = s.sections ?? [];
-  const questionsCount = sections.reduce(
+  const questionsFromTree = sections.reduce(
     (sum, sec) => sum + (sec.questions?.length ?? 0),
     0
   );
@@ -51,8 +53,8 @@ function mapListItem(s: ApiSurvey): SurveyListItem {
     title: s.title,
     description: s.description,
     status: s.status,
-    sectionsCount: sections.length,
-    questionsCount,
+    sectionsCount: s.sections_count ?? sections.length,
+    questionsCount: s.questions_count ?? questionsFromTree,
     // Collection / analytics not wired yet (Phase 5+)
     responsesCount: 0,
     completionRate: null,

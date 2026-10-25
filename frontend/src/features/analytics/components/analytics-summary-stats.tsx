@@ -19,35 +19,46 @@ interface Stat {
 }
 
 export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
+  const started =
+    summary.metrics.find((m) => m.key === 'started_count')?.value ?? null;
+  const median =
+    summary.metrics.find((m) => m.key === 'median_time')?.value ?? null;
+
   const stats: Stat[] = [
     {
       title: 'Total Responses',
       value: summary.responseCount.toLocaleString(),
-      description: 'Collected responses',
+      description: 'Completed responses',
       icon: 'user' as const,
-      trend: '+12.5%',
+      trend: '',
       trendUp: true
     },
     {
       title: 'Completion Rate',
       value: `${summary.completionRate}%`,
-      description: 'Finished the survey',
+      description:
+        started != null
+          ? `${started} started this version`
+          : 'Finished vs started',
       icon: 'circleCheck' as const,
-      trend: '+4.2%',
+      trend: '',
       trendUp: true
     },
     {
       title: 'Avg. Time',
-      value: `${summary.avgCompletionMinutes} min`,
+      value:
+        summary.avgCompletionMinutes > 0
+          ? `${summary.avgCompletionMinutes} min`
+          : '—',
       description: 'To complete survey',
       icon: 'clock' as const,
-      trend: '-1.3 min',
-      trendUp: false
+      trend: '',
+      trendUp: true
     },
     {
-      title: 'Required Questions',
-      value: '8',
-      description: 'Out of 10 total',
+      title: 'Median Time',
+      value: median != null && median !== '' ? `${median} min` : '—',
+      description: 'Middle completion time',
       icon: 'forms' as const,
       trend: '',
       trendUp: true

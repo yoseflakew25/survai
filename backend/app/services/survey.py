@@ -39,11 +39,38 @@ from app.schemas.survey import (
     SurveyPublic,
     SurveyUpdate,
 )
+from app.services.survey_identity import (
+    assert_can_delete_question,
+    assert_can_delete_section,
+    assert_identity_required_flags,
+    ensure_required_identity_fields,
+    is_identity_section,
+    survey_has_required_identity,
+)
+
+
+_QUESTIONS_LOCKED_MSG = (
+    "This survey is published (or closed). Questions can no longer be added, "
+    "edited, or regenerated."
+)
+
+_QUESTIONS_LOCKED_STATUSES = frozenset(
+    {
+        SurveyStatus.published.value,
+        SurveyStatus.closed.value,
+        SurveyStatus.archived.value,
+    }
+)
 
 
 def _require_org(user: User) -> None:
     if user.organization_id is None:
         raise ForbiddenError("Organization account required")
+
+
+def _assert_questions_editable(survey: Survey) -> None:
+    if survey.status in _QUESTIONS_LOCKED_STATUSES:
+        raise BadRequestError(_QUESTIONS_LOCKED_MSG)
 
 
 def _slug_value(label: str) -> str:
@@ -111,8 +138,22 @@ def _section_public(s: Section) -> SectionPublic:
     )
 
 
-def _survey_public(survey: Survey) -> SurveyPublic:
-    sections = sorted(survey.sections or [], key=lambda s: s.order_index)
+def _survey_public(
+    survey: Survey,
+    *,
+    sections_count: int | None = None,
+    questions_count: int | None = None,
+    include_tree: bool = True,
+) -> SurveyPublic:
+    sections = (
+        sorted(survey.sections or [], key=lambda s: s.order_index)
+        if include_tree
+        else []
+    )
+    if sections_count is None and include_tree:
+        sections_count = len(sections)
+    if questions_count is None and include_tree:
+        questions_count = sum(len(s.questions or []) for s in sections)
     return SurveyPublic(
         id=survey.id,
         plan_id=survey.plan_id,
@@ -124,6 +165,8 @@ def _survey_public(survey: Survey) -> SurveyPublic:
         anonymous_collection=survey.anonymous_collection,
         current_version_id=survey.current_version_id,
         sections=[_section_public(s) for s in sections],
+        sections_count=sections_count,
+        questions_count=questions_count,
         created_at=survey.created_at,
         updated_at=survey.updated_at,
     )
@@ -212,14 +255,37 @@ class SurveyService:
     async def list_surveys(self, *, user: User) -> SurveyListResponse:
         _require_org(user)
         assert user.organization_id is not None
-        rows = await self.surveys.list_for_org(organization_id=user.organization_id)
+        # Skip loading full section/question trees — one counts query instead.
+        rows = await self.surveys.list_for_org(
+            organization_id=user.organization_id, with_tree=False
+        )
         total = await self.surveys.count_for_org(organization_id=user.organization_id)
+        counts = await self.surveys.section_question_counts(
+            survey_ids=[s.id for s in rows]
+        )
         return SurveyListResponse(
-            surveys=[_survey_public(s) for s in rows], total=total
+            surveys=[
+                _survey_public(
+                    s,
+                    include_tree=False,
+                    sections_count=counts.get(s.id, (0, 0))[0],
+                    questions_count=counts.get(s.id, (0, 0))[1],
+                )
+                for s in rows
+            ],
+            total=total,
         )
 
     async def get_survey(self, *, user: User, survey_id: UUID) -> SurveyPublic:
         survey = await self._get_owned(user, survey_id)
+        # Backfill required identity fields on drafts opened in the builder.
+        if survey.status == SurveyStatus.draft.value:
+            if not survey_has_required_identity(survey):
+                await ensure_required_identity_fields(
+                    self.session, survey_id=survey.id
+                )
+                await self.session.commit()
+                survey = await self._get_owned(user, survey_id)
         return _survey_public(survey)
 
     async def create_survey(self, *, user: User, body: SurveyCreate) -> SurveyPublic:
@@ -247,6 +313,8 @@ class SurveyService:
             anonymous_collection=body.anonymous_collection,
         )
         await self.surveys.add(survey)
+        await self.session.flush()
+        await ensure_required_identity_fields(self.session, survey_id=survey.id)
         await self.session.commit()
         return await self.get_survey(user=user, survey_id=survey.id)
 
@@ -271,6 +339,8 @@ class SurveyService:
             plan_id=plan.id, organization_id=user.organization_id
         )
         if existing is not None:
+            if body.generate:
+                _assert_questions_editable(existing)
             # Keep the same survey id — update title/description if provided.
             if body.title is not None and title:
                 existing.title = title
@@ -339,6 +409,7 @@ class SurveyService:
     ) -> SurveyGenerateResponse:
         """Hard-replace all sections/questions from the linked approved plan (BLD-01)."""
         survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         if survey.plan_id is None:
             raise BadRequestError("Survey has no linked plan to generate from.")
 
@@ -366,16 +437,28 @@ class SurveyService:
         await self.review_reports.delete_for_survey(survey_id=survey_id)
         await self.surveys.delete_all_sections(survey_id=survey_id)
 
+        # AI content starts at index 1 — identity section is forced at 0 after.
         for s_idx, draft_section in enumerate(output.sections):
+            title = draft_section.title.strip()
+            # Skip AI-invented contact/identity sections; we inject our own.
+            if title.lower() in {
+                "respondent details",
+                "contact details",
+                "contact information",
+            }:
+                continue
             section = Section(
                 survey_id=survey_id,
-                title=draft_section.title.strip(),
+                title=title,
                 description=None,
-                order_index=s_idx,
+                order_index=s_idx + 1,
             )
             self.session.add(section)
             await self.session.flush()
             for q_idx, draft_q in enumerate(draft_section.questions):
+                prompt = (draft_q.prompt_text or "").strip().lower()
+                if prompt in {"first name", "last name", "email", "e-mail"}:
+                    continue
                 self.session.add(
                     _build_question(
                         survey_id=survey_id,
@@ -385,6 +468,8 @@ class SurveyService:
                         meta=meta,
                     )
                 )
+
+        await ensure_required_identity_fields(self.session, survey_id=survey_id)
 
         await self.session.execute(
             Survey.__table__.update()
@@ -402,6 +487,7 @@ class SurveyService:
     ) -> SurveyGenerateResponse:
         """Hard-replace questions in one section; leave others untouched (BLD-02)."""
         survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         if survey.plan_id is None:
             raise BadRequestError("Survey has no linked plan to regenerate from.")
 
@@ -413,6 +499,11 @@ class SurveyService:
         )
         if section is None:
             raise NotFoundError("Section not found")
+        if is_identity_section(section):
+            raise BadRequestError(
+                "The Respondent details section (First Name, Last Name, Email) "
+                "cannot be AI-regenerated."
+            )
 
         other_titles = [
             s.title
@@ -470,6 +561,7 @@ class SurveyService:
         self, *, user: User, survey_id: UUID, body: SectionCreate
     ) -> SectionPublic:
         survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         order = body.order_index
         if order is None:
             order = len(survey.sections or [])
@@ -495,7 +587,8 @@ class SurveyService:
         section_id: UUID,
         body: SectionUpdate,
     ) -> SectionPublic:
-        await self._get_owned(user, survey_id)
+        survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
             section_id=section_id, survey_id=survey_id
         )
@@ -519,12 +612,14 @@ class SurveyService:
     async def delete_section(
         self, *, user: User, survey_id: UUID, section_id: UUID
     ) -> None:
-        await self._get_owned(user, survey_id)
+        survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
             section_id=section_id, survey_id=survey_id
         )
         if section is None:
             raise NotFoundError("Section not found")
+        assert_can_delete_section(section)
         await self.sections.delete(section)
         await self.session.commit()
 
@@ -532,6 +627,7 @@ class SurveyService:
         self, *, user: User, survey_id: UUID, body: SectionReorder
     ) -> SurveyPublic:
         survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         by_id = {s.id: s for s in (survey.sections or [])}
         if set(body.section_ids) != set(by_id.keys()):
             raise BadRequestError("section_ids must include every section exactly once")
@@ -543,7 +639,8 @@ class SurveyService:
     async def add_question(
         self, *, user: User, survey_id: UUID, body: QuestionCreate
     ) -> QuestionPublic:
-        await self._get_owned(user, survey_id)
+        survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
             section_id=body.section_id, survey_id=survey_id
         )
@@ -581,7 +678,8 @@ class SurveyService:
         question_id: UUID,
         body: QuestionUpdate,
     ) -> QuestionPublic:
-        await self._get_owned(user, survey_id)
+        survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         question = await self.questions.get_for_survey(
             question_id=question_id, survey_id=survey_id
         )
@@ -596,6 +694,9 @@ class SurveyService:
             ht = data["help_text"]
             question.help_text = ht.strip() if isinstance(ht, str) else ht
         if "is_required" in data and data["is_required"] is not None:
+            assert_identity_required_flags(
+                question, is_required=bool(data["is_required"])
+            )
             question.is_required = data["is_required"]
         if "order_index" in data and data["order_index"] is not None:
             question.order_index = data["order_index"]
@@ -623,19 +724,22 @@ class SurveyService:
     async def delete_question(
         self, *, user: User, survey_id: UUID, question_id: UUID
     ) -> None:
-        await self._get_owned(user, survey_id)
+        survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         question = await self.questions.get_for_survey(
             question_id=question_id, survey_id=survey_id
         )
         if question is None:
             raise NotFoundError("Question not found")
+        assert_can_delete_question(question)
         await self.questions.delete(question)
         await self.session.commit()
 
     async def reorder_questions(
         self, *, user: User, survey_id: UUID, body: QuestionReorder
     ) -> SurveyPublic:
-        await self._get_owned(user, survey_id)
+        survey = await self._get_owned(user, survey_id)
+        _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
             section_id=body.section_id, survey_id=survey_id
         )

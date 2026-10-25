@@ -45,9 +45,13 @@ export function CollectView({ surveyId }: CollectViewProps) {
   const isPublished = survey.status === 'published';
   const isClosed = survey.status === 'closed';
   const isLive = isPublished || isClosed;
-  const versionId = stats.currentVersionId ?? survey.currentVersionId;
+  const hasLiveForm = Boolean(
+    stats.currentVersionId ?? survey.currentVersionId
+  );
+  // Canonical share link is always the survey id (resolves to current version).
   const collectionPath =
-    stats.collectionPath ?? (versionId ? `/s/${versionId}` : null);
+    stats.collectionPath ??
+    (hasLiveForm ? `/s/${surveyId}` : null);
   const collectionUrl =
     collectionPath && typeof window !== 'undefined'
       ? `${window.location.origin}${collectionPath}`
@@ -67,7 +71,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
         queryKey: collectStatsKeys.stats(surveyId)
       });
       toast.success('Survey published!', {
-        description: `Version ${result.versionNumber} is live at ${result.collectionPath}`
+        description: `Live form ready at ${result.collectionPath}`
       });
     } catch (err) {
       toast.error('Publish failed', {
@@ -294,20 +298,11 @@ export function CollectView({ surveyId }: CollectViewProps) {
 
             {isPublished ? (
               <SurvaiPanelFooter>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => void handlePublish()}
-                  disabled={isPublishing}
-                  className='h-10 w-full rounded-xl border-border'
-                >
-                  {isPublishing ? (
-                    <Icons.spinner className='mr-2 size-4 animate-spin' />
-                  ) : (
-                    <Icons.sparkles className='mr-2 size-4' />
-                  )}
-                  Publish new version
-                </Button>
+                <p className='text-muted-foreground text-xs leading-relaxed'>
+                  This form is locked. Collect responses here, then close the
+                  survey when the round ends — questions stay fixed for data
+                  integrity.
+                </p>
               </SurvaiPanelFooter>
             ) : null}
           </SurvaiPanel>

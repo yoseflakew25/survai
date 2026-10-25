@@ -9,6 +9,7 @@ import {
   PlanDetailView,
   PlanDetailSkeleton
 } from '@/features/plans/components/plan-detail-view';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 
@@ -17,6 +18,14 @@ interface SurveyPlanViewProps {
 }
 
 export function SurveyPlanView({ surveyId }: SurveyPlanViewProps) {
+  return (
+    <AuthQueryBoundary fallback={<SurveyPlanSkeleton />}>
+      <SurveyPlanContent surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
+}
+
+function SurveyPlanContent({ surveyId }: { surveyId: string }) {
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
 
   if (!survey) {

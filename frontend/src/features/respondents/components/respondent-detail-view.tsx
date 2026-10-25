@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { respondentDetailOptions } from '../api/queries';
 import type { RespondentAnswer } from '../api/types';
 import { cn } from '@/lib/utils';
+import { displaySurveyTitle } from '@/lib/survey-display';
 import type { ReactNode } from 'react';
 import {
   SurvaiPanel,
-  SurvaiPanelBody,
   SurvaiPanelHeader
 } from '@/components/survai-panel';
 
@@ -37,7 +37,7 @@ function formatDateTime(iso: string): string {
 function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
 }
 
 function initialsFromName(name: string): string {
@@ -78,12 +78,13 @@ export function RespondentDetailView({
       : 0;
   const isComplete = detail.status === 'completed';
   const isDrawer = variant === 'drawer';
+  const surveyLabel = displaySurveyTitle(detail.surveyTitle);
 
   const answersList = (
     <div className={cn('flex min-w-0 flex-col', isDrawer ? 'gap-3' : 'gap-4')}>
       {groups.length === 0 ? (
         <SurvaiPanel>
-          <SurvaiPanelBody className='flex flex-col items-center py-12 text-center'>
+          <div className='flex flex-col items-center px-4 py-12 text-center'>
             <div className='mb-3 flex size-11 items-center justify-center rounded-xl bg-brand-soft text-foreground'>
               <Icons.forms className='size-5' />
             </div>
@@ -93,7 +94,7 @@ export function RespondentDetailView({
             <p className='text-muted-foreground mt-1 max-w-sm text-sm'>
               This submission did not include any question responses.
             </p>
-          </SurvaiPanelBody>
+          </div>
         </SurvaiPanel>
       ) : (
         groups.map((group, groupIdx) => (
@@ -123,17 +124,24 @@ export function RespondentDetailView({
   if (isDrawer) {
     return (
       <div className='flex flex-col'>
-        <header className='relative overflow-hidden border-b border-border bg-card'>
+        {/* Brand header strip */}
+        <header className='relative overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand'>
           <div
-            className='pointer-events-none absolute inset-0 opacity-70'
+            className='pointer-events-none absolute inset-0 opacity-40'
+            aria-hidden
             style={{
               backgroundImage:
-                'radial-gradient(ellipse 80% 120% at 0% 0%, color-mix(in srgb, var(--brand) 28%, transparent), transparent 55%)'
+                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
+              backgroundSize: '18px 18px',
+              maskImage:
+                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
+              WebkitMaskImage:
+                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)'
             }}
           />
-          <div className='relative px-4 pt-4 pr-12 pb-3 sm:px-5'>
+          <div className='relative px-4 pt-4 pr-12 pb-4 sm:px-5'>
             <div className='flex items-center gap-3'>
-              <div className='flex size-11 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand font-mono text-xs font-bold tracking-wide text-brand-foreground uppercase shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
+              <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground font-mono text-xs font-bold tracking-wide text-background uppercase shadow-sm'>
                 {initialsFromName(detail.name)}
               </div>
 
@@ -147,7 +155,7 @@ export function RespondentDetailView({
                       'rounded-full border-transparent text-[10px] font-semibold',
                       isComplete
                         ? 'bg-foreground text-background'
-                        : 'bg-secondary text-secondary-foreground'
+                        : 'bg-[color-mix(in_srgb,var(--foreground)_12%,transparent)] text-foreground'
                     )}
                   >
                     {isComplete ? (
@@ -158,15 +166,16 @@ export function RespondentDetailView({
                     {isComplete ? 'Completed' : 'Partial'}
                   </Badge>
                 </div>
-                <p className='text-muted-foreground mt-0.5 truncate text-xs'>
+                <p className='mt-0.5 truncate text-xs text-foreground/75'>
                   {detail.email}
-                  <span className='mx-1.5 text-border'>·</span>
-                  <span className='text-foreground/75'>{detail.surveyTitle}</span>
+                </p>
+                <p className='mt-0.5 truncate font-mono text-[10px] tracking-wide text-foreground/60 uppercase'>
+                  {surveyLabel}
                 </p>
               </div>
             </div>
 
-            <dl className='mt-3 grid grid-cols-3 gap-2'>
+            <dl className='mt-4 grid grid-cols-3 gap-2'>
               <MetaStat
                 icon={<Icons.calendar className='size-3' />}
                 label='Submitted'
@@ -187,13 +196,13 @@ export function RespondentDetailView({
             </dl>
           </div>
 
-          <div className='relative flex items-center gap-3 border-t border-border/70 bg-muted/40 px-4 py-2 sm:px-5'>
-            <span className='text-muted-foreground shrink-0 text-[11px] font-medium'>
+          <div className='relative flex items-center gap-3 border-t border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_6%,transparent)] px-4 py-2.5 sm:px-5'>
+            <span className='shrink-0 text-[11px] font-medium text-foreground/70'>
               Completion
             </span>
-            <div className='h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-secondary'>
+            <div className='h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
               <div
-                className='h-full rounded-full bg-brand transition-[width] duration-500 ease-out'
+                className='h-full rounded-full bg-foreground transition-[width] duration-500 ease-out'
                 style={{ width: `${completionPct}%` }}
               />
             </div>
@@ -203,71 +212,86 @@ export function RespondentDetailView({
           </div>
         </header>
 
-        <div className='space-y-3 px-4 py-4 sm:px-5'>{answersList}</div>
+        <div className='space-y-3 bg-background px-4 py-4 sm:px-5'>
+          {answersList}
+        </div>
       </div>
     );
   }
 
   return (
     <div className='flex flex-1 flex-col gap-6 pb-8'>
-      <header className='flex items-start gap-3'>
-        <div className='flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft font-mono text-xs font-bold tracking-wide text-foreground uppercase'>
-          {initialsFromName(detail.name)}
-        </div>
-
-        <div className='min-w-0 flex-1'>
-          <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-            <h1 className='font-display text-xl font-extrabold tracking-tight text-foreground sm:text-2xl'>
-              {detail.name}
-            </h1>
-            <Badge
-              className={cn(
-                'rounded-full border-transparent text-[10px] font-semibold',
-                isComplete
-                  ? 'bg-brand text-brand-foreground'
-                  : 'bg-secondary text-secondary-foreground'
-              )}
-            >
-              {isComplete ? (
-                <Icons.circleCheck className='mr-1 size-3' />
-              ) : (
-                <Icons.clock className='mr-1 size-3' />
-              )}
-              {isComplete ? 'Completed' : 'Partial'}
-            </Badge>
+      <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand px-5 py-5 shadow-sm'>
+        <div
+          className='pointer-events-none absolute inset-0 opacity-40'
+          aria-hidden
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+            maskImage:
+              'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
+            WebkitMaskImage:
+              'linear-gradient(to right, transparent, black 20%, black 80%, transparent)'
+          }}
+        />
+        <div className='relative flex items-start gap-3'>
+          <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground font-mono text-xs font-bold tracking-wide text-background uppercase'>
+            {initialsFromName(detail.name)}
           </div>
 
-          <p className='text-muted-foreground mt-0.5 truncate text-sm'>
-            {detail.email}
-            <span className='mx-1.5 text-border'>·</span>
-            <span className='text-foreground/70'>{detail.surveyTitle}</span>
-          </p>
+          <div className='min-w-0 flex-1'>
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+              <h1 className='font-display text-xl font-extrabold tracking-tight text-foreground sm:text-2xl'>
+                {detail.name}
+              </h1>
+              <Badge
+                className={cn(
+                  'rounded-full border-transparent text-[10px] font-semibold',
+                  isComplete
+                    ? 'bg-foreground text-background'
+                    : 'bg-[color-mix(in_srgb,var(--foreground)_12%,transparent)] text-foreground'
+                )}
+              >
+                {isComplete ? (
+                  <Icons.circleCheck className='mr-1 size-3' />
+                ) : (
+                  <Icons.clock className='mr-1 size-3' />
+                )}
+                {isComplete ? 'Completed' : 'Partial'}
+              </Badge>
+            </div>
 
-          <dl className='mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs'>
-            <div className='flex items-center gap-1.5'>
-              <Icons.calendar className='text-muted-foreground size-3.5 shrink-0' />
-              <dt className='sr-only'>Submitted</dt>
-              <dd className='text-foreground'>
-                {formatDateTime(detail.submittedAt)}
-              </dd>
-            </div>
-            <span className='bg-border hidden h-3 w-px sm:block' aria-hidden />
-            <div className='flex items-center gap-1.5'>
-              <Icons.clock className='text-muted-foreground size-3.5 shrink-0' />
-              <dt className='sr-only'>Duration</dt>
-              <dd className='font-mono tabular-nums text-foreground'>
-                {formatDuration(detail.durationSeconds)}
-              </dd>
-            </div>
-            <span className='bg-border hidden h-3 w-px sm:block' aria-hidden />
-            <div className='flex items-center gap-1.5'>
-              <Icons.check className='text-muted-foreground size-3.5 shrink-0' />
-              <dt className='sr-only'>Answered</dt>
-              <dd className='font-mono tabular-nums text-foreground'>
-                {answeredCount}/{totalQuestions} answered
-              </dd>
-            </div>
-          </dl>
+            <p className='mt-0.5 truncate text-sm text-foreground/75'>
+              {detail.email}
+              <span className='mx-1.5 opacity-40'>·</span>
+              <span>{surveyLabel}</span>
+            </p>
+
+            <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground/80'>
+              <div className='flex items-center gap-1.5'>
+                <Icons.calendar className='size-3.5 shrink-0 opacity-70' />
+                <dt className='sr-only'>Submitted</dt>
+                <dd>{formatDateTime(detail.submittedAt)}</dd>
+              </div>
+              <span className='hidden h-3 w-px bg-foreground/20 sm:block' aria-hidden />
+              <div className='flex items-center gap-1.5'>
+                <Icons.clock className='size-3.5 shrink-0 opacity-70' />
+                <dt className='sr-only'>Duration</dt>
+                <dd className='font-mono tabular-nums'>
+                  {formatDuration(detail.durationSeconds)}
+                </dd>
+              </div>
+              <span className='hidden h-3 w-px bg-foreground/20 sm:block' aria-hidden />
+              <div className='flex items-center gap-1.5'>
+                <Icons.check className='size-3.5 shrink-0 opacity-70' />
+                <dt className='sr-only'>Answered</dt>
+                <dd className='font-mono tabular-nums'>
+                  {answeredCount}/{totalQuestions} answered
+                </dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </header>
 
@@ -288,8 +312,8 @@ function MetaStat({
   mono?: boolean;
 }) {
   return (
-    <div className='min-w-0 rounded-xl border border-border bg-background/85 px-2.5 py-2 shadow-sm backdrop-blur-sm'>
-      <dt className='text-muted-foreground flex items-center gap-1 text-[10px] font-medium tracking-wide uppercase'>
+    <div className='min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_16%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_7%,transparent)] px-2.5 py-2 backdrop-blur-sm'>
+      <dt className='flex items-center gap-1 text-[10px] font-medium tracking-wide text-foreground/65 uppercase'>
         <span className='shrink-0'>{icon}</span>
         <span className='truncate'>{label}</span>
       </dt>
@@ -397,7 +421,7 @@ function AnsweredQuestion({
 function renderAnswerValue(answer: RespondentAnswer): ReactNode {
   if (!answer.answered || answer.value === null) {
     return (
-      <span className='inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-2 py-1 text-xs text-muted-foreground'>
+      <span className='text-muted-foreground inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-2 py-1 text-xs'>
         <Icons.minus className='size-3 opacity-60' />
         No answer
       </span>

@@ -28,6 +28,12 @@ const MODULES = [
     urlSuffix: 'collect'
   },
   {
+    title: 'Respondents',
+    description: 'Browse individual submissions and their answers',
+    icon: 'users' as const,
+    urlSuffix: 'respondents'
+  },
+  {
     title: 'Analytics',
     description: 'Explore response data with charts and cross-tabs',
     icon: 'analytics' as const,
@@ -38,12 +44,6 @@ const MODULES = [
     description: 'Generate AI-grounded reports with export options',
     icon: 'report' as const,
     urlSuffix: 'reports'
-  },
-  {
-    title: 'Respondents',
-    description: 'Browse individual submissions and completion status',
-    icon: 'teams' as const,
-    urlSuffix: 'respondents'
   }
 ];
 

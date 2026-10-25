@@ -11,7 +11,7 @@ from app.db.ssl_utils import build_database_ssl_context
 
 def _engine_kwargs() -> dict[str, Any]:
     kwargs: dict[str, Any] = {
-        "echo": settings.debug,
+        "echo": settings.database_echo,
         "pool_pre_ping": True,
         "pool_size": settings.database_pool_size,
         "max_overflow": settings.database_max_overflow,

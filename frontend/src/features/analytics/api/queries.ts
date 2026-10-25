@@ -8,16 +8,15 @@ import {
 
 export const analyticsKeys = {
   all: ['analytics'] as const,
-  summary: (surveyId: string) => [...analyticsKeys.all, 'summary', surveyId] as const,
+  summary: (surveyId: string) =>
+    [...analyticsKeys.all, 'summary', surveyId] as const,
   distributions: (surveyId: string) =>
     [...analyticsKeys.all, 'distributions', surveyId] as const,
   crossTab: (surveyId: string, qA: string, qB: string) =>
     [...analyticsKeys.all, 'crosstab', surveyId, qA, qB] as const,
-  saved: (surveyId: string) => [...analyticsKeys.all, 'saved', surveyId] as const
+  saved: (surveyId: string) =>
+    [...analyticsKeys.all, 'saved', surveyId] as const
 };
-
-// Default question pair used by the mock cross-tab view.
-const DEFAULT_CROSSTAB_IDS = { questionAId: 'q_001', questionBId: 'q_007' } as const;
 
 export const analyticsSummaryOptions = (surveyId: string) =>
   queryOptions({
@@ -35,13 +34,13 @@ export const distributionsOptions = (surveyId: string) =>
 
 export const crossTabOptions = (
   surveyId: string,
-  questionAId = DEFAULT_CROSSTAB_IDS.questionAId,
-  questionBId = DEFAULT_CROSSTAB_IDS.questionBId
+  questionAId: string,
+  questionBId: string
 ) =>
   queryOptions({
     queryKey: analyticsKeys.crossTab(surveyId, questionAId, questionBId),
     queryFn: () => getCrossTab(surveyId, questionAId, questionBId),
-    enabled: !!surveyId
+    enabled: !!surveyId && !!questionAId && !!questionBId
   });
 
 export const savedAnalysesOptions = (surveyId: string) =>

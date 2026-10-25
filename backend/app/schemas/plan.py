@@ -55,6 +55,9 @@ class PlanPublic(BaseModel):
     estimated_length_minutes: int | None
     status: str
     ai_generation_meta: AiGenerationMetaPublic | dict[str, Any] | None = None
+    # True once the linked survey has generated questions — plan is immutable.
+    is_locked: bool = False
+    linked_survey_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 

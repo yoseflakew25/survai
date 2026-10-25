@@ -179,18 +179,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
 
   return (
     <div className='space-y-5'>
-      <div className='flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
-        <Heading
-          title='Report Workspace'
-          description='Generate AI-powered reports from your survey data'
-        />
-        <Badge
-          variant='secondary'
-          className='rounded-full border-transparent text-[10px]'
-        >
-          Draft
-        </Badge>
-      </div>
+      
 
       <div className='grid gap-6 lg:grid-cols-3'>
         <div className='space-y-4 lg:col-span-2'>

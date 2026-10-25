@@ -58,12 +58,16 @@ async function publicFetch(
 
 async function readError(res: Response, fallback: string): Promise<never> {
   const data = await res.json().catch(() => ({}));
-  throw new Error(
-    toUserFacingError(
-      new Error(apiErrorMessage(data, fallback)),
-      fallback
-    )
-  );
+  const detail = apiErrorMessage(data, '');
+  if (detail) {
+    throw new Error(detail);
+  }
+  if (res.status >= 500) {
+    throw new Error(
+      'Something went wrong on the server. Please try again in a moment.'
+    );
+  }
+  throw new Error(fallback);
 }
 
 type ApiQuestion = {
@@ -91,7 +95,6 @@ type ApiPublicSurvey = {
   survey_version_id: string;
   title: string;
   description: string | null;
-  anonymous_collection: boolean;
   sections: ApiSection[];
 };
 
@@ -124,9 +127,7 @@ function mapSection(s: ApiSection): PublicSection {
     title: s.title,
     description: s.description,
     orderIndex: s.order_index,
-    questions: (s.questions ?? [])
-      .map(mapQuestion)
-      .toSorted((a, b) => a.orderIndex - b.orderIndex)
+    questions: (s.questions ?? []).map(mapQuestion)
   };
 }
 
@@ -162,44 +163,20 @@ export async function getPublicSurvey(
   return mapSurvey((await res.json()) as ApiPublicSurvey);
 }
 
-export async function startRespondent(
-  versionId: string
+/** One-shot: create a completed response only (no partial rows). */
+export async function submitSurvey(
+  versionId: string,
+  answers: AnswerPayload[]
 ): Promise<Respondent> {
-  const res = await publicFetch(`/public/surveys/${versionId}/respondents`, {
-    method: 'POST'
-  });
-  if (!res.ok) await readError(res, 'Could not start survey session');
-  return mapRespondent((await res.json()) as ApiRespondent);
-}
-
-export async function submitAnswer(
-  respondentId: string,
-  sessionToken: string,
-  answer: AnswerPayload
-): Promise<boolean> {
-  const res = await publicFetch(`/public/respondents/${respondentId}/answers`, {
+  const res = await publicFetch(`/public/surveys/${versionId}/submit`, {
     method: 'POST',
     body: JSON.stringify({
-      session_token: sessionToken,
-      question_id: answer.questionId,
-      value: answer.value as AnswerValue
+      answers: answers.map((a) => ({
+        question_id: a.questionId,
+        value: a.value as AnswerValue
+      }))
     })
   });
-  if (!res.ok) await readError(res, 'Could not save answer');
-  return true;
-}
-
-export async function completeSurvey(
-  respondentId: string,
-  sessionToken: string
-): Promise<boolean> {
-  const res = await publicFetch(
-    `/public/respondents/${respondentId}/complete`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ session_token: sessionToken })
-    }
-  );
   if (!res.ok) await readError(res, 'Could not submit survey');
-  return true;
+  return mapRespondent((await res.json()) as ApiRespondent);
 }

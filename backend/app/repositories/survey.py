@@ -23,19 +23,51 @@ class SurveyRepository(BaseRepository[Survey]):
         skip: int = 0,
         limit: int = 100,
         require_plan: bool = True,
+        with_tree: bool = True,
     ) -> list[Survey]:
         stmt = select(Survey).where(Survey.organization_id == organization_id)
         if require_plan:
             stmt = stmt.where(Survey.plan_id.is_not(None))
-        result = await self.session.execute(
-            stmt.options(
+        stmt = stmt.order_by(Survey.updated_at.desc()).offset(skip).limit(limit)
+        if with_tree:
+            stmt = stmt.options(
                 selectinload(Survey.sections).selectinload(Section.questions)
             )
-            .order_by(Survey.updated_at.desc())
-            .offset(skip)
-            .limit(limit)
-        )
+        result = await self.session.execute(stmt)
         return list(result.scalars().unique().all())
+
+    async def section_question_counts(
+        self, *, survey_ids: list[UUID]
+    ) -> dict[UUID, tuple[int, int]]:
+        """survey_id → (section_count, question_count) in one round-trip."""
+        if not survey_ids:
+            return {}
+        result = await self.session.execute(
+            select(
+                Section.survey_id,
+                func.count(func.distinct(Section.id)),
+                func.count(Question.id),
+            )
+            .select_from(Section)
+            .outerjoin(Question, Question.section_id == Section.id)
+            .where(Section.survey_id.in_(survey_ids))
+            .group_by(Section.survey_id)
+        )
+        return {
+            row[0]: (int(row[1]), int(row[2])) for row in result.all()
+        }
+
+    async def get_for_org_meta(
+        self, *, survey_id: UUID, organization_id: UUID
+    ) -> Survey | None:
+        """Survey row only — no sections/questions (analytics, collect meta)."""
+        result = await self.session.execute(
+            select(Survey).where(
+                Survey.id == survey_id,
+                Survey.organization_id == organization_id,
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def count_for_org(
         self, *, organization_id: UUID, require_plan: bool = True

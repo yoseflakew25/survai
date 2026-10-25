@@ -41,27 +41,30 @@ export function DataTableSkeleton({
         <div className='flex flex-1 items-center gap-2'>
           {filterCount > 0
             ? Array.from({ length: filterCount }).map((_, i) => (
-                <Skeleton key={i} className='h-7 w-[4.5rem] border-dashed' />
+                <Skeleton key={i} className='h-9 w-40 rounded-xl' />
               ))
             : null}
         </div>
-        {withViewOptions ? <Skeleton className='ml-auto hidden h-7 w-[4.5rem] lg:flex' /> : null}
+        {withViewOptions ? (
+          <Skeleton className='ml-auto hidden h-9 w-[4.5rem] rounded-xl lg:flex' />
+        ) : null}
       </div>
 
-      <div className='flex-1 rounded-md border'>
+      <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
         <Table>
-          <TableHeader>
+          <TableHeader className='border-b border-border bg-muted/30'>
             {Array.from({ length: 1 }).map((_, i) => (
               <TableRow key={i} className='hover:bg-transparent'>
                 {Array.from({ length: columnCount }).map((_, j) => (
                   <TableHead
                     key={j}
+                    className='first:pl-4 last:pr-4'
                     style={{
                       width: cozyCellWidths[j],
                       minWidth: shrinkZero ? cozyCellWidths[j] : 'auto'
                     }}
                   >
-                    <Skeleton className='h-6 w-full' />
+                    <Skeleton className='h-5 w-full rounded' />
                   </TableHead>
                 ))}
               </TableRow>
@@ -73,39 +76,33 @@ export function DataTableSkeleton({
                 {Array.from({ length: columnCount }).map((_, j) => (
                   <TableCell
                     key={j}
+                    className='first:pl-4 last:pr-4'
                     style={{
                       width: cozyCellWidths[j],
                       minWidth: shrinkZero ? cozyCellWidths[j] : 'auto'
                     }}
                   >
-                    <Skeleton className='h-6 w-full' />
+                    <Skeleton className='h-5 w-full rounded' />
                   </TableCell>
                 ))}
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
-      {withPagination ? (
-        <div className='flex w-full items-center justify-between gap-4 overflow-auto p-1 sm:gap-8'>
-          <Skeleton className='h-7 w-40 shrink-0' />
-          <div className='flex items-center gap-4 sm:gap-6 lg:gap-8'>
+
+        {withPagination ? (
+          <div className='flex w-full items-center justify-between gap-3 border-t border-border px-3 py-2'>
+            <Skeleton className='h-5 w-24 rounded' />
             <div className='flex items-center gap-2'>
-              <Skeleton className='h-7 w-24' />
-              <Skeleton className='h-7 w-[4.5rem]' />
-            </div>
-            <div className='flex items-center justify-center text-sm font-medium'>
-              <Skeleton className='h-7 w-20' />
-            </div>
-            <div className='flex items-center gap-2'>
-              <Skeleton className='hidden size-7 lg:block' />
-              <Skeleton className='size-7' />
-              <Skeleton className='size-7' />
-              <Skeleton className='hidden size-7 lg:block' />
+              <Skeleton className='hidden h-8 w-14 rounded-lg sm:block' />
+              <Skeleton className='h-5 w-20 rounded' />
+              <Skeleton className='size-8 rounded-lg' />
+              <Skeleton className='size-8 rounded-lg' />
+              <Skeleton className='hidden size-8 rounded-lg lg:block' />
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

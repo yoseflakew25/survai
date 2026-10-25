@@ -4,15 +4,25 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Query, Response, status
 
 from app.api.deps import (
+    AnalyticsServiceDep,
     CollectionServiceDep,
     CurrentUser,
+    RespondentsServiceDep,
     ReviewerServiceDep,
     SurveyServiceDep,
 )
+from app.schemas.analytics import (
+    AnalyticsQueryRequest,
+    AnalyticsQueryResponse,
+    AnalyticsSummaryPublic,
+    CrossTabRequest,
+    CrossTabResultPublic,
+)
 from app.schemas.collection import CollectStatsPublic, PublishResponse
+from app.schemas.respondents import RespondentDetailPublic, RespondentsListPublic
 from app.schemas.reviewer import ReviewerReportPublic
 from app.schemas.survey import (
     QuestionCreate,
@@ -140,6 +150,103 @@ async def collect_stats(
 ) -> CollectStatsPublic:
     """Completed response count + public collection path."""
     return await collection.get_stats(user=current_user, survey_id=survey_id)
+
+
+@router.get(
+    "/{survey_id}/respondents",
+    response_model=RespondentsListPublic,
+)
+async def list_respondents(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    respondents: RespondentsServiceDep,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    search: str | None = None,
+    status: str | None = None,
+    sort: str | None = None,
+    question: UUID | None = None,
+    answer: str | None = None,
+) -> RespondentsListPublic:
+    """Paginated respondents table with identity + completion status."""
+    return await respondents.list_respondents(
+        user=current_user,
+        survey_id=survey_id,
+        page=page,
+        limit=limit,
+        search=search,
+        status=status,
+        sort=sort,
+        question_id=question,
+        answer=answer,
+    )
+
+
+@router.get(
+    "/{survey_id}/respondents/{respondent_id}",
+    response_model=RespondentDetailPublic,
+)
+async def get_respondent_detail(
+    survey_id: UUID,
+    respondent_id: UUID,
+    current_user: CurrentUser,
+    respondents: RespondentsServiceDep,
+) -> RespondentDetailPublic:
+    """Single respondent with all answers in survey order."""
+    return await respondents.get_respondent_detail(
+        user=current_user,
+        survey_id=survey_id,
+        respondent_id=respondent_id,
+    )
+
+
+@router.get(
+    "/{survey_id}/analytics/summary",
+    response_model=AnalyticsSummaryPublic,
+)
+async def analytics_summary(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    analytics: AnalyticsServiceDep,
+) -> AnalyticsSummaryPublic:
+    """Deterministic top-line metrics (ANL-01–02).
+
+    Always scoped to ``survey.current_version_id`` — the same live instrument
+    as Collect and Respondents.
+    """
+    return await analytics.summary(user=current_user, survey_id=survey_id)
+
+
+@router.post(
+    "/{survey_id}/analytics/query",
+    response_model=AnalyticsQueryResponse,
+)
+async def analytics_query(
+    survey_id: UUID,
+    body: AnalyticsQueryRequest,
+    current_user: CurrentUser,
+    analytics: AnalyticsServiceDep,
+) -> AnalyticsQueryResponse:
+    """Question distributions (optional question_ids + AND filters) (ANL-01–03, ANL-05)."""
+    return await analytics.query_distributions(
+        user=current_user, survey_id=survey_id, body=body
+    )
+
+
+@router.post(
+    "/{survey_id}/analytics/crosstab",
+    response_model=CrossTabResultPublic,
+)
+async def analytics_crosstab(
+    survey_id: UUID,
+    body: CrossTabRequest,
+    current_user: CurrentUser,
+    analytics: AnalyticsServiceDep,
+) -> CrossTabResultPublic:
+    """Basic two-variable cross-tabulation with row percentages (ANL-04)."""
+    return await analytics.crosstab(
+        user=current_user, survey_id=survey_id, body=body
+    )
 
 
 @router.post("/{survey_id}/review", response_model=ReviewerReportPublic)

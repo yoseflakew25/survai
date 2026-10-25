@@ -1,11 +1,3 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/query-client';
-import {
-  analyticsSummaryOptions,
-  distributionsOptions,
-  crossTabOptions,
-  savedAnalysesOptions
-} from '@/features/analytics/api/queries';
 import {
   AnalyticsDashboard,
   AnalyticsDashboardSkeleton
@@ -18,6 +10,10 @@ export const metadata: Metadata = {
   title: 'Analytics'
 };
 
+/**
+ * Auth-gated: do not SSR-prefetch. Server fetch has no browser cookies,
+ * so prefetches fail and only add delay before the client load.
+ */
 export default async function AnalyticsPage({
   params
 }: {
@@ -25,19 +21,11 @@ export default async function AnalyticsPage({
 }) {
   const { surveyId } = await params;
 
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(analyticsSummaryOptions(surveyId));
-  void queryClient.prefetchQuery(distributionsOptions(surveyId));
-  void queryClient.prefetchQuery(crossTabOptions(surveyId));
-  void queryClient.prefetchQuery(savedAnalysesOptions(surveyId));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer>
-        <Suspense fallback={<AnalyticsDashboardSkeleton />}>
-          <AnalyticsDashboard surveyId={surveyId} />
-        </Suspense>
-      </PageContainer>
-    </HydrationBoundary>
+    <PageContainer>
+      <Suspense fallback={<AnalyticsDashboardSkeleton />}>
+        <AnalyticsDashboard surveyId={surveyId} />
+      </Suspense>
+    </PageContainer>
   );
 }

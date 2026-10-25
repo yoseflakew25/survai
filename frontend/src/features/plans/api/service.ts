@@ -38,6 +38,8 @@ type ApiPlan = {
     request_id: string;
     latency_ms: number;
   } | null;
+  is_locked?: boolean;
+  linked_survey_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -78,6 +80,8 @@ function mapPlan(p: ApiPlan): Plan {
           latencyMs: p.ai_generation_meta.latency_ms
         }
       : null,
+    isLocked: Boolean(p.is_locked),
+    linkedSurveyId: p.linked_survey_id ?? null,
     createdAt: p.created_at,
     updatedAt: p.updated_at
   };

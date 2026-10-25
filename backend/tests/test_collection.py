@@ -133,7 +133,7 @@ async def test_publish_public_respond_and_complete(
     body = pub.json()
     version_id = body["version_id"]
     assert body["version_number"] == 1
-    assert body["collection_path"] == f"/s/{version_id}"
+    assert body["collection_path"] == f"/s/{survey_id}"
 
     stats = await client.get(
         f"/api/v1/surveys/{survey_id}/collect-stats",
@@ -142,68 +142,70 @@ async def test_publish_public_respond_and_complete(
     assert stats.status_code == 200, stats.text
     assert stats.json()["response_count"] == 0
     assert stats.json()["current_version_id"] == version_id
+    assert stats.json()["collection_path"] == f"/s/{survey_id}"
 
-    public = await client.get(f"/api/v1/public/surveys/{version_id}")
+    # Canonical share link is survey id; version id bookmarks also resolve live.
+    public = await client.get(f"/api/v1/public/surveys/{survey_id}")
     assert public.status_code == 200, public.text
     public_body = public.json()
+    assert public_body["id"] == survey_id
     assert public_body["survey_version_id"] == version_id
-    assert len(public_body["sections"]) == 1
-    q_required = public_body["sections"][0]["questions"][0]
-    q_optional = public_body["sections"][0]["questions"][1]
+    public_via_version = await client.get(
+        f"/api/v1/public/surveys/{version_id}"
+    )
+    assert public_via_version.status_code == 200, public_via_version.text
+    assert public_via_version.json()["survey_version_id"] == version_id
+    # Identity section + content section
+    assert len(public_body["sections"]) == 2
+    assert public_body["sections"][0]["title"] == "Respondent details"
+    identity_qs = {
+        q["prompt_text"]: q for q in public_body["sections"][0]["questions"]
+    }
+    assert set(identity_qs) >= {"First Name", "Last Name", "Email"}
+    content = public_body["sections"][1]
+    q_required = content["questions"][0]
+    q_optional = content["questions"][1]
     assert q_required["is_required"] is True
 
-    start = await client.post(
-        f"/api/v1/public/surveys/{version_id}/respondents"
-    )
-    assert start.status_code == 200, start.text
-    respondent = start.json()
-    respondent_id = respondent["id"]
-    session_token = respondent["session_token"]
-
-    # Complete without required answer → 400
+    # Incomplete submit (missing required) → 400 and no respondent row
     incomplete = await client.post(
-        f"/api/v1/public/respondents/{respondent_id}/complete",
-        json={"session_token": session_token},
+        f"/api/v1/public/surveys/{survey_id}/submit",
+        json={
+            "answers": [
+                {
+                    "question_id": identity_qs["First Name"]["id"],
+                    "value": "Ada",
+                }
+            ]
+        },
     )
     assert incomplete.status_code == 400, incomplete.text
 
     opt_value = q_required["options"][0]["value"]
-    ans = await client.post(
-        f"/api/v1/public/respondents/{respondent_id}/answers",
-        json={
-            "session_token": session_token,
-            "question_id": q_required["id"],
-            "value": opt_value,
-        },
-    )
-    assert ans.status_code == 200, ans.text
-
-    # Idempotent upsert
-    ans2 = await client.post(
-        f"/api/v1/public/respondents/{respondent_id}/answers",
-        json={
-            "session_token": session_token,
-            "question_id": q_required["id"],
-            "value": q_required["options"][1]["value"],
-        },
-    )
-    assert ans2.status_code == 200, ans2.text
-
-    await client.post(
-        f"/api/v1/public/respondents/{respondent_id}/answers",
-        json={
-            "session_token": session_token,
-            "question_id": q_optional["id"],
-            "value": "Went fine",
-        },
-    )
-
     done = await client.post(
-        f"/api/v1/public/respondents/{respondent_id}/complete",
-        json={"session_token": session_token},
+        f"/api/v1/public/surveys/{survey_id}/submit",
+        json={
+            "answers": [
+                {
+                    "question_id": identity_qs["First Name"]["id"],
+                    "value": "Ada",
+                },
+                {
+                    "question_id": identity_qs["Last Name"]["id"],
+                    "value": "Lovelace",
+                },
+                {
+                    "question_id": identity_qs["Email"]["id"],
+                    "value": "ada@example.com",
+                },
+                {"question_id": q_required["id"], "value": opt_value},
+                {"question_id": q_optional["id"], "value": "Went fine"},
+            ]
+        },
     )
     assert done.status_code == 200, done.text
     assert done.json()["completed_at"] is not None
+    assert done.json()["survey_version_id"] == version_id
 
     stats2 = await client.get(
         f"/api/v1/surveys/{survey_id}/collect-stats",
@@ -219,6 +221,64 @@ async def test_publish_public_respond_and_complete(
     assert closed.json()["status"] == "closed"
 
     blocked = await client.post(
-        f"/api/v1/public/surveys/{version_id}/respondents"
+        f"/api/v1/public/surveys/{survey_id}/submit",
+        json={"answers": []},
     )
     assert blocked.status_code == 400, blocked.text
+
+
+@pytest.mark.asyncio
+async def test_published_survey_blocks_question_mutations(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tokens = await _register_and_verify(
+        client,
+        email="locked-qs@example.com",
+        password="SecurePass1!",
+        code=fixed_otp,
+    )
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    survey_id = await _seed_survey_with_questions(client, headers, monkeypatch)
+
+    survey = await client.get(f"/api/v1/surveys/{survey_id}", headers=headers)
+    assert survey.status_code == 200, survey.text
+    content = next(
+        s
+        for s in survey.json()["sections"]
+        if s["title"] != "Respondent details"
+    )
+    qid = content["questions"][0]["id"]
+    section_id = content["id"]
+
+    pub = await client.post(
+        f"/api/v1/surveys/{survey_id}/publish",
+        headers=headers,
+    )
+    assert pub.status_code == 200, pub.text
+
+    patch_q = await client.patch(
+        f"/api/v1/surveys/{survey_id}/questions/{qid}",
+        headers=headers,
+        json={"prompt_text": "Should not apply"},
+    )
+    assert patch_q.status_code == 400, patch_q.text
+    assert "published" in patch_q.json()["detail"].lower()
+
+    add_q = await client.post(
+        f"/api/v1/surveys/{survey_id}/questions",
+        headers=headers,
+        json={
+            "section_id": section_id,
+            "type": "short_text",
+            "prompt_text": "New locked question",
+            "is_required": False,
+        },
+    )
+    assert add_q.status_code == 400, add_q.text
+
+    regen = await client.post(
+        f"/api/v1/surveys/{survey_id}/generate",
+        headers=headers,
+    )
+    assert regen.status_code == 400, regen.text
+    assert "published" in regen.json()["detail"].lower()

@@ -29,11 +29,16 @@ export function DataTableColumnHeader<TData, TValue>({
     return <div className={cn(className)}>{title}</div>;
   }
 
+  const isSorted = Boolean(column.getIsSorted());
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          'hover:bg-accent focus:ring-ring data-popup-open:bg-accent -ml-1.5 flex h-8 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium focus:ring-1 focus:outline-none [&_svg]:size-3.5 [&_svg]:shrink-0',
+          '-ml-1.5 flex h-8 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium focus:ring-1 focus:ring-ring focus:outline-none [&_svg]:size-3.5 [&_svg]:shrink-0',
+          isSorted
+            ? 'bg-brand-soft text-foreground'
+            : 'text-muted-foreground hover:bg-brand-soft/50 hover:text-foreground data-popup-open:bg-brand-soft/50',
           className
         )}
         {...props}
@@ -48,7 +53,7 @@ export function DataTableColumnHeader<TData, TValue>({
             <Icons.chevronsUpDown className='opacity-40' />
           ))}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='start' className='w-28'>
+      <DropdownMenuContent align='start' className='w-28 rounded-xl'>
         {column.getCanSort() && (
           <DropdownMenuGroup>
             <DropdownMenuCheckboxItem

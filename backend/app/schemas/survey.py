@@ -74,6 +74,9 @@ class SurveyPublic(BaseModel):
     anonymous_collection: bool
     current_version_id: UUID | None = None
     sections: list[SectionPublic] = Field(default_factory=list)
+    # Populated on list endpoints so we can skip loading the full tree.
+    sections_count: int | None = None
+    questions_count: int | None = None
     created_at: datetime
     updated_at: datetime
 

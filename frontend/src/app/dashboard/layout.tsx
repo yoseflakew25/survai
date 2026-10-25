@@ -38,7 +38,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Skip to content
           </a>
           <AppSidebar />
-          <SidebarInset id='main-content' tabIndex={-1} className='scroll-mt-16'>
+          <SidebarInset
+            id='main-content'
+            tabIndex={-1}
+            className='scroll-mt-16 bg-white dark:bg-card'
+          >
             <Header />
             <InfobarProvider defaultOpen={false}>
               {children}

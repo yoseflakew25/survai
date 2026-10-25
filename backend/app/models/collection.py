@@ -101,9 +101,11 @@ class ResponseAnswer(Base):
         nullable=False,
         index=True,
     )
+    # No FK to questions.id — answers belong to a frozen survey_version
+    # snapshot. Draft regenerate may delete/replace live question rows while
+    # published versions (and their answers) must keep working (PRD §10.2).
     question_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
-        ForeignKey("questions.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )

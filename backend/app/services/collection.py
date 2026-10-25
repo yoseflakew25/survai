@@ -182,13 +182,20 @@ def _validate_answer_value(question: dict[str, Any], value: Any) -> Any:
     if qtype in {"short_text", "long_text", "date"}:
         if not isinstance(value, str):
             raise BadRequestError("Answer must be a string")
-        text = value
+        text = value.strip() if rules.get("format") == "email" else value
         if "min_length" in rules and rules["min_length"] is not None:
             if len(text) < int(rules["min_length"]):
                 raise BadRequestError("Answer is too short")
         if "max_length" in rules and rules["max_length"] is not None:
             if len(text) > int(rules["max_length"]):
                 raise BadRequestError("Answer is too long")
+        if rules.get("format") == "email":
+            # Practical email check — not a full RFC parser.
+            if "@" not in text or "." not in text.split("@")[-1]:
+                raise BadRequestError("Enter a valid email address")
+            if " " in text or text.count("@") != 1:
+                raise BadRequestError("Enter a valid email address")
+            return text.lower()
         return text
 
     return value
@@ -213,6 +220,13 @@ class CollectionService:
             raise BadRequestError("Archived surveys cannot be published")
         if survey.status == SurveyStatus.closed.value:
             raise BadRequestError("Closed surveys cannot be re-published")
+        if survey.status == SurveyStatus.published.value:
+            # One live instrument per survey. Questions are locked after publish,
+            # so a new version would orphan collect/respondents/analytics.
+            raise BadRequestError(
+                "This survey is already published. Close it when collection "
+                "ends — questions cannot change on a live form."
+            )
 
         question_count = sum(
             len(s.questions or []) for s in (survey.sections or [])
@@ -221,6 +235,20 @@ class CollectionService:
             raise BadRequestError(
                 "Add at least one question before publishing."
             )
+
+        from app.services.survey_identity import (
+            assert_publishable_identity,
+            ensure_required_identity_fields,
+        )
+
+        await ensure_required_identity_fields(self.session, survey_id=survey.id)
+        # Reload with sections after ensure
+        survey = await self.surveys.get_for_org(
+            survey_id=survey_id, organization_id=org_id
+        )
+        if survey is None:
+            raise NotFoundError("Survey not found")
+        assert_publishable_identity(survey)
 
         snapshot = _snapshot_from_survey(survey)
         version_number = await self.versions.next_version_number(
@@ -246,7 +274,8 @@ class CollectionService:
             version_number=version.version_number,
             status=survey.status,
             published_at=version.published_at,
-            collection_path=f"/s/{version.id}",
+            # Stable share link — always survey id; resolves to current_version.
+            collection_path=f"/s/{survey.id}",
         )
 
     async def close(self, *, user: User, survey_id: UUID) -> CollectStatsPublic:
@@ -271,14 +300,14 @@ class CollectionService:
         )
         if survey is None:
             raise NotFoundError("Survey not found")
-        count = await self.respondents.count_completed_for_survey(
-            survey_id=survey.id
-        )
-        path = (
-            f"/s/{survey.current_version_id}"
-            if survey.current_version_id
-            else None
-        )
+        # Live form only — one published instrument's completions.
+        if survey.current_version_id is not None:
+            count = await self.respondents.count_completed_for_version(
+                survey_version_id=survey.current_version_id
+            )
+        else:
+            count = 0
+        path = f"/s/{survey.id}" if survey.current_version_id else None
         return CollectStatsPublic(
             survey_id=survey.id,
             response_count=count,
@@ -287,13 +316,36 @@ class CollectionService:
             collection_path=path,
         )
 
-    async def get_public_survey(self, *, version_id: UUID) -> PublicSurveyOut:
-        version = await self.versions.get_by_id(version_id)
+    async def _resolve_live_version(
+        self, *, collection_ref: UUID
+    ) -> tuple[SurveyVersion, Survey]:
+        """Map share link id → the survey's single live published version.
+
+        Accepts either ``survey.id`` (canonical) or a historical ``version.id``
+        bookmark; both resolve to ``survey.current_version_id`` so there is
+        only one live form per survey.
+        """
+        survey = await self.surveys.get_by_id(collection_ref)
+        if survey is None:
+            version_hit = await self.versions.get_by_id(collection_ref)
+            if version_hit is None:
+                raise NotFoundError("Survey not found")
+            survey = await self.surveys.get_by_id(version_hit.survey_id)
+            if survey is None:
+                raise NotFoundError("Survey not found")
+
+        if survey.current_version_id is None:
+            raise NotFoundError("Survey not found")
+
+        version = await self.versions.get_by_id(survey.current_version_id)
         if version is None:
             raise NotFoundError("Survey not found")
-        survey = await self.surveys.get_by_id(version.survey_id)
-        if survey is None:
-            raise NotFoundError("Survey not found")
+        return version, survey
+
+    async def get_public_survey(self, *, version_id: UUID) -> PublicSurveyOut:
+        version, survey = await self._resolve_live_version(
+            collection_ref=version_id
+        )
         if survey.status not in {
             SurveyStatus.published.value,
             SurveyStatus.closed.value,
@@ -304,28 +356,75 @@ class CollectionService:
             version, anonymous_collection=survey.anonymous_collection
         )
 
+    async def _require_published_version(
+        self, version_id: UUID
+    ) -> tuple[SurveyVersion, Survey]:
+        version, survey = await self._resolve_live_version(
+            collection_ref=version_id
+        )
+        if survey.status != SurveyStatus.published.value:
+            raise BadRequestError("This survey is not accepting responses")
+        return version, survey
+
     async def start_respondent(
         self,
         *,
         version_id: UUID,
         ip: str | None,
         user_agent: str | None,
+    ) -> dict[str, str]:
+        """Validate that collection is open — does not create a DB row.
+
+        Incomplete sessions are never stored. Use submit_public_survey to
+        persist a finished response in one shot.
+        """
+        del ip, user_agent  # reserved for submit_public_survey
+        version, _survey = await self._require_published_version(version_id)
+        return {
+            "status": "open",
+            "survey_version_id": str(version.id),
+        }
+
+    async def submit_public_survey(
+        self,
+        *,
+        version_id: UUID,
+        answers: list[tuple[UUID, Any]],
+        ip: str | None,
+        user_agent: str | None,
     ) -> RespondentPublic:
-        version = await self.versions.get_by_id(version_id)
-        if version is None:
-            raise NotFoundError("Survey not found")
-        survey = await self.surveys.get_by_id(version.survey_id)
-        if survey is None:
-            raise NotFoundError("Survey not found")
-        if survey.status != SurveyStatus.published.value:
-            raise BadRequestError("This survey is not accepting responses")
-        # Prefer the current published version for collection links that lag.
-        if (
-            survey.current_version_id is not None
-            and survey.current_version_id != version.id
-        ):
-            # Still allow answering an older published version if explicitly linked.
-            pass
+        """Persist a respondent only when the full response is valid + complete."""
+        version, survey = await self._require_published_version(version_id)
+        q_by_id = _question_index_from_snapshot(version.structure_snapshot or {})
+
+        now = datetime.now(timezone.utc)
+        cleaned_by_qid: dict[UUID, Any] = {}
+        for question_id, value in answers:
+            qkey = str(question_id)
+            if qkey not in q_by_id:
+                raise BadRequestError(
+                    "Question is not part of this survey version"
+                )
+            cleaned_by_qid[question_id] = _validate_answer_value(
+                q_by_id[qkey], value
+            )
+
+        answered = {
+            str(qid): val
+            for qid, val in cleaned_by_qid.items()
+            if val is not None
+            and not (isinstance(val, str) and not val.strip())
+            and not (isinstance(val, list) and len(val) == 0)
+        }
+        missing = [
+            qid
+            for qid, q in q_by_id.items()
+            if q.get("is_required") and qid not in answered
+        ]
+        if missing:
+            raise BadRequestError(
+                f"Missing required answers ({len(missing)} question(s))"
+            )
 
         respondent = Respondent(
             survey_id=survey.id,
@@ -333,8 +432,25 @@ class CollectionService:
             is_anonymous=survey.anonymous_collection,
             ip_hash=_hash_ip(ip),
             user_agent=(user_agent or "")[:500] or None,
+            started_at=now,
+            completed_at=now,
         )
         self.session.add(respondent)
+        await self.session.flush()
+
+        for question_id, cleaned in cleaned_by_qid.items():
+            if str(question_id) not in answered:
+                continue
+            self.session.add(
+                ResponseAnswer(
+                    respondent_id=respondent.id,
+                    question_id=question_id,
+                    survey_version_id=version.id,
+                    answer_value=cleaned,
+                    answered_at=now,
+                )
+            )
+
         await self.session.commit()
         await self.session.refresh(respondent)
         return RespondentPublic.model_validate(respondent)
@@ -378,6 +494,80 @@ class CollectionService:
             existing.answered_at = now
         await self.session.commit()
         return {"status": "ok"}
+
+    async def submit_survey(
+        self,
+        *,
+        respondent_id: UUID,
+        session_token: UUID,
+        answers: list[tuple[UUID, Any]],
+    ) -> RespondentPublic:
+        """Upsert every answer and complete in a single DB transaction.
+
+        Avoids N round-trips when the public form submits at the end.
+        """
+        respondent = await self._require_open_respondent(
+            respondent_id, session_token
+        )
+        version = await self.versions.get_by_id(respondent.survey_version_id)
+        if version is None:
+            raise NotFoundError("Survey version not found")
+
+        q_by_id = _question_index_from_snapshot(version.structure_snapshot or {})
+        existing_rows = await self.answers.list_for_respondent(
+            respondent_id=respondent.id
+        )
+        by_qid = {row.question_id: row for row in existing_rows}
+        now = datetime.now(timezone.utc)
+
+        for question_id, value in answers:
+            qkey = str(question_id)
+            if qkey not in q_by_id:
+                raise BadRequestError(
+                    "Question is not part of this survey version"
+                )
+            cleaned = _validate_answer_value(q_by_id[qkey], value)
+            existing = by_qid.get(question_id)
+            if existing is None:
+                row = ResponseAnswer(
+                    respondent_id=respondent.id,
+                    question_id=question_id,
+                    survey_version_id=version.id,
+                    answer_value=cleaned,
+                    answered_at=now,
+                )
+                self.session.add(row)
+                by_qid[question_id] = row
+            else:
+                existing.answer_value = cleaned
+                existing.answered_at = now
+
+        answered = {
+            str(qid): row.answer_value
+            for qid, row in by_qid.items()
+            if row.answer_value is not None
+            and not (
+                isinstance(row.answer_value, str)
+                and not row.answer_value.strip()
+            )
+            and not (
+                isinstance(row.answer_value, list) and len(row.answer_value) == 0
+            )
+        }
+        missing = [
+            qid
+            for qid, q in q_by_id.items()
+            if q.get("is_required") and qid not in answered
+        ]
+        if missing:
+            raise BadRequestError(
+                f"Missing required answers ({len(missing)} question(s))"
+            )
+
+        respondent.completed_at = datetime.now(timezone.utc)
+        await self.session.commit()
+        await self.session.refresh(respondent)
+        return RespondentPublic.model_validate(respondent)
 
     async def complete(
         self, *, respondent_id: UUID, body: CompleteBody

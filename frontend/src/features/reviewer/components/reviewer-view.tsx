@@ -49,9 +49,19 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import {
+  SurvaiBrandCard,
+  SurvaiPanel,
+  SurvaiPanelBody,
+  SurvaiPanelHeader
+} from '@/components/survai-panel';
+import { displaySurveyTitle } from '@/lib/survey-display';
 
 const brandCtaClass =
   'rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105';
+
+const brandCtaOnLimeClass =
+  'h-10 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card font-semibold text-foreground shadow-sm hover:bg-card/90';
 
 function isOptionsType(type: QuestionType) {
   return (
@@ -189,7 +199,19 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     }
   }, [isDeleting, surveyId, queryClient, router]);
 
+  const questionsLocked =
+    survey?.status === 'published' ||
+    survey?.status === 'closed' ||
+    survey?.status === 'archived';
+
   const handleRegenerate = useCallback(async () => {
+    if (questionsLocked) {
+      toast.error('Survey locked', {
+        description:
+          'Published surveys cannot regenerate questions.'
+      });
+      return;
+    }
     if (!survey?.planId) {
       toast.error('No linked plan', {
         description:
@@ -227,11 +249,28 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     } finally {
       setIsRegenerating(false);
     }
-  }, [survey?.planId, surveyId, isRegenerating, queryClient]);
+  }, [
+    questionsLocked,
+    survey?.planId,
+    surveyId,
+    isRegenerating,
+    queryClient
+  ]);
 
   if (!survey) {
     notFound();
   }
+
+  const title = displaySurveyTitle(survey.title);
+  const sectionCount = survey.sections.length;
+  const questionCount = survey.sections.reduce(
+    (sum, s) => sum + s.questions.length,
+    0
+  );
+  const requiredCount = survey.sections.reduce(
+    (sum, s) => sum + s.questions.filter((q) => q.isRequired).length,
+    0
+  );
 
   return (
     <>
@@ -271,7 +310,9 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
           <Button
             type='button'
             onClick={() => void handleRegenerate()}
-            disabled={isRegenerating || !survey.planId}
+            disabled={
+              isRegenerating || !survey.planId || questionsLocked
+            }
           >
             <Icons.sparkles className='size-4' />
             Replace &amp; regenerate
@@ -295,7 +336,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         <div className='px-4 pt-4 pb-4'>
           <SurveyGenerationProgress
             active={isRegenerating}
-            goalPreview={survey.title}
+            goalPreview={title}
           />
         </div>
       </DialogContent>
@@ -335,94 +376,155 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
       </DialogContent>
     </Dialog>
-    <div className='space-y-4'>
-      {/* Survey Header */}
-      <div className='flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6'>
-        <div className='min-w-0'>
-          <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
-            {survey.title}
-          </h1>
-          {survey.description ? (
-            <p className='text-muted-foreground mt-1 max-w-xl text-sm leading-relaxed'>
-              {survey.description}
+    <div className='space-y-5'>
+      <SurvaiPanel
+        className={cn(
+          questionsLocked &&
+            'border-[color-mix(in_srgb,var(--brand)_55%,var(--border))]'
+        )}
+      >
+        <div
+          className={cn(
+            'flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5',
+            questionsLocked && 'bg-brand-soft/45'
+          )}
+        >
+          <div className='min-w-0 flex-1'>
+            <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+              <h1 className='font-display truncate text-lg font-extrabold tracking-tight text-foreground sm:text-xl'>
+                {title}
+              </h1>
+              {questionsLocked ? (
+                <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-card px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-sm'>
+                  <span
+                    className='bg-brand-strong size-1.5 animate-pulse rounded-full'
+                    aria-hidden
+                  />
+                  {survey.status === 'published' ? 'Live' : survey.status}
+                  <span className='text-muted-foreground font-medium'>
+                    · locked
+                  </span>
+                </span>
+              ) : (
+                <span className='bg-secondary text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold'>
+                  Draft
+                </span>
+              )}
+            </div>
+            <p className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] tabular-nums'>
+              <span>
+                {sectionCount} section{sectionCount === 1 ? '' : 's'}
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                {questionCount} question{questionCount === 1 ? '' : 's'}
+              </span>
+              <span aria-hidden>·</span>
+              <span>{requiredCount} required</span>
+              {report?.findings ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>
+                    {report.findings.length} finding
+                    {report.findings.length === 1 ? '' : 's'}
+                  </span>
+                </>
+              ) : null}
             </p>
-          ) : null}
-        </div>
-
-        <div className='flex shrink-0 flex-wrap items-center gap-2'>
-          <Button
-            variant='ghost'
-            size='sm'
-            nativeButton={false}
-            className='text-muted-foreground hover:text-foreground h-9 rounded-xl px-3'
-            render={<Link href='/dashboard/surveys' />}
-            disabled={isRegenerating || isReviewing}
-          >
-            <Icons.chevronLeft className='size-4' />
-            Back to Surveys
-          </Button>
-
-          <div className='bg-secondary/80 flex items-center gap-1 rounded-2xl p-1'>
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              className='h-9 rounded-xl px-3 text-foreground hover:bg-card'
-              onClick={() => setConfirmRegenOpen(true)}
-              disabled={isRegenerating || isReviewing || !survey.planId}
-            >
-              {isRegenerating ? (
-                <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
-              ) : (
-                <Icons.sparkles className='mr-1.5 size-3.5 text-brand-strong' />
-              )}
-              {isRegenerating ? 'Regenerating…' : 'Regenerate'}
-            </Button>
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              className='h-9 rounded-xl px-3 text-foreground hover:bg-card'
-              onClick={() => void handleReview()}
-              disabled={isRegenerating || isReviewing || isDeleting}
-              title={
-                report
-                  ? 'Re-run AI quality review'
-                  : 'Run AI quality review'
-              }
-            >
-              {isReviewing ? (
-                <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
-              ) : (
-                <Icons.review className='mr-1.5 size-3.5' />
-              )}
-              {isReviewing
-                ? 'Reviewing…'
-                : report
-                  ? 'Re-review'
-                  : 'Review with AI'}
-            </Button>
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              onClick={() => setDeleteOpen(true)}
-              disabled={isRegenerating || isReviewing || isDeleting}
-              className='text-destructive hover:bg-destructive/10 hover:text-destructive h-9 rounded-xl px-3'
-            >
-              <Icons.trash className='mr-1.5 size-3.5' />
-              Delete
-            </Button>
           </div>
 
-          <p className='text-muted-foreground hidden text-xs sm:block'>
-            Edit a question, then save it in place
-          </p>
+          <div
+            role='toolbar'
+            aria-label='Review actions'
+            className='bg-secondary/80 flex shrink-0 flex-wrap items-center gap-1 rounded-2xl border border-border p-1 sm:justify-end'
+          >
+            {questionsLocked ? (
+              <Button
+                nativeButton={false}
+                render={
+                  <Link href={`/dashboard/surveys/${surveyId}/collect`} />
+                }
+                className={cn(brandCtaClass, 'h-8 rounded-xl px-3 text-xs')}
+              >
+                <Icons.collect className='size-3.5' />
+                Collect
+                <Icons.arrowRight className='size-3.5' />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type='button'
+                  className={cn(brandCtaClass, 'h-8 rounded-xl px-3 text-xs')}
+                  onClick={() => void handleReview()}
+                  disabled={isRegenerating || isReviewing || isDeleting}
+                >
+                  {isReviewing ? (
+                    <Icons.spinner className='size-3.5 animate-spin' />
+                  ) : (
+                    <Icons.review className='size-3.5' />
+                  )}
+                  {isReviewing
+                    ? 'Reviewing…'
+                    : report
+                      ? 'Re-review'
+                      : 'Review'}
+                </Button>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  className='h-8 rounded-xl px-3 text-xs text-foreground hover:bg-card'
+                  onClick={() => setConfirmRegenOpen(true)}
+                  disabled={isRegenerating || isReviewing || !survey.planId}
+                >
+                  {isRegenerating ? (
+                    <Icons.spinner className='size-3.5 animate-spin' />
+                  ) : (
+                    <Icons.sparkles className='size-3.5' />
+                  )}
+                  Regenerate
+                </Button>
+              </>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon-sm'
+                    className='size-8 shrink-0 rounded-xl hover:bg-card'
+                    disabled={isRegenerating || isReviewing || isDeleting}
+                    aria-label='More survey actions'
+                  />
+                }
+              >
+                <Icons.ellipsis className='size-3.5' />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='w-44'>
+                {!questionsLocked ? (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      router.push(`/dashboard/surveys/${surveyId}/collect`)
+                    }
+                  >
+                    <Icons.collect className='size-3.5' />
+                    Go to Collect
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem
+                  variant='destructive'
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Icons.trash className='size-3.5' />
+                  Delete survey
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
+      </SurvaiPanel>
 
       <div className='grid gap-6 lg:grid-cols-[1fr_340px]'>
-        {/* Main content — surveys in the table are already generated */}
         <div
           className={cn(
             'space-y-5 transition-opacity',
@@ -430,45 +532,90 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
           )}
           aria-busy={isRegenerating || isReviewing}
         >
-          {survey.sections.map((section, sIdx) => (
-            <SectionReviewCard
-              key={section.id}
-              section={section}
-              index={sIdx}
-            />
-          ))}
+          {survey.sections.length === 0 ? (
+            <SurvaiPanel>
+              <div className='flex flex-col items-center justify-center gap-3 px-6 py-16 text-center'>
+                <div className='flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
+                  <Icons.forms className='size-5 text-foreground' />
+                </div>
+                <div>
+                  <p className='font-display text-sm font-bold tracking-tight'>
+                    No questions yet
+                  </p>
+                  <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
+                    Generate a draft from your plan, then refine each question
+                    here.
+                  </p>
+                </div>
+                {!questionsLocked ? (
+                  <Button
+                    type='button'
+                    className={cn(brandCtaClass, 'h-9 px-4')}
+                    onClick={() => setConfirmRegenOpen(true)}
+                    disabled={!survey.planId || isRegenerating}
+                  >
+                    <Icons.sparkles className='size-3.5' />
+                    Generate questions
+                  </Button>
+                ) : null}
+              </div>
+            </SurvaiPanel>
+          ) : (
+            survey.sections.map((section, sIdx) => (
+              <SectionReviewCard
+                key={section.id}
+                section={section}
+                index={sIdx}
+                readOnly={questionsLocked}
+              />
+            ))
+          )}
 
           {report ? (
             <FindingsList
               findings={report.findings}
-              onFindingUpdate={handleFindingUpdate}
+              onFindingUpdate={
+                questionsLocked ? undefined : handleFindingUpdate
+              }
+              readOnly={questionsLocked}
             />
           ) : null}
         </div>
 
-        {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <div className='overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
-            <div className='space-y-4 p-5'>
-              <div className='space-y-1.5'>
-                <h3 className='font-display text-xl font-extrabold tracking-tight text-foreground'>
-                  Ready to collect?
-                </h3>
-                <p className='text-foreground/70 text-sm leading-relaxed'>
-                  Finish reviewing findings, then publish and share with
-                  respondents.
-                </p>
-              </div>
+          {questionsLocked ? (
+            <SurvaiBrandCard
+              title='Collecting responses'
+              description='Questions are locked while this survey is live. Share and monitor from Collect.'
+            >
               <Button
                 nativeButton={false}
-                render={<Link href={`/dashboard/surveys/${surveyId}/collect`} />}
-                className='h-10 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card font-semibold text-foreground shadow-sm hover:bg-card/90'
+                render={
+                  <Link href={`/dashboard/surveys/${surveyId}/collect`} />
+                }
+                className={brandCtaOnLimeClass}
+              >
+                Open Collect
+                <Icons.arrowRight className='ml-1.5 size-4' />
+              </Button>
+            </SurvaiBrandCard>
+          ) : (
+            <SurvaiBrandCard
+              title='Ready to collect?'
+              description='Finish reviewing findings, then publish and share with respondents.'
+            >
+              <Button
+                nativeButton={false}
+                render={
+                  <Link href={`/dashboard/surveys/${surveyId}/collect`} />
+                }
+                className={brandCtaOnLimeClass}
               >
                 Go to Collect
                 <Icons.arrowRight className='ml-1.5 size-4' />
               </Button>
-            </div>
-          </div>
+            </SurvaiBrandCard>
+          )}
 
           {report?.overallQualityScore != null ? (
             <QualityScore
@@ -477,6 +624,33 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               estimatedMinutes={report.estimatedCompletionMinutes ?? 0}
               requiredQuestionCount={report.requiredQuestionCount ?? 0}
             />
+          ) : !questionsLocked ? (
+            <SurvaiPanel>
+              <SurvaiPanelHeader
+                icon={<Icons.review className='size-3.5' />}
+                title='Quality assessment'
+                subtitle='Run AI review to score this draft'
+              />
+              <SurvaiPanelBody className='space-y-3'>
+                <p className='text-muted-foreground text-sm leading-relaxed'>
+                  Checks leading wording, ambiguity, and alignment with your
+                  research plan. Advisory only.
+                </p>
+                <Button
+                  type='button'
+                  className={cn(brandCtaClass, 'h-9 w-full')}
+                  onClick={() => void handleReview()}
+                  disabled={isRegenerating || isReviewing}
+                >
+                  {isReviewing ? (
+                    <Icons.spinner className='size-3.5 animate-spin' />
+                  ) : (
+                    <Icons.review className='size-3.5' />
+                  )}
+                  {isReviewing ? 'Reviewing…' : 'Review with AI'}
+                </Button>
+              </SurvaiPanelBody>
+            </SurvaiPanel>
           ) : null}
         </div>
       </div>
@@ -487,47 +661,59 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
 
 function SectionReviewCard({
   section,
-  index
+  index,
+  readOnly = false
 }: {
   section: Section;
   index: number;
+  readOnly?: boolean;
 }) {
   const questionCount = section.questions.length;
   const requiredCount = section.questions.filter((q) => q.isRequired).length;
+  const isLead = index === 0;
 
   return (
-    <section className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
-      <header className='border-b border-border bg-muted/25 px-4 py-3.5 sm:px-5'>
-        <div className='flex items-start gap-3'>
-          <span className='flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-display text-sm font-extrabold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
-            {index + 1}
-          </span>
-          <div className='min-w-0 flex-1'>
-            <h2 className='font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
-              {section.title}
-            </h2>
-            {section.description ? (
-              <p className='text-muted-foreground mt-0.5 text-sm leading-relaxed'>
-                {section.description}
-              </p>
-            ) : null}
-          </div>
-          <div className='flex shrink-0 flex-col items-end gap-1'>
-            <Badge
-              variant='secondary'
-              className='rounded-full border-transparent px-2.5 py-0.5 text-[11px] font-medium'
-            >
-              {questionCount}{' '}
-              {questionCount === 1 ? 'question' : 'questions'}
-            </Badge>
-            {requiredCount > 0 ? (
-              <span className='text-muted-foreground text-[10px] tabular-nums'>
-                {requiredCount} required
-              </span>
-            ) : null}
-          </div>
+    <SurvaiPanel className={cn(isLead && 'bg-brand-soft/30')}>
+      <div
+        className={cn(
+          'flex items-center gap-3 border-b border-border px-4 py-3',
+          isLead ? 'bg-brand-soft/55' : 'bg-muted/30'
+        )}
+      >
+        <span
+          className={cn(
+            'grid size-8 shrink-0 place-items-center rounded-xl font-display text-sm font-extrabold tabular-nums shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]',
+            isLead
+              ? 'border border-[color-mix(in_srgb,var(--gold)_70%,var(--foreground))] bg-[var(--gold)] text-[#111210]'
+              : 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground'
+          )}
+          aria-label={`Section ${index + 1}`}
+        >
+          {index + 1}
+        </span>
+        <div className='min-w-0 flex-1'>
+          <h2 className='font-display text-sm font-bold tracking-tight text-foreground'>
+            {section.title}
+          </h2>
+          <p className='text-muted-foreground text-xs'>
+            {section.description?.trim() ||
+              `${questionCount} question${questionCount === 1 ? '' : 's'}${
+                requiredCount > 0 ? ` · ${requiredCount} required` : ''
+              }`}
+          </p>
         </div>
-      </header>
+        <Badge
+          variant='secondary'
+          className={cn(
+            'rounded-full border font-mono text-[10px] font-semibold tabular-nums',
+            isLead
+              ? 'border-[color-mix(in_srgb,var(--gold)_45%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_16%,var(--card))] text-foreground'
+              : 'border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft text-foreground'
+          )}
+        >
+          {questionCount}
+        </Badge>
+      </div>
 
       <div className='divide-y divide-border'>
         {section.questions.length === 0 ? (
@@ -540,20 +726,23 @@ function SectionReviewCard({
               key={question.id}
               question={question}
               index={qIdx}
+              readOnly={readOnly}
             />
           ))
         )}
       </div>
-    </section>
+    </SurvaiPanel>
   );
 }
 
 function QuestionReviewItem({
   question,
-  index
+  index,
+  readOnly = false
 }: {
   question: Question;
   index: number;
+  readOnly?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editPrompt, setEditPrompt] = useState(question.promptText);
@@ -702,6 +891,7 @@ function QuestionReviewItem({
   }, [question]);
 
   const startEditing = useCallback(() => {
+    if (readOnly) return;
     setEditPrompt(question.promptText);
     setEditHelpText(question.helpText ?? '');
     setEditOptions(
@@ -717,7 +907,7 @@ function QuestionReviewItem({
     setEditType(question.type);
     setEditIsRequired(question.isRequired);
     setIsEditing(true);
-  }, [question]);
+  }, [question, readOnly]);
 
   const handleTypeChange = useCallback((newType: QuestionType) => {
     setEditType(newType);
@@ -777,8 +967,11 @@ function QuestionReviewItem({
       <div className='bg-[color-mix(in_srgb,var(--brand-soft)_35%,var(--card))] px-4 py-4 sm:px-5'>
         <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)] sm:p-5'>
           <div className='flex flex-wrap items-center gap-2'>
-            <span className='flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground font-mono text-[11px] font-bold text-background'>
-              {index + 1}
+            <span
+              className='text-muted-foreground mt-0.5 w-6 shrink-0 text-right font-mono text-[11px] font-medium tabular-nums'
+              aria-label={`Question ${index + 1}`}
+            >
+              Q{index + 1}
             </span>
 
             <DropdownMenu>
@@ -1007,28 +1200,34 @@ function QuestionReviewItem({
   }
 
   return (
-    <div className='group relative flex gap-3 px-4 py-4 transition-colors hover:bg-muted/20 sm:px-5'>
-      <span className='text-muted-foreground mt-1 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted/70 font-mono text-[11px] font-semibold tabular-nums'>
-        {index + 1}
+    <div
+      className={cn(
+        'group relative flex items-start gap-3 px-3 py-3 transition-colors sm:gap-3.5 sm:px-4',
+        !readOnly && 'hover:bg-brand-soft/55'
+      )}
+    >
+      <span
+        className='text-muted-foreground mt-1 w-6 shrink-0 text-right font-mono text-[11px] font-medium tabular-nums'
+        aria-label={`Question ${index + 1}`}
+      >
+        Q{index + 1}
       </span>
 
-      <div className='min-w-0 flex-1 space-y-2.5'>
-        <div className='flex flex-wrap items-center gap-x-2 gap-y-1.5'>
-          <span className='text-muted-foreground inline-flex items-center gap-1.5 text-xs font-medium'>
-            {TypeIcon ? <TypeIcon className='size-3.5' /> : null}
+      <div className='min-w-0 flex-1 space-y-2'>
+        <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+          <span className='text-muted-foreground inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium'>
+            {TypeIcon ? <TypeIcon className='size-3' /> : null}
             {typeMeta.label}
           </span>
-
           {question.isRequired ? (
-            <span className='rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive'>
+            <span className='rounded-full border border-[color-mix(in_srgb,var(--gold)_40%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_14%,var(--card))] px-2 py-0.5 text-[10px] font-semibold text-foreground'>
               Required
             </span>
           ) : (
-            <span className='text-muted-foreground rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium'>
+            <span className='text-muted-foreground rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium'>
               Optional
             </span>
           )}
-
           <Badge
             variant='secondary'
             className={cn(
@@ -1043,34 +1242,49 @@ function QuestionReviewItem({
           </Badge>
         </div>
 
-        <button
-          type='button'
-          onClick={startEditing}
-          className='w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
-        >
-          <p className='text-[0.9375rem] font-semibold leading-snug tracking-tight text-foreground'>
-            {question.promptText}
-          </p>
-          {question.helpText ? (
-            <p className='text-muted-foreground mt-1 text-sm leading-relaxed'>
-              {question.helpText}
+        {readOnly ? (
+          <div className='w-full text-left'>
+            <p className='text-sm font-semibold leading-snug tracking-tight text-foreground'>
+              {question.promptText}
             </p>
-          ) : null}
-        </button>
+            {question.helpText ? (
+              <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+                {question.helpText}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <button
+            type='button'
+            onClick={startEditing}
+            className='w-full rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          >
+            <p className='text-sm font-semibold leading-snug tracking-tight text-foreground'>
+              {question.promptText}
+            </p>
+            {question.helpText ? (
+              <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+                {question.helpText}
+              </p>
+            ) : null}
+          </button>
+        )}
 
         {question.options && question.options.length > 0 ? (
-          <ul className='flex flex-wrap gap-1.5 pt-0.5'>
+          <ul className='flex flex-wrap gap-1.5'>
             {question.options.map((opt) => (
               <li
                 key={opt.id}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground/85 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]',
-                  question.type === 'multiple_choice' && 'rounded-lg'
+                  'inline-flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/85 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]',
+                  question.type === 'multiple_choice'
+                    ? 'rounded-lg'
+                    : 'rounded-full'
                 )}
               >
                 <span
                   className={cn(
-                    'size-2 shrink-0 border border-foreground/25',
+                    'size-1.5 shrink-0 bg-brand',
                     question.type === 'multiple_choice'
                       ? 'rounded-[2px]'
                       : 'rounded-full'
@@ -1084,7 +1298,7 @@ function QuestionReviewItem({
         ) : null}
 
         {question.type === 'rating_scale' && question.validationRules ? (
-          <div className='flex flex-wrap items-center gap-1.5 pt-0.5'>
+          <div className='flex flex-wrap items-center gap-1'>
             {Array.from(
               {
                 length:
@@ -1099,7 +1313,7 @@ function QuestionReviewItem({
             ).map((n) => (
               <span
                 key={n}
-                className='border-border bg-muted/40 flex size-7 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold tabular-nums'
+                className='border-border bg-secondary flex size-6 items-center justify-center rounded-lg border font-mono text-[10px] font-semibold tabular-nums'
               >
                 {n}
               </span>
@@ -1116,16 +1330,18 @@ function QuestionReviewItem({
         ) : null}
       </div>
 
-      <Button
-        type='button'
-        variant='outline'
-        size='sm'
-        className='border-border bg-background mt-0.5 h-8 shrink-0 rounded-xl px-2.5 text-xs opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
-        onClick={startEditing}
-      >
-        <Icons.edit className='size-3.5' />
-        <span className='hidden sm:inline'>Edit</span>
-      </Button>
+      {!readOnly ? (
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          className='border-border bg-card mt-0.5 h-8 shrink-0 rounded-xl px-2.5 text-xs opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
+          onClick={startEditing}
+        >
+          <Icons.edit className='size-3.5' />
+          <span className='hidden sm:inline'>Edit</span>
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -190,3 +190,103 @@ async def test_regenerate_hard_replaces_prior_content(
     assert "OLD_RESPONDENT_MARKER" not in blob
     assert "OLD_SECTION_MARKER" not in blob
     assert "farm productivity" not in blob.lower()
+
+
+@pytest.mark.asyncio
+async def test_plan_locks_after_survey_questions_generated(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.ai.schemas import DraftQuestion, DraftSection, SurveyDraftOutput
+
+    tokens = await _register_and_verify(
+        client,
+        email="locked-plan@example.com",
+        password="SecurePass1!",
+        code=fixed_otp,
+    )
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    create = await client.post(
+        "/api/v1/plans",
+        headers=headers,
+        json={"research_goal": "Understand urban transport habits for commuters."},
+    )
+    assert create.status_code == 201, create.text
+    plan_id = create.json()["id"]
+    assert create.json()["is_locked"] is False
+
+    patch = await client.patch(
+        f"/api/v1/plans/{plan_id}",
+        headers=headers,
+        json={
+            "objectives": ["Map commute modes"],
+            "research_questions": ["How do people travel to work?"],
+            "target_respondents": ["Adults who commute 3+ days/week"],
+            "proposed_sections": [
+                {"title": "Travel", "rationale": "Modes and duration"}
+            ],
+        },
+    )
+    assert patch.status_code == 200, patch.text
+
+    draft = SurveyDraftOutput(
+        sections=[
+            DraftSection(
+                title="Travel",
+                questions=[
+                    DraftQuestion(
+                        prompt_text="How do you usually commute?",
+                        type="single_choice",
+                        options=["Bus", "Train", "Car"],
+                        is_required=True,
+                        help_text="",
+                    )
+                ],
+            )
+        ],
+        notes="",
+    )
+
+    async def _fake_draft(**kwargs):  # noqa: ANN003
+        return StructuredCallResult(
+            value=draft,
+            model="gemini-test",
+            prompt_version="builder_v1",
+            request_id=str(uuid4()),
+            latency_ms=5,
+        )
+
+    monkeypatch.setattr(
+        "app.services.survey.generate_survey_draft",
+        _fake_draft,
+    )
+
+    created = await client.post(
+        "/api/v1/surveys/from-plan",
+        headers=headers,
+        json={"plan_id": plan_id, "title": "Commute Survey", "generate": True},
+    )
+    assert created.status_code == 201, created.text
+    survey_id = created.json()["survey"]["id"]
+
+    got = await client.get(f"/api/v1/plans/{plan_id}", headers=headers)
+    assert got.status_code == 200, got.text
+    body = got.json()
+    assert body["is_locked"] is True
+    assert body["linked_survey_id"] == survey_id
+
+    blocked_patch = await client.patch(
+        f"/api/v1/plans/{plan_id}",
+        headers=headers,
+        json={"objectives": ["Should not apply"]},
+    )
+    assert blocked_patch.status_code == 400, blocked_patch.text
+    assert "locked" in blocked_patch.json()["detail"].lower()
+
+    blocked_gen = await client.post(
+        f"/api/v1/plans/{plan_id}/generate",
+        headers=headers,
+        json={"research_goal": "Understand urban transport habits for commuters."},
+    )
+    assert blocked_gen.status_code == 400, blocked_gen.text
+    assert "locked" in blocked_gen.json()["detail"].lower()

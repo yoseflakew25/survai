@@ -8,17 +8,16 @@ import { toast } from '@/lib/toast';
 import type {
   PublicSurvey,
   PublicSection,
-  AnswerValue,
-  Respondent
+  AnswerValue
 } from '../api/types';
 import { CollectionProgress } from './collection-progress';
 import { PublicQuestionInput } from './public-question-input';
 import { CollectionComplete } from './collection-complete';
+import { submitSurvey } from '../api/service';
 import {
-  startRespondent,
-  submitAnswer,
-  completeSurvey
-} from '../api/service';
+  displaySurveyDescription,
+  displaySurveyTitle
+} from '@/lib/survey-display';
 
 interface CollectionFormProps {
   survey: PublicSurvey;
@@ -85,34 +84,6 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [respondent, setRespondent] = useState<Respondent | null>(null);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [isStarting, setIsStarting] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      setIsStarting(true);
-      setSessionError(null);
-      try {
-        const session = await startRespondent(survey.surveyVersionId);
-        if (!cancelled) setRespondent(session);
-      } catch (err) {
-        if (!cancelled) {
-          setSessionError(
-            err instanceof Error && err.message
-              ? err.message
-              : 'Could not start this survey.'
-          );
-        }
-      } finally {
-        if (!cancelled) setIsStarting(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [survey.surveyVersionId]);
 
   const sections = survey.sections;
   const currentSection = sections[currentSectionIndex];
@@ -268,24 +239,12 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       return;
     }
 
-    if (!respondent) {
-      toast.error('Session not ready', {
-        description: 'Please refresh and try again.'
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      for (const [questionId, value] of Object.entries(answers)) {
-        if (isAnswered(value)) {
-          await submitAnswer(respondent.id, respondent.sessionToken, {
-            questionId,
-            value
-          });
-        }
-      }
-      await completeSurvey(respondent.id, respondent.sessionToken);
+      const payload = Object.entries(answers)
+        .filter(([, value]) => isAnswered(value))
+        .map(([questionId, value]) => ({ questionId, value }));
+      await submitSurvey(survey.surveyVersionId, payload);
       setIsCompleted(true);
       window.scrollTo({ top: 0 });
     } catch (err) {
@@ -298,65 +257,21 @@ export function CollectionForm({ survey }: CollectionFormProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [sections, currentSectionIndex, answers, respondent]);
+  }, [sections, currentSectionIndex, answers, survey.surveyVersionId]);
 
   const handleReset = useCallback(() => {
     setAnswers({});
     setErrors({});
     setIsCompleted(false);
     setCurrentSectionIndex(0);
-    setRespondent(null);
-    setSessionError(null);
-    setIsStarting(true);
-    void (async () => {
-      try {
-        const session = await startRespondent(survey.surveyVersionId);
-        setRespondent(session);
-      } catch (err) {
-        setSessionError(
-          err instanceof Error && err.message
-            ? err.message
-            : 'Could not start this survey.'
-        );
-      } finally {
-        setIsStarting(false);
-      }
-    })();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [survey.surveyVersionId]);
-
-  if (isStarting) {
-    return (
-      <div className='flex min-h-dvh flex-col items-center justify-center bg-white px-4'>
-        <Icons.spinner className='text-primary size-8 animate-spin' />
-        <p className='text-muted-foreground mt-3 text-sm'>Starting survey…</p>
-      </div>
-    );
-  }
-
-  if (sessionError || !respondent) {
-    return (
-      <div className='flex min-h-dvh flex-col items-center justify-center bg-white px-4'>
-        <div className='w-full max-w-md rounded-xl border border-border bg-white p-8 text-center shadow-sm'>
-          <div className='bg-destructive/10 mx-auto mb-5 flex size-14 items-center justify-center rounded-full'>
-            <Icons.lock className='text-destructive size-6' />
-          </div>
-          <h1 className='text-lg font-bold tracking-tight'>
-            Survey unavailable
-          </h1>
-          <p className='text-muted-foreground mt-1.5 text-sm leading-relaxed'>
-            {sessionError ??
-              'This survey is not accepting responses right now.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   if (isCompleted) {
     return (
       <CollectionComplete
         title={survey.title}
+        description={survey.description}
         answeredCount={sections.reduce(
           (sum, section) =>
             sum + section.questions.filter((q) =>
@@ -366,6 +281,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
         )}
         totalQuestions={totalQuestions}
         submittedAt={new Date().toISOString()}
+        collectsIdentity
         onReset={handleReset}
       />
     );
@@ -405,11 +321,11 @@ export function CollectionForm({ survey }: CollectionFormProps) {
           <div className='relative space-y-5 px-5 py-6 sm:px-7 sm:py-7'>
             <div className='space-y-2'>
               <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.75rem] sm:leading-snug'>
-                {survey.title}
+                {displaySurveyTitle(survey.title)}
               </h1>
-              {survey.description?.trim() ? (
+              {displaySurveyDescription(survey.title, survey.description) ? (
                 <p className='max-w-2xl text-sm leading-relaxed text-foreground/75'>
-                  {survey.description.trim()}
+                  {displaySurveyDescription(survey.title, survey.description)}
                 </p>
               ) : null}
             </div>
@@ -543,7 +459,8 @@ export function CollectionForm({ survey }: CollectionFormProps) {
 
         <p className='text-muted-foreground mt-6 flex items-center justify-center gap-1.5 pb-2 text-center text-[11px]'>
           <Icons.lock className='size-3' />
-          Your responses are anonymous and used only for research purposes.
+          Your responses are used only for this research and visible to the
+          organizer.
         </p>
       </main>
     </div>

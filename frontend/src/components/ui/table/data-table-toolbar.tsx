@@ -48,11 +48,10 @@ export function DataTableToolbar<TData>({
           <Button
             aria-label='Reset filters'
             variant='ghost'
-            
-            className='h-7 border-dashed text-xs'
+            className='h-9 rounded-xl text-xs'
             onClick={onReset}
           >
-            <Icons.close className='mr-1 h-3 w-3' />
+            <Icons.close className='mr-1 size-3' />
             Reset
           </Button>
         )}
@@ -79,13 +78,16 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
     switch (columnMeta.variant) {
       case 'text':
         return (
-          <Input
-            placeholder={columnMeta.placeholder ?? columnMeta.label}
-            aria-label={columnMeta.label ?? 'Filter'}
-            value={(column.getFilterValue() as string) ?? ''}
-            onChange={(event) => column.setFilterValue(event.target.value)}
-            className='h-8 w-40 lg:w-56'
-          />
+          <div className='relative'>
+            <Icons.search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2' />
+            <Input
+              placeholder={columnMeta.placeholder ?? columnMeta.label}
+              aria-label={columnMeta.label ?? 'Filter'}
+              value={(column.getFilterValue() as string) ?? ''}
+              onChange={(event) => column.setFilterValue(event.target.value)}
+              className='h-9 w-40 rounded-xl border-border bg-card pl-9 lg:w-56'
+            />
+          </div>
         );
 
       case 'number':
@@ -98,10 +100,13 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
               aria-label={columnMeta.label ?? 'Filter'}
               value={(column.getFilterValue() as string) ?? ''}
               onChange={(event) => column.setFilterValue(event.target.value)}
-              className={cn('h-8 w-[120px]', columnMeta.unit && 'pr-8')}
+              className={cn(
+                'h-9 w-[120px] rounded-xl border-border bg-card',
+                columnMeta.unit && 'pr-8'
+              )}
             />
             {columnMeta.unit && (
-              <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
+              <span className='bg-muted text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-xl px-2 text-sm'>
                 {columnMeta.unit}
               </span>
             )}

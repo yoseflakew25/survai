@@ -1,6 +1,3 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/query-client';
-import { planByIdOptions } from '@/features/plans/api/queries';
 import { PlanDetailView, PlanDetailSkeleton } from '@/features/plans/components/plan-detail-view';
 import PageContainer from '@/components/layout/page-container';
 import { Metadata } from 'next';
@@ -10,6 +7,10 @@ export const metadata: Metadata = {
   title: 'Review Survey Plan | SurvAI'
 };
 
+/**
+ * Auth-gated: do not SSR-prefetch. Server fetch has no browser cookies,
+ * so prefetches fail with "Could not validate credentials".
+ */
 export default async function PlanDetailPage({
   params
 }: {
@@ -17,16 +18,11 @@ export default async function PlanDetailPage({
 }) {
   const { planId } = await params;
 
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(planByIdOptions(planId));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer>
-        <Suspense fallback={<PlanDetailSkeleton />}>
-          <PlanDetailView planId={planId} />
-        </Suspense>
-      </PageContainer>
-    </HydrationBoundary>
+    <PageContainer>
+      <Suspense fallback={<PlanDetailSkeleton />}>
+        <PlanDetailView planId={planId} />
+      </Suspense>
+    </PageContainer>
   );
 }

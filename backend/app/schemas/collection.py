@@ -72,5 +72,23 @@ class AnswerUpsertBody(BaseModel):
     value: Any = None
 
 
+class AnswerItemBody(BaseModel):
+    question_id: UUID
+    value: Any = None
+
+
+class SubmitSurveyBody(BaseModel):
+    """One-shot for an existing respondent session (legacy progressive flow)."""
+
+    session_token: UUID
+    answers: list[AnswerItemBody] = Field(default_factory=list)
+
+
+class PublicSubmitBody(BaseModel):
+    """Create a completed response in one shot — nothing is stored until submit."""
+
+    answers: list[AnswerItemBody] = Field(default_factory=list)
+
+
 class CompleteBody(BaseModel):
     session_token: UUID

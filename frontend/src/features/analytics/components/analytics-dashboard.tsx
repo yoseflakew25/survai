@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import {
   analyticsSummaryOptions,
   distributionsOptions,
@@ -12,7 +12,6 @@ import { DistributionChart } from './distribution-chart';
 import { CrossTabTable } from './cross-tab-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
 import {
   SurvaiBrandCard,
   SurvaiPanel,
@@ -22,6 +21,12 @@ import {
 import { Icons } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+
+const CROSSTAB_TYPES = new Set([
+  'single_choice',
+  'dropdown',
+  'rating_scale'
+]);
 
 interface AnalyticsDashboardProps {
   surveyId: string;
@@ -55,18 +60,21 @@ function AnalyticsSection({
 
 function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const { data: summary } = useSuspenseQuery(analyticsSummaryOptions(surveyId));
-  const { data: distributions } = useSuspenseQuery(distributionsOptions(surveyId));
-  const { data: crossTab } = useSuspenseQuery(crossTabOptions(surveyId));
+  const { data: distributions } = useSuspenseQuery(
+    distributionsOptions(surveyId)
+  );
+
+  const crosstabAxes = distributions.filter((d) =>
+    CROSSTAB_TYPES.has(d.questionType)
+  );
+  const questionAId = crosstabAxes[0]?.questionId ?? '';
+  const questionBId = crosstabAxes[1]?.questionId ?? '';
+  const { data: crossTab, isLoading: crossTabLoading } = useQuery(
+    crossTabOptions(surveyId, questionAId, questionBId)
+  );
 
   return (
     <div className='space-y-4'>
-      <div>
-        <Heading
-          title='Analytics'
-          description='Explore response data with charts, distributions, and cross-tabs'
-        />
-      </div>
-
       <div className='grid gap-6 lg:grid-cols-3'>
         {/* Main content */}
         <div className='space-y-6 lg:col-span-2'>
@@ -75,6 +83,13 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
             icon={<Icons.activity className='h-3.5 w-3.5' />}
             title='Response Summary'
             subtitle='Overview of collected survey responses'
+            badge={
+              summary.surveyVersionId ? (
+                <Badge variant='secondary' className='font-mono text-[10px]'>
+                  ver {summary.surveyVersionId.slice(0, 8)}
+                </Badge>
+              ) : undefined
+            }
           >
             <AnalyticsSummaryStats summary={summary} />
           </AnalyticsSection>
@@ -90,29 +105,55 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
               </Badge>
             }
           >
-            <div className='grid gap-4 md:grid-cols-2'>
-              {distributions.map((dist) => (
-                <DistributionChart
-                  key={dist.questionId}
-                  distribution={dist}
-                  surveyId={surveyId}
-                />
-              ))}
-            </div>
+            {distributions.length === 0 ? (
+              <p className='text-sm text-muted-foreground'>
+                No categorical questions to chart yet — publish the survey and
+                collect responses first.
+              </p>
+            ) : (
+              <div className='grid gap-4 md:grid-cols-2'>
+                {distributions.map((dist) => (
+                  <DistributionChart
+                    key={dist.questionId}
+                    distribution={dist}
+                    surveyId={surveyId}
+                  />
+                ))}
+              </div>
+            )}
           </AnalyticsSection>
 
           {/* Cross-Tab */}
           <AnalyticsSection
             icon={<Icons.kanban className='h-3.5 w-3.5' />}
             title='Cross-Tabulation'
-            subtitle={`${crossTab.questionAText} × ${crossTab.questionBText}`}
+            subtitle={
+              crossTab
+                ? `${crossTab.questionAText} × ${crossTab.questionBText}`
+                : 'Compare two categorical questions'
+            }
             badge={
-              <Badge variant='secondary' className='text-xs'>
-                {crossTab.totalResponses} responses
-              </Badge>
+              crossTab ? (
+                <Badge variant='secondary' className='text-xs'>
+                  {crossTab.totalResponses} responses
+                </Badge>
+              ) : null
             }
           >
-            <CrossTabTable result={crossTab} />
+            {!questionAId || !questionBId ? (
+              <p className='text-sm text-muted-foreground'>
+                Need at least two single-choice, dropdown, or rating questions
+                to build a cross-tab.
+              </p>
+            ) : crossTabLoading ? (
+              <Skeleton className='h-56 w-full rounded-lg' />
+            ) : crossTab ? (
+              <CrossTabTable result={crossTab} />
+            ) : (
+              <p className='text-sm text-muted-foreground'>
+                Cross-tab could not be loaded for this survey.
+              </p>
+            )}
           </AnalyticsSection>
         </div>
 
@@ -141,16 +182,6 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 export function AnalyticsDashboardSkeleton() {
   return (
     <div className='space-y-4'>
-      {/* Header + stepper row */}
-      <div className='grid items-center gap-3 lg:grid-cols-[auto_minmax(0,1fr)]'>
-        <div className='space-y-2'>
-          <Skeleton className='h-8 w-40 rounded' />
-          <Skeleton className='h-4 w-72 rounded' />
-        </div>
-        <Skeleton className='h-14 w-full rounded-lg' />
-      </div>
-
-      {/* Content grid */}
       <div className='grid gap-6 lg:grid-cols-3'>
         {/* Main column */}
         <div className='space-y-6 lg:col-span-2'>

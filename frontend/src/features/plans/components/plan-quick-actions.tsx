@@ -32,6 +32,8 @@ type PlanQuickActionsProps = {
   isGenerating: boolean;
   hasUnsavedChanges: boolean;
   canRegenerate: boolean;
+  /** Plan is immutable after questions were generated. */
+  locked?: boolean;
 };
 
 function ActionTile({
@@ -107,9 +109,33 @@ export function PlanQuickActions({
   isSaving,
   isGenerating,
   hasUnsavedChanges,
-  canRegenerate
+  canRegenerate,
+  locked = false
 }: PlanQuickActionsProps) {
   const [confirmRegen, setConfirmRegen] = useState(false);
+
+  if (locked) {
+    return (
+      <SurvaiPanel>
+        <SurvaiPanelHeader
+          icon={<Icons.check className='size-3.5' />}
+          title='Plan locked'
+          subtitle='Questions already generated'
+          badge={
+            <span className='bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold'>
+              Read-only
+            </span>
+          }
+        />
+        <SurvaiPanelBody className='p-3'>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            This research plan can no longer be edited or regenerated. Change
+            survey questions on the Review tab instead.
+          </p>
+        </SurvaiPanelBody>
+      </SurvaiPanel>
+    );
+  }
 
   return (
     <>

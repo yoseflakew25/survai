@@ -11,7 +11,7 @@ export default async function SurveyIdLayout({
 
   return (
     <div className='flex flex-1 flex-col'>
-      <div className='px-4 pt-2 md:px-6 md:pt-4'>
+      <div className='sticky top-16 z-10 border-b border-border/60 bg-white px-4 py-2.5 md:top-14 md:px-6 md:py-3 dark:bg-card'>
         <SurveyPillNav surveyId={surveyId} />
       </div>
       {children}

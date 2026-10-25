@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # Keep well under provider connection limits (Aiven free ≈ 20)
     database_pool_size: int = 5
     database_max_overflow: int = 5
+    # SQLAlchemy engine echo — off by default (DEBUG=true alone used to dump
+    # every query and add noticeable latency over remote DBs like Aiven).
+    database_echo: bool = False
 
     # JWT / cookies
     jwt_secret_key: str = Field(default="CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND")
