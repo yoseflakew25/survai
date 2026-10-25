@@ -24,7 +24,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import type { Section, Question, QuestionType, QuestionOption } from '../api/types';
+import type {
+  Section,
+  Question,
+  QuestionType,
+  QuestionOption,
+  ConditionalLogic
+} from '../api/types';
 import { SortableQuestionCard } from './sortable-question-card';
 import { QuestionTypeSelector } from './question-type-selector';
 import { QuestionEditor } from './question-editor';
@@ -385,6 +391,24 @@ export function SectionManager({
     setQuestionEditorOpen(true);
   }, []);
 
+  const patchQuestionLocal = useCallback(
+    (questionId: string, sectionId: string, patch: Partial<Question>) => {
+      onSectionsChange(
+        sections.map((s) =>
+          s.id === sectionId
+            ? {
+                ...s,
+                questions: s.questions.map((q) =>
+                  q.id === questionId ? { ...q, ...patch } : q
+                )
+              }
+            : s
+        )
+      );
+    },
+    [sections, onSectionsChange]
+  );
+
   const handleSaveQuestion = useCallback(
     async (data: {
       promptText: string;
@@ -406,7 +430,13 @@ export function SectionManager({
               ? {
                   ...s,
                   questions: s.questions.map((q) =>
-                    q.id === editingQuestion.id ? updated : q
+                    q.id === editingQuestion.id
+                      ? {
+                          ...updated,
+                          pendingConditionalLogic:
+                            q.pendingConditionalLogic ?? null
+                        }
+                      : q
                   )
                 }
               : s
@@ -416,6 +446,71 @@ export function SectionManager({
       }
     },
     [surveyId, editingQuestion, sections, onSectionsChange]
+  );
+
+  const handleDraftPendingLogic = useCallback(
+    (logic: ConditionalLogic) => {
+      if (!editingQuestion) return;
+      patchQuestionLocal(editingQuestion.id, editingQuestion.sectionId, {
+        pendingConditionalLogic: logic
+      });
+      setEditingQuestion({
+        ...editingQuestion,
+        pendingConditionalLogic: logic
+      });
+      toast.success('Skip logic drafted', {
+        description: 'Confirm in the banner to apply it to the question.'
+      });
+    },
+    [editingQuestion, patchQuestionLocal]
+  );
+
+  const handleDismissPendingLogic = useCallback(() => {
+    if (!editingQuestion) return;
+    patchQuestionLocal(editingQuestion.id, editingQuestion.sectionId, {
+      pendingConditionalLogic: null
+    });
+    setEditingQuestion({
+      ...editingQuestion,
+      pendingConditionalLogic: null
+    });
+  }, [editingQuestion, patchQuestionLocal]);
+
+  const handleConfirmPendingLogic = useCallback(
+    async (logic: ConditionalLogic) => {
+      if (!editingQuestion) return;
+      try {
+        const updated = await updateQuestion(
+          surveyId,
+          editingQuestion.id,
+          { conditionalLogic: logic }
+        );
+        if (updated) {
+          onSectionsChange(
+            sections.map((s) =>
+              s.id === editingQuestion.sectionId
+                ? {
+                    ...s,
+                    questions: s.questions.map((q) =>
+                      q.id === editingQuestion.id
+                        ? { ...updated, pendingConditionalLogic: null }
+                        : q
+                    )
+                  }
+                : s
+            )
+          );
+          setEditingQuestion({
+            ...updated,
+            pendingConditionalLogic: null
+          });
+          toast.success('Conditional logic confirmed');
+        }
+      } catch {
+        toast.error('Could not confirm skip logic');
+      }
+    },
+    [editingQuestion, onSectionsChange, sections, surveyId]
   );
 
   const handleDeleteQuestion = useCallback(
@@ -509,6 +604,15 @@ export function SectionManager({
         open={questionEditorOpen}
         onOpenChange={setQuestionEditorOpen}
         onSave={handleSaveQuestion}
+        siblingQuestions={
+          editingQuestion
+            ? (sections.find((s) => s.id === editingQuestion.sectionId)
+                ?.questions ?? [])
+            : []
+        }
+        onDraftPendingLogic={handleDraftPendingLogic}
+        onDismissPendingLogic={handleDismissPendingLogic}
+        onConfirmPendingLogic={handleConfirmPendingLogic}
       />
     </div>
   );

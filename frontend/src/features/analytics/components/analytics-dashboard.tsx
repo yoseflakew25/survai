@@ -1,12 +1,14 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import {
   analyticsSummaryOptions,
   distributionsOptions,
   crossTabOptions
 } from '../api/queries';
+import { exportAnalyticsCsv } from '../api/service';
 import { AnalyticsSummaryStats } from './analytics-summary-stats';
 import { DistributionChart } from './distribution-chart';
 import { CrossTabTable } from './cross-tab-table';
@@ -20,6 +22,7 @@ import {
 } from '@/components/survai-panel';
 import { Icons } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/lib/toast';
 import Link from 'next/link';
 
 const CROSSTAB_TYPES = new Set([
@@ -63,6 +66,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const { data: distributions } = useSuspenseQuery(
     distributionsOptions(surveyId)
   );
+  const [exporting, setExporting] = useState(false);
 
   const crosstabAxes = distributions.filter((d) =>
     CROSSTAB_TYPES.has(d.questionType)
@@ -72,6 +76,21 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const { data: crossTab, isLoading: crossTabLoading } = useQuery(
     crossTabOptions(surveyId, questionAId, questionBId)
   );
+
+  async function handleExportCsv() {
+    setExporting(true);
+    try {
+      await exportAnalyticsCsv(surveyId);
+      toast.success('CSV downloaded');
+    } catch (err) {
+      toast.error('Export failed', {
+        description:
+          err instanceof Error ? err.message : 'Could not export CSV.'
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className='space-y-4'>
@@ -173,6 +192,23 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
               </Button>
             </Link>
           </SurvaiBrandCard>
+          <SurvaiPanel>
+            <SurvaiPanelBody className='space-y-2'>
+              <Button
+                variant='outline'
+                className='h-10 w-full rounded-xl'
+                disabled={exporting}
+                onClick={() => void handleExportCsv()}
+              >
+                {exporting ? (
+                  <Icons.spinner className='mr-2 size-4 animate-spin' />
+                ) : (
+                  <Icons.fileTypeXls className='mr-2 size-4' />
+                )}
+                Export CSV
+              </Button>
+            </SurvaiPanelBody>
+          </SurvaiPanel>
         </div>
       </div>
     </div>

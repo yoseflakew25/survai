@@ -5,6 +5,7 @@ from app.api.v1.routes import (
     health,
     plans,
     public_collection,
+    reports,
     reviewer_findings,
     surveys,
     users,
@@ -16,5 +17,6 @@ api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(plans.router)
 api_router.include_router(surveys.router)
+api_router.include_router(reports.router)
 api_router.include_router(reviewer_findings.router)
 api_router.include_router(public_collection.router)

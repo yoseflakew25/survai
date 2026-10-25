@@ -34,7 +34,7 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
         role='tablist'
         aria-label='Survey workflow'
         className={cn(
-          'flex gap-1 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]',
+          'flex items-center gap-1 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]',
           'bg-white p-1 dark:bg-card',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         )}
@@ -95,6 +95,19 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
             </Link>
           );
         })}
+
+        <Link
+          href='/dashboard/surveys'
+          aria-label='Back to all surveys'
+          className={cn(
+            'ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-transparent px-3 py-2',
+            'text-sm font-medium whitespace-nowrap text-foreground transition-colors',
+            'hover:bg-muted/60'
+          )}
+        >
+          <Icons.forms className='size-3.5 shrink-0' />
+          All surveys
+        </Link>
       </nav>
     </div>
   );

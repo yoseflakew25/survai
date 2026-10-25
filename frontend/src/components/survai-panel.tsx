@@ -35,12 +35,14 @@ export function SurvaiPanelHeader({
   title,
   subtitle,
   badge,
+  actions,
   className
 }: {
   icon?: ReactNode;
-  title: string;
+  title: ReactNode;
   subtitle?: string;
   badge?: ReactNode;
+  actions?: ReactNode;
   className?: string;
 }) {
   return (
@@ -64,16 +66,21 @@ export function SurvaiPanelHeader({
           </div>
         ) : null}
         <div className='min-w-0 flex-1'>
-          <h3 className='font-display text-lg font-bold tracking-tight text-foreground'>
-            {title}
-          </h3>
+          {typeof title === 'string' ? (
+            <h3 className='font-display text-lg font-bold tracking-tight text-foreground'>
+              {title}
+            </h3>
+          ) : (
+            <div className='min-w-0'>{title}</div>
+          )}
           {subtitle ? (
             <p className='text-muted-foreground text-sm leading-snug'>
               {subtitle}
             </p>
           ) : null}
         </div>
-        {badge ? <div className='ml-auto shrink-0'>{badge}</div> : null}
+        {badge ? <div className='shrink-0'>{badge}</div> : null}
+        {actions ? <div className='ml-auto shrink-0'>{actions}</div> : null}
       </div>
     </div>
   );

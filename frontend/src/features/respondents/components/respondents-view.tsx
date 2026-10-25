@@ -7,6 +7,7 @@ import { getSortingStateParser } from '@/lib/parsers';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
+import { SurvaiBrandCard } from '@/components/survai-panel';
 import { DataTable } from '@/components/ui/table/data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
@@ -74,88 +75,123 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
   const noResponsesYet = data.summary.responses === 0;
   const hasAnswerFilter = Boolean(params.question || params.answer);
 
-  return (
-    <div className='flex flex-1 flex-col gap-4'>
-      <RespondentDetailSheet
-        surveyId={surveyId}
-        respondentId={params.respondent}
-        onClose={closeRespondent}
-      />
+  const responseCount = data.summary.responses;
 
-      {noResponsesYet ? (
-        <div className='flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-16 text-center shadow-sm'>
-          <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
-            <Icons.teams className='size-5 text-foreground' />
+  return (
+    <div className='grid flex-1 gap-6 lg:grid-cols-[1fr_300px]'>
+      <div className='flex min-w-0 flex-col gap-4'>
+        <RespondentDetailSheet
+          surveyId={surveyId}
+          respondentId={params.respondent}
+          onClose={closeRespondent}
+        />
+
+        {noResponsesYet ? (
+          <div className='flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-16 text-center shadow-sm'>
+            <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
+              <Icons.teams className='size-5 text-foreground' />
+            </div>
+            <h3 className='font-display font-bold tracking-tight'>
+              No responses yet
+            </h3>
+            <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
+              Publish your survey and share the collection link to start receiving
+              responses.
+            </p>
+            <Link
+              href={`/dashboard/surveys/${surveyId}/collect`}
+              className='mt-4'
+            >
+              <Button className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground hover:brightness-105'>
+                <Icons.send className='mr-1.5 h-3.5 w-3.5' />
+                Go to Collect
+              </Button>
+            </Link>
           </div>
-          <h3 className='font-display font-bold tracking-tight'>
-            No responses yet
-          </h3>
-          <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
-            Publish your survey and share the collection link to start receiving
-            responses.
-          </p>
+        ) : (
+          <>
+            {data.activeFilter && (
+              <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
+                <span className='text-muted-foreground text-xs'>
+                  Respondents who answered
+                </span>
+                <span className='min-w-0 max-w-[16rem] truncate font-medium'>
+                  {data.activeFilter.questionText}
+                </span>
+                <Icons.arrowRight className='text-muted-foreground h-3 w-3' />
+                <span className='font-semibold text-foreground'>
+                  {data.activeFilter.answer}
+                </span>
+                <Badge variant='secondary' className='text-[10px]'>
+                  {data.activeFilter.count.toLocaleString()}
+                </Badge>
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  aria-label='Clear answer filter'
+                  className='ml-auto h-6 w-6'
+                  onClick={() =>
+                    setParams({ question: null, answer: null, page: 1 })
+                  }
+                >
+                  <Icons.close className='h-3.5 w-3.5' />
+                </Button>
+              </div>
+            )}
+
+            <DataTable
+              table={table}
+              rowNoun={data.total === 1 ? 'respondent' : 'respondents'}
+              onRowClick={(row) => openRespondent(row.id)}
+              isRowSelected={(row) => row.id === params.respondent}
+              emptyIcon={
+                <div className='flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
+                  <Icons.search className='size-5 text-foreground' />
+                </div>
+              }
+              emptyTitle={
+                hasAnswerFilter
+                  ? 'No matching respondents'
+                  : 'No respondents found'
+              }
+              emptyDescription={
+                hasAnswerFilter
+                  ? 'Clear the answer filter or adjust search criteria.'
+                  : 'Try adjusting your search or filter criteria.'
+              }
+            />
+          </>
+        )}
+      </div>
+
+      <div className='sticky top-[4.5rem] self-start'>
+        <SurvaiBrandCard
+          title='View Analytics?'
+          description={
+            responseCount > 0
+              ? `${responseCount.toLocaleString()} response${responseCount === 1 ? '' : 's'} ready to explore`
+              : 'Charts unlock once responses start coming in'
+          }
+        >
           <Link
-            href={`/dashboard/surveys/${surveyId}/collect`}
-            className='mt-4'
+            href={`/dashboard/surveys/${surveyId}/analytics`}
+            className={
+              responseCount === 0
+                ? 'pointer-events-none block w-full opacity-50'
+                : 'block w-full'
+            }
           >
-            <Button className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground hover:brightness-105'>
-              <Icons.send className='mr-1.5 h-3.5 w-3.5' />
-              Go to Collect
+            <Button
+              className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
+              size='lg'
+              disabled={responseCount === 0}
+            >
+              View Analytics
+              <Icons.arrowRight className='ml-2 size-4' />
             </Button>
           </Link>
-        </div>
-      ) : (
-        <>
-          {data.activeFilter && (
-            <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
-              <span className='text-muted-foreground text-xs'>
-                Respondents who answered
-              </span>
-              <span className='min-w-0 max-w-[16rem] truncate font-medium'>
-                {data.activeFilter.questionText}
-              </span>
-              <Icons.arrowRight className='text-muted-foreground h-3 w-3' />
-              <span className='font-semibold text-foreground'>
-                {data.activeFilter.answer}
-              </span>
-              <Badge variant='secondary' className='text-[10px]'>
-                {data.activeFilter.count.toLocaleString()}
-              </Badge>
-              <Button
-                variant='ghost'
-                size='icon-sm'
-                aria-label='Clear answer filter'
-                className='ml-auto h-6 w-6'
-                onClick={() =>
-                  setParams({ question: null, answer: null, page: 1 })
-                }
-              >
-                <Icons.close className='h-3.5 w-3.5' />
-              </Button>
-            </div>
-          )}
-
-          <DataTable
-            table={table}
-            rowNoun={data.total === 1 ? 'respondent' : 'respondents'}
-            onRowClick={(row) => openRespondent(row.id)}
-            isRowSelected={(row) => row.id === params.respondent}
-            emptyIcon={
-              <div className='flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
-                <Icons.search className='size-5 text-foreground' />
-              </div>
-            }
-            emptyTitle={
-              hasAnswerFilter ? 'No matching respondents' : 'No respondents found'
-            }
-            emptyDescription={
-              hasAnswerFilter
-                ? 'Clear the answer filter or adjust search criteria.'
-                : 'Try adjusting your search or filter criteria.'
-            }
-          />
-        </>
-      )}
+        </SurvaiBrandCard>
+      </div>
     </div>
   );
 }

@@ -15,8 +15,6 @@ import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
 import { PasswordInput } from '@/features/auth/components/password-input';
-import { IconGoogle } from '@/features/auth/components/survai-mark';
-import { GOOGLE_OAUTH_REDIRECT_URL } from '@/lib/auth-env';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 import { Icons } from '@/components/icons';
@@ -113,26 +111,6 @@ export default function SignInViewPage() {
       </div>
 
       <div className='space-y-4'>
-        <button
-          type='button'
-          className='border-border bg-card hover:border-foreground/40 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-medium transition-colors'
-          onClick={() => {
-            window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
-          }}
-        >
-          <IconGoogle className='h-4 w-4' />
-          Continue with Google
-        </button>
-
-        <div className='relative'>
-          <div className='absolute inset-0 flex items-center'>
-            <span className='border-border w-full border-t' />
-          </div>
-          <div className='relative flex justify-center text-xs'>
-            <span className='bg-background text-muted-foreground px-2'>or</span>
-          </div>
-        </div>
-
         {serverError ? (
           <div
             role='alert'

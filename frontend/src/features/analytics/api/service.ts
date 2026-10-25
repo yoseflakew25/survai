@@ -11,6 +11,7 @@ import {
 import type {
   AnalyticsSummary,
   CrossTabResult,
+  Filter,
   MetricValue,
   QuestionDistribution,
   SavedAnalysis
@@ -162,10 +163,78 @@ export async function getCrossTab(
   return mapCrossTab((await res.json()) as ApiCrossTab);
 }
 
-/** Saved analyses persistence is not implemented yet — empty list. */
+type ApiSavedAnalysis = {
+  id: string;
+  survey_id: string;
+  name: string;
+  filters: {
+    question_id?: string;
+    questionId?: string;
+    op: Filter['op'];
+    value: Filter['value'];
+  }[];
+  created_at: string;
+};
+
+function mapSaved(a: ApiSavedAnalysis): SavedAnalysis {
+  return {
+    id: a.id,
+    surveyId: a.survey_id,
+    surveyVersionId: '',
+    name: a.name,
+    filters: (a.filters ?? []).map((f) => ({
+      questionId: f.questionId ?? f.question_id ?? '',
+      op: f.op,
+      value: f.value
+    })),
+    chartConfig: null,
+    createdAt: a.created_at
+  };
+}
+
 export async function getSavedAnalyses(
   surveyId: string
 ): Promise<SavedAnalysis[]> {
-  void surveyId;
-  return [];
+  const res = await apiFetch(`/surveys/${surveyId}/saved-analyses`);
+  if (!res.ok) await readError(res, 'Could not load saved analyses');
+  const rows = (await res.json()) as ApiSavedAnalysis[];
+  return rows.map(mapSaved);
+}
+
+export async function createSavedAnalysis(
+  surveyId: string,
+  name: string,
+  filters: Filter[] = []
+): Promise<SavedAnalysis> {
+  const res = await apiFetch(`/surveys/${surveyId}/saved-analyses`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      filters: filters.map((f) => ({
+        question_id: f.questionId,
+        op: f.op,
+        value: f.value
+      }))
+    })
+  });
+  if (!res.ok) await readError(res, 'Could not save analysis');
+  return mapSaved((await res.json()) as ApiSavedAnalysis);
+}
+
+export async function exportAnalyticsCsv(surveyId: string): Promise<void> {
+  const res = await apiFetch(`/surveys/${surveyId}/analytics/export`, {
+    method: 'POST'
+  });
+  if (!res.ok) await readError(res, 'Could not export analytics CSV');
+  const data = (await res.json()) as {
+    content_text: string | null;
+  };
+  const text = data.content_text ?? '';
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `analytics_${surveyId.slice(0, 8)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

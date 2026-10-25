@@ -1,6 +1,3 @@
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { getQueryClient } from '@/lib/query-client';
-import { reportOptions } from '@/features/reports/api/queries';
 import { ReportView } from '@/features/reports/components/report-view';
 import PageContainer from '@/components/layout/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,17 +15,12 @@ export default async function ReportsPage({
 }) {
   const { surveyId } = await params;
 
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(reportOptions(surveyId));
-
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageContainer>
-        <Suspense fallback={<ReportsPageSkeleton />}>
-          <ReportView surveyId={surveyId} />
-        </Suspense>
-      </PageContainer>
-    </HydrationBoundary>
+    <PageContainer>
+      <Suspense fallback={<ReportsPageSkeleton />}>
+        <ReportView surveyId={surveyId} />
+      </Suspense>
+    </PageContainer>
   );
 }
 

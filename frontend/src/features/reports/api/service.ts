@@ -1,59 +1,296 @@
 // ============================================================
-// Reports Service — Mock Data Layer
+// Reports Service — live FastAPI (grounded generation)
 // ============================================================
 
-import type { SurveyReport, ReportSection } from './types';
+import {
+  apiErrorMessage,
+  apiFetch,
+  toUserFacingError
+} from '@/lib/api';
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+import type {
+  ExportResult,
+  ReportAudience,
+  ReportChatMessage,
+  ReportSection,
+  SurveyReport
+} from './types';
+
+/** Detailed multi-section Gemini reports often take 60–150s; default apiFetch is 20s. */
+const AI_TIMEOUT_MS = 180_000;
+
+async function readError(res: Response, fallback: string): Promise<never> {
+  const data = await res.json().catch(() => ({}));
+  throw new Error(
+    toUserFacingError(
+      new Error(apiErrorMessage(data, fallback)),
+      fallback
+    )
+  );
 }
 
-// ---- Mock report ----
+type ApiSection = {
+  id: string;
+  title: string;
+  content: string;
+  metric_refs?: string[];
+};
 
-const MOCK_SECTIONS: ReportSection[] = [
-  {
-    id: 'sec_1',
-    title: 'Executive Summary',
-    content:
-      'This report presents findings from the Community Health Assessment 2026, conducted across DICDO target communities between August and September 2026. The survey captured health status, healthcare access patterns, and community health needs to inform program design and resource allocation.\n\n**Key highlights**\n\n- 142 completed responses collected from 8 target communities (78.3% completion rate)\n- Hypertension (32%) and diabetes (18%) are the most prevalent chronic conditions\n- 67% of respondents access healthcare quarterly or less frequently\n- Distance (42%) and cost (35%) are the top barriers to care\n\nOverall, while healthcare awareness is moderate, significant barriers remain in access and utilization — particularly for vulnerable populations. The recommendations in this report prioritize mobile services, subsidized care, and community education.'
-  },
-  {
-    id: 'sec_2',
-    title: 'Methodology',
-    content:
-      'The survey was administered to 142 respondents across 8 target communities using a structured questionnaire. Data collection ran from August 15 to September 1, 2026, employing both digital (tablet-based) and paper-based methods to ensure broad coverage.\n\n**Sampling** — Respondents were recruited through community health committees using stratified random sampling by village and age group (18–24, 25–34, 35–44, 45–54, 55+).\n\n**Instrument** — The questionnaire covered five domains: household demographics, health status and conditions, healthcare access, preventive practices, and barriers to care. It included 24 questions across 5 sections, with a median completion time of 12 minutes.\n\n**Data quality** — All submissions were validated for completeness; incomplete responses were followed up by field enumerators, yielding a 78.3% completion rate.'
-  },
-  {
-    id: 'sec_3',
-    title: 'Key Findings',
-    content:
-      '1. **Health Conditions** — Hypertension (32%) and diabetes (18%) are the most commonly reported chronic conditions. 1 in 4 respondents reports at least one chronic condition.\n\n2. **Healthcare Access** — 67% of respondents access healthcare quarterly or less frequently. Distance to facilities and cost of services are the primary drivers of low utilization.\n\n3. **Preventive Practices** — Awareness of preventive health measures varies significantly by age group: 71% of respondents aged 18–24 report high awareness versus 44% of those aged 55+.\n\n4. **Barriers** — The top three barriers identified are distance to facilities (42%), cost of services (35%), and availability of medications (28%). Women were 1.4× more likely than men to report cost as a barrier.'
-  },
-  {
-    id: 'sec_4',
-    title: 'Recommendations',
-    content:
-      'Based on the findings, the following recommendations are proposed for the next program cycle:\n\n1. **Expand mobile health clinics** to underserved communities, prioritizing the 4 villages with the highest reported distance barriers.\n2. **Implement subsidized healthcare programs** targeting vulnerable populations — the elderly, chronic-disease patients, and low-income households.\n3. **Launch community health education campaigns** focused on preventive practices, with age-specific messaging for the 55+ segment.\n4. **Establish community health worker networks** for ongoing support and referral, with quarterly refresher training.\n5. **Strengthen the supply chain** for essential medications at the 6 health posts with recurring stockouts.'
-  }
-];
+type ApiIntegrity = {
+  matches_current_version: boolean;
+  is_stale: boolean;
+  snapshot_response_count: number;
+  live_response_count: number | null;
+  snapshot_survey_version_id: string;
+  current_survey_version_id: string | null;
+};
 
-// ---- Service functions ----
-
-export async function getReport(surveyId: string): Promise<SurveyReport> {
-  await delay(200);
-  return {
-    id: `rep_${surveyId}`,
-    surveyId,
-    surveyTitle: 'Community Health Assessment 2026',
-    model: 'gpt-4o',
-    stats: {
-      responseCount: 142,
-      completionRate: 78.3,
-      avgCompletionMinutes: 12,
-      questionsCount: 24
-    },
-    sections: MOCK_SECTIONS,
-    createdAt: '2026-09-02T14:30:00Z',
-    updatedAt: '2026-09-03T09:15:00Z'
+type ApiReport = {
+  id: string;
+  survey_id: string;
+  survey_version_id: string;
+  survey_title: string;
+  title: string;
+  audience: ReportAudience;
+  status: 'draft' | 'final';
+  model: string | null;
+  stats: {
+    response_count: number;
+    completion_rate: number;
+    avg_completion_minutes: number | null;
+    questions_count: number;
   };
+  sections: ApiSection[];
+  integrity: ApiIntegrity;
+  created_at: string;
+  updated_at: string;
+};
+
+type ApiChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  metric_refs?: string[];
+  confidence: ReportChatMessage['confidence'];
+  created_at: string;
+};
+
+type ApiExport = {
+  id: string;
+  type: ExportResult['type'];
+  status: string;
+  content_text: string | null;
+  file_url: string | null;
+  created_at: string;
+};
+
+function mapSection(s: ApiSection): ReportSection {
+  return {
+    id: s.id,
+    title: s.title,
+    content: s.content,
+    metricRefs: s.metric_refs ?? []
+  };
+}
+
+function mapReport(r: ApiReport): SurveyReport {
+  const integrity = r.integrity ?? {
+    matches_current_version: true,
+    is_stale: false,
+    snapshot_response_count: r.stats?.response_count ?? 0,
+    live_response_count: null,
+    snapshot_survey_version_id: r.survey_version_id,
+    current_survey_version_id: r.survey_version_id
+  };
+  return {
+    id: r.id,
+    surveyId: r.survey_id,
+    surveyVersionId: r.survey_version_id,
+    surveyTitle: r.survey_title,
+    title: r.title,
+    audience: r.audience,
+    status: r.status,
+    model: r.model,
+    stats: {
+      responseCount: r.stats.response_count,
+      completionRate: r.stats.completion_rate,
+      avgCompletionMinutes: r.stats.avg_completion_minutes,
+      questionsCount: r.stats.questions_count
+    },
+    sections: (r.sections ?? []).map(mapSection),
+    integrity: {
+      matchesCurrentVersion: integrity.matches_current_version,
+      isStale: integrity.is_stale,
+      snapshotResponseCount: integrity.snapshot_response_count,
+      liveResponseCount: integrity.live_response_count,
+      snapshotSurveyVersionId: integrity.snapshot_survey_version_id,
+      currentSurveyVersionId: integrity.current_survey_version_id
+    },
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  };
+}
+
+function mapChat(m: ApiChatMessage): ReportChatMessage {
+  return {
+    id: m.id,
+    role: m.role,
+    content: m.content,
+    metricRefs: m.metric_refs ?? [],
+    confidence: m.confidence,
+    createdAt: m.created_at
+  };
+}
+
+function mapExport(e: ApiExport): ExportResult {
+  return {
+    id: e.id,
+    type: e.type,
+    status: e.status,
+    contentText: e.content_text,
+    fileUrl: e.file_url,
+    createdAt: e.created_at
+  };
+}
+
+export async function getLatestReport(
+  surveyId: string
+): Promise<SurveyReport | null> {
+  const res = await apiFetch(`/surveys/${surveyId}/reports/latest`);
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not load report');
+  const data = await res.json();
+  if (data == null) return null;
+  return mapReport(data as ApiReport);
+}
+
+export async function generateReport(
+  surveyId: string,
+  audience: ReportAudience = 'internal'
+): Promise<SurveyReport> {
+  const res = await apiFetch(
+    `/surveys/${surveyId}/reports`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ audience })
+    },
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not generate report');
+  return mapReport((await res.json()) as ApiReport);
+}
+
+export async function updateReport(
+  reportId: string,
+  patch: {
+    title?: string;
+    status?: 'draft' | 'final';
+    sections?: ReportSection[];
+  }
+): Promise<SurveyReport> {
+  const body: Record<string, unknown> = {};
+  if (patch.title !== undefined) body.title = patch.title;
+  if (patch.status !== undefined) body.status = patch.status;
+  if (patch.sections !== undefined) {
+    body.sections = patch.sections.map((s) => ({
+      id: s.id,
+      title: s.title,
+      content: s.content,
+      metric_refs: s.metricRefs ?? []
+    }));
+  }
+  const res = await apiFetch(`/reports/${reportId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) await readError(res, 'Could not save report');
+  return mapReport((await res.json()) as ApiReport);
+}
+
+/** @deprecated prefer updateReport */
+export async function updateReportSections(
+  reportId: string,
+  sections: ReportSection[]
+): Promise<SurveyReport> {
+  return updateReport(reportId, { sections });
+}
+
+export async function regenerateReportSection(
+  reportId: string,
+  sectionId: string
+): Promise<SurveyReport> {
+  const res = await apiFetch(
+    `/reports/${reportId}/sections/regenerate`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ section_id: sectionId })
+    },
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not regenerate section');
+  return mapReport((await res.json()) as ApiReport);
+}
+
+export async function getReportChat(
+  reportId: string
+): Promise<ReportChatMessage[]> {
+  const res = await apiFetch(`/reports/${reportId}/chat`);
+  if (!res.ok) await readError(res, 'Could not load chat');
+  const data = (await res.json()) as { messages: ApiChatMessage[] };
+  return (data.messages ?? []).map(mapChat);
+}
+
+export async function sendReportChat(
+  reportId: string,
+  message: string
+): Promise<ReportChatMessage[]> {
+  const res = await apiFetch(
+    `/reports/${reportId}/chat`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message })
+    },
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not send message');
+  const data = (await res.json()) as { messages: ApiChatMessage[] };
+  return (data.messages ?? []).map(mapChat);
+}
+
+export async function exportReport(
+  reportId: string,
+  type: 'docx' | 'pdf' | 'markdown'
+): Promise<ExportResult> {
+  const res = await apiFetch(`/reports/${reportId}/export`, {
+    method: 'POST',
+    body: JSON.stringify({ type })
+  });
+  if (!res.ok) await readError(res, 'Could not export report');
+  return mapExport((await res.json()) as ApiExport);
+}
+
+function downloadText(filename: string, text: string, mime: string) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadReportExport(
+  reportId: string,
+  type: 'docx' | 'pdf' | 'markdown',
+  title: string
+): Promise<void> {
+  const result = await exportReport(reportId, type);
+  const text = result.contentText ?? '';
+  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
+  if (type === 'markdown') {
+    downloadText(`${safe}.md`, text, 'text/markdown;charset=utf-8');
+  } else {
+    // Text fallback until binary DOCX/PDF renderers are wired
+    downloadText(`${safe}.${type}.txt`, text, 'text/plain;charset=utf-8');
+  }
 }

@@ -318,7 +318,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
             }
           >
             <Link
-              href={`/dashboard/surveys/${surveyId}/analytics`}
+              href={`/dashboard/surveys/${surveyId}/respondents`}
               className={cn(
                 'block w-full',
                 !isLive && 'pointer-events-none opacity-50'
@@ -329,7 +329,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                 size='lg'
                 disabled={!isLive}
               >
-                View Analytics
+                View Respondents
                 <Icons.arrowRight className='ml-2 size-4' />
               </Button>
             </Link>

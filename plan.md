@@ -1124,27 +1124,29 @@ Mapping PRD §15 onto concrete deliverables:
 ## 18a. Frontend UI implementation notes (update this section as the UI progresses)
 
 The frontend is a single Next.js App Router app at `frontend/`. The roadmap
-above still defines the product/week shape; UI work has been implementation-
-first: shell → survey hub → module pages.
+above still defines the product/week shape; UI work tracks the live lifecycle.
 
 Current UI reality is tracked in `status.md`. Stack enforcements are in **§2a**
 — follow those for every new frontend change.
 
 - **Stack gate.** New UI must use shadcn + TanStack Query + RHF/Zod + Zustand.
-  Auth security = JWT+cookies (§7); Better Auth = FE UX only. Forms already
-  migrated off TanStack Form; do not reintroduce it.
+  Auth security = JWT+cookies (§7). Forms already migrated off TanStack Form;
+  do not reintroduce it. Google OAuth is out of MVP (email/password + OTP only).
 - **Nav and shell.** Sidebar nav is driven by `src/config/nav-config.ts`; every
-  nav icon key must exist in `src/components/icons.tsx` before it lands
-  (`AppSidebar` renders `Icons[item.icon]` — missing keys render nothing).
-- **Survey module consistency.** Hub + Build / Review / Collect / Analytics /
-  Reports should share header + stepper treatment so modules read as one system.
-- **Respondents.** List: heading, then sort/stats/toolbar row; status as column
-  header filter; search in column header. Detail: prefilled survey-form look,
-  not a generic key/value dump.
-- **Mock work is explicit.** Auth API is live; survey/plan/analytics/report
-  feature data is still mock. When wiring real data, use
-  `api/types → service → queries` + TanStack Query — not ad-hoc fetch.
-  Point `NEXT_PUBLIC_API_BASE_URL` at the FastAPI `/api/v1` base.
+  nav icon key must exist in `src/components/icons.tsx` before it lands.
+- **Survey module consistency.** Shared **pill nav**: Plan → Review → Collect →
+  Respondents → Analytics → Report, plus **All surveys** (outline) on the right.
+  There is **no Survey Workspace hub** — `/dashboard/surveys/[id]` redirects to
+  `/plan`. Collect CTA → Respondents; Respondents CTA → Analytics; Analytics CTA
+  → Reports.
+- **Respondents.** Live API table + detail sheet; brand CTA to analytics.
+- **Live vs mock.** Auth, plans, builder, review, collect, respondents,
+  analytics, and **Reports** (generate/chat/export) are live. DOCX/PDF still
+  download as text fallbacks until WeasyPrint/docxtpl. Wire new data with
+  `api/types → service → queries` + TanStack Query.
+- **Gemini models.** Prefer `gemini-3.1-flash-lite` for structured JSON
+  (planner/builder/reviewer). `gemini-3.8-flash` has been observed to hang on
+  reviewer structured output — keep it out of `GEMINI_MODEL_REVIEWER`.
 
 ---
 
@@ -1230,7 +1232,8 @@ from screenshots or older sessions:
 - `frontend/src/components/icons.tsx` — icon registry (`Icons` record)
 - `frontend/src/components/layout/app-sidebar.tsx` — sidebar renderer
 - `frontend/src/hooks/use-logo.ts` — logo path/alt logic
-- `frontend/src/app/dashboard/surveys/[surveyId]/page.tsx` — survey hub
+- `frontend/src/app/dashboard/surveys/[surveyId]/page.tsx` — redirects to `/plan` (no hub)
+- `frontend/src/features/surveys/components/survey-pill-nav.tsx` — workflow tabs + All surveys
 - `frontend/src/app/dashboard/surveys/[surveyId]/respondents/page.tsx` — respondents shell + skeleton
 - `frontend/src/features/respondents/components/respondents-view.tsx` — respondents UI
 - `frontend/src/features/respondents/components/columns.tsx` — respondents table columns + header filters
@@ -1245,67 +1248,51 @@ conflicts, **§2a wins**.
 
 ---
 
-## 23. Implementation Status (as of October 2026)
+## 23. Implementation Status (as of 25 October 2026)
 
-> Tracks frontend + backend. Survey domain data on the FE is still largely mock;
-> auth API + Postgres users/RBAC are real. Update as milestones ship.
+> Tracks frontend + backend. **Plan → Reports is live end-to-end** (grounded
+> narrative + chat). Binary DOCX/PDF and Redis ARQ remain soft. See `status.md`.
 
 ### ✅ Completed — Backend (`backend/`)
 
 | Module | Status | Notes |
 | --- | --- | --- |
-| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, type hints, CORS, Docker Compose, Traefik prod labels |
-| **Auth API (§7 core)** | ✅ Done | register → email OTP → verify; login/refresh/logout/me; forgot/reset password; JWT + cookies; bcrypt; refresh tokens in DB |
-| **Email delivery** | ✅ Done | SMTP (Gmail) and/or Resend; branded HTML + SurvAI mark CID; `dev_code` only when mail unconfigured |
-| **AI gateway + Planner** | ✅ Milestone 1 | Gemini `app/ai/client.py`; `POST /plans` + `/plans/generate` + `/plans/{id}/generate`; `survey_plans` + `ai_generation_logs` |
-| **Builder AI** | ✅ Phase 4 | `surveys`/`sections`/`questions` + Alembic `0008`; `POST /surveys/from-plan`, `/generate`, `/sections/{id}/regenerate`; `builder_v1` prompts; hard-replace drafts |
-| **RBAC (MVP)** | ✅ Done | Roles: `system_admin` \| `organization`; signup → organization; startup seeds/syncs platform admin from `FIRST_SUPERUSER_*`; demotes others; `AdminUser` → `system_admin` |
-| **Users** | ✅ Partial | model + admin list/get/update routes gated by `system_admin`; org profile self-service on `/auth/me` |
-| **Organizations** | ✅ Partial | 1:1 with login; name + description + website on profile |
-| **Postgres** | ✅ Dev live | Aiven; Alembic through `0008_surveys` |
-| **Tests / CI** | ✅ Done | Pytest auth + plans + surveys (mocked Gemini) + health; GH Actions backend-ci + backend-cd (GHCR) |
+| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, Traefik prod labels |
+| **Auth API (§7)** | ✅ Done | register → OTP → verify; login/refresh/logout/me; forgot/reset; JWT + httpOnly cookies |
+| **Email delivery** | ✅ Done | SMTP and/or Resend; `dev_code` when mail unconfigured |
+| **AI gateway + Planner** | ✅ Done | Gemini `app/ai/client.py`; plans CRUD + generate (`planner_v1`) |
+| **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate (`builder_v1`) |
+| **Reviewer AI** | ✅ Done | `POST /surveys/{id}/review`, latest, finding status (`reviewer_v1`); Alembic `0010` |
+| **Collection** | ✅ Done | publish/close; `survey_versions`; public GET/submit; Alembic `0011`–`0012` |
+| **Respondents** | ✅ Done | list + detail scoped to `current_version_id` |
+| **Analytics engine** | ✅ Done | summary / query / crosstab / CSV export / saved analyses |
+| **Reports + §9** | ✅ Done | Alembic `0013`; `report_v1` + chat; reconciliation; text export fallback |
+| **ARQ scaffold** | ✅ Soft | `app/jobs/` — inline when `REDIS_URL` empty |
+| **Integrity locks** | ✅ Done | 1:1 plan↔survey; plan lock; publish-once; question lock; no silent version fallback |
+| **RBAC (MVP)** | ✅ Done | `system_admin` \| `organization`; `FIRST_SUPERUSER_*` seed |
+| **Postgres** | ✅ Dev live | Aiven; Alembic through **`0013_reports`** |
+| **Tests / CI** | ✅ Done | Pytest incl. integrity + report reconciliation; GH Actions |
 
 ### ✅ Completed — Frontend
 
-| Module | Pages / Components | Status | Notes |
-| --- | --- | --- | --- |
-| **Auth UI** | Sign-in, Sign-up + OTP, Forgot / Reset password | ✅ Done | RHF + Zod; live API via `auth-context`; still falls back to mock user + `sessionStorage` access token |
-| **Plans UI** | New Survey + plan editor | ✅ Milestone 1 | `plans/api/service.ts` → live `/plans` + Gemini generate |
-| **Builder UI** | Plan → survey generate + review edits | ✅ Phase 4 | `builder/api/service.ts` → live `/surveys`; create-from-plan + generate; section/question CRUD |
-| **Forms stack** | All FE forms on RHF + Zod | ✅ Done | TanStack Form removed; field components under `components/forms/fields` |
-| **Sidebar Navigation** | App sidebar with collapsible/expandable modes | ✅ Done | Logo variants (light/dark × collapsed/expanded); primary icon colors; user dropdown |
-| **Dashboard Overview** | Stat cards, Recent Plans, Quick Actions | ✅ Done | Outline-style cards; primary color accents; grid pattern backgrounds |
-| **Surveys List** | Surveys page with data table, search, filter, sort | ✅ Done | Professional shadcn-style table; column-based sorting; status badges |
-| **New Survey Modal** | Wizard → generate plan → `/dashboard/plans/{id}` | ✅ Done | Plan is first lifecycle step; pill nav Plan→Review→Collect→Analytics→Report |
-| **Plan Editor** | Plan review/edit with SurvaiPanels | ✅ Done | EditableList/sections; stepper; Unsaved/Ready badges; **Back to Surveys** |
-| **Survey Review** | Question review with inline editing | ✅ Done | Sections/questions layout; **Back to Surveys**; no fake “generation theater” |
-| **Collect** | Publish flow, collection link, QR code | ✅ Done | Preview rename; progress; copy link; publish toggle |
-| **Analytics Dashboard** | Summary stats, distributions, cross-tabs | ✅ Done | Recharts integration; saved analyses sidebar |
-| **Report Workspace** | Editable sections, chat sidebar, export buttons | ✅ Done | Chat restyle; section editing; DOCX/PDF export triggers |
-| **Settings** | Organization settings page | ✅ Done | Professional card-based layout |
-| **Notifications** | Notifications list | ✅ Done | Outline-style notification cards |
-| **Profile** | User profile page | ✅ Done | Avatar upload, form validation, activity section |
+| Module | Status | Notes |
+| --- | --- | --- |
+| **Auth UI** | ✅ Done | Email/password + OTP; Google OAuth remnants removed |
+| **Plans / Builder / Review** | ✅ Live API | Generate, edit, AI review, locks when published |
+| **Collect / Respondents / Analytics** | ✅ Live API | Publish + QR; respondents; charts/crosstabs/CSV |
+| **Reports workspace** | ✅ Live API | Generate, edit, grounded chat, export downloads |
+| **BLD-04 confirm UX** | ✅ Done | Pending skip-logic banner in question editor |
+| **Pill nav** | ✅ Done | Plan→Report + All surveys; hub page redirects to Plan |
+| **Forms / Query stack** | ✅ Done | RHF+Zod; TanStack Query |
+| **Playwright smoke** | ✅ Soft | `e2e/smoke.spec.ts` — skips without env credentials |
 
-### 🔄 In Progress
+### 🔄 Soft / next
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **FE ↔ API auth** | Partial | Remove mock user + `sessionStorage`; cookie-only / Better Auth UX on live JWT API |
-| **§6 domain schema** | Partial | plans + surveys/sections/questions live; versions/respondents/analytics/reports still ahead |
-| **AI Integration** | Partial | Gemini planner + builder live; reviewer/report still ahead |
-| **Collection Route** | Partial | `/s/[versionId]` exists; needs real respondent flow against public API |
-
-### ❌ Not Started (domain + AI)
-
-| Module | PRD Ref | Priority |
-| --- | --- | --- |
-| **Backend Reviewer** | §11 | P1 |
-| **Backend Analytics Engine** | §10 | P1 |
-| **Backend Reports + Export** | §13 | P1 |
-| **Background Jobs (ARQ)** | §14 | P1 |
-| **AI Orchestration Layer** | §8 | P1 |
-| **Anti-Hallucination Reconciliation** | §9 | P1 |
-| **E2E Tests (Playwright)** | §19 | P2 |
+| **Binary DOCX/PDF** | Soft | WeasyPrint / docxtpl (text fallback ships today) |
+| **Redis ARQ worker** | Soft | Provision `REDIS_URL`; run `arq app.jobs.worker.WorkerSettings` |
+| **Full E2E path** | Soft | Publish → submit → analytics → report with staging creds |
 
 ---
 
@@ -1398,12 +1385,11 @@ frontend/src/
 
 | Priority | Task | PRD Ref |
 | --- | --- | --- |
-| P0 | Finish FE auth against live API (drop mock/`sessionStorage`; Better Auth UX) | §7, §2a |
-| P0 | Publish + `survey_versions` + public collection route | COL-01–05, §6 |
-| P1 | Reviewer AI + findings API | REV-01–06 |
-| P1 | Add real-time response counter on Collect page | COL-04 |
-| P1 | Implement report export with actual DOCX/PDF generation | §13 |
-| P1 | Add loading skeletons for all async pages | §15 |
-| P2 | Add drag-and-drop section reorder on Review page | BLD-07 |
-| P2 | Implement conditional logic preview in Review | BLD-04 |
-| P2 | Add E2E tests with Playwright | §19 |
+| Done | Grounded Reports + FE wire-up | RPT-01–03, §9 |
+| Done | Report chat (grounded) | RPT-04 |
+| Done | Analytics CSV + saved analyses | ANL-05–06 |
+| Done | BLD-04 pending conditional confirm UX | BLD-04 |
+| Done | OAuth remnant cleanup | — |
+| Soft | Binary DOCX/PDF (WeasyPrint/docxtpl) | RPT-06, §13 |
+| Soft | Redis ARQ worker in deploy | §14 |
+| Soft | Playwright full publish→report path | §19 |

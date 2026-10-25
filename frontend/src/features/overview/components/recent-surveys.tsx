@@ -47,7 +47,7 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
   const status = STATUS_CONFIG[survey.status];
   return (
     <Link
-      href={`/dashboard/surveys/${survey.id}`}
+      href={`/dashboard/surveys/${survey.id}/plan`}
       className='group flex items-center rounded-xl border border-transparent px-2.5 py-2.5 transition-all duration-200 hover:border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] hover:bg-brand-soft/50'
     >
       <Avatar className='flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] bg-brand-soft transition-transform duration-200 group-hover:scale-105'>

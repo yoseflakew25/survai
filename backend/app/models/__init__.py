@@ -4,6 +4,14 @@ from app.models.email_verification import EmailVerificationOtp
 from app.models.organization import Organization
 from app.models.password_reset import PasswordResetToken
 from app.models.refresh_token import RefreshToken
+from app.models.report import (
+    ExportRecord,
+    Report,
+    ReportAudience,
+    ReportChatMessage,
+    ReportStatus,
+    SavedAnalysis,
+)
 from app.models.reviewer import (
     ReviewerFinding,
     ReviewerFindingStatus,
@@ -24,6 +32,7 @@ from app.models.user import User, UserRole
 __all__ = [
     "AiGenerationLog",
     "EmailVerificationOtp",
+    "ExportRecord",
     "Organization",
     "PasswordResetToken",
     "PlanStatus",
@@ -31,12 +40,17 @@ __all__ = [
     "QuestionSource",
     "QuestionType",
     "RefreshToken",
+    "Report",
+    "ReportAudience",
+    "ReportChatMessage",
+    "ReportStatus",
     "Respondent",
     "ResponseAnswer",
     "ReviewerFinding",
     "ReviewerFindingStatus",
     "ReviewerIssueType",
     "ReviewerReport",
+    "SavedAnalysis",
     "Section",
     "Survey",
     "SurveyPlan",

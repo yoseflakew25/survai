@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
@@ -14,7 +15,7 @@ from google.genai import types
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.prompts import builder_v1, planner_v1, reviewer_v1
+from app.ai.prompts import builder_v1, chat_v1, planner_v1, report_v1, reviewer_v1
 from app.core.config import settings
 from app.core.exceptions import BadRequestError
 from app.models.ai_generation_log import AiGenerationLog
@@ -23,11 +24,25 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
+# Per-attempt ceiling so a hung model (e.g. broken structured-output
+# support) fails over instead of holding the request/DB session forever.
+_GENERATE_TIMEOUT_S = 45.0
+_REPORT_GENERATE_TIMEOUT_S = 120.0
+_REPORT_MAX_OUTPUT_TOKENS = 8192
+
 _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
     "planner": planner_v1.PROMPT_VERSION,
     "builder": builder_v1.PROMPT_VERSION,
     "reviewer": reviewer_v1.PROMPT_VERSION,
+    "report": report_v1.PROMPT_VERSION,
+    "report_chat": chat_v1.PROMPT_VERSION,
 }
+
+
+def _timeout_for(feature: str) -> float:
+    if feature == "report":
+        return _REPORT_GENERATE_TIMEOUT_S
+    return _GENERATE_TIMEOUT_S
 
 
 @dataclass(frozen=True)
@@ -151,15 +166,26 @@ async def call_structured(
         attempt += 1
         started = time.monotonic()
         try:
-            response = await client.aio.models.generate_content(
-                model=model,
-                contents=user,
-                config=types.GenerateContentConfig(
-                    system_instruction=system,
-                    response_mime_type="application/json",
-                    response_schema=schema,
-                    temperature=0.4,
+            gen_config_kwargs: dict[str, Any] = {
+                "system_instruction": system,
+                "response_mime_type": "application/json",
+                "response_schema": schema,
+                "temperature": 0.4 if feature != "report" else 0.55,
+                # Structured JSON only — AFC can hang on some models.
+                "automatic_function_calling": types.AutomaticFunctionCallingConfig(
+                    disable=True
                 ),
+            }
+            if feature == "report":
+                gen_config_kwargs["max_output_tokens"] = _REPORT_MAX_OUTPUT_TOKENS
+
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=model,
+                    contents=user,
+                    config=types.GenerateContentConfig(**gen_config_kwargs),
+                ),
+                timeout=_timeout_for(feature),
             )
             latency_ms = int((time.monotonic() - started) * 1000)
             tokens_in, tokens_out = _usage_tokens(response)
@@ -238,10 +264,10 @@ async def call_structured(
             )
             if _is_fatal_ai_error(exc):
                 break
-            if _is_capacity_ai_error(exc):
+            if isinstance(exc, TimeoutError) or _is_capacity_ai_error(exc):
                 model_idx += 1
                 logger.warning(
-                    "AI capacity error feature=%s; trying next model (%s/%s)",
+                    "AI timeout/capacity feature=%s; trying next model (%s/%s)",
                     feature,
                     model_idx + 1,
                     len(models),
@@ -284,6 +310,11 @@ def _is_fatal_ai_error(exc: BaseException) -> bool:
 def _user_message_for_ai_error(feature: str, exc: BaseException | None) -> str:
     if exc is None:
         return f"AI could not produce a valid {feature} result. Please try again."
+    if isinstance(exc, TimeoutError):
+        return (
+            f"AI {feature} timed out. The model may be overloaded — try again, "
+            "or switch GEMINI_MODEL_REVIEWER to gemini-3.1-flash-lite."
+        )
     text = str(exc)
     upper = text.upper()
     if "RESOURCE_EXHAUSTED" in upper or "429" in upper or "QUOTA" in upper:

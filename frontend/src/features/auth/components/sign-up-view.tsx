@@ -9,13 +9,12 @@ import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
 import { PasswordInput } from '@/features/auth/components/password-input';
-import { IconGoogle, IconMail } from '@/features/auth/components/survai-mark';
+import { IconMail } from '@/features/auth/components/survai-mark';
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot
 } from '@/components/ui/input-otp';
-import { GOOGLE_OAUTH_REDIRECT_URL } from '@/lib/auth-env';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 
@@ -167,32 +166,6 @@ export default function SignUpViewPage() {
       </div>
 
       <div className='space-y-4'>
-        {step === 'form' ? (
-          <>
-            <button
-              type='button'
-              className='flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium transition-colors hover:border-foreground/40'
-              onClick={() => {
-                window.location.assign(GOOGLE_OAUTH_REDIRECT_URL);
-              }}
-            >
-              <IconGoogle className='h-4 w-4' />
-              Continue with Google
-            </button>
-
-            <div className='relative'>
-              <div className='absolute inset-0 flex items-center'>
-                <span className='w-full border-t border-border' />
-              </div>
-              <div className='relative flex justify-center text-xs'>
-                <span className='bg-background px-2 text-muted-foreground'>
-                  or
-                </span>
-              </div>
-            </div>
-          </>
-        ) : null}
-
         {serverError ? (
           <div className='rounded-xl border border-destructive/50 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive'>
             {serverError}

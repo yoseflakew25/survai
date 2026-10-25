@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 
 import type {
+  ConditionalLogic,
   Question,
   QuestionOption,
   QuestionType,
@@ -102,6 +103,30 @@ function mapValidation(
   };
 }
 
+function mapConditionalLogic(
+  raw: Record<string, unknown> | null
+): ConditionalLogic | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const operator = raw.operator === 'OR' ? 'OR' : 'AND';
+  const rulesRaw = Array.isArray(raw.rules) ? raw.rules : [];
+  const rules = rulesRaw.flatMap((r) => {
+    if (!r || typeof r !== 'object') return [];
+    const row = r as Record<string, unknown>;
+    const questionId = String(row.question_id ?? row.questionId ?? '');
+    const op = String(row.op ?? 'eq') as ConditionalLogic['rules'][number]['op'];
+    if (!questionId) return [];
+    return [
+      {
+        questionId,
+        op,
+        value: row.value as string | number
+      }
+    ];
+  });
+  if (rules.length === 0) return null;
+  return { operator, rules };
+}
+
 function mapQuestion(q: ApiQuestion): Question {
   return {
     id: q.id,
@@ -114,7 +139,8 @@ function mapQuestion(q: ApiQuestion): Question {
     orderIndex: q.order_index,
     options: mapOptions(q.options),
     validationRules: mapValidation(q.validation_rules),
-    conditionalLogic: null,
+    conditionalLogic: mapConditionalLogic(q.conditional_logic),
+    pendingConditionalLogic: null,
     source: q.source,
     createdAt: q.created_at,
     updatedAt: q.updated_at
@@ -328,6 +354,7 @@ export async function updateQuestion(
       | 'type'
       | 'options'
       | 'validationRules'
+      | 'conditionalLogic'
     >
   >
 ): Promise<Question | null> {
@@ -337,6 +364,18 @@ export async function updateQuestion(
   if (data.isRequired !== undefined) body.is_required = data.isRequired;
   if (data.type !== undefined) body.type = data.type;
   if (data.options !== undefined) body.options = data.options;
+  if (data.conditionalLogic !== undefined) {
+    body.conditional_logic = data.conditionalLogic
+      ? {
+          operator: data.conditionalLogic.operator,
+          rules: data.conditionalLogic.rules.map((r) => ({
+            question_id: r.questionId,
+            op: r.op,
+            value: r.value
+          }))
+        }
+      : null;
+  }
   if (data.validationRules !== undefined) {
     body.validation_rules = data.validationRules
       ? {

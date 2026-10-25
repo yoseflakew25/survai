@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -14,13 +14,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Icons } from '@/components/icons';
-import type { Question, QuestionType, QuestionOption } from '../api/types';
+import type {
+  ConditionalLogic,
+  Question,
+  QuestionType,
+  QuestionOption
+} from '../api/types';
 import { QUESTION_TYPES, getQuestionTypeMeta } from '../api/types';
+import { PendingConditionalBanner } from './pending-conditional-banner';
 
 interface QuestionEditorProps {
   question: Question | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  siblingQuestions?: Question[];
   onSave: (data: {
     promptText: string;
     helpText: string | null;
@@ -28,6 +35,9 @@ interface QuestionEditorProps {
     type: QuestionType;
     options: QuestionOption[] | null;
   }) => void;
+  onConfirmPendingLogic?: (logic: ConditionalLogic) => Promise<void> | void;
+  onDismissPendingLogic?: () => void;
+  onDraftPendingLogic?: (logic: ConditionalLogic) => void;
 }
 
 let optionIdCounter = 10000;
@@ -36,7 +46,11 @@ export function QuestionEditor({
   question,
   open,
   onOpenChange,
-  onSave
+  siblingQuestions = [],
+  onSave,
+  onConfirmPendingLogic,
+  onDismissPendingLogic,
+  onDraftPendingLogic
 }: QuestionEditorProps) {
   const [promptText, setPromptText] = useState(question?.promptText ?? '');
   const [helpText, setHelpText] = useState(question?.helpText ?? '');
@@ -45,21 +59,20 @@ export function QuestionEditor({
   const [options, setOptions] = useState<QuestionOption[]>(
     question?.options ?? []
   );
+  const [busyLogic, setBusyLogic] = useState(false);
 
-  // Sync state when question changes
-  const questionId = question?.id;
-  useState(() => {
-    if (question) {
-      setPromptText(question.promptText);
-      setHelpText(question.helpText ?? '');
-      setIsRequired(question.isRequired);
-      setType(question.type);
-      setOptions(question.options ?? []);
-    }
-  });
+  useEffect(() => {
+    if (!question) return;
+    setPromptText(question.promptText);
+    setHelpText(question.helpText ?? '');
+    setIsRequired(question.isRequired);
+    setType(question.type);
+    setOptions(question.options ?? []);
+  }, [question]);
 
   const typeMeta = getQuestionTypeMeta(type);
   const hasOptions = typeMeta.hasOptions;
+  const pending = question?.pendingConditionalLogic ?? null;
 
   const handleAddOption = useCallback(() => {
     const newOpt: QuestionOption = {
@@ -73,7 +86,11 @@ export function QuestionEditor({
   const handleUpdateOption = useCallback(
     (index: number, label: string) => {
       const updated = [...options];
-      updated[index] = { ...updated[index], label, value: label.toLowerCase().replace(/\s+/g, '_') };
+      updated[index] = {
+        ...updated[index],
+        label,
+        value: label.toLowerCase().replace(/\s+/g, '_')
+      };
       setOptions(updated);
     },
     [options]
@@ -98,6 +115,26 @@ export function QuestionEditor({
     onOpenChange(false);
   }
 
+  function handleSuggestLogic() {
+    const prior = siblingQuestions.find((q) => q.id !== question?.id);
+    if (!prior || !onDraftPendingLogic) return;
+    const firstOpt = prior.options?.[0]?.value ?? 'yes';
+    onDraftPendingLogic({
+      operator: 'AND',
+      rules: [{ questionId: prior.id, op: 'eq', value: firstOpt }]
+    });
+  }
+
+  async function handleConfirmPending() {
+    if (!pending || !onConfirmPendingLogic) return;
+    setBusyLogic(true);
+    try {
+      await onConfirmPendingLogic(pending);
+    } finally {
+      setBusyLogic(false);
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side='right' className='sm:max-w-md'>
@@ -111,7 +148,15 @@ export function QuestionEditor({
         </SheetHeader>
 
         <div className='space-y-4 px-4 pb-4'>
-          {/* Question text */}
+          {pending ? (
+            <PendingConditionalBanner
+              logic={pending}
+              busy={busyLogic}
+              onConfirm={() => void handleConfirmPending()}
+              onDismiss={() => onDismissPendingLogic?.()}
+            />
+          ) : null}
+
           <Field>
             <FieldLabel>Question Text *</FieldLabel>
             <Textarea
@@ -123,7 +168,6 @@ export function QuestionEditor({
             />
           </Field>
 
-          {/* Help text */}
           <Field>
             <FieldLabel>Help Text</FieldLabel>
             <Input
@@ -133,7 +177,6 @@ export function QuestionEditor({
             />
           </Field>
 
-          {/* Question type */}
           <Field>
             <FieldLabel>Question Type</FieldLabel>
             <div className='grid grid-cols-2 gap-1.5'>
@@ -142,6 +185,7 @@ export function QuestionEditor({
                 return (
                   <button
                     key={qt.type}
+                    type='button'
                     onClick={() => {
                       setType(qt.type);
                       if (!qt.hasOptions) setOptions([]);
@@ -160,17 +204,11 @@ export function QuestionEditor({
             </div>
           </Field>
 
-          {/* Required toggle */}
           <div className='flex items-center justify-between'>
             <FieldLabel>Required</FieldLabel>
-            <Switch
-              checked={isRequired}
-              onCheckedChange={setIsRequired}
-              
-            />
+            <Switch checked={isRequired} onCheckedChange={setIsRequired} />
           </div>
 
-          {/* Options editor (for choice types) */}
           {hasOptions && (
             <Field>
               <FieldLabel>Options</FieldLabel>
@@ -197,7 +235,6 @@ export function QuestionEditor({
                 ))}
                 <Button
                   variant='outline'
-                  
                   onClick={handleAddOption}
                   className='w-full'
                 >
@@ -208,7 +245,26 @@ export function QuestionEditor({
             </Field>
           )}
 
-          {/* Save */}
+          {!pending && siblingQuestions.length > 0 && onDraftPendingLogic ? (
+            <Button
+              type='button'
+              variant='outline'
+              className='w-full rounded-xl text-xs'
+              onClick={handleSuggestLogic}
+            >
+              <Icons.sparkles className='mr-1.5 size-3.5' />
+              Draft skip logic (confirm before save)
+            </Button>
+          ) : null}
+
+          {question?.conditionalLogic ? (
+            <p className='text-muted-foreground text-[11px]'>
+              Live conditional logic is set (
+              {question.conditionalLogic.rules.length} rule
+              {question.conditionalLogic.rules.length === 1 ? '' : 's'}).
+            </p>
+          ) : null}
+
           <div className='flex items-center gap-2 pt-2'>
             <Button onClick={handleSave} disabled={!promptText.trim()}>
               Save Question

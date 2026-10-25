@@ -53,6 +53,8 @@ export interface Question {
   options: QuestionOption[] | null;
   validationRules: ValidationRules | null;
   conditionalLogic: ConditionalLogic | null;
+  /** BLD-04 — AI/manual draft not yet written to the question row. */
+  pendingConditionalLogic?: ConditionalLogic | null;
   source: QuestionSource;
   createdAt: string;
   updatedAt: string;

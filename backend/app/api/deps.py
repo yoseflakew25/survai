@@ -19,6 +19,7 @@ from app.services.analytics import AnalyticsService
 from app.services.auth import AuthService
 from app.services.collection import CollectionService
 from app.services.plan import PlanService
+from app.services.report import ReportService
 from app.services.respondents import RespondentsService
 from app.services.reviewer import ReviewerService
 from app.services.survey import SurveyService
@@ -59,6 +60,10 @@ def get_respondents_service(session: DbSession) -> RespondentsService:
     return RespondentsService(session)
 
 
+def get_report_service(session: DbSession) -> ReportService:
+    return ReportService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
@@ -69,6 +74,7 @@ AnalyticsServiceDep = Annotated[AnalyticsService, Depends(get_analytics_service)
 RespondentsServiceDep = Annotated[
     RespondentsService, Depends(get_respondents_service)
 ]
+ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
 
 
 def _extract_bearer(authorization: str | None) -> str | None:

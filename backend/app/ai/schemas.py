@@ -98,3 +98,37 @@ class ReviewerOutput(BaseModel):
     score_criteria: list[ReviewScoreCriterion]
     findings: list[ReviewFindingItem]
     notes: str = ""
+
+
+# --- Reports (Gemini-simple nested statements) ---
+
+
+class GroundedStatement(BaseModel):
+    text: str
+    metric_ref: str = ""
+
+
+class ReportSectionAI(BaseModel):
+    heading: str
+    statements: list[GroundedStatement]
+
+
+class ReportGenerationOutput(BaseModel):
+    """Full narrative report — each field is a multi-paragraph section."""
+
+    executive_summary: ReportSectionAI
+    methodology: ReportSectionAI
+    respondent_profile: ReportSectionAI
+    key_findings: ReportSectionAI
+    detailed_analysis: ReportSectionAI
+    cross_cutting_insights: ReportSectionAI
+    limitations: ReportSectionAI
+    recommendations: ReportSectionAI
+    implications_and_next_steps: ReportSectionAI
+    conclusion: ReportSectionAI
+
+
+class ReportChatOutput(BaseModel):
+    answer: str
+    metric_refs: list[str] = Field(default_factory=list)
+    confidence: Literal["grounded", "partial", "insufficient_data"] = "grounded"
