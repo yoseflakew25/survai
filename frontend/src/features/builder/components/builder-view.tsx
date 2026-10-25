@@ -56,6 +56,20 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
     notFound();
   }
 
+  const questionsLocked =
+    survey.status === 'published' ||
+    survey.status === 'closed' ||
+    survey.status === 'archived';
+
+  const assertEditable = useCallback(() => {
+    if (!questionsLocked) return true;
+    toast.error('Survey locked', {
+      description:
+        'Questions cannot be edited while this survey is published or closed.'
+    });
+    return false;
+  }, [questionsLocked]);
+
   // Initialize undo/redo state
   const initialState: SurveyState = {
     title: survey.title,
@@ -128,16 +142,18 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
 
   // Section handlers
   const handleAddSection = useCallback(async () => {
+    if (!assertEditable()) return;
     const newSection = await addSection(surveyId, 'New Section', '');
     setSurveyState((prev) => ({
       ...prev,
       sections: [...prev.sections, newSection]
     }));
     toast.success('Section added');
-  }, [surveyId, setSurveyState]);
+  }, [surveyId, setSurveyState, assertEditable]);
 
   const handleUpdateSection = useCallback(
     async (sectionId: string, data: { title?: string; description?: string }) => {
+      if (!assertEditable()) return;
       await updateSection(surveyId, sectionId, data);
       setSurveyState((prev) => ({
         ...prev,
@@ -146,11 +162,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         )
       }));
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   const handleDeleteSection = useCallback(
     async (sectionId: string) => {
+      if (!assertEditable()) return;
       await deleteSection(surveyId, sectionId);
       setSurveyState((prev) => ({
         ...prev,
@@ -158,11 +175,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
       }));
       toast.success('Section deleted');
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   const handleReorderSections = useCallback(
     async (sectionIds: string[]) => {
+      if (!assertEditable()) return;
       await reorderSections(surveyId, sectionIds);
       setSurveyState((prev) => {
         const sectionMap = new Map(prev.sections.map((s) => [s.id, s]));
@@ -178,12 +196,13 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         };
       });
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   // Question handlers
   const handleAddQuestion = useCallback(
     async (sectionId: string, type: QuestionType) => {
+      if (!assertEditable()) return;
       const newQuestion = await addQuestion(
         surveyId,
         sectionId,
@@ -199,11 +218,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         )
       }));
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   const handleUpdateQuestion = useCallback(
     async (questionId: string, data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>) => {
+      if (!assertEditable()) return;
       await updateQuestion(surveyId, questionId, data);
       setSurveyState((prev) => ({
         ...prev,
@@ -215,11 +235,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         }))
       }));
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   const handleDeleteQuestion = useCallback(
     async (questionId: string, sectionId: string) => {
+      if (!assertEditable()) return;
       await deleteQuestion(surveyId, questionId);
       setSurveyState((prev) => ({
         ...prev,
@@ -231,11 +252,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
       }));
       toast.success('Question deleted');
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   const handleReorderQuestions = useCallback(
     async (sectionId: string, questionIds: string[]) => {
+      if (!assertEditable()) return;
       await reorderQuestions(surveyId, sectionId, questionIds);
       setSurveyState((prev) => ({
         ...prev,
@@ -255,7 +277,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         })
       }));
     },
-    [surveyId, setSurveyState]
+    [surveyId, setSurveyState, assertEditable]
   );
 
   // AI generate already hard-replaced on the server — sync editor from response.
@@ -313,21 +335,26 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
             ) : (
               <div className='flex items-center gap-2'>
                 <h1 className='text-base font-semibold'>{title}</h1>
-                <Button
-                  variant='ghost'
-                  size='icon-sm'
-                  onClick={() => setIsEditingTitle(true)}
-                >
-                  <Icons.edit className='h-3.5 w-3.5' />
-                </Button>
+                {!questionsLocked ? (
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    onClick={() => setIsEditingTitle(true)}
+                  >
+                    <Icons.edit className='h-3.5 w-3.5' />
+                  </Button>
+                ) : null}
               </div>
             )}
             <div className='flex items-center gap-2'>
-              {hasUnsavedChanges() && (
+              {questionsLocked ? (
+                <Badge variant='outline'>Locked · {survey.status}</Badge>
+              ) : null}
+              {hasUnsavedChanges() && !questionsLocked ? (
                 <Badge variant='outline' className='border-amber-500 text-amber-600'>
                   Unsaved
                 </Badge>
-              )}
+              ) : null}
               <Badge variant='secondary'>
                 {sections.length} sections · {totalQuestions} questions
               </Badge>
@@ -357,7 +384,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
               variant='outline'
               size='default'
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || questionsLocked}
             >
               {isSaving ? (
                 <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
@@ -388,10 +415,12 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
                 <p className='text-muted-foreground mt-1 text-sm'>
                   Add sections to organize your survey questions, or use AI to generate them.
                 </p>
-                <Button className='mt-4' onClick={handleAddSection}>
-                  <Icons.add className='mr-2 h-4 w-4' />
-                  Add Section
-                </Button>
+                {!questionsLocked ? (
+                  <Button className='mt-4' onClick={handleAddSection}>
+                    <Icons.add className='mr-2 h-4 w-4' />
+                    Add Section
+                  </Button>
+                ) : null}
               </div>
             ) : (
               sections.map((section, index) => (
@@ -400,6 +429,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
                   section={section}
                   index={index}
                   totalSections={sections.length}
+                  readOnly={questionsLocked}
                   onUpdate={(data) => handleUpdateSection(section.id, data)}
                   onDelete={() => handleDeleteSection(section.id)}
                   onAddQuestion={(type) => handleAddQuestion(section.id, type)}
@@ -416,7 +446,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
               ))
             )}
 
-            {sections.length > 0 && (
+            {sections.length > 0 && !questionsLocked ? (
               <Button
                 variant='outline'
                 className='w-full border-dashed'
@@ -425,7 +455,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
                 <Icons.add className='mr-2 h-4 w-4' />
                 Add Section
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -438,6 +468,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
                 surveyId={surveyId}
                 planId={survey.planId}
                 goalPreview={survey.title}
+                locked={questionsLocked}
                 onApplied={handleAIGenerateApplied}
               />
 

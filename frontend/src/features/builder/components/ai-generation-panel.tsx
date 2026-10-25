@@ -22,18 +22,28 @@ interface AIGenerationPanelProps {
   goalPreview?: string;
   /** Called with the persisted survey after a hard-replace generate. */
   onApplied: (survey: Survey) => void;
+  /** When true, regenerate is disabled (published / closed / archived). */
+  locked?: boolean;
 }
 
 export function AIGenerationPanel({
   surveyId,
   planId,
   goalPreview,
-  onApplied
+  onApplied,
+  locked = false
 }: AIGenerationPanelProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleGenerate = useCallback(async () => {
+    if (locked) {
+      toast.error('Survey locked', {
+        description:
+          'Questions cannot be regenerated while this survey is published or closed.'
+      });
+      return;
+    }
     if (!planId) {
       toast.error('No linked plan', {
         description:
@@ -61,7 +71,7 @@ export function AIGenerationPanel({
     } finally {
       setIsGenerating(false);
     }
-  }, [surveyId, planId, onApplied]);
+  }, [surveyId, planId, onApplied, locked]);
 
   return (
     <>
@@ -74,15 +84,16 @@ export function AIGenerationPanel({
         </div>
 
         <p className='text-muted-foreground mb-3 text-xs leading-relaxed'>
-          Regenerate the full questionnaire from the linked research plan. This
-          permanently replaces existing sections and questions.
+          {locked
+            ? 'Questions are locked while this survey is live or closed. Use Collect to share and monitor.'
+            : 'Regenerate the full questionnaire from the linked research plan. This permanently replaces existing sections and questions.'}
         </p>
 
         <Button
           className='w-full'
           size='default'
           onClick={() => setConfirmOpen(true)}
-          disabled={isGenerating || !planId}
+          disabled={isGenerating || !planId || locked}
         >
           {isGenerating ? (
             <>

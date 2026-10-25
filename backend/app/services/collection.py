@@ -426,10 +426,14 @@ class CollectionService:
                 f"Missing required answers ({len(missing)} question(s))"
             )
 
+        snap = version.structure_snapshot or {}
+        is_anonymous = bool(
+            snap.get("anonymous_collection", survey.anonymous_collection)
+        )
         respondent = Respondent(
             survey_id=survey.id,
             survey_version_id=version.id,
-            is_anonymous=survey.anonymous_collection,
+            is_anonymous=is_anonymous,
             ip_hash=_hash_ip(ip),
             user_agent=(user_agent or "")[:500] or None,
             started_at=now,

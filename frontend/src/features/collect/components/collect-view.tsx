@@ -234,7 +234,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                       <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
                         {isPublished
                           ? 'Share the link or QR below. No account required for respondents.'
-                          : 'Existing links no longer accept new starts. Publish again for a new round.'}
+                          : 'Existing links no longer accept new responses. Start a new survey from a plan for another round.'}
                       </p>
                     </div>
                   </div>

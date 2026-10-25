@@ -7,6 +7,7 @@ import uuid
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.schemas import (
@@ -313,7 +314,20 @@ class SurveyService:
             anonymous_collection=body.anonymous_collection,
         )
         await self.surveys.add(survey)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:
+            await self.session.rollback()
+            if plan_id is not None:
+                raced = await self.surveys.get_by_plan_id(
+                    plan_id=plan_id, organization_id=user.organization_id
+                )
+                if raced is not None:
+                    raise BadRequestError(
+                        "This plan already has a survey. Open that survey and "
+                        "regenerate questions instead of creating another."
+                    ) from exc
+            raise
         await ensure_required_identity_fields(self.session, survey_id=survey.id)
         await self.session.commit()
         return await self.get_survey(user=user, survey_id=survey.id)
@@ -362,14 +376,32 @@ class SurveyService:
                 )
             return await self.generate(user=user, survey_id=survey_id), False
 
-        created = await self.create_survey(
-            user=user,
-            body=SurveyCreate(
-                title=title,
-                description=body.description,
-                plan_id=plan.id,
-            ),
-        )
+        try:
+            created = await self.create_survey(
+                user=user,
+                body=SurveyCreate(
+                    title=title,
+                    description=body.description,
+                    plan_id=plan.id,
+                ),
+            )
+        except BadRequestError:
+            # Concurrent from-plan: unique plan_id won the race — reuse it.
+            raced = await self.surveys.get_by_plan_id(
+                plan_id=plan.id, organization_id=user.organization_id
+            )
+            if raced is None:
+                raise
+            if body.generate:
+                _assert_questions_editable(raced)
+                return await self.generate(user=user, survey_id=raced.id), False
+            return (
+                SurveyGenerateResponse(
+                    survey=await self.get_survey(user=user, survey_id=raced.id),
+                    notes=None,
+                ),
+                False,
+            )
         if not body.generate:
             return SurveyGenerateResponse(survey=created, notes=None), True
         return await self.generate(user=user, survey_id=created.id), True
@@ -393,8 +425,20 @@ class SurveyService:
                 raise BadRequestError(
                     "Use POST /surveys/{id}/publish or /close to change status."
                 )
+            # Do not unlock a live/terminal survey via raw status write —
+            # that would re-enable question edits while a frozen version is live.
+            if survey.status in _QUESTIONS_LOCKED_STATUSES:
+                raise BadRequestError(
+                    "Cannot change status of a published, closed, or archived "
+                    "survey via PATCH. Use POST /close to end collection."
+                )
             survey.status = data["status"]
         if "anonymous_collection" in data and data["anonymous_collection"] is not None:
+            if survey.status in _QUESTIONS_LOCKED_STATUSES:
+                raise BadRequestError(
+                    "Anonymous collection is locked while this survey is "
+                    "published, closed, or archived."
+                )
             survey.anonymous_collection = data["anonymous_collection"]
         await self.session.commit()
         return await self.get_survey(user=user, survey_id=survey_id)

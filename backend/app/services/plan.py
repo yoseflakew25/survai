@@ -143,6 +143,7 @@ class PlanService:
 
     async def approve_plan(self, *, user: User, plan_id) -> PlanPublic:
         plan = await self._get_owned(user, plan_id)
+        await self._ensure_unlocked(user=user, plan=plan)
         if not (plan.objectives and plan.research_questions and plan.proposed_sections):
             raise BadRequestError(
                 "Approve requires objectives, research questions, and proposed sections."

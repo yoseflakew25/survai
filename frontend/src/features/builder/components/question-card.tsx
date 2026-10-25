@@ -15,6 +15,7 @@ import { getQuestionTypeMeta } from '../api/types';
 interface QuestionCardProps {
   question: Question;
   index: number;
+  readOnly?: boolean;
   onUpdate: (data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>) => void;
   onDelete: () => void;
 }
@@ -22,6 +23,7 @@ interface QuestionCardProps {
 export function QuestionCard({
   question,
   index,
+  readOnly = false,
   onUpdate,
   onDelete
 }: QuestionCardProps) {
@@ -36,7 +38,7 @@ export function QuestionCard({
     transform,
     transition,
     isDragging
-  } = useSortable({ id: question.id });
+  } = useSortable({ id: question.id, disabled: readOnly });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -73,20 +75,23 @@ export function QuestionCard({
       )}
     >
       <div className='flex items-start gap-2'>
-        {/* Drag handle */}
-        <button
-          type='button'
-          className={cn(
-            'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded',
-            'text-muted-foreground hover:text-foreground hover:bg-muted',
-            'cursor-grab active:cursor-grabbing transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-primary/20'
-          )}
-          {...attributes}
-          {...listeners}
-        >
-          <Icons.gripVertical className='h-3.5 w-3.5' />
-        </button>
+        {!readOnly ? (
+          <button
+            type='button'
+            className={cn(
+              'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded',
+              'text-muted-foreground hover:text-foreground hover:bg-muted',
+              'cursor-grab active:cursor-grabbing transition-colors',
+              'focus:outline-none focus:ring-2 focus:ring-primary/20'
+            )}
+            {...attributes}
+            {...listeners}
+          >
+            <Icons.gripVertical className='h-3.5 w-3.5' />
+          </button>
+        ) : (
+          <span className='mt-1 flex h-5 w-5 shrink-0' />
+        )}
 
         <div className='flex-1 space-y-2'>
           {isEditing ? (
@@ -170,8 +175,7 @@ export function QuestionCard({
           )}
         </div>
 
-        {/* Actions */}
-        {!isEditing && (
+        {!readOnly && !isEditing ? (
           <div className='flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100'>
             <Button
               variant='ghost'
@@ -190,7 +194,7 @@ export function QuestionCard({
               <Icons.close className='h-3 w-3' />
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

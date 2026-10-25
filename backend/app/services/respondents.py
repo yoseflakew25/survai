@@ -329,6 +329,12 @@ class RespondentsService:
         )
         if respondent is None:
             raise NotFoundError("Respondent not found")
+        # Same live instrument as the list — hide historical versions.
+        if (
+            survey.current_version_id is not None
+            and respondent.survey_version_id != survey.current_version_id
+        ):
+            raise NotFoundError("Respondent not found")
 
         version = await self.versions.get_by_id(respondent.survey_version_id)
         if version is None:

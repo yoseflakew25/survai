@@ -41,6 +41,7 @@ interface SectionCardProps {
   section: Section;
   index: number;
   totalSections: number;
+  readOnly?: boolean;
   onUpdate: (data: { title?: string; description?: string }) => void;
   onDelete: () => void;
   onAddQuestion: (type: QuestionType) => void;
@@ -53,6 +54,7 @@ export function SectionCard({
   section,
   index,
   totalSections,
+  readOnly = false,
   onUpdate,
   onDelete,
   onAddQuestion,
@@ -75,6 +77,7 @@ export function SectionCard({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      if (readOnly) return;
       const { active, over } = event;
       if (over && active.id !== over.id) {
         const oldIndex = section.questions.findIndex((q) => q.id === active.id);
@@ -89,7 +92,7 @@ export function SectionCard({
         }
       }
     },
-    [section.questions, onReorderQuestions]
+    [section.questions, onReorderQuestions, readOnly]
   );
 
   const handleSaveEdit = useCallback(() => {
@@ -153,7 +156,7 @@ export function SectionCard({
             <Badge variant='secondary' className='text-xs'>
               {section.questions.length} questions
             </Badge>
-            {!isEditing && (
+            {!readOnly && !isEditing ? (
               <Button
                 variant='ghost'
                 size='icon-sm'
@@ -161,15 +164,17 @@ export function SectionCard({
               >
                 <Icons.edit className='h-3.5 w-3.5' />
               </Button>
-            )}
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              onClick={onDelete}
-              className='text-muted-foreground hover:text-destructive'
-            >
-              <Icons.trash className='h-3.5 w-3.5' />
-            </Button>
+            ) : null}
+            {!readOnly ? (
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                onClick={onDelete}
+                className='text-muted-foreground hover:text-destructive'
+              >
+                <Icons.trash className='h-3.5 w-3.5' />
+              </Button>
+            ) : null}
           </div>
         </div>
       </CardHeader>
@@ -179,7 +184,9 @@ export function SectionCard({
             <Icons.forms className='text-muted-foreground/40 mb-2 h-8 w-8' />
             <p className='text-muted-foreground text-sm'>No questions yet</p>
             <p className='text-muted-foreground/60 mt-1 text-xs'>
-              Add questions to this section
+              {readOnly
+                ? 'Questions are locked for this survey'
+                : 'Add questions to this section'}
             </p>
           </div>
         ) : (
@@ -198,6 +205,7 @@ export function SectionCard({
                     key={question.id}
                     question={question}
                     index={qIndex}
+                    readOnly={readOnly}
                     onUpdate={(data) => onUpdateQuestion(question.id, data)}
                     onDelete={() => onDeleteQuestion(question.id)}
                   />
@@ -207,43 +215,44 @@ export function SectionCard({
           </DndContext>
         )}
 
-        {/* Add question button */}
-        <div className='mt-3'>
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant='outline' size='sm' className='w-full border-dashed' />}>
-              <Icons.add className='mr-2 h-3.5 w-3.5' />
-              Add Question
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='start' className='w-56'>
-              {[
-                { type: 'short_text' as QuestionType, icon: 'text' },
-                { type: 'long_text' as QuestionType, icon: 'text' },
-                { type: 'single_choice' as QuestionType, icon: 'circle' },
-                { type: 'multiple_choice' as QuestionType, icon: 'check' },
-                { type: 'dropdown' as QuestionType, icon: 'chevronDown' },
-                { type: 'rating_scale' as QuestionType, icon: 'star' },
-                { type: 'number' as QuestionType, icon: 'code' },
-                { type: 'date' as QuestionType, icon: 'calendar' }
-              ].map(({ type, icon }) => {
-                const meta = getQuestionTypeMeta(type);
-                const IconComponent = Icons[icon as keyof typeof Icons];
-                return (
-                  <DropdownMenuItem
-                    key={type}
-                    onClick={() => onAddQuestion(type)}
-                    className='flex items-center gap-2'
-                  >
-                    {IconComponent && <IconComponent className='text-muted-foreground h-4 w-4' />}
-                    <div>
-                      <p className='text-sm font-medium'>{meta.label}</p>
-                      <p className='text-muted-foreground text-xs'>{meta.description}</p>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {!readOnly ? (
+          <div className='mt-3'>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant='outline' size='sm' className='w-full border-dashed' />}>
+                <Icons.add className='mr-2 h-3.5 w-3.5' />
+                Add Question
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='start' className='w-56'>
+                {[
+                  { type: 'short_text' as QuestionType, icon: 'text' },
+                  { type: 'long_text' as QuestionType, icon: 'text' },
+                  { type: 'single_choice' as QuestionType, icon: 'circle' },
+                  { type: 'multiple_choice' as QuestionType, icon: 'check' },
+                  { type: 'dropdown' as QuestionType, icon: 'chevronDown' },
+                  { type: 'rating_scale' as QuestionType, icon: 'star' },
+                  { type: 'number' as QuestionType, icon: 'code' },
+                  { type: 'date' as QuestionType, icon: 'calendar' }
+                ].map(({ type, icon }) => {
+                  const meta = getQuestionTypeMeta(type);
+                  const IconComponent = Icons[icon as keyof typeof Icons];
+                  return (
+                    <DropdownMenuItem
+                      key={type}
+                      onClick={() => onAddQuestion(type)}
+                      className='flex items-center gap-2'
+                    >
+                      {IconComponent && <IconComponent className='text-muted-foreground h-4 w-4' />}
+                      <div>
+                        <p className='text-sm font-medium'>{meta.label}</p>
+                        <p className='text-muted-foreground text-xs'>{meta.description}</p>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

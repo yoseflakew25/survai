@@ -135,7 +135,24 @@ async def test_plan_to_analytics_integrity(
     assert again.status_code == 400, again.text
     assert "already published" in again.json()["detail"].lower()
 
-    # 4) Questions + AI regenerate locked while published.
+    # 4) Questions + status unlock + AI regenerate locked while published.
+    unlock = await client.patch(
+        f"/api/v1/surveys/{survey_id}",
+        headers=headers,
+        json={"status": "draft"},
+    )
+    assert unlock.status_code == 400, unlock.text
+    assert "published" in unlock.json()["detail"].lower() or "status" in unlock.json()[
+        "detail"
+    ].lower()
+
+    anon = await client.patch(
+        f"/api/v1/surveys/{survey_id}",
+        headers=headers,
+        json={"anonymous_collection": True},
+    )
+    assert anon.status_code == 400, anon.text
+
     survey = await client.get(f"/api/v1/surveys/{survey_id}", headers=headers)
     content = next(
         s
