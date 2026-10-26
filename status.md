@@ -1,7 +1,8 @@
 # Codebase Progress — SurvAI / AI Survey Copilot
 
 > Living snapshot of what is implemented vs mock vs next.
-> Last updated: **25 October 2026** — live through **Plan → Reports** (grounded generation); binary DOCX/PDF and Redis ARQ still soft.
+> Last updated: **26 October 2026** — live through **Plan → Reports** (grounded
+> generation, chat, fpdf2 PDF, survey activity modal). DOCX + Redis ARQ still soft.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -35,6 +36,7 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **FE env:** `frontend/.env` → `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1` (use `localhost`, not `127.0.0.1`, for cookies).
 - **Pill nav:** Plan → Review → Collect → Respondents → Analytics → Report + **All surveys**.
 - **Survey hub:** removed — `/dashboard/surveys/[id]` redirects to `/plan`.
+- **Activity modal:** shared `SurveyActivityProvider` + instrument-style modal for long AI actions across survey tabs.
 
 ### Integrity guarantees (live)
 
@@ -43,6 +45,7 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - Collect / Respondents / Analytics all use `survey.current_version_id` (stable `/s/{survey_id}`).
 - Answer `question_id` has no FK to live draft questions (migration `0012`).
 - Reports store a frozen `metrics_snapshot`; narrative numbers must reconcile (§9).
+- Report UI surfaces `integrity.is_stale` when live responses diverge from the snapshot.
 
 ---
 
@@ -57,11 +60,11 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Collection:** publish / close / collect-stats; public GET + one-shot submit; identity section.
 - **Respondents:** list + detail scoped to current version.
 - **Analytics:** summary / query / crosstab via `app/analytics/engine.py` (deterministic); CSV export; saved analyses CRUD.
-- **Reports:** tables + `report_v1` / chat + §9 reconciliation; generate / patch / section regen / chat / export (markdown text fallback for docx/pdf).
+- **Reports:** tables + `report_v1` / compact `chat_v1` + §9 reconciliation; generate / patch / section regen / chat; **PDF via fpdf2** (`report_pdf.py`); DOCX still markdown text fallback.
 - **Jobs:** `app/jobs/` ARQ scaffold — inline when `REDIS_URL` empty.
 - **RBAC:** `system_admin` \| `organization`; startup `ensure_first_superuser()`.
 - **Alembic on Aiven:** through **`0013_reports`**.
-- Pytest: auth, plans, surveys, collection, reviewer, analytics engine, integrity chain, **report reconciliation**.
+- Pytest: auth, plans, surveys, collection, reviewer, analytics engine, integrity chain, **report reconciliation**, chat prompt, PDF.
 - Docker Compose, GH Actions `backend-ci` / `backend-cd`.
 
 **Run API locally:**
@@ -74,7 +77,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 3. Backend — not done yet
 
-- Binary DOCX/PDF via WeasyPrint / docxtpl (exports currently return text payloads).
+- Binary DOCX via docxtpl (PDF already ships as fpdf2 bytes; WeasyPrint path still optional).
 - Redis-backed ARQ worker in deploy (`REDIS_URL` + `arq app.jobs.worker.WorkerSettings`).
 - Multi-seat org roles; OpenAPI-typed FE client regeneration.
 
@@ -88,7 +91,8 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 - Collect (publish, QR, link); CTA → Respondents.
 - Respondents table + detail sheet; brand CTA → Analytics.
 - Analytics dashboard (summary, distributions, crosstabs, CSV export).
-- **Reports** generate / edit / chat / export wired to live API.
+- **Reports** generate / edit / grounded chat / Save as PDF wired to live API; stale-snapshot banner.
+- Shared survey activity modal (page loads + long AI actions).
 - BLD-04 pending conditional-logic confirm banner in question editor.
 - Pill nav + All surveys; survey detail redirects to Plan.
 - Forms: RHF + Zod; TanStack Query for feature data.
@@ -98,7 +102,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 5. Frontend — still soft / gaps
 
-- Report DOCX/PDF downloads are text fallbacks until binary renderers ship.
+- Report DOCX export remains a text/markdown fallback until docxtpl ships.
 - Better Auth UX layer not required for security (JWT cookies are the model).
 - Full Playwright path (publish → submit → analytics → report) needs staging credentials.
 
@@ -106,7 +110,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 6. Known next (priority)
 
-1. Wire WeasyPrint/docxtpl for real DOCX/PDF bytes.
+1. Wire docxtpl for real DOCX bytes (PDF already live via fpdf2).
 2. Provision Redis and run ARQ worker for long AI/export jobs.
 3. Expand Playwright smoke with publish → submit → report happy path.
 4. Multi-seat org roles when needed.
@@ -115,9 +119,9 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 7. Files that matter
 
-**Backend:** `app/main.py`, `api/v1/routes/{auth,plans,surveys,public_collection,reviewer_findings,reports}.py`, `services/{auth,plan,survey,collection,respondents,analytics,reviewer,report,email}.py`, `analytics/engine.py`, `ai/{client,schemas,reconciliation,prompts/*,services/*}`, `jobs/*`, `models/*`, `alembic/versions/0001`–`0013`, `tests/test_integrity_chain.py`, `tests/test_report_reconciliation.py`
+**Backend:** `app/main.py`, `api/v1/routes/{auth,plans,surveys,public_collection,reviewer_findings,reports}.py`, `services/{auth,plan,survey,collection,respondents,analytics,reviewer,report,report_pdf,email}.py`, `analytics/engine.py`, `ai/{client,schemas,reconciliation,prompts/*,services/*}`, `jobs/*`, `models/*`, `alembic/versions/0001`–`0013`, `tests/test_integrity_chain.py`, `tests/test_report_reconciliation.py`, `tests/test_report_chat_prompt.py`, `tests/test_report_pdf.py`
 
-**Frontend:** `lib/auth-context.tsx`, `lib/api.ts`, `features/{plans,builder,reviewer,collect,collection,respondents,analytics,reports,surveys}/**`, `components/survai-panel.tsx`, `features/surveys/components/survey-pill-nav.tsx`, `e2e/smoke.spec.ts`
+**Frontend:** `lib/auth-context.tsx`, `lib/api.ts`, `features/{plans,builder,reviewer,collect,collection,respondents,analytics,reports,surveys}/**`, `components/survai-panel.tsx`, `features/surveys/components/survey-pill-nav.tsx`, `features/surveys/components/survey-activity-*.tsx`, `e2e/smoke.spec.ts`
 
 ---
 

@@ -1141,8 +1141,8 @@ Current UI reality is tracked in `status.md`. Stack enforcements are in **§2a**
   → Reports.
 - **Respondents.** Live API table + detail sheet; brand CTA to analytics.
 - **Live vs mock.** Auth, plans, builder, review, collect, respondents,
-  analytics, and **Reports** (generate/chat/export) are live. DOCX/PDF still
-  download as text fallbacks until WeasyPrint/docxtpl. Wire new data with
+  analytics, and **Reports** (generate/chat/PDF) are live. PDF ships via
+  fpdf2; DOCX remains a markdown fallback until docxtpl. Wire new data with
   `api/types → service → queries` + TanStack Query.
 - **Gemini models.** Prefer `gemini-3.1-flash-lite` for structured JSON
   (planner/builder/reviewer). `gemini-3.8-flash` has been observed to hang on
@@ -1248,10 +1248,11 @@ conflicts, **§2a wins**.
 
 ---
 
-## 23. Implementation Status (as of 25 October 2026)
+## 23. Implementation Status (as of 26 October 2026)
 
 > Tracks frontend + backend. **Plan → Reports is live end-to-end** (grounded
-> narrative + chat). Binary DOCX/PDF and Redis ARQ remain soft. See `status.md`.
+> narrative, chat, fpdf2 PDF, activity modal). DOCX + Redis ARQ remain soft.
+> See `status.md`.
 
 ### ✅ Completed — Backend (`backend/`)
 
@@ -1266,12 +1267,12 @@ conflicts, **§2a wins**.
 | **Collection** | ✅ Done | publish/close; `survey_versions`; public GET/submit; Alembic `0011`–`0012` |
 | **Respondents** | ✅ Done | list + detail scoped to `current_version_id` |
 | **Analytics engine** | ✅ Done | summary / query / crosstab / CSV export / saved analyses |
-| **Reports + §9** | ✅ Done | Alembic `0013`; `report_v1` + chat; reconciliation; text export fallback |
+| **Reports + §9** | ✅ Done | Alembic `0013`; `report_v1` + compact chat; reconciliation; **PDF via fpdf2**; DOCX = markdown fallback |
 | **ARQ scaffold** | ✅ Soft | `app/jobs/` — inline when `REDIS_URL` empty |
 | **Integrity locks** | ✅ Done | 1:1 plan↔survey; plan lock; publish-once; question lock; no silent version fallback |
 | **RBAC (MVP)** | ✅ Done | `system_admin` \| `organization`; `FIRST_SUPERUSER_*` seed |
 | **Postgres** | ✅ Dev live | Aiven; Alembic through **`0013_reports`** |
-| **Tests / CI** | ✅ Done | Pytest incl. integrity + report reconciliation; GH Actions |
+| **Tests / CI** | ✅ Done | Pytest incl. integrity, report reconciliation, chat prompt, PDF; GH Actions |
 
 ### ✅ Completed — Frontend
 
@@ -1280,7 +1281,8 @@ conflicts, **§2a wins**.
 | **Auth UI** | ✅ Done | Email/password + OTP; Google OAuth remnants removed |
 | **Plans / Builder / Review** | ✅ Live API | Generate, edit, AI review, locks when published |
 | **Collect / Respondents / Analytics** | ✅ Live API | Publish + QR; respondents; charts/crosstabs/CSV |
-| **Reports workspace** | ✅ Live API | Generate, edit, grounded chat, export downloads |
+| **Reports workspace** | ✅ Live API | Generate, edit, grounded chat, Save as PDF, stale-snapshot banner |
+| **Survey activity modal** | ✅ Done | Shared instrument modal for long AI / page-load actions |
 | **BLD-04 confirm UX** | ✅ Done | Pending skip-logic banner in question editor |
 | **Pill nav** | ✅ Done | Plan→Report + All surveys; hub page redirects to Plan |
 | **Forms / Query stack** | ✅ Done | RHF+Zod; TanStack Query |
@@ -1290,7 +1292,7 @@ conflicts, **§2a wins**.
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **Binary DOCX/PDF** | Soft | WeasyPrint / docxtpl (text fallback ships today) |
+| **DOCX export** | Soft | docxtpl (PDF already ships via fpdf2) |
 | **Redis ARQ worker** | Soft | Provision `REDIS_URL`; run `arq app.jobs.worker.WorkerSettings` |
 | **Full E2E path** | Soft | Publish → submit → analytics → report with staging creds |
 
@@ -1367,7 +1369,7 @@ frontend/src/
    Sections + questions; inline edit; Back to Surveys
 
 5. Collect → Analytics → Report
-   Publish/link · charts · grounded report chat (UI mock until APIs)
+   Publish/link · charts · grounded report generate/edit/chat/PDF
 ```
 
 ### Styling System
@@ -1387,9 +1389,10 @@ frontend/src/
 | --- | --- | --- |
 | Done | Grounded Reports + FE wire-up | RPT-01–03, §9 |
 | Done | Report chat (grounded) | RPT-04 |
+| Done | Report PDF export (fpdf2) | RPT-06 (PDF) |
 | Done | Analytics CSV + saved analyses | ANL-05–06 |
 | Done | BLD-04 pending conditional confirm UX | BLD-04 |
 | Done | OAuth remnant cleanup | — |
-| Soft | Binary DOCX/PDF (WeasyPrint/docxtpl) | RPT-06, §13 |
+| Soft | DOCX export (docxtpl) | RPT-06, §13 |
 | Soft | Redis ARQ worker in deploy | §14 |
 | Soft | Playwright full publish→report path | §19 |
