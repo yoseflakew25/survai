@@ -267,7 +267,7 @@ export async function sendReportChat(
 
 export async function exportReport(
   reportId: string,
-  type: 'pdf' | 'docx' | 'markdown' = 'pdf'
+  type: 'pdf' | 'markdown' = 'pdf'
 ): Promise<ExportResult> {
   const res = await apiFetch(`/reports/${reportId}/export`, {
     method: 'POST',
@@ -310,22 +310,4 @@ export async function downloadReportPdf(
     result.mimeType ?? 'application/pdf'
   );
   triggerDownload(result.filename ?? `${safe}.pdf`, blob);
-}
-
-/** Download the grounded report as a Word (.docx) file. */
-export async function downloadReportDocx(
-  reportId: string,
-  title: string
-): Promise<void> {
-  const result = await exportReport(reportId, 'docx');
-  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
-  if (!result.contentBase64) {
-    throw new Error('DOCX export returned no file data');
-  }
-  const blob = base64ToBlob(
-    result.contentBase64,
-    result.mimeType ??
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  );
-  triggerDownload(result.filename ?? `${safe}.docx`, blob);
 }
