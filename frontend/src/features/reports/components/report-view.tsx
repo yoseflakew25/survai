@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { reportChatOptions, reportKeys, reportOptions } from '../api/queries';
 import {
+  downloadReportDocx,
   downloadReportPdf,
   generateReport,
   regenerateReportSection,
@@ -351,6 +352,24 @@ export function ReportView({ surveyId }: ReportViewProps) {
       toast.error('PDF export failed', {
         description:
           err instanceof Error ? err.message : 'Could not save as PDF.'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [report]);
+
+  const handleSaveDocx = useCallback(async () => {
+    if (!report) return;
+    setIsExporting(true);
+    try {
+      await downloadReportDocx(report.id, report.title);
+      toast.success('Word saved', {
+        description: 'Your report downloaded as a .docx file.'
+      });
+    } catch (err) {
+      toast.error('DOCX export failed', {
+        description:
+          err instanceof Error ? err.message : 'Could not save as Word.'
       });
     } finally {
       setIsExporting(false);
@@ -898,6 +917,19 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   <Icons.fileTypePdf className='mr-2 size-4' />
                 )}
                 save as pdf
+              </Button>
+              <Button
+                disabled={isExporting || !report}
+                variant='outline'
+                onClick={() => void handleSaveDocx()}
+                className='h-10 w-full rounded-xl'
+              >
+                {isExporting ? (
+                  <Icons.spinner className='mr-2 size-4 animate-spin' />
+                ) : (
+                  <Icons.page className='mr-2 size-4' />
+                )}
+                save as word
               </Button>
               <Button
                 disabled={isGenerating || !!regeneratingId}

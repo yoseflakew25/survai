@@ -2,7 +2,7 @@
 
 > Living snapshot of what is implemented vs mock vs next.
 > Last updated: **26 October 2026** — live through **Plan → Reports** (grounded
-> generation, chat, fpdf2 PDF, survey activity modal). DOCX + Redis ARQ still soft.
+> generation, chat, fpdf2 PDF, OOXML DOCX, survey activity modal). Redis ARQ still soft.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -60,7 +60,7 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Collection:** publish / close / collect-stats; public GET + one-shot submit; identity section.
 - **Respondents:** list + detail scoped to current version.
 - **Analytics:** summary / query / crosstab via `app/analytics/engine.py` (deterministic); CSV export; saved analyses CRUD.
-- **Reports:** tables + `report_v1` / compact `chat_v1` + §9 reconciliation; generate / patch / section regen / chat; **PDF via fpdf2** (`report_pdf.py`); DOCX still markdown text fallback.
+- **Reports:** tables + `report_v1` / compact `chat_v1` + §9 reconciliation; generate / patch / section regen / chat; **PDF via fpdf2** (`report_pdf.py`); **DOCX via OOXML** (`report_docx.py`).
 - **Jobs:** `app/jobs/` ARQ scaffold — inline when `REDIS_URL` empty.
 - **RBAC:** `system_admin` \| `organization`; startup `ensure_first_superuser()`.
 - **Alembic on Aiven:** through **`0013_reports`**.
@@ -77,9 +77,9 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 3. Backend — not done yet
 
-- Binary DOCX via docxtpl (PDF already ships as fpdf2 bytes; WeasyPrint path still optional).
 - Redis-backed ARQ worker in deploy (`REDIS_URL` + `arq app.jobs.worker.WorkerSettings`).
 - Multi-seat org roles; OpenAPI-typed FE client regeneration.
+- Optional: WeasyPrint/docxtpl branded templates if donor layout needs rise above current PDF/DOCX.
 
 ---
 
@@ -91,7 +91,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 - Collect (publish, QR, link); CTA → Respondents.
 - Respondents table + detail sheet; brand CTA → Analytics.
 - Analytics dashboard (summary, distributions, crosstabs, CSV export).
-- **Reports** generate / edit / grounded chat / Save as PDF wired to live API; stale-snapshot banner.
+- **Reports** generate / edit / grounded chat / Save as PDF + Word wired to live API; stale-snapshot banner.
 - Shared survey activity modal (page loads + long AI actions).
 - BLD-04 pending conditional-logic confirm banner in question editor.
 - Pill nav + All surveys; survey detail redirects to Plan.
@@ -102,7 +102,6 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 5. Frontend — still soft / gaps
 
-- Report DOCX export remains a text/markdown fallback until docxtpl ships.
 - Better Auth UX layer not required for security (JWT cookies are the model).
 - Full Playwright path (publish → submit → analytics → report) needs staging credentials.
 
@@ -110,16 +109,15 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 6. Known next (priority)
 
-1. Wire docxtpl for real DOCX bytes (PDF already live via fpdf2).
-2. Provision Redis and run ARQ worker for long AI/export jobs.
-3. Expand Playwright smoke with publish → submit → report happy path.
-4. Multi-seat org roles when needed.
+1. Provision Redis and run ARQ worker for long AI/export jobs.
+2. Expand Playwright smoke with publish → submit → report happy path.
+3. Multi-seat org roles when needed.
 
 ---
 
 ## 7. Files that matter
 
-**Backend:** `app/main.py`, `api/v1/routes/{auth,plans,surveys,public_collection,reviewer_findings,reports}.py`, `services/{auth,plan,survey,collection,respondents,analytics,reviewer,report,report_pdf,email}.py`, `analytics/engine.py`, `ai/{client,schemas,reconciliation,prompts/*,services/*}`, `jobs/*`, `models/*`, `alembic/versions/0001`–`0013`, `tests/test_integrity_chain.py`, `tests/test_report_reconciliation.py`, `tests/test_report_chat_prompt.py`, `tests/test_report_pdf.py`
+**Backend:** `app/main.py`, `api/v1/routes/{auth,plans,surveys,public_collection,reviewer_findings,reports}.py`, `services/{auth,plan,survey,collection,respondents,analytics,reviewer,report,report_pdf,report_docx,email}.py`, `analytics/engine.py`, `ai/{client,schemas,reconciliation,prompts/*,services/*}`, `jobs/*`, `models/*`, `alembic/versions/0001`–`0013`, `tests/test_integrity_chain.py`, `tests/test_report_reconciliation.py`, `tests/test_report_chat_prompt.py`, `tests/test_report_pdf.py`, `tests/test_report_docx.py`
 
 **Frontend:** `lib/auth-context.tsx`, `lib/api.ts`, `features/{plans,builder,reviewer,collect,collection,respondents,analytics,reports,surveys}/**`, `components/survai-panel.tsx`, `features/surveys/components/survey-pill-nav.tsx`, `features/surveys/components/survey-activity-*.tsx`, `e2e/smoke.spec.ts`
 

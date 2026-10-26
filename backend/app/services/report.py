@@ -57,6 +57,7 @@ from app.schemas.report import (
     SavedAnalysisPublic,
 )
 from app.services.analytics import AnalyticsService
+from app.services.report_docx import build_report_docx
 from app.services.report_pdf import build_report_pdf
 
 logger = logging.getLogger(__name__)
@@ -417,20 +418,37 @@ class ReportService:
         mime: str | None = None
         content_text: str | None = md
 
+        generated_label = (
+            report.created_at.strftime("%d %b %Y") if report.created_at else None
+        )
+        sections = list(report.sections or [])
+
         if body.type == "pdf":
             pdf_bytes = build_report_pdf(
                 title=report.title,
                 survey_title=survey_title,
-                sections=list(report.sections or []),
-                generated_label=report.created_at.strftime("%d %b %Y")
-                if report.created_at
-                else None,
+                sections=sections,
+                generated_label=generated_label,
             )
             content_b64 = base64.b64encode(pdf_bytes).decode("ascii")
             filename = f"{safe_name}.pdf"
             mime = "application/pdf"
             # Keep a short note in content_text for audit; binary lives in base64.
             content_text = f"PDF export ({len(pdf_bytes)} bytes)"
+        elif body.type == "docx":
+            docx_bytes = build_report_docx(
+                title=report.title,
+                survey_title=survey_title,
+                sections=sections,
+                generated_label=generated_label,
+            )
+            content_b64 = base64.b64encode(docx_bytes).decode("ascii")
+            filename = f"{safe_name}.docx"
+            mime = (
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            )
+            content_text = f"DOCX export ({len(docx_bytes)} bytes)"
         else:
             filename = f"{safe_name}.md"
             mime = "text/markdown;charset=utf-8"
