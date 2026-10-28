@@ -34,6 +34,21 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://survai:survai@localhost:5432/survai",
         description="Async SQLAlchemy URL (use postgresql+asyncpg://…)",
     )
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: object) -> object:
+        """Railway/Neon often give postgres:// or postgresql:// — asyncpg needs +asyncpg."""
+        if not isinstance(value, str) or not value:
+            return value
+        url = value.strip()
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[len("postgres://") :]
+        if url.startswith("postgresql://") and not url.startswith(
+            "postgresql+asyncpg://"
+        ):
+            url = "postgresql+asyncpg://" + url[len("postgresql://") :]
+        return url
     # Required for managed providers (Aiven, Neon, etc.)
     database_ssl: bool = False
     # Optional path to provider CA PEM (Aiven “CA certificate”). If unset with

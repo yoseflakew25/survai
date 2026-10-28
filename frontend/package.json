@@ -7,9 +7,9 @@
     "url": "https://github.com/Kiranism"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node init && next dev",
+    "build": "node init && next build",
+    "start": "node init && next start",
     "cleanup": "node scripts/cleanup.js",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
