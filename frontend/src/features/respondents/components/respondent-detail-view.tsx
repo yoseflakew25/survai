@@ -125,7 +125,7 @@ export function RespondentDetailView({
     return (
       <div className='flex flex-col'>
         {/* Brand header strip */}
-        <header className='relative overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand'>
+        <header className='relative overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_85%,var(--border))] bg-brand'>
           <div
             className='pointer-events-none absolute inset-0 opacity-40'
             aria-hidden
@@ -140,14 +140,12 @@ export function RespondentDetailView({
             }}
           />
           <div className='relative px-4 pt-4 pr-12 pb-4 sm:px-5'>
-            <div className='flex items-center gap-3'>
-              <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground font-mono text-xs font-bold tracking-wide text-background uppercase shadow-sm'>
-                {initialsFromName(detail.name)}
-              </div>
+            <div className='flex items-center justify-between gap-3'>
+            
 
               <div className='min-w-0 flex-1'>
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-                  <h1 className='font-display truncate text-lg font-extrabold tracking-tight text-foreground'>
+                  <h1 className='font-display truncate text-2xl font-extrabold tracking-tight text-foreground'>
                     {detail.name}
                   </h1>
                   <Badge
@@ -173,20 +171,17 @@ export function RespondentDetailView({
                   {surveyLabel}
                 </p>
               </div>
-            </div>
 
-            <dl className='mt-4 grid grid-cols-3 gap-2'>
+
+
+
+              <dl className='mt-4 grid grid-cols-3 gap-2'>
               <MetaStat
                 icon={<Icons.calendar className='size-3' />}
                 label='Submitted'
                 value={formatDateTime(detail.submittedAt)}
               />
-              <MetaStat
-                icon={<Icons.clock className='size-3' />}
-                label='Duration'
-                value={formatDuration(detail.durationSeconds)}
-                mono
-              />
+              
               <MetaStat
                 icon={<Icons.check className='size-3' />}
                 label='Answered'
@@ -194,6 +189,9 @@ export function RespondentDetailView({
                 mono
               />
             </dl>
+            </div>
+
+          
           </div>
 
           <div className='relative flex items-center gap-3 border-t border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_6%,transparent)] px-4 py-2.5 sm:px-5'>

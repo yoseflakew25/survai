@@ -99,7 +99,7 @@ class ExportPublic(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    type: Literal["pdf", "markdown"] = "pdf"
+    type: Literal["pdf", "docx", "markdown"] = "pdf"
 
 
 class SavedAnalysisPublic(BaseModel):

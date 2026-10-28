@@ -172,7 +172,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
       });
       toast.success(report ? 'Report regenerated' : 'Report generated', {
         description: report
-          ? 'Rewrote the full report from the current metrics snapshot.'
+          ? 'Rewrote the full report from the latest metrics snapshot.'
           : 'AI drafted a grounded report from your metrics snapshot.'
       });
     } catch (err) {
@@ -421,8 +421,49 @@ export function ReportView({ surveyId }: ReportViewProps) {
     (editingSection.title !== draftSection.title ||
       editingSection.content !== draftSection.content);
 
+  const isStale = report.integrity.isStale;
+  const snapshotCount = report.integrity.snapshotResponseCount;
+  const liveCount = report.integrity.liveResponseCount;
+
   return (
     <div className='space-y-5'>
+      {isStale ? (
+        <div
+          className='flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+          role='status'
+        >
+          <div className='flex min-w-0 items-start gap-2.5'>
+            <Icons.warning className='mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400' />
+            <div className='min-w-0'>
+              <p className='text-sm font-semibold tracking-tight'>
+                Report snapshot is stale
+              </p>
+              <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
+                New responses arrived after this report was generated
+                {liveCount != null
+                  ? ` (${snapshotCount} → ${liveCount} responses)`
+                  : ''}
+                . Numbers in the narrative still match the frozen metrics —
+                regenerate to refresh from the latest analytics.
+              </p>
+            </div>
+          </div>
+          <Button
+            size='sm'
+            className={cn(brandCtaClass, 'h-9 shrink-0 px-3 text-xs')}
+            disabled={isGenerating || !!regeneratingId}
+            onClick={() => void handleGenerateReport()}
+          >
+            {isGenerating ? (
+              <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+            ) : (
+              <Icons.sparkles className='mr-1.5 size-3.5' />
+            )}
+            Regenerate from latest
+          </Button>
+        </div>
+      ) : null}
+
       <div className='grid gap-6 lg:grid-cols-3'>
         <div className='space-y-4 lg:col-span-2'>
           <SurvaiPanel>

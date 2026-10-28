@@ -1,0 +1,48 @@
+# Aiven Runtime manifest — select this file when deploying from GitHub.
+# Docs: https://aiven.io/docs/products/runtime/manifest-files/compose-files
+#
+# Aiven replaces `postgres-db` with managed Aiven for PostgreSQL and injects
+# real DATABASE_URL credentials. App image is built from ./Dockerfile.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres-db
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      APP_NAME: SurvAI API
+      # Placeholder — Aiven overwrites with the managed PG connection string.
+      DATABASE_URL: postgresql://survai:survai@postgres-db:5432/survai
+      DATABASE_SSL: "true"
+      DATABASE_POOL_SIZE: "5"
+      DATABASE_MAX_OVERFLOW: "5"
+      # Set real values in Aiven Console → application env after first deploy:
+      CORS_ORIGINS: https://REPLACE_WITH_VERCEL_URL
+      FRONTEND_URL: https://REPLACE_WITH_VERCEL_URL
+      JWT_SECRET_KEY: REPLACE_WITH_OPENSSL_RAND_HEX_32
+      COOKIE_SECURE: "true"
+      COOKIE_SAMESITE: none
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "14"
+      GEMINI_API_KEY: REPLACE_ME
+      RESEND_API_KEY: ""
+      EMAILS_FROM_EMAIL: onboarding@resend.dev
+      EMAILS_FROM_NAME: SurvAI
+      FIRST_SUPERUSER_EMAIL: admin@example.com
+      FIRST_SUPERUSER_PASSWORD: REPLACE_WITH_STRONG_PASSWORD
+      FIRST_SUPERUSER_FULL_NAME: SurvAI Admin
+      FIRST_SUPERUSER_ORGANIZATION_NAME: SurvAI
+
+  # Detected as Aiven for PostgreSQL (standard image only).
+  postgres-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: survai
+      POSTGRES_PASSWORD: survai
+      POSTGRES_DB: survai
