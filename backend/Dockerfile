@@ -17,6 +17,10 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+RUN chmod +x scripts/start.sh
+
+# Aiven Runtime / most hosts: EXPOSE is used for port detection.
+# Some platforms inject PORT; start.sh defaults to 8000.
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./scripts/start.sh"]
