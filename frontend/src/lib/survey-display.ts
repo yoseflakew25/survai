@@ -11,11 +11,11 @@ export function parseSurveyDisplayLabel(raw: string): {
   if (!text) return { title: 'Survey', description: null };
 
   const titleMatch = text.match(
-    /Survey\s*title:\s*(.+?)(?=\s+Description:|$)/is
+    /Survey\s*title:\s*([\s\S]+?)(?=\s+Description:|$)/i
   );
   if (titleMatch) {
     const title = titleMatch[1].replace(/\s+/g, ' ').trim();
-    const descMatch = text.match(/Description:\s*(.+?)(?=\n\n|$)/is);
+    const descMatch = text.match(/Description:\s*([\s\S]+?)(?=\n\n|$)/i);
     const description = descMatch?.[1]?.replace(/\s+/g, ' ').trim() || null;
     return { title: title || text, description };
   }
