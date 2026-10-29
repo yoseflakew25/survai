@@ -77,6 +77,7 @@ class SurveyPublic(BaseModel):
     # Populated on list endpoints so we can skip loading the full tree.
     sections_count: int | None = None
     questions_count: int | None = None
+    responses_count: int | None = None
     created_at: datetime
     updated_at: datetime
 

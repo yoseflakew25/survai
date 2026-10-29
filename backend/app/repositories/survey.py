@@ -57,6 +57,24 @@ class SurveyRepository(BaseRepository[Survey]):
             row[0]: (int(row[1]), int(row[2])) for row in result.all()
         }
 
+    async def completed_response_counts(
+        self, *, survey_ids: list[UUID]
+    ) -> dict[UUID, int]:
+        """survey_id → completed respondent count."""
+        if not survey_ids:
+            return {}
+        from app.models.collection import Respondent
+
+        result = await self.session.execute(
+            select(Respondent.survey_id, func.count())
+            .where(
+                Respondent.survey_id.in_(survey_ids),
+                Respondent.completed_at.is_not(None),
+            )
+            .group_by(Respondent.survey_id)
+        )
+        return {row[0]: int(row[1]) for row in result.all()}
+
     async def get_for_org_meta(
         self, *, survey_id: UUID, organization_id: UUID
     ) -> Survey | None:

@@ -143,6 +143,7 @@ def _survey_public(
     *,
     sections_count: int | None = None,
     questions_count: int | None = None,
+    responses_count: int | None = None,
     include_tree: bool = True,
 ) -> SurveyPublic:
     sections = (
@@ -167,6 +168,7 @@ def _survey_public(
         sections=[_section_public(s) for s in sections],
         sections_count=sections_count,
         questions_count=questions_count,
+        responses_count=responses_count,
         created_at=survey.created_at,
         updated_at=survey.updated_at,
     )
@@ -260,9 +262,9 @@ class SurveyService:
             organization_id=user.organization_id, with_tree=False
         )
         total = await self.surveys.count_for_org(organization_id=user.organization_id)
-        counts = await self.surveys.section_question_counts(
-            survey_ids=[s.id for s in rows]
-        )
+        survey_ids = [s.id for s in rows]
+        counts = await self.surveys.section_question_counts(survey_ids=survey_ids)
+        responses = await self.surveys.completed_response_counts(survey_ids=survey_ids)
         return SurveyListResponse(
             surveys=[
                 _survey_public(
@@ -270,6 +272,7 @@ class SurveyService:
                     include_tree=False,
                     sections_count=counts.get(s.id, (0, 0))[0],
                     questions_count=counts.get(s.id, (0, 0))[1],
+                    responses_count=responses.get(s.id, 0),
                 )
                 for s in rows
             ],

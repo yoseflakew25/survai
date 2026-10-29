@@ -27,6 +27,7 @@ type ApiSurvey = {
   sections?: ApiSection[];
   sections_count?: number | null;
   questions_count?: number | null;
+  responses_count?: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -55,8 +56,7 @@ function mapListItem(s: ApiSurvey): SurveyListItem {
     status: s.status,
     sectionsCount: s.sections_count ?? sections.length,
     questionsCount: s.questions_count ?? questionsFromTree,
-    // Collection / analytics not wired yet (Phase 5+)
-    responsesCount: 0,
+    responsesCount: s.responses_count ?? 0,
     completionRate: null,
     lastResponseAt: null,
     createdAt: s.created_at,
