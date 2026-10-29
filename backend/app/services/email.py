@@ -76,15 +76,16 @@ def _attach_logo(message: EmailMessage) -> None:
 
 async def send_email(*, to_email: str, subject: str, html_body: str, text_body: str) -> None:
     settings = get_settings()
+    from_email = f"{settings.emails_from_name} <{settings.emails_from_email}>"
     message = EmailMessage()
-    message["From"] = f"{settings.emails_from_name} <{settings.emails_from_email}>"
+    message["From"] = from_email
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")
     _attach_logo(message)
 
-    # Prefer SMTP when enabled (e.g. Gmail system-admin mailbox).
+    # SMTP first when enabled (Gmail app password, Brevo, etc.).
     if settings.smtp_enabled and _smtp_password(settings):
         await _send_via_smtp(message, settings=settings)
         return
@@ -97,7 +98,7 @@ async def send_email(*, to_email: str, subject: str, html_body: str, text_body: 
             subject=subject,
             html_body=html_body,
             text_body=text_body,
-            from_email=f"{settings.emails_from_name} <{settings.emails_from_email}>",
+            from_email=from_email,
         )
         return
 
@@ -175,6 +176,7 @@ async def _send_via_smtp(message: EmailMessage, *, settings) -> None:
             password=_smtp_password(settings) or None,
             use_tls=use_tls,
             start_tls=start_tls,
+            timeout=20,
         )
         logger.info("Email sent via SMTP to %s", message["To"])
     except Exception as exc:
