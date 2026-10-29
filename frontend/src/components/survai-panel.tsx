@@ -52,7 +52,7 @@ export function SurvaiPanelHeader({
         className
       )}
     >
-      <div className='flex items-center gap-3'>
+      <div className='flex flex-wrap items-center gap-3'>
         {icon ? (
           <div
             className={cn(
@@ -65,7 +65,7 @@ export function SurvaiPanelHeader({
             {icon}
           </div>
         ) : null}
-        <div className='min-w-0 flex-1'>
+        <div className='min-w-0 flex-1 basis-[12rem]'>
           {typeof title === 'string' ? (
             <h3 className='font-display text-lg font-bold tracking-tight text-foreground'>
               {title}
@@ -80,7 +80,11 @@ export function SurvaiPanelHeader({
           ) : null}
         </div>
         {badge ? <div className='shrink-0'>{badge}</div> : null}
-        {actions ? <div className='ml-auto shrink-0'>{actions}</div> : null}
+        {actions ? (
+          <div className='ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2'>
+            {actions}
+          </div>
+        ) : null}
       </div>
     </div>
   );

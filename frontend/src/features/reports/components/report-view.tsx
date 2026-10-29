@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import {
   SurvaiPanel,
   SurvaiPanelBody,
@@ -504,7 +503,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
               }
               actions={
                 editingTitle ? (
-                  <div className='flex items-center gap-1.5'>
+                  <>
                     <Button
                       size='sm'
                       className={cn(brandCtaClass, 'h-8 px-3 text-xs')}
@@ -530,24 +529,52 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     >
                       Cancel
                     </Button>
-                  </div>
+                  </>
                 ) : (
-                  <Button
-                    variant='ghost'
-                    size='icon-sm'
-                    className='rounded-lg'
-                    aria-label='Edit report title'
-                    onClick={() => {
-                      setTitleDraft(reportTitle);
-                      setEditingTitle(true);
-                    }}
-                  >
-                    <Icons.edit className='h-3.5 w-3.5' />
-                  </Button>
+                  <>
+                    <Button
+                      size='sm'
+                      disabled={isExporting || !report}
+                      onClick={() => void handleSavePdf()}
+                      className={cn(brandCtaClass, 'h-8 px-3 text-xs')}
+                    >
+                      {isExporting ? (
+                        <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+                      ) : (
+                        <Icons.fileTypePdf className='mr-1.5 size-3.5' />
+                      )}
+                      save as pdf
+                    </Button>
+                    <Button
+                      size='sm'
+                      disabled={isGenerating || !!regeneratingId}
+                      onClick={() => void handleGenerateReport()}
+                      className='h-8 rounded-xl bg-black px-3 text-xs text-white hover:bg-black/90 hover:text-white'
+                    >
+                      {isGenerating ? (
+                        <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+                      ) : (
+                        <Icons.sparkles className='mr-1.5 size-3.5' />
+                      )}
+                      regenerate
+                    </Button>
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      className='rounded-lg'
+                      aria-label='Edit report title'
+                      onClick={() => {
+                        setTitleDraft(reportTitle);
+                        setEditingTitle(true);
+                      }}
+                    >
+                      <Icons.edit className='h-3.5 w-3.5' />
+                    </Button>
+                  </>
                 )
               }
             />
-            <SurvaiPanelBody className='space-y-3'>
+            <SurvaiPanelBody>
               <div className='text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs'>
                 <span className='flex items-center gap-1.5'>
                   <Icons.calendar className='h-3.5 w-3.5' />
@@ -565,7 +592,6 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   ver {report.surveyVersionId.slice(0, 8)}
                 </span>
               </div>
-        
             </SurvaiPanelBody>
           </SurvaiPanel>
 
@@ -883,52 +909,6 @@ export function ReportView({ surveyId }: ReportViewProps) {
                 </Button>
               </div>
             </div>
-          </SurvaiPanel>
-
-          <SurvaiPanel>
-            <SurvaiPanelBody className='space-y-3'>
-              <Button
-                disabled={isExporting || !report}
-                onClick={() => void handleSavePdf()}
-                className={cn(brandCtaClass, 'w-full')}
-              >
-                {isExporting ? (
-                  <Icons.spinner className='mr-2 size-4 animate-spin' />
-                ) : (
-                  <Icons.fileTypePdf className='mr-2 size-4' />
-                )}
-                save as pdf
-              </Button>
-              <Button
-                disabled={isGenerating || !!regeneratingId}
-                onClick={() => void handleGenerateReport()}
-                className='h-10 w-full rounded-xl bg-black text-white hover:bg-black/90 hover:text-white'
-              >
-                {isGenerating ? (
-                  <Icons.spinner className='mr-1.5 size-4 animate-spin' />
-                ) : (
-                  <Icons.sparkles className='mr-1.5 size-4' />
-                )}
-                regenerate
-              </Button>
-
-              <Separator />
-
-              <div className='space-y-0.5'>
-                <Link
-                  href={`/dashboard/surveys/${surveyId}/analytics`}
-                  className='group flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-muted/70'
-                >
-                  <span className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-foreground'>
-                    <Icons.analytics className='size-4' />
-                  </span>
-                  <span className='min-w-0 flex-1 truncate text-sm font-medium'>
-                    View Analytics
-                  </span>
-                  <Icons.arrowRight className='text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5' />
-                </Link>
-              </div>
-            </SurvaiPanelBody>
           </SurvaiPanel>
         </div>
       </div>
