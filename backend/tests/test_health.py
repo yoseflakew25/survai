@@ -10,6 +10,12 @@ async def test_health(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_health_head(client: AsyncClient) -> None:
+    response = await client.head("/api/v1/health")
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_root(client: AsyncClient) -> None:
     response = await client.get("/")
     assert response.status_code == 200
