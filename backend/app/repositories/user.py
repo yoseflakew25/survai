@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -29,3 +29,11 @@ class UserRepository(BaseRepository[User]):
             .where(User.email == email.lower().strip())
         )
         return result.scalar_one_or_none()
+
+    async def count_by_organization(self, organization_id: UUID) -> int:
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(User)
+            .where(User.organization_id == organization_id)
+        )
+        return int(result.scalar_one())

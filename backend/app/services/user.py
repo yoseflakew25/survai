@@ -79,17 +79,18 @@ class UserService:
         await self.users.session.commit()
 
     async def delete_me(self, user: User) -> None:
-        """Delete the org account login. Org row is kept if other users exist (MVP: 1:1)."""
+        """Delete this login. Remove the org only when no other members remain."""
         current = await self.get(user.id)
         org_id = current.organization_id
         await self.refresh_tokens.revoke_all_for_user(current.id)
         await self.users.session.delete(current)
         await self.users.session.flush()
         if org_id is not None:
-            # MVP 1:1 — remove the organization workspace too
-            org = await self.organizations.get_by_id(org_id)
-            if org is not None:
-                await self.users.session.delete(org)
+            remaining = await self.users.count_by_organization(org_id)
+            if remaining == 0:
+                org = await self.organizations.get_by_id(org_id)
+                if org is not None:
+                    await self.users.session.delete(org)
         await self.users.session.commit()
 
     async def _apply_profile_update(self, user: User, payload: dict) -> User:

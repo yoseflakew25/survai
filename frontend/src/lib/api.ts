@@ -74,7 +74,7 @@ export function toUserFacingError(err: unknown, fallback: string): string {
   }
 
   if (lower.includes('timed out') || lower.includes('timeout') || lower.includes('abort')) {
-    return 'The server took too long to respond. Try again in a moment.';
+    return 'The API is waking up (free hosting). Wait about a minute, then try again.';
   }
 
   if (lower.includes('incorrect email or password') || lower.includes('invalid email or password')) {
@@ -84,7 +84,8 @@ export function toUserFacingError(err: unknown, fallback: string): string {
   return msg || fallback;
 }
 
-const DEFAULT_TIMEOUT_MS = 20_000;
+/** Render free tier often needs 30–70s to wake; register also waits on email. */
+export const DEFAULT_TIMEOUT_MS = 90_000;
 
 export async function apiFetch(
   path: string,
@@ -114,7 +115,7 @@ export async function apiFetch(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error(
-        'The server took too long to respond. Try again in a moment.'
+        'The API is waking up (free hosting). Wait about a minute, then try again.'
       );
     }
     throw new Error(

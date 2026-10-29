@@ -444,6 +444,11 @@ class SurveyService:
 
     async def delete_survey(self, *, user: User, survey_id: UUID) -> None:
         survey = await self._get_owned(user, survey_id)
+        if survey.status in _QUESTIONS_LOCKED_STATUSES:
+            raise BadRequestError(
+                "Published, closed, or archived surveys cannot be deleted. "
+                "Close or archive them to stop collection instead."
+            )
         await self.surveys.delete(survey)
         await self.session.commit()
 

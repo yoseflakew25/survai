@@ -1,6 +1,13 @@
+from uuid import UUID
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import hash_password
+from app.models.user import User, UserRole
+from app.repositories.organization import OrganizationRepository
+from app.repositories.user import UserRepository
 from tests.test_auth import _register_and_verify
 
 
@@ -88,3 +95,43 @@ async def test_delete_me_removes_organization(
         json={"email": "gone@example.com", "password": "SecurePass1!"},
     )
     assert login.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_me_keeps_org_when_teammates_remain(
+    client: AsyncClient,
+    session: AsyncSession,
+    fixed_otp: str,
+) -> None:
+    tokens = await _register_and_verify(
+        client,
+        email="leaver@example.com",
+        password="SecurePass1!",
+        organization_name="Shared Org",
+        code=fixed_otp,
+    )
+    org_id = UUID(str(tokens["user"]["organization_id"]))
+
+    teammate = User(
+        email="stay@example.com",
+        hashed_password=hash_password("SecurePass1!"),
+        full_name="Teammate",
+        role=UserRole.organization,
+        organization_id=org_id,
+        is_active=True,
+        is_superuser=False,
+        email_verified=True,
+    )
+    await UserRepository(session).add(teammate)
+    await session.commit()
+
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    deleted = await client.delete("/api/v1/users/me", headers=headers)
+    assert deleted.status_code == 204
+
+    org = await OrganizationRepository(session).get_by_id(org_id)
+    assert org is not None
+    assert org.name == "Shared Org"
+
+    remaining = await UserRepository(session).count_by_organization(org_id)
+    assert remaining == 1

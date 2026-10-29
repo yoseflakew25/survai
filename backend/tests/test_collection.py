@@ -282,3 +282,16 @@ async def test_published_survey_blocks_question_mutations(
     )
     assert regen.status_code == 400, regen.text
     assert "published" in regen.json()["detail"].lower()
+
+    delete_live = await client.delete(
+        f"/api/v1/surveys/{survey_id}",
+        headers=headers,
+    )
+    assert delete_live.status_code == 400, delete_live.text
+    assert "cannot be deleted" in delete_live.json()["detail"].lower()
+
+    still_there = await client.get(
+        f"/api/v1/surveys/{survey_id}",
+        headers=headers,
+    )
+    assert still_there.status_code == 200
