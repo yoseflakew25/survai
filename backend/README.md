@@ -64,7 +64,7 @@ docker compose --profile mail up --build
 # UI: http://localhost:8025
 ```
 
-Default superuser (created on startup if missing): see `FIRST_SUPERUSER_*` in `.env`.
+Default superuser (created on startup if missing; password is not reset on later boots): see `FIRST_SUPERUSER_*` in `.env`. Production refuses weak `JWT_SECRET_KEY` / `FIRST_SUPERUSER_PASSWORD`.
 
 ## Local Python (without Docker for the API)
 

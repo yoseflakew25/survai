@@ -1406,4 +1406,5 @@ frontend/src/
 | Soft | Confirm prod `REDIS_URL` (Upstash) on Render | §14 |
 | Soft | Playwright / API pilot smoke on live creds | §19 |
 | Soft | Multi-seat org roles | — |
-| Soft | Remaining auth/bootstrap hardening | §7 |
+| Done | Auth bootstrap: no password reset-on-boot; prod secret checks | §7 |
+| Soft | CSRF with SameSite=None cookies | §7 |

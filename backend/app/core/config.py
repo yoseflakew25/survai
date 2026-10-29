@@ -2,14 +2,45 @@
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Always load backend/.env regardless of process cwd (uvicorn reload / IDE launch).
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _ENV_FILE = _BACKEND_ROOT / ".env"
+
+# Rejected when ENVIRONMENT=production (placeholders / common weak values).
+_INSECURE_JWT_SECRETS = frozenset(
+    s.lower()
+    for s in (
+        "CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND",
+        "dev-change-me-use-openssl-rand-hex-32",
+        "replace-with-openssl-rand-hex-64",
+        "REPLACE_WITH_OPENSSL_RAND_HEX_32",
+        "secret",
+        "changeme",
+        "jwt-secret",
+        "your-secret-key",
+    )
+)
+_INSECURE_BOOTSTRAP_PASSWORDS = frozenset(
+    s.lower()
+    for s in (
+        "12121212",
+        "replace-with-strong-password",
+        "password",
+        "password123",
+        "changeme",
+        "admin",
+        "admin123",
+        "survai",
+        "survai123",
+    )
+)
+_MIN_PROD_JWT_SECRET_LEN = 32
+_MIN_PROD_BOOTSTRAP_PASSWORD_LEN = 12
 
 
 class Settings(BaseSettings):
@@ -93,12 +124,42 @@ class Settings(BaseSettings):
     emails_from_email: str = "onboarding@resend.dev"
     emails_from_name: str = "SurvAI"
 
-    # First system admin (created/synced on startup if missing)
+    # First system admin (created on startup if missing; password never re-synced)
     # Use a real TLD — EmailStr rejects reserved names like .local
     first_superuser_email: str = "yoseflakewdev@gmail.com"
     first_superuser_password: str = "12121212"
     first_superuser_full_name: str = "SurvAI System Admin"
     first_superuser_organization_name: str = "SurvAI"
+
+    @model_validator(mode="after")
+    def enforce_production_secrets(self) -> Self:
+        """Fail fast in production when JWT / bootstrap password are weak."""
+        if self.environment != "production":
+            return self
+
+        errors: list[str] = []
+        secret = self.jwt_secret_key.strip()
+        if len(secret) < _MIN_PROD_JWT_SECRET_LEN or secret.lower() in _INSECURE_JWT_SECRETS:
+            errors.append(
+                "JWT_SECRET_KEY must be a strong random value "
+                f"(≥{_MIN_PROD_JWT_SECRET_LEN} chars); "
+                "generate with: openssl rand -hex 32"
+            )
+
+        password = self.first_superuser_password
+        if (
+            len(password) < _MIN_PROD_BOOTSTRAP_PASSWORD_LEN
+            or password.lower() in _INSECURE_BOOTSTRAP_PASSWORDS
+        ):
+            errors.append(
+                "FIRST_SUPERUSER_PASSWORD must be strong "
+                f"(≥{_MIN_PROD_BOOTSTRAP_PASSWORD_LEN} chars) and not a "
+                "default/placeholder value"
+            )
+
+        if errors:
+            raise ValueError("; ".join(errors))
+        return self
 
     # AI — Gemini behind app/ai/client.py (never call the vendor from routes)
     ai_provider: Literal["gemini"] = "gemini"

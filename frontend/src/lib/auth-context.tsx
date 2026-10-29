@@ -15,6 +15,7 @@ import {
   apiFetch,
   toUserFacingError,
   type ApiUser,
+  type ForgotPasswordResponse,
   type RegisterPendingResponse,
   type TokenPairResponse
 } from '@/lib/api';
@@ -64,8 +65,8 @@ interface AuthContextValue {
   verifyEmail: (email: string, code: string) => Promise<void>;
   /** Resend signup OTP for an unverified email. */
   resendVerification: (email: string) => Promise<RegisterPendingResponse>;
-  /** Request a password-reset email (always succeeds; no enumeration). */
-  requestPasswordReset: (email: string) => Promise<void>;
+  /** Request a password-reset email (anti-enumeration; may include dev_reset_url). */
+  requestPasswordReset: (email: string) => Promise<ForgotPasswordResponse>;
   /** Set a new password using the token from the reset email link. */
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -293,27 +294,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const requestPasswordReset = useCallback(async (email: string) => {
-    try {
-      const res = await apiFetch('/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+  const requestPasswordReset = useCallback(
+    async (email: string): Promise<ForgotPasswordResponse> => {
+      try {
+        const res = await apiFetch('/auth/forgot-password', {
+          method: 'POST',
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            toUserFacingError(
+              new Error(apiErrorMessage(data, 'Could not send reset email')),
+              'Could not send reset email'
+            )
+          );
+        }
+        return data as ForgotPasswordResponse;
+      } catch (err) {
         throw new Error(
-          toUserFacingError(
-            new Error(apiErrorMessage(data, 'Could not send reset email')),
-            'Could not send reset email'
-          )
+          toUserFacingError(err, 'Could not send reset email. Please try again.')
         );
       }
-    } catch (err) {
-      throw new Error(
-        toUserFacingError(err, 'Could not send reset email. Please try again.')
-      );
-    }
-  }, []);
+    },
+    []
+  );
 
   const confirmPasswordReset = useCallback(
     async (token: string, newPassword: string) => {

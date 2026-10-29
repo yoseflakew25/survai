@@ -88,7 +88,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 - Confirm prod `REDIS_URL` (Upstash) on every Render deploy; export path still sync by default.
 - Multi-seat org roles; OpenAPI-typed FE client regeneration.
 - Optional: WeasyPrint/docxtpl branded templates if donor layout needs rise above current PDF/DOCX.
-- Remaining hardening from audit: bootstrap password reset-on-boot, default secrets checks, CSRF with `SameSite=None`.
+- Remaining hardening from audit: CSRF with `SameSite=None` (bootstrap password no longer reset on boot; prod rejects weak JWT / bootstrap password).
 
 ---
 
@@ -124,7 +124,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 1. Set/verify Render `REDIS_URL` (Upstash) and redeploy so report generate uses the queue in prod.
 2. Run pilot smoke against live (`SMOKE_*` / Playwright with `E2E_*`).
 3. Multi-seat org roles when needed.
-4. Finish remaining auth/bootstrap hardening from the security audit.
+4. Optional CSRF hardening when cookies use `SameSite=None` (bootstrap/secrets audit items done).
 
 ---
 

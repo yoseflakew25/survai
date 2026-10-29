@@ -25,6 +25,7 @@ services:
       # Set real values in Aiven Console → application env after first deploy:
       CORS_ORIGINS: https://REPLACE_WITH_VERCEL_URL
       FRONTEND_URL: https://REPLACE_WITH_VERCEL_URL
+      # Must be ≥32 chars and not a placeholder — API refuses insecure defaults in production
       JWT_SECRET_KEY: REPLACE_WITH_OPENSSL_RAND_HEX_32
       COOKIE_SECURE: "true"
       COOKIE_SAMESITE: none

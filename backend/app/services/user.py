@@ -163,8 +163,8 @@ class UserService:
             existing.is_active = True
             existing.email_verified = True
             existing.full_name = settings.first_superuser_full_name
-            # Keep bootstrap credentials in sync with settings (dev / first deploy).
-            existing.hashed_password = hash_password(settings.first_superuser_password)
+            # Never reset password on boot — env is only used when creating the
+            # first admin. Change credentials via forgot-password or /me.
             await self.users.session.commit()
             return None
         return await self.create(

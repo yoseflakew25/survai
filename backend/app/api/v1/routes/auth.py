@@ -15,6 +15,7 @@ from app.api.deps import AuthServiceDep, CurrentUser
 from app.core.config import settings
 from app.schemas.auth import (
     ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     MessageResponse,
     PasswordResetConfirm,
@@ -122,15 +123,12 @@ async def me(current_user: CurrentUser) -> UserPublic:
     return UserPublic.model_validate(current_user)
 
 
-@router.post("/forgot-password", response_model=MessageResponse)
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
 async def forgot_password(
     body: ForgotPasswordRequest,
     auth: AuthServiceDep,
-) -> MessageResponse:
-    await auth.request_password_reset(email=body.email)
-    return MessageResponse(
-        message="If that email is registered, a reset link has been sent."
-    )
+) -> ForgotPasswordResponse:
+    return await auth.request_password_reset(email=body.email)
 
 
 @router.post("/reset-password", response_model=MessageResponse)

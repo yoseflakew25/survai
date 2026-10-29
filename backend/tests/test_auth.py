@@ -109,7 +109,9 @@ async def test_forgot_password_no_enumeration(client: AsyncClient) -> None:
         json={"email": "missing@example.com"},
     )
     assert response.status_code == 200
-    assert "reset" in response.json()["message"].lower()
+    body = response.json()
+    assert "reset" in body["message"].lower() or "registered" in body["message"].lower()
+    assert body.get("dev_reset_url") in (None, "")
 
     bad_reset = await client.post(
         "/api/v1/auth/reset-password",
@@ -140,6 +142,10 @@ async def test_forgot_password_reset_and_login(
         captured["token"] = reset_token
 
     monkeypatch.setattr(
+        "app.services.auth.email_delivery_configured",
+        lambda: True,
+    )
+    monkeypatch.setattr(
         "app.services.auth.send_password_reset_email",
         _capture_reset,
     )
@@ -151,6 +157,7 @@ async def test_forgot_password_reset_and_login(
     assert forgot.status_code == 200
     assert captured.get("email") == email
     assert captured.get("token")
+    assert forgot.json().get("dev_reset_url") in (None, "")
 
     reset = await client.post(
         "/api/v1/auth/reset-password",
@@ -170,6 +177,105 @@ async def test_forgot_password_reset_and_login(
     )
     assert new_login.status_code == 200
     assert new_login.json()["user"]["email"] == email
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_surfaces_delivery_failure(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = "reset-fail@example.com"
+    await _register_and_verify(
+        client,
+        email=email,
+        password="SecurePass1!",
+        organization_name="Reset Fail Org",
+        code=fixed_otp,
+    )
+
+    async def _boom(*, to_email: str, reset_token: str) -> None:
+        from app.services.email import EmailDeliveryError
+
+        raise EmailDeliveryError("SMTP down")
+
+    monkeypatch.setattr(
+        "app.services.auth.email_delivery_configured",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "app.services.auth.send_password_reset_email",
+        _boom,
+    )
+
+    forgot = await client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": email},
+    )
+    assert forgot.status_code == 400
+    assert "reset email" in forgot.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_dev_reset_url_without_email(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = "reset-dev@example.com"
+    await _register_and_verify(
+        client,
+        email=email,
+        password="SecurePass1!",
+        organization_name="Reset Dev Org",
+        code=fixed_otp,
+    )
+
+    monkeypatch.setattr(
+        "app.services.auth.email_delivery_configured",
+        lambda: False,
+    )
+
+    forgot = await client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": email},
+    )
+    assert forgot.status_code == 200
+    body = forgot.json()
+    assert body.get("dev_reset_url")
+    assert "token=" in body["dev_reset_url"]
+
+    token = body["dev_reset_url"].split("token=", 1)[1]
+    reset = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": token, "new_password": "BrandNewPass2!"},
+    )
+    assert reset.status_code == 200, reset.text
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_production_requires_email_delivery(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = "reset-prod@example.com"
+    await _register_and_verify(
+        client,
+        email=email,
+        password="SecurePass1!",
+        organization_name="Reset Prod Org",
+        code=fixed_otp,
+    )
+
+    monkeypatch.setattr("app.core.config.settings.environment", "production")
+    monkeypatch.setattr(
+        "app.services.auth.email_delivery_configured",
+        lambda: False,
+    )
+
+    forgot = await client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": email},
+    )
+    assert forgot.status_code == 400
+    assert "smtp" in forgot.json()["detail"].lower() or "resend" in forgot.json()[
+        "detail"
+    ].lower()
 
 
 @pytest.mark.asyncio

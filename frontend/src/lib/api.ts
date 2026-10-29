@@ -38,6 +38,12 @@ export type RegisterPendingResponse = {
   dev_code?: string | null;
 };
 
+export type ForgotPasswordResponse = {
+  message: string;
+  /** Present only when Resend/SMTP are not configured (local/dev). */
+  dev_reset_url?: string | null;
+};
+
 export function apiErrorMessage(data: unknown, fallback: string): string {
   if (!data || typeof data !== 'object') return fallback;
   const detail = (data as { detail?: unknown }).detail;

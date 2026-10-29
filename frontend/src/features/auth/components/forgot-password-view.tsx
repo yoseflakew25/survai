@@ -27,6 +27,7 @@ export default function ForgotPasswordViewPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -45,13 +46,20 @@ export default function ForgotPasswordViewPage() {
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
+    setDevResetUrl(null);
     const email = values.email.trim();
     try {
-      await requestPasswordReset(email);
+      const result = await requestPasswordReset(email);
       setSentTo(email);
-      toast.success('Check your email', {
-        description: 'If that address is registered, a reset link is on the way.'
-      });
+      setDevResetUrl(result.dev_reset_url ?? null);
+      toast.success(
+        result.dev_reset_url ? 'Dev mode — reset link ready' : 'Check your email',
+        {
+          description: result.dev_reset_url
+            ? 'Email delivery is not configured; use the link shown on screen.'
+            : 'If that address is registered, a reset link is on the way.'
+        }
+      );
     } catch (err) {
       const message =
         err instanceof Error
@@ -104,17 +112,31 @@ export default function ForgotPasswordViewPage() {
         {sentTo ? (
           <div className='space-y-4'>
             <div className='border-border bg-card rounded-xl border px-3.5 py-3 text-sm'>
-              <p className='text-foreground font-medium'>Check your inbox</p>
-              <p className='text-muted-foreground mt-0.5'>
-                The link expires in about an hour. Didn’t get it? You can request
-                another below.
+              <p className='text-foreground font-medium'>
+                {devResetUrl ? 'Reset link ready' : 'Check your inbox'}
               </p>
+              <p className='text-muted-foreground mt-0.5'>
+                {devResetUrl
+                  ? 'Email delivery is not configured on this API. Open the link below to choose a new password.'
+                  : 'The link expires in about an hour. Didn’t get it? You can request another below.'}
+              </p>
+              {devResetUrl ? (
+                <p className='mt-3 break-all'>
+                  <Link
+                    href={devResetUrl}
+                    className='text-foreground font-semibold underline-offset-4 hover:underline'
+                  >
+                    {devResetUrl}
+                  </Link>
+                </p>
+              ) : null}
             </div>
             <button
               type='button'
               className='btn-back h-11 w-full text-[15px]'
               onClick={() => {
                 setSentTo(null);
+                setDevResetUrl(null);
                 setServerError(null);
               }}
             >

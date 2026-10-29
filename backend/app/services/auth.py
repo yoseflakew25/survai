@@ -27,7 +27,11 @@ from app.repositories.organization import OrganizationRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
-from app.schemas.auth import RegisterPendingResponse, TokenPairResponse
+from app.schemas.auth import (
+    ForgotPasswordResponse,
+    RegisterPendingResponse,
+    TokenPairResponse,
+)
 from app.schemas.user import UserPublic
 from app.services.email import (
     EmailDeliveryError,
@@ -221,11 +225,18 @@ class AuthService:
         await self.refresh_tokens.revoke_all_for_user(user_id)
         await self.session.commit()
 
-    async def request_password_reset(self, *, email: str) -> None:
-        """Always succeeds from the caller's perspective (no email enumeration)."""
+    async def request_password_reset(self, *, email: str) -> ForgotPasswordResponse:
+        """Issue a reset email when the account exists.
+
+        Unknown / inactive / unverified emails still get a generic success so we
+        do not enumerate accounts. Delivery failures are surfaced (same as
+        signup OTP) so the UI does not pretend mail was sent. When SMTP/Resend
+        are not configured, return ``dev_reset_url`` for local testing.
+        """
+        generic = ForgotPasswordResponse()
         user = await self.users.get_by_email(email)
         if user is None or not user.is_active or not user.email_verified:
-            return
+            return generic
 
         await self.password_resets.invalidate_active_for_user(user.id)
         raw_token = secrets.token_urlsafe(32)
@@ -237,13 +248,37 @@ class AuthService:
         )
         await self.password_resets.add(reset)
         await self.session.flush()
+
+        reset_url = f"{settings.password_reset_url_base}?token={raw_token}"
+        delivered = email_delivery_configured()
+        if not delivered:
+            if settings.is_production:
+                await self.session.rollback()
+                raise BadRequestError(
+                    "Password reset email could not be sent. Configure SMTP "
+                    "or Resend on the API."
+                )
+            await self.session.commit()
+            return ForgotPasswordResponse(
+                message=(
+                    "Email delivery is not configured — use the reset link "
+                    "shown below (dev)."
+                ),
+                dev_reset_url=reset_url,
+            )
+
         try:
-            await send_password_reset_email(to_email=user.email, reset_token=raw_token)
-        except EmailDeliveryError:
-            # Keep anti-enumeration: swallow delivery failures after rollback.
+            await send_password_reset_email(
+                to_email=user.email, reset_token=raw_token
+            )
+        except EmailDeliveryError as exc:
             await self.session.rollback()
-            return
+            raise BadRequestError(
+                "Could not send the reset email. Check SMTP/Resend settings "
+                "or try again shortly."
+            ) from exc
         await self.session.commit()
+        return generic
 
     async def confirm_password_reset(self, *, token: str, new_password: str) -> None:
         stored = await self.password_resets.get_valid_by_hash(hash_token(token))
