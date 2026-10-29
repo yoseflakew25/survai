@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -127,7 +127,7 @@ def _duration_seconds(
     """Completed: finish − start. Partial: last answer − start (0 if none)."""
     start = resp.started_at
     if start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
+        start = start.replace(tzinfo=UTC)
 
     if resp.completed_at is not None:
         end = resp.completed_at
@@ -137,7 +137,7 @@ def _duration_seconds(
         return 0
 
     if end.tzinfo is None:
-        end = end.replace(tzinfo=timezone.utc)
+        end = end.replace(tzinfo=UTC)
     return max(int((end - start).total_seconds()), 0)
 
 

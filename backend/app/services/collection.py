@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -397,7 +397,7 @@ class CollectionService:
         version, survey = await self._require_published_version(version_id)
         q_by_id = _question_index_from_snapshot(version.structure_snapshot or {})
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         cleaned_by_qid: dict[UUID, Any] = {}
         for question_id, value in answers:
             qkey = str(question_id)
@@ -482,7 +482,7 @@ class CollectionService:
         existing = await self.answers.get_for_respondent_question(
             respondent_id=respondent.id, question_id=question_id
         )
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if existing is None:
             self.session.add(
                 ResponseAnswer(
@@ -522,7 +522,7 @@ class CollectionService:
             respondent_id=respondent.id
         )
         by_qid = {row.question_id: row for row in existing_rows}
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         for question_id, value in answers:
             qkey = str(question_id)
@@ -568,7 +568,7 @@ class CollectionService:
                 f"Missing required answers ({len(missing)} question(s))"
             )
 
-        respondent.completed_at = datetime.now(timezone.utc)
+        respondent.completed_at = datetime.now(UTC)
         await self.session.commit()
         await self.session.refresh(respondent)
         return RespondentPublic.model_validate(respondent)
@@ -610,7 +610,7 @@ class CollectionService:
                 f"Missing required answers ({len(missing)} question(s))"
             )
 
-        respondent.completed_at = datetime.now(timezone.utc)
+        respondent.completed_at = datetime.now(UTC)
         await self.session.commit()
         await self.session.refresh(respondent)
         return RespondentPublic.model_validate(respondent)

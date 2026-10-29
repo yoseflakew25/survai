@@ -7,3 +7,5 @@ ignore = ["B008"]
 
 [lint.per-file-ignores]
 "alembic/*" = ["E501"]
+# HTML email templates — long inline CSS is intentional.
+"app/services/email.py" = ["E501"]

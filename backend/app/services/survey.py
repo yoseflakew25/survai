@@ -49,7 +49,6 @@ from app.services.survey_identity import (
     survey_has_required_identity,
 )
 
-
 _QUESTIONS_LOCKED_MSG = (
     "This survey is published (or closed). Questions can no longer be added, "
     "edited, or regenerated."

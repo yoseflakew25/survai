@@ -14,7 +14,6 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-
 CATEGORICAL_TYPES = frozenset(
     {"single_choice", "multiple_choice", "dropdown", "rating_scale"}
 )
@@ -208,7 +207,7 @@ def percent_distribution(
         counts = Counter()
         for v in values:
             # normalize 1.0 → "1"
-            if isinstance(v, (int, float)):
+            if isinstance(v, int | float):
                 key = str(int(v)) if float(v).is_integer() else str(v)
             else:
                 key = str(v)
@@ -246,7 +245,7 @@ def _scalar_choice_label(q: SnapshotQuestion, raw: Any) -> str | None:
     if q.type == "multiple_choice":
         return None  # not used as a single crosstab axis without explode
     if q.type == "rating_scale":
-        if isinstance(raw, (int, float)):
+        if isinstance(raw, int | float):
             key = str(int(raw)) if float(raw).is_integer() else str(raw)
         else:
             key = str(raw)

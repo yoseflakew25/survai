@@ -70,7 +70,7 @@ def _answer_matches(raw: Any, filt: AnalyticsFilter) -> bool:
         except (TypeError, ValueError):
             return False
     if op == "between":
-        if not isinstance(expected, (list, tuple)) or len(expected) != 2:
+        if not isinstance(expected, list | tuple) or len(expected) != 2:
             return False
         try:
             v = float(raw)
