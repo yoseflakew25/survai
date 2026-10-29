@@ -211,7 +211,9 @@ async def test_forgot_password_surfaces_delivery_failure(
         json={"email": email},
     )
     assert forgot.status_code == 400
-    assert "reset email" in forgot.json()["detail"].lower()
+    detail = forgot.json()["detail"].lower()
+    assert "reset email" in detail
+    assert "smtp down" in detail
 
 
 @pytest.mark.asyncio

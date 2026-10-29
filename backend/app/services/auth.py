@@ -273,9 +273,11 @@ class AuthService:
             )
         except EmailDeliveryError as exc:
             await self.session.rollback()
+            # Surface the provider error so ops can fix SMTP (auth/block/timeout).
+            detail = str(exc).strip() or "email provider error"
             raise BadRequestError(
-                "Could not send the reset email. Check SMTP/Resend settings "
-                "or try again shortly."
+                f"Could not send the reset email ({detail}). "
+                "Check SMTP settings on the API host."
             ) from exc
         await self.session.commit()
         return generic
