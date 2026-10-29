@@ -120,10 +120,10 @@ class AuthService:
         if user is None:
             raise BadRequestError("Invalid or expired verification code")
         if user.email_verified:
-            # Already verified — issue tokens if credentials path is used again.
-            tokens = await self._issue_token_pair(user)
-            await self.session.commit()
-            return tokens
+            # Never mint tokens here — login is the only post-verify auth path.
+            raise BadRequestError("Email already verified. Please log in.")
+        if not user.is_active:
+            raise BadRequestError("Invalid or expired verification code")
 
         otp = await self.email_otps.get_latest_valid(user.id)
         if otp is None:

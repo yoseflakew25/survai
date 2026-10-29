@@ -193,3 +193,25 @@ async def test_verify_email_bad_code(client: AsyncClient, fixed_otp: str) -> Non
         json={"email": "otp@example.com", "code": fixed_otp},
     )
     assert ok.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_verify_email_already_verified_does_not_issue_tokens(
+    client: AsyncClient, fixed_otp: str
+) -> None:
+    email = "already@example.com"
+    await _register_and_verify(
+        client,
+        email=email,
+        password="SecurePass1!",
+        organization_name="Already Org",
+        code=fixed_otp,
+    )
+    replay = await client.post(
+        "/api/v1/auth/verify-email",
+        json={"email": email, "code": "000000"},
+    )
+    assert replay.status_code == 400
+    body = replay.json()
+    assert "access_token" not in body
+    assert "already verified" in body["detail"].lower()
