@@ -317,11 +317,11 @@ class ReportService:
         if not question:
             raise BadRequestError("Message cannot be empty.")
 
-        # Prior turns for multi-turn context (before appending this user message).
+        # Only recent turns for the prompt — full thread still returned to the UI.
         prior = await self.chats.list_for_report(report_id=report.id)
         history = [
             {"role": m.role, "content": m.content}
-            for m in prior
+            for m in prior[-8:]
             if m.content
         ]
 

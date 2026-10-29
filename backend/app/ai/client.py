@@ -29,9 +29,9 @@ T = TypeVar("T", bound=BaseModel)
 _GENERATE_TIMEOUT_S = 45.0
 _REPORT_GENERATE_TIMEOUT_S = 120.0
 _REPORT_MAX_OUTPUT_TOKENS = 8192
-# Chat answers are short briefings — cap output to cut latency.
-_CHAT_MAX_OUTPUT_TOKENS = 512
-_CHAT_GENERATE_TIMEOUT_S = 25.0
+# Chat answers are short briefings — tight caps cut Gemini latency hard.
+_CHAT_MAX_OUTPUT_TOKENS = 384
+_CHAT_GENERATE_TIMEOUT_S = 20.0
 
 _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
     "planner": planner_v1.PROMPT_VERSION,

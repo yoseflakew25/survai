@@ -66,10 +66,24 @@ def test_reconcile_flags_unknown_metric_ref() -> None:
 
 def test_strip_ungrounded_statements() -> None:
     report = _full_report(
-        recommendations=_section(("Invented figure of 999 users.", ""))
+        recommendations=_section(
+            ("Keep this grounded prose without invented stats.", ""),
+            ("Invented figure of 999 users.", ""),
+        )
     )
     cleaned = strip_ungrounded_statements(report, METRICS)
-    assert cleaned.recommendations.statements[0].text.startswith("Insufficient")
+    texts = [s.text for s in cleaned.recommendations.statements]
+    assert texts == ["Keep this grounded prose without invented stats."]
+    assert not any("Insufficient grounded data" in t for t in texts)
+
+
+def test_strip_ungrounded_section_fallback_when_all_bad() -> None:
+    report = _full_report(
+        conclusion=_section(("Invented figure of 999 users.", ""))
+    )
+    cleaned = strip_ungrounded_statements(report, METRICS)
+    assert len(cleaned.conclusion.statements) == 1
+    assert "metrics snapshot" in cleaned.conclusion.statements[0].text.lower()
 
 
 def test_chat_reconcile_grounded() -> None:

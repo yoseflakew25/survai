@@ -145,27 +145,31 @@ def reconcile_chat(
 def strip_ungrounded_statements(
     output: ReportGenerationOutput, metrics: list[dict[str, Any]]
 ) -> ReportGenerationOutput:
-    """Replace violating statements with a safe placeholder (post-retry fallback)."""
-    metrics_by_key = {str(m.get("key")): m for m in metrics if m.get("key")}
+    """Drop violating statements (post-retry fallback). Never leave placeholder prose."""
+    metric_list = [m for m in metrics if m.get("key")]
 
     def _clean(statements: list[GroundedStatement]) -> list[GroundedStatement]:
         cleaned: list[GroundedStatement] = []
         for s in statements:
-            bad = reconcile_statements([s], list(metrics_by_key.values()))
-            if bad:
-                cleaned.append(
-                    GroundedStatement(
-                        text="Insufficient grounded data for this claim.",
-                        metric_ref="",
-                    )
-                )
-            else:
-                cleaned.append(s)
+            if reconcile_statements([s], metric_list):
+                # Prefer omission over "Insufficient grounded data…" noise in the UI.
+                continue
+            cleaned.append(s)
         return cleaned
 
     updates: dict[str, ReportSectionAI] = {}
     for name, sec in _section_fields(output):
-        updates[name] = sec.model_copy(
-            update={"statements": _clean(sec.statements)}
-        )
+        cleaned = _clean(sec.statements)
+        if not cleaned and (sec.statements or []):
+            # Whole section failed grounding — keep a short qualitative note, no fake stats.
+            cleaned = [
+                GroundedStatement(
+                    text=(
+                        "This section has no additional claims that can be "
+                        "verified against the current metrics snapshot."
+                    ),
+                    metric_ref="",
+                )
+            ]
+        updates[name] = sec.model_copy(update={"statements": cleaned})
     return output.model_copy(update=updates)

@@ -724,7 +724,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     Chat with the report
                   </h3>
                   <p className='mt-0.5 text-xs leading-relaxed text-foreground/70'>
-                    Ask questions anad chat with the report for better insights.
+                    Ask questions and chat with the report for better insights.
                   </p>
                 </div>
               </div>
