@@ -109,9 +109,10 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## 6. Known next (priority)
 
-1. Provision Redis and run ARQ worker for long AI/export jobs.
-2. Expand Playwright smoke with publish → submit → report happy path.
+1. ~~Provision Redis + ARQ~~ — `REDIS_URL` + in-container worker (`scripts/start.sh`); Upstash free OK. Report create returns 202 when queued; FE polls `/jobs/{id}`.
+2. ~~Playwright / API pilot smoke~~ — `frontend/e2e/smoke.spec.ts` + `backend/scripts/pilot_smoke.py`.
 3. Multi-seat org roles when needed.
+4. Confirm prod `REDIS_URL` on Render + run pilot smoke against live with `SMOKE_*` env.
 
 ---
 

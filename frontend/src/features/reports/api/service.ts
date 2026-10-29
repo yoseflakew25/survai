@@ -170,6 +170,27 @@ export async function getLatestReport(
   return mapReport(data as ApiReport);
 }
 
+async function pollJobResult(jobId: string): Promise<ApiReport> {
+  const deadline = Date.now() + AI_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const res = await apiFetch(`/jobs/${jobId}`);
+    if (!res.ok) await readError(res, 'Report job failed');
+    const data = (await res.json()) as {
+      status: string;
+      result?: ApiReport;
+      error?: string | null;
+    };
+    if (data.status === 'complete' && data.result) {
+      return data.result;
+    }
+    if (data.status === 'failed' || data.status === 'not_found') {
+      throw new Error(data.error || 'Report generation failed');
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw new Error('Report generation timed out. Please try again.');
+}
+
 export async function generateReport(
   surveyId: string,
   audience: ReportAudience = 'internal'
@@ -182,6 +203,11 @@ export async function generateReport(
     },
     AI_TIMEOUT_MS
   );
+  if (res.status === 202) {
+    const accepted = (await res.json()) as { job_id: string };
+    const report = await pollJobResult(accepted.job_id);
+    return mapReport(report);
+  }
   if (!res.ok) await readError(res, 'Could not generate report');
   return mapReport((await res.json()) as ApiReport);
 }

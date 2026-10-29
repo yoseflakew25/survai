@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 
 from app.api.deps import CurrentUser, ReportServiceDep
+from app.jobs.queue import enqueue_job, jobs_enabled
+from app.schemas.jobs import JobAccepted
 from app.schemas.report import (
     ExportPublic,
     ExportRequest,
@@ -37,15 +39,32 @@ async def get_latest_report(
 
 @router.post(
     "/surveys/{survey_id}/reports",
-    response_model=ReportPublic,
+    response_model=ReportPublic | JobAccepted,
     status_code=status.HTTP_201_CREATED,
+    responses={202: {"model": JobAccepted}},
 )
 async def create_report(
     survey_id: UUID,
     body: ReportCreateRequest,
     current_user: CurrentUser,
     reports: ReportServiceDep,
-) -> ReportPublic:
+    response: Response,
+) -> ReportPublic | JobAccepted:
+    """Generate a report. With REDIS_URL, returns 202 + job_id for the worker."""
+    if jobs_enabled():
+        job_id = await enqueue_job(
+            "generate_report_job",
+            str(current_user.id),
+            str(survey_id),
+            body.audience,
+            body.title,
+        )
+        if job_id:
+            response.status_code = status.HTTP_202_ACCEPTED
+            return JobAccepted(
+                job_id=job_id,
+                poll_url=f"/api/v1/jobs/{job_id}",
+            )
     return await reports.create_report(
         user=current_user, survey_id=survey_id, body=body
     )

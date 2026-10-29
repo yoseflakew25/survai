@@ -20,6 +20,38 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    profiles: ["jobs"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    profiles: ["jobs"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://survai:survai@db:5432/survai
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: arq app.jobs.worker.WorkerSettings
+
   mailpit:
     image: axllent/mailpit:v1.22
     restart: unless-stopped
