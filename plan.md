@@ -144,25 +144,25 @@ Agent-facing copies of this gate also live in:
 - Drag-and-drop: `@dnd-kit/*` (question/section reordering)
 - Icons: `@tabler/icons-react` **only through** `src/components/icons.tsx`
 
-### Backend — `backend/` (scaffold live; domain APIs still to build)
+### Backend — `backend/` (domain APIs live through Reports + Overview)
 - **FastAPI, Python 3.12+**
 - Pydantic v2 + pydantic-settings
 - SQLAlchemy 2.0 (async) + Alembic + `asyncpg` (SSL for managed Postgres)
 - **Clean architecture:** routes → services → repositories → models; DI via FastAPI `Depends`
 - Auth: **JWT + httpOnly cookies** — `python-jose` access JWT; **bcrypt** (passlib) passwords; opaque refresh tokens hashed in DB; email OTP verify + password recovery (SMTP/Resend)
-- Background jobs: ARQ + Redis *(not scaffolded yet)*
-- Analytics: Pandas *(not scaffolded yet)*
-- AI SDK: `openai` Python SDK + Responses API / Structured Outputs *(not scaffolded yet)*
-- Report export: `docxtpl` / WeasyPrint *(not scaffolded yet)*
-- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient` (auth + health suite green)
-- Docker Compose (dev/prod) + Traefik labels; GH Actions `backend-ci.yml` / `backend-cd.yml`
+- Background jobs: **ARQ + Redis** — report generate returns 202 when `REDIS_URL` set; inline fallback otherwise (`docs/redis-arq.md`)
+- Analytics: deterministic engine in `app/analytics/engine.py` (not Pandas)
+- AI SDK: **Google Gemini** via `google-genai` + structured JSON (`app/ai/client.py`)
+- Report export: **fpdf2 PDF** + **stdlib OOXML DOCX** (WeasyPrint/docxtpl optional later)
+- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient`
+- Docker Compose (dev/prod, `--profile jobs` for Redis/worker) + GH Actions `backend-ci` / `backend-cd` / keep-render-warm
 
 ### Data & Infra
-- PostgreSQL (Aiven currently for dev — `defaultdb`; Docker Compose Postgres also available locally)
-- Redis (Upstash or Render Redis) — ARQ queue + response caching *(later)*
-- Object storage: Cloudflare R2 (or AWS S3)
-- Hosting: Vercel (web), Docker Compose + Traefik (API) or Render/Railway
-- CI/CD: GitHub Actions (backend lint/test/image; frontend TBD)
+- PostgreSQL (Aiven for managed DB; Docker Compose Postgres locally)
+- Redis (Upstash free / local compose) — ARQ job queue for long report generation
+- Object storage: Cloudflare R2 (or AWS S3) — still optional for MVP (exports return inline/base64)
+- Hosting: **Vercel** (web) + **Render** Docker (API); UptimeRobot keep-alive on `/api/v1/health`
+- CI/CD: GitHub Actions (backend lint/test/image)
 - Error tracking: Sentry (both apps)
 
 ### AI
@@ -1248,18 +1248,19 @@ conflicts, **§2a wins**.
 
 ---
 
-## 23. Implementation Status (as of 26 October 2026)
+## 23. Implementation Status (as of 29 October 2026)
 
 > Tracks frontend + backend. **Plan → Reports is live end-to-end** (grounded
-> narrative, chat, fpdf2 PDF, OOXML DOCX, activity modal). Redis ARQ remains soft.
-> See `status.md`.
+> narrative, chat, fpdf2 PDF, OOXML DOCX, activity modal). Org overview KPIs/chart
+> use real aggregates. Report create supports **202 + ARQ** when `REDIS_URL` is set.
+> Deployed: Vercel FE + Render API. See `status.md`.
 
 ### ✅ Completed — Backend (`backend/`)
 
 | Module | Status | Notes |
 | --- | --- | --- |
-| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, Traefik prod labels |
-| **Auth API (§7)** | ✅ Done | register → OTP → verify; login/refresh/logout/me; forgot/reset; JWT + httpOnly cookies |
+| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, Render `scripts/start.sh` |
+| **Auth API (§7)** | ✅ Done | register → OTP → verify; login/refresh/logout/me; forgot/reset; JWT + httpOnly cookies; verified users cannot mint tokens via verify-email; `DELETE /users/me` keeps org if teammates remain |
 | **Email delivery** | ✅ Done | SMTP and/or Resend; `dev_code` when mail unconfigured |
 | **AI gateway + Planner** | ✅ Done | Gemini `app/ai/client.py`; plans CRUD + generate (`planner_v1`) |
 | **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate (`builder_v1`) |
@@ -1268,11 +1269,13 @@ conflicts, **§2a wins**.
 | **Respondents** | ✅ Done | list + detail scoped to `current_version_id` |
 | **Analytics engine** | ✅ Done | summary / query / crosstab / CSV export / saved analyses |
 | **Reports + §9** | ✅ Done | Alembic `0013`; `report_v1` + compact chat; reconciliation; **PDF via fpdf2**; **DOCX via OOXML** |
-| **ARQ scaffold** | ✅ Soft | `app/jobs/` — inline when `REDIS_URL` empty |
-| **Integrity locks** | ✅ Done | 1:1 plan↔survey; plan lock; publish-once; question lock; no silent version fallback |
+| **Overview** | ✅ Done | `GET /api/v1/overview` — org KPIs + 12‑month started/completed series |
+| **ARQ + Redis (§14)** | ✅ Done | `generate_report_job` → 202 + poll `/jobs/{id}`; inline when `REDIS_URL` empty; worker co-located in `start.sh`; see `docs/redis-arq.md` |
+| **Integrity locks** | ✅ Done | 1:1 plan↔survey; plan lock; publish-once; question lock; no delete of published/closed/archived |
 | **RBAC (MVP)** | ✅ Done | `system_admin` \| `organization`; `FIRST_SUPERUSER_*` seed |
-| **Postgres** | ✅ Dev live | Aiven; Alembic through **`0013_reports`** |
-| **Tests / CI** | ✅ Done | Pytest incl. integrity, report reconciliation, chat prompt, PDF; GH Actions |
+| **Postgres** | ✅ Live | Aiven + Render; Alembic through **`0013_reports`** |
+| **Health** | ✅ Done | `GET` + `HEAD` `/api/v1/health` (uptime monitors) |
+| **Tests / CI** | ✅ Done | Pytest incl. integrity, reports, overview, jobs; GH Actions + keep-render-warm |
 
 ### ✅ Completed — Frontend
 
@@ -1281,19 +1284,23 @@ conflicts, **§2a wins**.
 | **Auth UI** | ✅ Done | Email/password + OTP; Google OAuth remnants removed |
 | **Plans / Builder / Review** | ✅ Live API | Generate, edit, AI review, locks when published |
 | **Collect / Respondents / Analytics** | ✅ Live API | Publish + QR; respondents; charts/crosstabs/CSV |
-| **Reports workspace** | ✅ Live API | Generate, edit, grounded chat, Save as PDF/Word, stale-snapshot banner |
+| **Reports workspace** | ✅ Live API | Generate, edit, grounded chat, Save as PDF/Word, stale-snapshot banner; polls jobs on 202 |
+| **Overview dashboard** | ✅ Live API | Real KPIs + response-activity chart; recent surveys with `responses_count` |
 | **Survey activity modal** | ✅ Done | Shared instrument modal for long AI / page-load actions |
 | **BLD-04 confirm UX** | ✅ Done | Pending skip-logic banner in question editor |
 | **Pill nav** | ✅ Done | Plan→Report + All surveys; hub page redirects to Plan |
 | **Forms / Query stack** | ✅ Done | RHF+Zod; TanStack Query |
-| **Playwright smoke** | ✅ Soft | `e2e/smoke.spec.ts` — skips without env credentials |
+| **API resilience** | ✅ Done | 90s client timeout + cold-start copy for Render free wake |
+| **Playwright / API smoke** | ✅ Soft | `e2e/smoke.spec.ts` + `backend/scripts/pilot_smoke.py` — need env credentials |
 
 ### 🔄 Soft / next
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **Redis ARQ worker** | Soft | Provision `REDIS_URL`; run `arq app.jobs.worker.WorkerSettings` |
-| **Full E2E path** | Soft | Publish → submit → analytics → report with staging creds |
+| **Prod Redis** | Soft | Confirm Upstash `REDIS_URL` on Render for every environment |
+| **Full E2E path** | Soft | Publish → submit → analytics → report with staging `E2E_*` / `SMOKE_*` |
+| **Multi-seat orgs** | Soft | When needed beyond MVP 1:1 |
+| **Auth hardening** | Soft | Bootstrap password sync, default-secret guards, CSRF with cross-site cookies |
 
 ---
 
@@ -1332,7 +1339,7 @@ frontend/src/
 │   ├── collect/                         # collect view (publish/link)
 │   ├── plans/                           # plan editor, editable list, sections
 │   ├── surveys/                         # survey tables, new survey dialog
-│   ├── overview/                        # stat cards, recent plans
+│   ├── overview/                        # live KPIs + response activity chart + recent surveys
 │   ├── settings/                        # settings components
 │   ├── notifications/                   # notification components
 │   └── profile/                         # profile components
@@ -1393,5 +1400,10 @@ frontend/src/
 | Done | Analytics CSV + saved analyses | ANL-05–06 |
 | Done | BLD-04 pending conditional confirm UX | BLD-04 |
 | Done | OAuth remnant cleanup | — |
-| Soft | Redis ARQ worker in deploy | §14 |
-| Soft | Playwright full publish→report path | §19 |
+| Done | Org overview KPIs + response activity chart | — |
+| Done | ARQ report jobs (202 + poll; inline fallback) | §14 |
+| Done | Vercel + Render deploy; health HEAD; uptime keep-alive | — |
+| Soft | Confirm prod `REDIS_URL` (Upstash) on Render | §14 |
+| Soft | Playwright / API pilot smoke on live creds | §19 |
+| Soft | Multi-seat org roles | — |
+| Soft | Remaining auth/bootstrap hardening | §7 |
