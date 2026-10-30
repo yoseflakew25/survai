@@ -14,6 +14,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
+import {
+  AuthDivider,
+  GoogleSignInButton
+} from '@/features/auth/components/google-sign-in-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
@@ -119,6 +123,18 @@ export default function SignInViewPage() {
             {serverError}
           </div>
         ) : null}
+
+        <GoogleSignInButton
+          mode='signin'
+          onError={(message) => setServerError(message)}
+          onSuccess={() => {
+            toast.success('Welcome back', {
+              description: 'Signed in with Google.'
+            });
+            goDashboard();
+          }}
+        />
+        <AuthDivider />
 
         <form
           className='space-y-3'

@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    GoogleAuthRequest,
     LoginRequest,
     MessageResponse,
     PasswordResetConfirm,
@@ -76,6 +77,20 @@ async def login(
     auth: AuthServiceDep,
 ) -> TokenPairResponse:
     tokens = await auth.login(email=body.email, password=body.password)
+    set_auth_cookies(
+        response, access_token=tokens.access_token, refresh_token=tokens.refresh_token
+    )
+    return tokens
+
+
+@router.post("/google", response_model=TokenPairResponse)
+async def google_sign_in(
+    body: GoogleAuthRequest,
+    response: Response,
+    auth: AuthServiceDep,
+) -> TokenPairResponse:
+    """Exchange a Google Identity Services ID token for SurvAI session cookies."""
+    tokens = await auth.login_with_google(credential=body.credential)
     set_auth_cookies(
         response, access_token=tokens.access_token, refresh_token=tokens.refresh_token
     )

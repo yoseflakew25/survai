@@ -10,6 +10,12 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class GoogleAuthRequest(BaseModel):
+    """GIS ID token (`credential`) from Google Identity Services on the client."""
+
+    credential: str = Field(min_length=20, max_length=8192)
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)

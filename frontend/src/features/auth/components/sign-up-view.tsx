@@ -8,6 +8,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
+import {
+  AuthDivider,
+  GoogleSignInButton
+} from '@/features/auth/components/google-sign-in-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { IconMail } from '@/features/auth/components/survai-mark';
 import {
@@ -170,6 +174,22 @@ export default function SignUpViewPage() {
           <div className='rounded-xl border border-destructive/50 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive'>
             {serverError}
           </div>
+        ) : null}
+
+        {step === 'form' ? (
+          <>
+            <GoogleSignInButton
+              mode='signup'
+              onError={(message) => setServerError(message)}
+              onSuccess={() => {
+                toast.success('Welcome', {
+                  description: 'Your organization workspace is ready.'
+                });
+                router.push('/dashboard/overview');
+              }}
+            />
+            <AuthDivider />
+          </>
         ) : null}
 
         {step === 'otp' ? (

@@ -124,6 +124,10 @@ class Settings(BaseSettings):
     emails_from_email: str = "onboarding@resend.dev"
     emails_from_name: str = "SurvAI"
 
+    # Google Identity (GIS) — Web client ID from Google Cloud Console.
+    # Empty disables POST /auth/google. Same value as NEXT_PUBLIC_GOOGLE_CLIENT_ID.
+    google_oauth_client_id: str = ""
+
     # First system admin (created on startup if missing; password never re-synced)
     # Use a real TLD — EmailStr rejects reserved names like .local
     first_superuser_email: str = "yoseflakewdev@gmail.com"

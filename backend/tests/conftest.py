@@ -39,6 +39,8 @@ def _test_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENVIRONMENT", "test")
     monkeypatch.setattr(settings, "environment", "test")
     monkeypatch.setattr(settings, "smtp_enabled", False)
+    monkeypatch.setattr(settings, "smtp_password", "")
+    monkeypatch.setattr(settings, "resend_api_key", "")
     monkeypatch.setattr(settings, "cookie_secure", False)
     settings.__dict__.pop("cors_origin_list", None)  # property — no cache
 

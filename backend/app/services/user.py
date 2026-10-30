@@ -72,6 +72,11 @@ class UserService:
 
     async def change_password(self, user: User, data: PasswordChangeRequest) -> None:
         current = await self.get(user.id)
+        if not current.hashed_password:
+            raise BadRequestError(
+                "This account uses Google sign-in. Set a password via "
+                "forgot-password first, or keep using Google."
+            )
         if not verify_password(data.current_password, current.hashed_password):
             raise UnauthorizedError("Current password is incorrect")
         current.hashed_password = hash_password(data.new_password)

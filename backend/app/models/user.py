@@ -44,7 +44,12 @@ class User(Base):
         index=True,
     )
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Null for Google-only accounts (no local password set yet).
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Stable Google subject (`sub` claim); unique when set.
+    google_sub: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     job_title: Mapped[str | None] = mapped_column(String(100), nullable=True)

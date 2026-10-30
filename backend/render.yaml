@@ -33,3 +33,5 @@ services:
         sync: false
       - key: FIRST_SUPERUSER_PASSWORD
         sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false

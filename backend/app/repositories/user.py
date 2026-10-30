@@ -30,6 +30,14 @@ class UserRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_google_sub(self, google_sub: str) -> User | None:
+        result = await self.session.execute(
+            select(User)
+            .options(selectinload(User.organization))
+            .where(User.google_sub == google_sub)
+        )
+        return result.scalar_one_or_none()
+
     async def count_by_organization(self, organization_id: UUID) -> int:
         result = await self.session.execute(
             select(func.count())

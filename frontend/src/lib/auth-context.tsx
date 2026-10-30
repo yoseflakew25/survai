@@ -51,6 +51,8 @@ interface AuthContextValue {
   /** In-memory only — never persisted. Prefer httpOnly cookies for auth. */
   accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
+  /** Exchange a Google Identity Services ID token for SurvAI session cookies. */
+  loginWithGoogle: (credential: string) => Promise<void>;
   /**
    * Creates an Organization account and emails a verification OTP.
    * Does not sign in — call `verifyEmail` next.
@@ -204,6 +206,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         applyTokenPair(data as TokenPairResponse);
       } catch (err) {
         throw new Error(toUserFacingError(err, 'Could not sign in. Please try again.'));
+      }
+    },
+    [applyTokenPair]
+  );
+
+  const loginWithGoogle = useCallback(
+    async (credential: string) => {
+      try {
+        const res = await apiFetch('/auth/google', {
+          method: 'POST',
+          body: JSON.stringify({ credential })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            toUserFacingError(
+              new Error(apiErrorMessage(data, 'Google sign-in failed')),
+              'Google sign-in failed'
+            )
+          );
+        }
+        applyTokenPair(data as TokenPairResponse);
+      } catch (err) {
+        throw new Error(
+          toUserFacingError(err, 'Google sign-in failed. Please try again.')
+        );
       }
     },
     [applyTokenPair]
@@ -370,6 +398,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       accessToken,
       login,
+      loginWithGoogle,
       register,
       verifyEmail,
       resendVerification,
@@ -384,6 +413,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoggingOut,
       user,
       login,
+      loginWithGoogle,
       register,
       verifyEmail,
       resendVerification,

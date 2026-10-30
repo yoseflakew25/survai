@@ -33,7 +33,7 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 | `organization` | Default for all signups and non-platform accounts |
 
 - **Sidebar nav:** `frontend/src/config/nav-config.ts` → `AppSidebar`; icons via `src/components/icons.tsx`.
-- **Auth security:** JWT + httpOnly cookies issued by FastAPI (`plan.md` §7). No Google sign-in.
+- **Auth security:** JWT + httpOnly cookies issued by FastAPI (`plan.md` §7). Email/password + OTP; Google Identity (GIS) → same session cookies.
 - **FE env:** `frontend/.env` → `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1` (use `localhost`, not `127.0.0.1`, for cookies).
 - **Prod:** Vercel FE (`survai-snowy.vercel.app`) → Render API (`…/api/v1`); keep-alive via UptimeRobot on `/api/v1/health` (GET+HEAD).
 - **Pill nav:** Plan → Review → Collect → Respondents → Analytics → Report + **All surveys**.

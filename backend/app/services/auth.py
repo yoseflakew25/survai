@@ -39,6 +39,7 @@ from app.services.email import (
     send_email_verification_otp,
     send_password_reset_email,
 )
+from app.services.google_identity import verify_google_id_token
 
 
 def _generate_otp_code() -> str:
@@ -183,7 +184,13 @@ class AuthService:
 
     async def login(self, *, email: str, password: str) -> TokenPairResponse:
         user = await self.users.get_by_email(email)
-        if user is None or not verify_password(password, user.hashed_password):
+        if user is None:
+            raise UnauthorizedError("Incorrect email or password")
+        if not user.hashed_password:
+            raise UnauthorizedError(
+                "This account uses Google sign-in. Continue with Google."
+            )
+        if not verify_password(password, user.hashed_password):
             raise UnauthorizedError("Incorrect email or password")
         if not user.is_active:
             raise UnauthorizedError("Inactive user")
@@ -191,6 +198,63 @@ class AuthService:
             raise UnauthorizedError(
                 "Email not verified. Check your inbox for a verification code."
             )
+        tokens = await self._issue_token_pair(user)
+        await self.session.commit()
+        return tokens
+
+    async def login_with_google(self, *, credential: str) -> TokenPairResponse:
+        """Verify GIS ID token, find/create org user, issue the same JWT cookies."""
+        profile = verify_google_id_token(credential)
+
+        user = await self.users.get_by_google_sub(profile.sub)
+        if user is None:
+            user = await self.users.get_by_email(profile.email)
+
+        if user is None:
+            org_label = profile.full_name or profile.email.split("@", 1)[0]
+            org = Organization(name=f"{org_label}'s Organization"[:255])
+            await self.organizations.add(org)
+            await self.session.flush()
+
+            user = User(
+                email=profile.email,
+                hashed_password=None,
+                google_sub=profile.sub,
+                full_name=profile.full_name,
+                role=UserRole.organization,
+                organization_id=org.id,
+                is_active=True,
+                is_superuser=False,
+                email_verified=True,
+                avatar_url=profile.picture_url,
+            )
+            await self.users.add(user)
+            await self.session.flush()
+            user.organization = org
+        else:
+            if not user.is_active:
+                raise UnauthorizedError("Inactive user")
+            # Link Google subject / refresh verified profile on existing account.
+            if user.google_sub and user.google_sub != profile.sub:
+                raise BadRequestError(
+                    "This email is linked to a different Google account."
+                )
+            user.google_sub = profile.sub
+            user.email_verified = True
+            if profile.full_name and (
+                not user.full_name or user.full_name == user.email.split("@", 1)[0]
+            ):
+                user.full_name = profile.full_name
+            if profile.picture_url and not user.avatar_url:
+                user.avatar_url = profile.picture_url
+            if user.organization_id is None:
+                org_label = profile.full_name or profile.email.split("@", 1)[0]
+                org = Organization(name=f"{org_label}'s Organization"[:255])
+                await self.organizations.add(org)
+                await self.session.flush()
+                user.organization_id = org.id
+                user.organization = org
+
         tokens = await self._issue_token_pair(user)
         await self.session.commit()
         return tokens
