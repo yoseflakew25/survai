@@ -380,6 +380,9 @@ class AuthService:
         loaded = await self.users.get_by_id(user.id)
         if loaded is None:
             raise UnauthorizedError("Invalid user")
+        # Serialize before refresh_tokens.add() flushes — that expire expires
+        # other session objects and Pydantic would lazy-load sync (MissingGreenlet).
+        public_user = UserPublic.model_validate(loaded)
         access = create_access_token(subject=loaded.id, role=loaded.role.value)
         raw_refresh = create_refresh_token_value()
         refresh_row = RefreshToken(
@@ -392,5 +395,5 @@ class AuthService:
         return TokenPairResponse(
             access_token=access,
             refresh_token=raw_refresh,
-            user=UserPublic.model_validate(loaded),
+            user=public_user,
         )
