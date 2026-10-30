@@ -18,6 +18,7 @@ from app.repositories.user import UserRepository
 from app.services.analytics import AnalyticsService
 from app.services.auth import AuthService
 from app.services.collection import CollectionService
+from app.services.notification import NotificationService
 from app.services.overview import OverviewService
 from app.services.plan import PlanService
 from app.services.report import ReportService
@@ -69,6 +70,10 @@ def get_overview_service(session: DbSession) -> OverviewService:
     return OverviewService(session)
 
 
+def get_notification_service(session: DbSession) -> NotificationService:
+    return NotificationService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
@@ -81,6 +86,9 @@ RespondentsServiceDep = Annotated[
 ]
 ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
 OverviewServiceDep = Annotated[OverviewService, Depends(get_overview_service)]
+NotificationServiceDep = Annotated[
+    NotificationService, Depends(get_notification_service)
+]
 
 
 def _extract_bearer(authorization: str | None) -> str | None:

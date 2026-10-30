@@ -342,3 +342,37 @@ async def send_email_verification_otp(*, to_email: str, code: str) -> None:
         footnote="If you did not create a SurvAI account, you can safely ignore this email.",
     )
     await send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
+
+
+async def send_lifecycle_notification_email(
+    *,
+    to_email: str,
+    title: str,
+    body: str,
+    action_url: str | None = None,
+) -> None:
+    """Product notification email (survey lifecycle). Uses same SMTP/Resend path."""
+    subject = f"SurvAI: {title}"
+    text_parts = [title, "", body]
+    if action_url:
+        text_parts.extend(["", f"Open: {action_url}"])
+    text_body = "\n".join(text_parts) + "\n"
+    safe_title = html.escape(title)
+    safe_body = html.escape(body).replace("\n", "<br />")
+    body_html = f"""\
+<p style="margin:0 0 8px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
+  BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.55;color:{_MUTED};">
+  {safe_body}
+</p>
+"""
+    if action_url:
+        body_html += _cta_button(href=action_url, label="Open in SurvAI")
+    html_body = _email_shell(
+        preheader=title[:120],
+        title=safe_title,
+        body_html=body_html,
+        footnote="You received this because you have a SurvAI organization account.",
+    )
+    await send_email(
+        to_email=to_email, subject=subject, html_body=html_body, text_body=text_body
+    )

@@ -45,3 +45,15 @@ class UserRepository(BaseRepository[User]):
             .where(User.organization_id == organization_id)
         )
         return int(result.scalar_one())
+
+    async def list_active_by_organization(
+        self, organization_id: UUID
+    ) -> list[User]:
+        result = await self.session.execute(
+            select(User).where(
+                User.organization_id == organization_id,
+                User.is_active.is_(True),
+                User.email_verified.is_(True),
+            )
+        )
+        return list(result.scalars().all())

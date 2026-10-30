@@ -265,8 +265,25 @@ class CollectionService:
 
         survey.status = SurveyStatus.published.value
         survey.current_version_id = version.id
+        survey_title = survey.title
         await self.session.commit()
         await self.session.refresh(version)
+
+        from app.services.notification import NotificationService
+
+        try:
+            await NotificationService(self.session).notify_survey_published(
+                organization_id=org_id,
+                survey_id=survey_id,
+                survey_title=survey_title,
+            )
+        except Exception:
+            # Never block publish on notification delivery.
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "survey_published notification failed survey=%s", survey_id
+            )
 
         return PublishResponse(
             survey_id=survey.id,
@@ -288,7 +305,24 @@ class CollectionService:
         if survey.status != SurveyStatus.published.value:
             raise BadRequestError("Only published surveys can be closed")
         survey.status = SurveyStatus.closed.value
+        survey_title = survey.title
         await self.session.commit()
+
+        from app.services.notification import NotificationService
+
+        try:
+            await NotificationService(self.session).notify_survey_closed(
+                organization_id=org_id,
+                survey_id=survey_id,
+                survey_title=survey_title,
+            )
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "survey_closed notification failed survey=%s", survey_id
+            )
+
         return await self.get_stats(user=user, survey_id=survey_id)
 
     async def get_stats(
@@ -457,6 +491,27 @@ class CollectionService:
 
         await self.session.commit()
         await self.session.refresh(respondent)
+
+        if survey.organization_id is not None and survey.current_version_id is not None:
+            try:
+                count = await self.respondents.count_completed_for_version(
+                    survey_version_id=survey.current_version_id
+                )
+                from app.services.notification import NotificationService
+
+                await NotificationService(self.session).maybe_notify_responses(
+                    organization_id=survey.organization_id,
+                    survey_id=survey.id,
+                    survey_title=survey.title,
+                    response_count=count,
+                )
+            except Exception:
+                import logging
+
+                logging.getLogger(__name__).exception(
+                    "response notification failed survey=%s", survey.id
+                )
+
         return RespondentPublic.model_validate(respondent)
 
     async def upsert_answer(

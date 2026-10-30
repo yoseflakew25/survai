@@ -149,9 +149,31 @@ class ReviewerService:
             )
             self.session.add(finding)
 
+        finding_count = len(output.findings or [])
+        quality_score = float(report.overall_quality_score)
+        org_id = _require_org(user)
+        survey_title = survey.title
         await self.session.commit()
         loaded = await self.reports.latest_for_survey(survey_id=survey.id)
         assert loaded is not None
+
+        from app.services.notification import NotificationService
+
+        try:
+            await NotificationService(self.session).notify_review_complete(
+                organization_id=org_id,
+                survey_id=survey.id,
+                survey_title=survey_title,
+                finding_count=finding_count,
+                quality_score=quality_score,
+            )
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "review_complete notification failed survey=%s", survey.id
+            )
+
         return self._report_public(loaded, survey)
 
     async def update_finding_status(

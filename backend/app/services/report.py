@@ -203,8 +203,25 @@ class ReportService:
             },
         )
         self.session.add(report)
+        org_id = _require_org(user)
+        survey_title = survey.title
         await self.session.commit()
         await self.session.refresh(report)
+
+        from app.services.notification import NotificationService
+
+        try:
+            await NotificationService(self.session).notify_report_ready(
+                organization_id=org_id,
+                survey_id=survey.id,
+                survey_title=survey_title,
+                report_id=report.id,
+            )
+        except Exception:
+            logger.exception(
+                "report_ready notification failed survey=%s", survey.id
+            )
+
         return await self._to_public_with_integrity(
             report, survey_title=survey.title, survey=survey, user=user
         )
