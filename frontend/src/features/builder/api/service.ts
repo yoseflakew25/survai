@@ -61,6 +61,10 @@ type ApiSurvey = {
   status: Survey['status'];
   anonymous_collection: boolean;
   current_version_id: string | null;
+  response_quota?: number | null;
+  closes_at?: string | null;
+  instrument_family_id?: string | null;
+  wave_label?: string | null;
   sections: ApiSection[];
   created_at: string;
   updated_at: string;
@@ -173,6 +177,10 @@ function mapSurvey(s: ApiSurvey): Survey {
     status: s.status,
     anonymousCollection: s.anonymous_collection,
     currentVersionId: s.current_version_id,
+    responseQuota: s.response_quota ?? null,
+    closesAt: s.closes_at ?? null,
+    instrumentFamilyId: s.instrument_family_id ?? null,
+    waveLabel: s.wave_label ?? null,
     sections: (s.sections ?? [])
       .map(mapSection)
       .toSorted((a, b) => a.orderIndex - b.orderIndex),
@@ -255,6 +263,130 @@ export async function updateSurveyDescription(
   if (res.status === 404) return null;
   if (!res.ok) await readError(res, 'Could not update survey description');
   return mapSurvey((await res.json()) as ApiSurvey);
+}
+
+export async function updateCollectionSettings(
+  id: string,
+  settings: {
+    responseQuota?: number | null;
+    closesAt?: string | null;
+  }
+): Promise<Survey | null> {
+  const body: Record<string, unknown> = {};
+  if (settings.responseQuota === null) {
+    body.clear_response_quota = true;
+  } else if (settings.responseQuota !== undefined) {
+    body.response_quota = settings.responseQuota;
+  }
+  if (settings.closesAt === null) {
+    body.clear_closes_at = true;
+  } else if (settings.closesAt !== undefined) {
+    body.closes_at = settings.closesAt;
+  }
+  const res = await apiFetch(`/surveys/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) await readError(res, 'Could not update collection settings');
+  return mapSurvey((await res.json()) as ApiSurvey);
+}
+
+export async function duplicateAsEndline(surveyId: string): Promise<Survey> {
+  const res = await apiFetch(`/surveys/${surveyId}/duplicate-as-endline`, {
+    method: 'POST'
+  });
+  if (!res.ok) await readError(res, 'Could not duplicate as endline');
+  return mapSurvey((await res.json()) as ApiSurvey);
+}
+
+export type SurveyCompareResult = {
+  familyId: string;
+  baseline: {
+    id: string;
+    title: string;
+    waveLabel: string | null;
+    responseCount: number;
+    status: string;
+  };
+  endline: {
+    id: string;
+    title: string;
+    waveLabel: string | null;
+    responseCount: number;
+    status: string;
+  };
+  unmatchedBaseline: string[];
+  unmatchedEndline: string[];
+  pairs: Array<{
+    promptText: string;
+    baselineQuestionId: string | null;
+    endlineQuestionId: string | null;
+    baselineDistribution: Array<Record<string, unknown>>;
+    endlineDistribution: Array<Record<string, unknown>>;
+  }>;
+};
+
+export async function compareSurveys(
+  surveyId: string,
+  otherId: string
+): Promise<SurveyCompareResult> {
+  const res = await apiFetch(
+    `/surveys/${surveyId}/compare?other_id=${encodeURIComponent(otherId)}`
+  );
+  if (!res.ok) await readError(res, 'Could not compare surveys');
+  const data = (await res.json()) as {
+    family_id: string;
+    baseline: {
+      id: string;
+      title: string;
+      wave_label: string | null;
+      response_count: number;
+      status: string;
+    };
+    endline: {
+      id: string;
+      title: string;
+      wave_label: string | null;
+      response_count: number;
+      status: string;
+    };
+    unmatched_baseline: string[];
+    unmatched_endline: string[];
+    pairs: Array<{
+      prompt_text: string;
+      baseline_question_id: string | null;
+      endline_question_id: string | null;
+      baseline_distribution: Array<Record<string, unknown>>;
+      endline_distribution: Array<Record<string, unknown>>;
+    }>;
+  };
+  return {
+    familyId: data.family_id,
+    baseline: {
+      id: data.baseline.id,
+      title: data.baseline.title,
+      waveLabel: data.baseline.wave_label,
+      responseCount: data.baseline.response_count,
+      status: data.baseline.status
+    },
+    endline: {
+      id: data.endline.id,
+      title: data.endline.title,
+      waveLabel: data.endline.wave_label,
+      responseCount: data.endline.response_count,
+      status: data.endline.status
+    },
+    unmatchedBaseline: data.unmatched_baseline ?? [],
+    unmatchedEndline: data.unmatched_endline ?? [],
+    pairs: (data.pairs ?? []).map((p) => ({
+      promptText: p.prompt_text,
+      baselineQuestionId: p.baseline_question_id,
+      endlineQuestionId: p.endline_question_id,
+      baselineDistribution: p.baseline_distribution ?? [],
+      endlineDistribution: p.endline_distribution ?? []
+    }))
+  };
 }
 
 export async function addSection(

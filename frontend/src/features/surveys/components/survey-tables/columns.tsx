@@ -92,9 +92,19 @@ export const columns: ColumnDef<SurveyListItem>[] = [
             {surveyInitials(survey.title)}
           </div>
           <div className='min-w-0 max-w-[18rem] sm:max-w-[22rem] lg:max-w-[28rem]'>
-            <p className='truncate text-sm font-semibold tracking-tight text-foreground group-hover/row:underline group-hover/row:decoration-foreground/25 group-hover/row:underline-offset-2'>
-              {survey.title}
-            </p>
+            <div className='flex min-w-0 items-center gap-2'>
+              <p className='truncate text-sm font-semibold tracking-tight text-foreground group-hover/row:underline group-hover/row:decoration-foreground/25 group-hover/row:underline-offset-2'>
+                {survey.title}
+              </p>
+              {survey.waveLabel ? (
+                <Badge
+                  variant='secondary'
+                  className='shrink-0 capitalize text-[10px]'
+                >
+                  {survey.waveLabel}
+                </Badge>
+              ) : null}
+            </div>
             {survey.description ? (
               <p className='text-muted-foreground mt-0.5 truncate text-xs leading-snug'>
                 {survey.description}

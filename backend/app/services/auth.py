@@ -19,7 +19,6 @@ from app.core.security import (
 )
 from app.models.email_verification import EmailVerificationOtp
 from app.models.organization import Organization
-from app.models.password_reset import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
 from app.repositories.email_verification import EmailVerificationRepository
@@ -37,7 +36,7 @@ from app.services.email import (
     EmailDeliveryError,
     email_delivery_configured,
     send_email_verification_otp,
-    send_password_reset_email,
+    send_password_reset_otp,
 )
 from app.services.google_identity import verify_google_id_token
 
@@ -290,54 +289,49 @@ class AuthService:
         await self.session.commit()
 
     async def request_password_reset(self, *, email: str) -> ForgotPasswordResponse:
-        """Issue a reset email when the account exists.
+        """Email a 6-digit OTP when the account exists (anti-enumeration).
 
-        Unknown / inactive / unverified emails still get a generic success so we
-        do not enumerate accounts. Delivery failures are surfaced (same as
-        signup OTP) so the UI does not pretend mail was sent. When SMTP/Resend
-        are not configured, return ``dev_reset_url`` for local testing.
+        Delivery failures are surfaced so the UI does not pretend mail was sent.
+        When SMTP/Resend are not configured, return ``dev_code`` for local testing.
         """
         generic = ForgotPasswordResponse()
         user = await self.users.get_by_email(email)
         if user is None or not user.is_active or not user.email_verified:
             return generic
 
-        await self.password_resets.invalidate_active_for_user(user.id)
-        raw_token = secrets.token_urlsafe(32)
-        reset = PasswordResetToken(
+        delivered = email_delivery_configured()
+        if not delivered and settings.is_production:
+            raise BadRequestError(
+                "Password reset email could not be sent. Configure SMTP "
+                "or Resend on the API."
+            )
+
+        await self.email_otps.invalidate_active_for_user(user.id)
+        code = _generate_otp_code()
+        otp = EmailVerificationOtp(
             user_id=user.id,
-            token_hash=hash_token(raw_token),
+            code_hash=hash_token(code),
             expires_at=datetime.now(UTC)
-            + timedelta(minutes=settings.password_reset_token_expire_minutes),
+            + timedelta(minutes=settings.email_verification_otp_expire_minutes),
+            attempts=0,
         )
-        await self.password_resets.add(reset)
+        await self.email_otps.add(otp)
         await self.session.flush()
 
-        reset_url = f"{settings.password_reset_url_base}?token={raw_token}"
-        delivered = email_delivery_configured()
         if not delivered:
-            if settings.is_production:
-                await self.session.rollback()
-                raise BadRequestError(
-                    "Password reset email could not be sent. Configure SMTP "
-                    "or Resend on the API."
-                )
             await self.session.commit()
             return ForgotPasswordResponse(
                 message=(
-                    "Email delivery is not configured — use the reset link "
-                    "shown below (dev)."
+                    "Email delivery is not configured — use the code shown "
+                    "below (dev)."
                 ),
-                dev_reset_url=reset_url,
+                dev_code=code,
             )
 
         try:
-            await send_password_reset_email(
-                to_email=user.email, reset_token=raw_token
-            )
+            await send_password_reset_otp(to_email=user.email, code=code)
         except EmailDeliveryError as exc:
             await self.session.rollback()
-            # Surface the provider error so ops can fix SMTP (auth/block/timeout).
             detail = str(exc).strip() or "email provider error"
             raise BadRequestError(
                 f"Could not send the reset email ({detail}). "
@@ -346,17 +340,42 @@ class AuthService:
         await self.session.commit()
         return generic
 
-    async def confirm_password_reset(self, *, token: str, new_password: str) -> None:
-        stored = await self.password_resets.get_valid_by_hash(hash_token(token))
-        if stored is None:
-            raise BadRequestError("Invalid or expired reset token")
+    async def confirm_password_reset(
+        self, *, email: str, code: str, new_password: str
+    ) -> None:
+        """Verify reset OTP and set a new password."""
+        user = await self.users.get_by_email(email)
+        if user is None or not user.is_active or not user.email_verified:
+            raise BadRequestError("Invalid or expired reset code")
 
-        user = await self.users.get_by_id(stored.user_id)
-        if user is None or not user.is_active:
-            raise BadRequestError("Invalid or expired reset token")
+        otp = await self.email_otps.get_latest_valid(user.id)
+        if otp is None:
+            raise BadRequestError("Invalid or expired reset code")
 
+        if otp.attempts >= settings.email_verification_otp_max_attempts:
+            await self.email_otps.mark_used(otp)
+            await self.session.commit()
+            raise BadRequestError(
+                "Too many incorrect attempts. Request a new reset code."
+            )
+
+        otp.attempts += 1
+        if hash_token(code.strip()) != otp.code_hash:
+            await self.session.commit()
+            remaining = settings.email_verification_otp_max_attempts - otp.attempts
+            if remaining <= 0:
+                await self.email_otps.mark_used(otp)
+                await self.session.commit()
+                raise BadRequestError(
+                    "Too many incorrect attempts. Request a new reset code."
+                )
+            raise BadRequestError(
+                f"Incorrect code. {remaining} attempt"
+                f"{'s' if remaining != 1 else ''} remaining."
+            )
+
+        await self.email_otps.mark_used(otp)
         user.hashed_password = hash_password(new_password)
-        await self.password_resets.mark_used(stored)
         await self.refresh_tokens.revoke_all_for_user(user.id)
         await self.session.commit()
 

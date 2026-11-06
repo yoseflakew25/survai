@@ -107,7 +107,7 @@ export function SectionCard({
 
   return (
     <Card className='overflow-hidden'>
-      <CardHeader className='bg-muted/30 py-3'>
+      <CardHeader className='bg-brand-soft py-3'>
         <div className='flex items-start justify-between gap-3'>
           <div className='flex items-start gap-3'>
             <span className='bg-primary text-primary-foreground flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold'>

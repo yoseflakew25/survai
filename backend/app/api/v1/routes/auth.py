@@ -151,5 +151,9 @@ async def reset_password(
     body: PasswordResetConfirm,
     auth: AuthServiceDep,
 ) -> MessageResponse:
-    await auth.confirm_password_reset(token=body.token, new_password=body.new_password)
+    await auth.confirm_password_reset(
+        email=str(body.email),
+        code=body.code,
+        new_password=body.new_password,
+    )
     return MessageResponse(message="Password updated successfully")

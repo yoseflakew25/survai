@@ -8,35 +8,63 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
+import { PasswordInput } from '@/features/auth/components/password-input';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot
+} from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
-const schema = z.object({
+const emailSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email')
 });
 
-type FormValues = z.infer<typeof schema>;
+const resetSchema = z
+  .object({
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(8, 'At least 8 characters')
+      .regex(/[A-Z]/, 'Include an uppercase letter')
+      .regex(/[0-9]/, 'Include a number'),
+    confirmPassword: z.string().min(1, 'Confirm your password')
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword']
+  });
+
+type EmailValues = z.infer<typeof emailSchema>;
+type ResetValues = z.infer<typeof resetSchema>;
 
 const inputClass =
   'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function ForgotPasswordViewPage() {
-  const { requestPasswordReset, isSignedIn, isLoading } = useAuth();
+  const { requestPasswordReset, confirmPasswordReset, isSignedIn, isLoading } =
+    useAuth();
   const router = useRouter();
+  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { email: '' },
-    mode: 'onSubmit',
-    reValidateMode: 'onChange'
+  const emailForm = useForm<EmailValues>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: '' }
   });
 
-  const { isSubmitting } = form.formState;
+  const resetForm = useForm<ResetValues>({
+    resolver: zodResolver(resetSchema),
+    defaultValues: { password: '', confirmPassword: '' }
+  });
 
   useEffect(() => {
     if (!isLoading && isSignedIn) {
@@ -44,29 +72,73 @@ export default function ForgotPasswordViewPage() {
     }
   }, [isLoading, isSignedIn, router]);
 
-  async function onSubmit(values: FormValues) {
+  async function onEmailSubmit(values: EmailValues) {
     setServerError(null);
-    setDevResetUrl(null);
     const email = values.email.trim();
     try {
       const result = await requestPasswordReset(email);
-      setSentTo(email);
-      setDevResetUrl(result.dev_reset_url ?? null);
+      setPendingEmail(email);
+      setDevCode(result.dev_code ?? null);
+      setOtp(result.dev_code ?? '');
+      setStep('otp');
       toast.success(
-        result.dev_reset_url ? 'Dev mode — reset link ready' : 'Check your email',
+        result.dev_code ? 'Dev mode — code ready' : 'Check your email',
         {
-          description: result.dev_reset_url
-            ? 'Email delivery is not configured; use the link shown on screen.'
-            : 'If that address is registered, a reset link is on the way.'
+          description: result.dev_code
+            ? 'Email delivery is not configured; use the code shown on screen.'
+            : 'If that address is registered, a 6-digit reset code is on the way.'
         }
       );
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : 'Could not send reset email. Please try again.';
+          : 'Could not send reset code. Please try again.';
       setServerError(message);
-      toast.error('Could not send reset email', { description: message });
+      toast.error('Could not send reset code', { description: message });
+    }
+  }
+
+  async function onResetSubmit(values: ResetValues) {
+    if (otp.length !== 6) {
+      setServerError('Enter the 6-digit code from your email.');
+      return;
+    }
+    setServerError(null);
+    try {
+      await confirmPasswordReset(pendingEmail, otp, values.password);
+      setDone(true);
+      toast.success('Password updated', {
+        description: 'You can sign in with your new password.'
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Could not reset password. Please try again.';
+      setServerError(message);
+      toast.error('Reset failed', { description: message });
+    }
+  }
+
+  async function onResend() {
+    setServerError(null);
+    setIsResending(true);
+    try {
+      const result = await requestPasswordReset(pendingEmail);
+      setDevCode(result.dev_code ?? null);
+      setOtp(result.dev_code ?? '');
+      toast.success(result.dev_code ? 'Dev code refreshed' : 'Code sent', {
+        description: result.dev_code
+          ? 'Email delivery is not configured; use the code shown on screen.'
+          : 'Check your inbox for a new reset code.'
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not resend code.';
+      setServerError(message);
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -90,12 +162,18 @@ export default function ForgotPasswordViewPage() {
     <AuthShell>
       <div className='mb-6'>
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
-          Forgot password
+          {done
+            ? 'Password updated'
+            : step === 'otp'
+              ? 'Enter reset code'
+              : 'Forgot password'}
         </h1>
         <p className='text-muted-foreground mt-1.5 text-[15px]'>
-          {sentTo
-            ? `If an account exists for ${sentTo}, we sent a reset link.`
-            : 'Enter your organization email and we’ll send a reset link.'}
+          {done
+            ? 'Your password was updated. Sign in to continue.'
+            : step === 'otp'
+              ? `Enter the 6-digit code we sent to ${pendingEmail}, then choose a new password.`
+              : 'Enter your organization email and we’ll send a 6-digit code.'}
         </p>
       </div>
 
@@ -109,44 +187,19 @@ export default function ForgotPasswordViewPage() {
           </div>
         ) : null}
 
-        {sentTo ? (
-          <div className='space-y-4'>
-            <div className='border-border bg-card rounded-xl border px-3.5 py-3 text-sm'>
-              <p className='text-foreground font-medium'>
-                {devResetUrl ? 'Reset link ready' : 'Check your inbox'}
-              </p>
-              <p className='text-muted-foreground mt-0.5'>
-                {devResetUrl
-                  ? 'Email delivery is not configured on this API. Open the link below to choose a new password.'
-                  : 'The link expires in about an hour. Didn’t get it? You can request another below.'}
-              </p>
-              {devResetUrl ? (
-                <p className='mt-3 break-all'>
-                  <Link
-                    href={devResetUrl}
-                    className='text-foreground font-semibold underline-offset-4 hover:underline'
-                  >
-                    {devResetUrl}
-                  </Link>
-                </p>
-              ) : null}
-            </div>
-            <button
-              type='button'
-              className='btn-back h-11 w-full text-[15px]'
-              onClick={() => {
-                setSentTo(null);
-                setDevResetUrl(null);
-                setServerError(null);
-              }}
-            >
-              Send another link
-            </button>
-          </div>
-        ) : (
+        {done ? (
+          <Link
+            href='/auth/sign-in'
+            className='btn-back flex h-11 w-full items-center justify-center text-[15px]'
+          >
+            Continue to sign in
+          </Link>
+        ) : null}
+
+        {!done && step === 'email' ? (
           <form
             className='space-y-3'
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={emailForm.handleSubmit(onEmailSubmit)}
             noValidate
           >
             <div className='space-y-1.5'>
@@ -164,52 +217,188 @@ export default function ForgotPasswordViewPage() {
                 autoCapitalize='none'
                 autoCorrect='off'
                 spellCheck={false}
-                disabled={isSubmitting}
-                aria-invalid={!!form.formState.errors.email}
+                disabled={emailForm.formState.isSubmitting}
+                aria-invalid={!!emailForm.formState.errors.email}
                 className={cn(
                   inputClass,
-                  form.formState.errors.email &&
+                  emailForm.formState.errors.email &&
                     'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
                 )}
-                {...form.register('email', {
+                {...emailForm.register('email', {
                   onChange: () => {
                     if (serverError) setServerError(null);
                   }
                 })}
               />
-              {form.formState.errors.email ? (
+              {emailForm.formState.errors.email ? (
                 <p className='text-destructive text-sm'>
-                  {form.formState.errors.email.message}
+                  {emailForm.formState.errors.email.message}
                 </p>
               ) : null}
             </div>
 
             <button
               type='submit'
-              disabled={isSubmitting}
+              disabled={emailForm.formState.isSubmitting}
               className='btn-back h-11 w-full text-[15px] disabled:pointer-events-none disabled:opacity-70'
             >
-              {isSubmitting ? (
+              {emailForm.formState.isSubmitting ? (
                 <>
                   <Icons.spinner className='size-4 animate-spin' />
                   Sending…
                 </>
               ) : (
-                'Send reset link'
+                'Send reset code'
               )}
             </button>
           </form>
-        )}
+        ) : null}
 
-        <p className='text-muted-foreground text-center text-[13px]'>
-          Remembered it?{' '}
-          <Link
-            href='/auth/sign-in'
-            className='text-foreground font-semibold hover:underline'
+        {!done && step === 'otp' ? (
+          <form
+            className='space-y-4'
+            onSubmit={resetForm.handleSubmit(onResetSubmit)}
+            noValidate
           >
-            Back to sign in
-          </Link>
-        </p>
+            {devCode ? (
+              <div className='border-border bg-card rounded-xl border px-3.5 py-3 text-sm'>
+                <p className='font-medium'>Dev code</p>
+                <p className='text-muted-foreground mt-0.5 font-mono text-lg tracking-widest'>
+                  {devCode}
+                </p>
+              </div>
+            ) : null}
+
+            <div className='space-y-2'>
+              <label className='text-foreground/80 text-[13px] font-medium'>
+                Reset code
+              </label>
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={(value) => {
+                  setOtp(value);
+                  if (serverError) setServerError(null);
+                }}
+              >
+                <InputOTPGroup>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <InputOTPSlot key={i} index={i} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <div className='space-y-1.5'>
+              <label
+                htmlFor='reset-password'
+                className='text-foreground/80 text-[13px] font-medium'
+              >
+                New password
+              </label>
+              <PasswordInput
+                id='reset-password'
+                placeholder='At least 8 characters'
+                autoComplete='new-password'
+                disabled={resetForm.formState.isSubmitting}
+                aria-invalid={!!resetForm.formState.errors.password}
+                className={cn(
+                  inputClass,
+                  resetForm.formState.errors.password &&
+                    'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+                )}
+                {...resetForm.register('password', {
+                  onChange: () => {
+                    if (serverError) setServerError(null);
+                  }
+                })}
+              />
+              {resetForm.formState.errors.password ? (
+                <p className='text-destructive text-sm'>
+                  {resetForm.formState.errors.password.message}
+                </p>
+              ) : null}
+            </div>
+
+            <div className='space-y-1.5'>
+              <label
+                htmlFor='reset-confirm'
+                className='text-foreground/80 text-[13px] font-medium'
+              >
+                Confirm password
+              </label>
+              <PasswordInput
+                id='reset-confirm'
+                placeholder='Repeat password'
+                autoComplete='new-password'
+                disabled={resetForm.formState.isSubmitting}
+                aria-invalid={!!resetForm.formState.errors.confirmPassword}
+                className={cn(
+                  inputClass,
+                  resetForm.formState.errors.confirmPassword &&
+                    'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+                )}
+                {...resetForm.register('confirmPassword')}
+              />
+              {resetForm.formState.errors.confirmPassword ? (
+                <p className='text-destructive text-sm'>
+                  {resetForm.formState.errors.confirmPassword.message}
+                </p>
+              ) : null}
+            </div>
+
+            <button
+              type='submit'
+              disabled={resetForm.formState.isSubmitting || otp.length !== 6}
+              className='btn-back h-11 w-full text-[15px] disabled:pointer-events-none disabled:opacity-70'
+            >
+              {resetForm.formState.isSubmitting ? (
+                <>
+                  <Icons.spinner className='size-4 animate-spin' />
+                  Updating…
+                </>
+              ) : (
+                'Update password'
+              )}
+            </button>
+
+            <div className='flex flex-col gap-2 sm:flex-row'>
+              <button
+                type='button'
+                className='btn-back h-11 flex-1 text-[15px]'
+                disabled={isResending}
+                onClick={() => void onResend()}
+              >
+                {isResending ? 'Sending…' : 'Resend code'}
+              </button>
+              <button
+                type='button'
+                className='text-muted-foreground h-11 flex-1 text-[13px] font-medium hover:underline'
+                onClick={() => {
+                  setStep('email');
+                  setOtp('');
+                  setDevCode(null);
+                  setServerError(null);
+                  resetForm.reset();
+                }}
+              >
+                Use a different email
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {!done ? (
+          <p className='text-muted-foreground text-center text-[13px]'>
+            Remembered it?{' '}
+            <Link
+              href='/auth/sign-in'
+              className='text-foreground font-semibold hover:underline'
+            >
+              Back to sign in
+            </Link>
+          </p>
+        ) : null}
       </div>
     </AuthShell>
   );

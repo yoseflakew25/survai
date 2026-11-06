@@ -18,6 +18,7 @@ from app.ai.schemas import (
 )
 from app.ai.services.builder import generate_survey_draft, regenerate_section
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.rbac import require_org_editor
 from app.models.survey import Question, QuestionSource, QuestionType, Section, Survey, SurveyStatus
 from app.models.survey_plan import SurveyPlan
 from app.models.user import User
@@ -165,6 +166,10 @@ def _survey_public(
         status=survey.status,  # type: ignore[arg-type]
         anonymous_collection=survey.anonymous_collection,
         current_version_id=survey.current_version_id,
+        response_quota=survey.response_quota,
+        closes_at=survey.closes_at,
+        instrument_family_id=survey.instrument_family_id,
+        wave_label=survey.wave_label,
         sections=[_section_public(s) for s in sections],
         sections_count=sections_count,
         questions_count=questions_count,
@@ -412,6 +417,7 @@ class SurveyService:
     async def update_survey(
         self, *, user: User, survey_id: UUID, body: SurveyUpdate
     ) -> SurveyPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         data = body.model_dump(exclude_unset=True)
         if "title" in data and data["title"] is not None:
@@ -443,6 +449,14 @@ class SurveyService:
                     "published, closed, or archived."
                 )
             survey.anonymous_collection = data["anonymous_collection"]
+        if data.get("clear_response_quota"):
+            survey.response_quota = None
+        elif "response_quota" in data:
+            survey.response_quota = data["response_quota"]
+        if data.get("clear_closes_at"):
+            survey.closes_at = None
+        elif "closes_at" in data:
+            survey.closes_at = data["closes_at"]
         await self.session.commit()
         await self._index_survey_safe(survey)
         return await self.get_survey(user=user, survey_id=survey_id)

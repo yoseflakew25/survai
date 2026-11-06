@@ -1,10 +1,9 @@
 # Codebase Progress — SurvAI / AI Survey Copilot
 
 > Living snapshot of what is implemented vs mock vs next.
-> Last updated: **6 November 2026** — Plan → Reports live; **Org Assistant
-> (RAG + structured tools)**; HF local embeddings; in-app notifications;
-> Google OAuth; light Launchpot theme; Docker bake for embeddings; Render +
-> Vercel deploy path.
+> Last updated: **6 November 2026** — Plan → Reports live; Org Assistant;
+> **multi-seat orgs** (Owner / Researcher / Viewer); collection quota + share
+> pack; donor ZIP export; baseline/endline compare.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -22,16 +21,18 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
 | Term | Meaning |
 | --- | --- |
-| **Organization** | The account/workspace that owns surveys (e.g. DICDO). Does everything in MVP. |
-| **User (DB)** | Login credentials for that org (1:1 for now). Not multi-seat staff yet. |
+| **Organization** | The account/workspace that owns surveys (e.g. DICDO). |
+| **User (DB)** | Seat in an org — Owner, Researcher, or Viewer (email invite). |
 | **Respondent** | Person who *fills* a published survey. **No account** — public link only. |
 
-### MVP roles (live)
+### Org seats (live)
 
 | Role | Meaning |
 | --- | --- |
 | `system_admin` | SurvAI platform operator — seeded from `FIRST_SUPERUSER_*` |
-| `organization` | Default for all signups and non-platform accounts |
+| `organization` | **Owner** — signup creates org; invite/revoke seats; full mutate |
+| `researcher` | Edit/publish/build/report; no seat management |
+| `viewer` | Read analytics/reports/assistant; no mutate CTAs |
 
 - **Sidebar nav:** Dashboard, Surveys, **Assistant**, Account (`nav-config.ts`).
 - **Auth:** JWT + httpOnly cookies; email/password + OTP; **Google Identity (GIS)** → same cookies.
@@ -64,8 +65,12 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
   - API: `/assistant/threads`, messages, **`POST …/messages/stream` (SSE)**, `POST /knowledge/reindex`
   - Docker: model pre-baked into image (`EMBEDDING_CACHE_DIR`)
 - **Jobs / ARQ:** **inline by default** (`JOBS_USE_REDIS=false`). Redis is opt-in only; exhausted/missing Redis never blocks the API.
-- **Alembic:** through **`0016_org_assistant`**.
-- Pytest: assistant isolation/retrieve/chat; plus existing suites (auth tests may fail if live Resend key returns 403 in local env).
+- **Org seats:** Alembic **`0017_org_seats`** — `org_invites`; roles researcher/viewer; `POST /auth/accept-invite`; `/org/team` + invites (owner-only mutate).
+- **Collection settings:** Alembic **`0018_collection_compare`** — `response_quota`, `closes_at` enforced on public submit + collect-stats.
+- **Donor pack:** `POST /reports/{id}/export-pack` → ZIP (PDF + DOCX + analytics CSV).
+- **Compare:** `instrument_family_id` / `wave_label`; `POST …/duplicate-as-endline`; `GET …/compare?other_id=`.
+- **Alembic:** through **`0018_collection_compare`**.
+- Pytest: `test_dicdo_features` (invites isolation, quota reject, ZIP contents, compare matching) + assistant suites.
 
 **Run API locally:**
 ```bash
@@ -83,9 +88,8 @@ uvicorn app.main:app --reload --port 8000
 
 - Confirm prod `REDIS_URL` where async report jobs are desired.
 - Run `POST /assistant/knowledge/reindex` once per org after first Assistant deploy (or after embedding model change).
-- Multi-seat org roles; OpenAPI-typed FE client regeneration.
-- Optional: pgvector when chunk volume grows (v1 uses JSON embeddings + in-process cosine).
-- CSRF with `SameSite=None` cookies if needed.
+- Run `alembic upgrade head` on Aiven/Render for **0017 + 0018**.
+- Optional: multi-org switcher / custom role matrices / SSO; pgvector; CSRF with `SameSite=None`.
 
 ---
 
@@ -94,6 +98,11 @@ uvicorn app.main:app --reload --port 8000
 - Auth UI (email/OTP + Google); Plans → Builder → Review → Collect → Respondents → Analytics → Reports.
 - Overview KPIs + activity; survey activity modal; pill nav.
 - **Assistant** (`/dashboard/assistant`): thread list + chat, markdown rendering, citation chips, New chat in brand header.
+- **Team** (Account → Team): invite researchers/viewers; `/auth/accept-invite`.
+- **Collect:** quota + close datetime settings; share pack (QR + print sheet); progress toward quota.
+- **Reports:** Save as PDF / Word; **Download donor pack** ZIP.
+- **Analytics:** Duplicate as endline + compare table for instrument-family siblings.
+- Viewer role: mutate CTAs hidden (publish, generate report, etc.).
 - Notifications drawer; Launchpot light theme chrome (`SurvaiPanel`, brand CTAs).
 - Forms: RHF + Zod; TanStack Query.
 
@@ -108,9 +117,9 @@ uvicorn app.main:app --reload --port 8000
 
 ## 6. Known next (priority)
 
-1. On Render: leave `JOBS_USE_REDIS=false` (or unset) and clear `REDIS_URL` — no Upstash needed.
-2. Run `pilot_full_path.py` / Playwright with staging `SMOKE_*` / `E2E_*` after deploy.
-3. Multi-seat org roles when DICDO needs staff invites.
+1. Apply Alembic **0017/0018** on deployed DB; smoke invite + quota + donor pack.
+2. On Render: leave `JOBS_USE_REDIS=false` (or unset) and clear `REDIS_URL` — no Upstash needed.
+3. Run `pilot_full_path.py` / Playwright with staging `SMOKE_*` / `E2E_*` after deploy.
 
 ---
 

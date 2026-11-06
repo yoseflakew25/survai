@@ -68,7 +68,7 @@ export function DataTable<TData>({
       <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
         <ScrollArea className='w-full'>
           <Table>
-            <TableHeader className='border-b border-border bg-muted/30'>
+            <TableHeader className='border-b border-border bg-brand-soft'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                   key={headerGroup.id}

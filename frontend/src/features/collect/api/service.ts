@@ -26,6 +26,8 @@ type ApiStats = {
   current_version_id: string | null;
   status: string;
   collection_path: string | null;
+  response_quota?: number | null;
+  closes_at?: string | null;
 };
 
 type ApiPublish = {
@@ -43,7 +45,9 @@ function mapStats(s: ApiStats): CollectStats {
     responseCount: s.response_count,
     currentVersionId: s.current_version_id,
     status: s.status,
-    collectionPath: s.collection_path
+    collectionPath: s.collection_path,
+    responseQuota: s.response_quota ?? null,
+    closesAt: s.closes_at ?? null
   };
 }
 

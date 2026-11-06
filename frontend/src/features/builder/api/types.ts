@@ -81,6 +81,10 @@ export interface Survey {
   status: SurveyStatus;
   anonymousCollection: boolean;
   currentVersionId: string | null;
+  responseQuota: number | null;
+  closesAt: string | null;
+  instrumentFamilyId: string | null;
+  waveLabel: string | null;
   sections: Section[];
   createdAt: string;
   updatedAt: string;

@@ -119,6 +119,20 @@ async def post_report_chat(
 
 
 @router.post(
+    "/reports/{report_id}/export-pack",
+    response_model=ExportPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def export_report_pack(
+    report_id: UUID,
+    current_user: CurrentUser,
+    reports: ReportServiceDep,
+) -> ExportPublic:
+    """One-click donor pack: PDF + DOCX + analytics CSV as ZIP."""
+    return await reports.export_pack(user=current_user, report_id=report_id)
+
+
+@router.post(
     "/reports/{report_id}/export",
     response_model=ExportPublic | JobAccepted,
     status_code=status.HTTP_201_CREATED,

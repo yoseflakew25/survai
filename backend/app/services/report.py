@@ -7,6 +7,7 @@ import csv
 import io
 import logging
 import re
+import zipfile
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -26,6 +27,7 @@ from app.analytics.engine import (
     percent_distribution,
 )
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.rbac import require_org_editor
 from app.models.report import (
     ExportRecord,
     Report,
@@ -145,6 +147,7 @@ class ReportService:
     async def create_report(
         self, *, user: User, survey_id: UUID, body: ReportCreateRequest
     ) -> ReportPublic:
+        require_org_editor(user)
         survey = await self._owned_survey(user, survey_id)
         if survey.current_version_id is None:
             raise BadRequestError("Publish the survey and collect responses first.")
@@ -430,6 +433,7 @@ class ReportService:
     async def export_report(
         self, *, user: User, report_id: UUID, body: ExportRequest
     ) -> ExportPublic:
+        require_org_editor(user)
         org_id = _require_org(user)
         report = await self.reports.get_for_org(
             report_id=report_id, organization_id=org_id
@@ -505,6 +509,77 @@ class ReportService:
             content_base64=content_b64,
             filename=filename,
             mime_type=mime,
+            file_url=export.file_url,
+            created_at=export.created_at,
+        )
+
+    async def export_pack(
+        self, *, user: User, report_id: UUID
+    ) -> ExportPublic:
+        """ZIP: PDF + DOCX + analytics CSV for donor handoff."""
+        require_org_editor(user)
+        org_id = _require_org(user)
+        report = await self.reports.get_for_org(
+            report_id=report_id, organization_id=org_id
+        )
+        if report is None:
+            raise NotFoundError("Report not found")
+        survey = await self.surveys.get_for_org_meta(
+            survey_id=report.survey_id, organization_id=org_id
+        )
+        survey_title = survey.title if survey is not None else "Survey"
+        safe_name = _SAFE_FILENAME.sub("_", (report.title or "report")).strip("_")[
+            :60
+        ] or "report"
+        generated_label = (
+            report.created_at.strftime("%d %b %Y") if report.created_at else None
+        )
+        sections = list(report.sections or [])
+
+        pdf_bytes = build_report_pdf(
+            title=report.title,
+            survey_title=survey_title,
+            sections=sections,
+            generated_label=generated_label,
+        )
+        docx_bytes = build_report_docx(
+            title=report.title,
+            survey_title=survey_title,
+            sections=sections,
+            generated_label=generated_label,
+        )
+        csv_export = await self.export_analytics_csv(
+            user=user, survey_id=report.survey_id
+        )
+        csv_text = csv_export.content_text or ""
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(f"{safe_name}-report.pdf", pdf_bytes)
+            zf.writestr(f"{safe_name}-report.docx", docx_bytes)
+            zf.writestr(f"{safe_name}-analytics.csv", csv_text.encode("utf-8"))
+        zip_bytes = buf.getvalue()
+
+        export = ExportRecord(
+            report_id=report.id,
+            survey_id=report.survey_id,
+            type="zip",
+            status="completed",
+            content_text=f"ZIP export pack ({len(zip_bytes)} bytes)",
+            requested_by=user.id,
+            completed_at=datetime.now(UTC),
+        )
+        self.session.add(export)
+        await self.session.commit()
+        await self.session.refresh(export)
+        return ExportPublic(
+            id=export.id,
+            type="zip",
+            status=export.status,
+            content_text=export.content_text,
+            content_base64=base64.b64encode(zip_bytes).decode("ascii"),
+            filename=f"{safe_name}-donor-pack.zip",
+            mime_type="application/zip",
             file_url=export.file_url,
             created_at=export.created_at,
         )

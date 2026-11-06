@@ -1246,38 +1246,46 @@ conflicts, **§2a wins**.
 ## 23. Implementation Status (as of 6 November 2026)
 
 > Tracks frontend + backend. **Plan → Reports is live end-to-end.** **Org
-> Assistant (RAG + structured tools)** is live. Notifications + Google OAuth
-> live. HF FastEmbed embeddings (Docker-baked). Deploy: Vercel FE +
-> Railway/Render API. See `status.md`.
+> Assistant (RAG + structured tools)** is live. **DICDO high-value pack
+> live:** multi-seat (Owner/Researcher/Viewer), collection quota + share pack,
+> donor ZIP export, baseline/endline compare. Notifications + Google OAuth.
+> HF FastEmbed (Docker-baked). Deploy: Vercel FE + Railway/Render API. See
+> `status.md`.
 
 ### ✅ Completed — Backend (`backend/`)
 
 | Module | Status | Notes |
 | --- | --- | --- |
 | **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, `scripts/start.sh` |
-| **Auth API (§7)** | ✅ Done | email OTP + **Google OAuth**; JWT cookies; forgot/reset; `DELETE /users/me` |
-| **Email delivery** | ✅ Done | SMTP and/or Resend; `dev_code` when mail unconfigured |
+| **Auth API (§7)** | ✅ Done | email OTP + **Google OAuth**; JWT cookies; forgot/reset; `DELETE /users/me`; **accept-invite** |
+| **Email delivery** | ✅ Done | SMTP and/or Resend; `dev_code` / `dev_invite_url` when mail unconfigured |
 | **AI gateway + Planner** | ✅ Done | Gemini `app/ai/client.py`; plans CRUD + generate (`planner_v1`) |
 | **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate |
 | **Reviewer AI** | ✅ Done | review + findings; prefer `gemini-3.1-flash-lite` |
-| **Collection** | ✅ Done | publish/close; versions; public GET/submit |
-| **Respondents / Analytics / Reports / Overview** | ✅ Done | deterministic engine; §9 reconciliation; PDF/DOCX; KPIs |
+| **Collection** | ✅ Done | publish/close; versions; public GET/submit; **quota + closes_at** |
+| **Respondents / Analytics / Reports / Overview** | ✅ Done | deterministic engine; §9 reconciliation; PDF/DOCX; **export-pack ZIP**; KPIs |
+| **Compare** | ✅ Done | `instrument_family_id` / `wave_label`; duplicate-as-endline; prompt-matched compare |
 | **Notifications** | ✅ Done | in-app feed; lifecycle emitters |
 | **Org Assistant** | ✅ Done | Alembic **`0016`**; RAG (HF embeddings) + tools; `/assistant/*`; reindex |
+| **Org seats** | ✅ Done | Alembic **`0017`**; researcher/viewer; `org_invites`; owner-only invite/revoke |
 | **Embeddings** | ✅ Done | `app/ai/embeddings.py` + FastEmbed; not Gemini |
-| **ARQ + Redis (§14)** | ✅ Done | report 202 + poll when `REDIS_URL` set; inline otherwise |
-| **Integrity locks / RBAC** | ✅ Done | plan↔survey; publish locks; `system_admin` \| `organization` |
-| **Postgres** | ✅ Live | Aiven (+ Railway/Render); Alembic through **`0016_org_assistant`** |
-| **Health / Tests / CI** | ✅ Done | health GET+HEAD; pytest incl. `test_assistant`; GH Actions |
+| **ARQ + Redis (§14)** | ✅ Done | report 202 + poll when Redis opt-in; inline default (`JOBS_USE_REDIS=false`) |
+| **Integrity locks / RBAC** | ✅ Done | plan↔survey; publish locks; owner \| researcher \| viewer |
+| **Postgres** | ✅ Live | Aiven (+ Railway/Render); Alembic through **`0018_collection_compare`** |
+| **Health / Tests / CI** | ✅ Done | health GET+HEAD; pytest incl. `test_dicdo_features` + `test_assistant`; GH Actions |
 
 ### ✅ Completed — Frontend
 
 | Module | Status | Notes |
 | --- | --- | --- |
-| **Auth UI** | ✅ Done | Email/password + OTP + **Google GIS** |
+| **Auth UI** | ✅ Done | Email/password + OTP + **Google GIS** + **accept-invite** |
 | **Plans → Reports** | ✅ Live | Full lifecycle pill nav + activity modal |
 | **Overview** | ✅ Live | KPIs + response activity |
 | **Assistant** | ✅ Live | `/dashboard/assistant` threads + markdown chat + citations |
+| **Team** | ✅ Live | Account → Team invites; role badge on org switcher |
+| **Collect** | ✅ Live | Quota/close settings; share pack print; quota progress |
+| **Reports** | ✅ Live | PDF + Word + **donor pack ZIP** |
+| **Analytics compare** | ✅ Live | Duplicate as endline + side-by-side table |
 | **Notifications** | ✅ Live | Header drawer |
 | **Design chrome** | ✅ Live | Launchpot light theme / `SurvaiPanel` / brand CTAs |
 | **Forms / Query** | ✅ Done | RHF+Zod; TanStack Query |
@@ -1291,7 +1299,8 @@ conflicts, **§2a wins**.
 | **Export ARQ** | ✅ Done | Report export 202 + poll when Redis set; `/health` jobs probe |
 | **Pilot smoke** | ✅ Soft | Scripts + Playwright cover assistant; need staging `SMOKE_*`/`E2E_*` |
 | **Prod Redis** | Soft | Confirm Upstash `REDIS_URL` where async jobs desired |
-| **Multi-seat orgs** | Soft | When needed beyond MVP 1:1 |
+| **Multi-org switcher / SSO** | Soft | Still single-org per user; no custom role matrices |
+| **AI compare narratives** | Soft | Out of scope for this pass |
 | **pgvector** | Soft | Only if chunk volume outgrows JSON cosine |
 | **CSRF** | Soft | With `SameSite=None` cross-site cookies |
 

@@ -111,11 +111,15 @@ async def test_forgot_password_no_enumeration(client: AsyncClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert "reset" in body["message"].lower() or "registered" in body["message"].lower()
-    assert body.get("dev_reset_url") in (None, "")
+    assert body.get("dev_code") in (None, "")
 
     bad_reset = await client.post(
         "/api/v1/auth/reset-password",
-        json={"token": "not-a-real-token", "new_password": "NewPassword1!"},
+        json={
+            "email": "missing@example.com",
+            "code": "000000",
+            "new_password": "NewPassword1!",
+        },
     )
     assert bad_reset.status_code == 400
 
@@ -137,16 +141,16 @@ async def test_forgot_password_reset_and_login(
 
     captured: dict[str, str] = {}
 
-    async def _capture_reset(*, to_email: str, reset_token: str) -> None:
+    async def _capture_reset(*, to_email: str, code: str) -> None:
         captured["email"] = to_email
-        captured["token"] = reset_token
+        captured["code"] = code
 
     monkeypatch.setattr(
         "app.services.auth.email_delivery_configured",
         lambda: True,
     )
     monkeypatch.setattr(
-        "app.services.auth.send_password_reset_email",
+        "app.services.auth.send_password_reset_otp",
         _capture_reset,
     )
 
@@ -156,12 +160,17 @@ async def test_forgot_password_reset_and_login(
     )
     assert forgot.status_code == 200
     assert captured.get("email") == email
-    assert captured.get("token")
-    assert forgot.json().get("dev_reset_url") in (None, "")
+    assert captured.get("code")
+    assert len(captured["code"]) == 6
+    assert forgot.json().get("dev_code") in (None, "")
 
     reset = await client.post(
         "/api/v1/auth/reset-password",
-        json={"token": captured["token"], "new_password": new_password},
+        json={
+            "email": email,
+            "code": captured["code"],
+            "new_password": new_password,
+        },
     )
     assert reset.status_code == 200, reset.text
 
@@ -192,7 +201,7 @@ async def test_forgot_password_surfaces_delivery_failure(
         code=fixed_otp,
     )
 
-    async def _boom(*, to_email: str, reset_token: str) -> None:
+    async def _boom(*, to_email: str, code: str) -> None:
         from app.services.email import EmailDeliveryError
 
         raise EmailDeliveryError("SMTP down")
@@ -202,7 +211,7 @@ async def test_forgot_password_surfaces_delivery_failure(
         lambda: True,
     )
     monkeypatch.setattr(
-        "app.services.auth.send_password_reset_email",
+        "app.services.auth.send_password_reset_otp",
         _boom,
     )
 
@@ -217,7 +226,7 @@ async def test_forgot_password_surfaces_delivery_failure(
 
 
 @pytest.mark.asyncio
-async def test_forgot_password_dev_reset_url_without_email(
+async def test_forgot_password_dev_code_without_email(
     client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     email = "reset-dev@example.com"
@@ -240,13 +249,16 @@ async def test_forgot_password_dev_reset_url_without_email(
     )
     assert forgot.status_code == 200
     body = forgot.json()
-    assert body.get("dev_reset_url")
-    assert "token=" in body["dev_reset_url"]
+    assert body.get("dev_code")
+    assert len(body["dev_code"]) == 6
 
-    token = body["dev_reset_url"].split("token=", 1)[1]
     reset = await client.post(
         "/api/v1/auth/reset-password",
-        json={"token": token, "new_password": "BrandNewPass2!"},
+        json={
+            "email": email,
+            "code": body["dev_code"],
+            "new_password": "BrandNewPass2!",
+        },
     )
     assert reset.status_code == 200, reset.text
 

@@ -90,6 +90,16 @@ class Survey(Base):
         ),
         nullable=True,
     )
+    # Collection settings
+    response_quota: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    closes_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Baseline / endline family (shared across waves)
+    instrument_family_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True
+    )
+    wave_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

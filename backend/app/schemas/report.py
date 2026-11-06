@@ -88,7 +88,7 @@ class ReportChatResponse(BaseModel):
 
 class ExportPublic(BaseModel):
     id: UUID
-    type: Literal["docx", "pdf", "csv", "markdown"]
+    type: Literal["docx", "pdf", "csv", "markdown", "zip"]
     status: str
     content_text: str | None = None
     content_base64: str | None = None

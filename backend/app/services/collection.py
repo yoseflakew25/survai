@@ -10,6 +10,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.rbac import require_org_editor
 from app.models.collection import Respondent, ResponseAnswer, SurveyVersion
 from app.models.survey import Survey, SurveyStatus
 from app.models.user import User
@@ -34,6 +35,32 @@ def _require_org(user: User) -> UUID:
     if user.organization_id is None:
         raise ForbiddenError("Organization membership required")
     return user.organization_id
+
+
+async def _enforce_collection_window(
+    *,
+    session: AsyncSession,
+    survey: Survey,
+    respondents: RespondentRepository,
+) -> None:
+    """Reject submissions when closed, past closes_at, or over quota."""
+    if survey.status != SurveyStatus.published.value:
+        raise BadRequestError("This survey is not accepting responses")
+
+    now = datetime.now(UTC)
+    if survey.closes_at is not None and survey.closes_at <= now:
+        survey.status = SurveyStatus.closed.value
+        await session.commit()
+        raise BadRequestError("This survey has closed")
+
+    if survey.response_quota is not None and survey.current_version_id is not None:
+        count = await respondents.count_completed_for_version(
+            survey_version_id=survey.current_version_id
+        )
+        if count >= survey.response_quota:
+            survey.status = SurveyStatus.closed.value
+            await session.commit()
+            raise BadRequestError("This survey has reached its response quota")
 
 
 def _hash_ip(ip: str | None) -> str | None:
@@ -210,6 +237,7 @@ class CollectionService:
         self.answers = ResponseAnswerRepository(session)
 
     async def publish(self, *, user: User, survey_id: UUID) -> PublishResponse:
+        require_org_editor(user)
         org_id = _require_org(user)
         survey = await self.surveys.get_for_org(
             survey_id=survey_id, organization_id=org_id
@@ -311,6 +339,7 @@ class CollectionService:
         )
 
     async def close(self, *, user: User, survey_id: UUID) -> CollectStatsPublic:
+        require_org_editor(user)
         org_id = _require_org(user)
         survey = await self.surveys.get_for_org(
             survey_id=survey_id, organization_id=org_id
@@ -363,6 +392,8 @@ class CollectionService:
             current_version_id=survey.current_version_id,
             status=survey.status,
             collection_path=path,
+            response_quota=survey.response_quota,
+            closes_at=survey.closes_at,
         )
 
     async def _resolve_live_version(
@@ -444,6 +475,9 @@ class CollectionService:
     ) -> RespondentPublic:
         """Persist a respondent only when the full response is valid + complete."""
         version, survey = await self._require_published_version(version_id)
+        await _enforce_collection_window(
+            session=self.session, survey=survey, respondents=self.respondents
+        )
         q_by_id = _question_index_from_snapshot(version.structure_snapshot or {})
 
         now = datetime.now(UTC)

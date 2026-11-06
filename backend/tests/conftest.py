@@ -9,7 +9,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.core.config import settings
+from app.core.config import get_settings, settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -20,6 +20,7 @@ from app.models import (  # noqa: F401
     EmailVerificationOtp,
     Notification,
     Organization,
+    OrgInvite,
     OrgKnowledgeChunk,
     PasswordResetToken,
     Question,
@@ -40,9 +41,17 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 @pytest.fixture(autouse=True)
 def _test_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Env + cache clear: send_email() reloads via get_settings() and would
+    # otherwise pick up real SMTP/Resend from backend/.env.
     monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.setenv("SMTP_ENABLED", "false")
+    monkeypatch.setenv("SMTP_USER", "")
+    monkeypatch.setenv("SMTP_PASSWORD", "")
+    monkeypatch.setenv("RESEND_API_KEY", "")
+    get_settings.cache_clear()
     monkeypatch.setattr(settings, "environment", "test")
     monkeypatch.setattr(settings, "smtp_enabled", False)
+    monkeypatch.setattr(settings, "smtp_user", "")
     monkeypatch.setattr(settings, "smtp_password", "")
     monkeypatch.setattr(settings, "resend_api_key", "")
     monkeypatch.setattr(settings, "cookie_secure", False)

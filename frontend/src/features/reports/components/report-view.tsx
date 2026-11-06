@@ -17,6 +17,8 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { reportChatOptions, reportKeys, reportOptions } from '../api/queries';
 import {
+  downloadExportPack,
+  downloadReportDocx,
   downloadReportPdf,
   generateReport,
   regenerateReportSection,
@@ -31,6 +33,7 @@ import type {
 } from '../api/types';
 import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
 
 const CHAT_STARTERS = [
   'What are the top findings?',
@@ -105,6 +108,8 @@ const brandCtaClass =
 export function ReportView({ surveyId }: ReportViewProps) {
   const queryClient = useQueryClient();
   const { run, activeId } = useSurveyActivity();
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
   const { data: report, isLoading, isError, error, refetch } = useQuery(
     reportOptions(surveyId)
   );
@@ -339,7 +344,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
   );
 
   const handleSavePdf = useCallback(async () => {
-    if (!report) return;
+    if (!report || !canEdit) return;
     setIsExporting(true);
     try {
       await downloadReportPdf(report.id, report.title);
@@ -354,7 +359,43 @@ export function ReportView({ surveyId }: ReportViewProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [report]);
+  }, [report, canEdit]);
+
+  const handleSaveDocx = useCallback(async () => {
+    if (!report || !canEdit) return;
+    setIsExporting(true);
+    try {
+      await downloadReportDocx(report.id, report.title);
+      toast.success('Word saved', {
+        description: 'Your report downloaded as a Word document.'
+      });
+    } catch (err) {
+      toast.error('Word export failed', {
+        description:
+          err instanceof Error ? err.message : 'Could not save as Word.'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [report, canEdit]);
+
+  const handleDonorPack = useCallback(async () => {
+    if (!report || !canEdit) return;
+    setIsExporting(true);
+    try {
+      await downloadExportPack(report.id, report.title);
+      toast.success('Donor pack ready', {
+        description: 'ZIP with PDF, Word, and analytics CSV downloaded.'
+      });
+    } catch (err) {
+      toast.error('Donor pack failed', {
+        description:
+          err instanceof Error ? err.message : 'Could not build the pack.'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [report, canEdit]);
 
   if (isLoading) {
     return <SurveyActivityFallback activity='fetch-report' />;
@@ -532,44 +573,67 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   </>
                 ) : (
                   <>
-                    <Button
-                      size='sm'
-                      disabled={isExporting || !report}
-                      onClick={() => void handleSavePdf()}
-                      className={cn(brandCtaClass, 'h-8 px-3 text-xs')}
-                    >
-                      {isExporting ? (
-                        <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
-                      ) : (
-                        <Icons.fileTypePdf className='mr-1.5 size-3.5' />
-                      )}
-                      save as pdf
-                    </Button>
-                    <Button
-                      size='sm'
-                      disabled={isGenerating || !!regeneratingId}
-                      onClick={() => void handleGenerateReport()}
-                      className='h-8 rounded-xl bg-black px-3 text-xs text-white hover:bg-black/90 hover:text-white'
-                    >
-                      {isGenerating ? (
-                        <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
-                      ) : (
-                        <Icons.sparkles className='mr-1.5 size-3.5' />
-                      )}
-                      regenerate
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='icon-sm'
-                      className='rounded-lg'
-                      aria-label='Edit report title'
-                      onClick={() => {
-                        setTitleDraft(reportTitle);
-                        setEditingTitle(true);
-                      }}
-                    >
-                      <Icons.edit className='h-3.5 w-3.5' />
-                    </Button>
+                    {canEdit ? (
+                      <>
+                        <Button
+                          size='sm'
+                          disabled={isExporting || !report}
+                          onClick={() => void handleSavePdf()}
+                          className={cn(brandCtaClass, 'h-8 px-3 text-xs')}
+                        >
+                          {isExporting ? (
+                            <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+                          ) : (
+                            <Icons.fileTypePdf className='mr-1.5 size-3.5' />
+                          )}
+                          save as pdf
+                        </Button>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          disabled={isExporting || !report}
+                          onClick={() => void handleSaveDocx()}
+                          className='h-8 rounded-xl px-3 text-xs'
+                        >
+                          Save as Word
+                        </Button>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          disabled={isExporting || !report}
+                          onClick={() => void handleDonorPack()}
+                          className='h-8 rounded-xl px-3 text-xs'
+                        >
+                          <Icons.fileZip className='mr-1.5 size-3.5' />
+                          Download donor pack
+                        </Button>
+                        <Button
+                          size='sm'
+                          disabled={isGenerating || !!regeneratingId}
+                          onClick={() => void handleGenerateReport()}
+                          className='h-8 rounded-xl bg-black px-3 text-xs text-white hover:bg-black/90 hover:text-white'
+                        >
+                          {isGenerating ? (
+                            <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
+                          ) : (
+                            <Icons.sparkles className='mr-1.5 size-3.5' />
+                          )}
+                          regenerate
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon-sm'
+                          className='rounded-lg'
+                          aria-label='Edit report title'
+                          onClick={() => {
+                            setTitleDraft(reportTitle);
+                            setEditingTitle(true);
+                          }}
+                        >
+                          <Icons.edit className='h-3.5 w-3.5' />
+                        </Button>
+                      </>
+                    ) : null}
                   </>
                 )
               }
@@ -600,7 +664,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
             const isRegen = regeneratingId === section.id;
             return (
               <SurvaiPanel key={section.id}>
-                <div className='flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3'>
+                <div className='flex items-center justify-between gap-3 border-b border-border bg-brand-soft px-4 py-3'>
                   <div className='flex min-w-0 items-center gap-2.5'>
                     <span className='flex size-6 shrink-0 items-center justify-center rounded-lg bg-foreground text-[11px] font-bold text-background'>
                       {index + 1}

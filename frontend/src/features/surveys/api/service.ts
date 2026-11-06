@@ -28,6 +28,8 @@ type ApiSurvey = {
   sections_count?: number | null;
   questions_count?: number | null;
   responses_count?: number | null;
+  instrument_family_id?: string | null;
+  wave_label?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -59,6 +61,8 @@ function mapListItem(s: ApiSurvey): SurveyListItem {
     responsesCount: s.responses_count ?? 0,
     completionRate: null,
     lastResponseAt: null,
+    instrumentFamilyId: s.instrument_family_id ?? null,
+    waveLabel: s.wave_label ?? null,
     createdAt: s.created_at,
     updatedAt: s.updated_at
   };

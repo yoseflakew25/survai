@@ -48,7 +48,7 @@ export function SurvaiPanelHeader({
   return (
     <div
       className={cn(
-        'border-b border-border bg-secondary/60 px-4 py-3',
+        'border-b border-border bg-brand-soft px-4 py-3',
         className
       )}
     >
@@ -58,7 +58,7 @@ export function SurvaiPanelHeader({
             className={cn(
               'flex size-8 shrink-0 items-center justify-center rounded-xl',
               'border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))]',
-              'bg-brand-soft text-foreground',
+              'bg-card text-foreground',
               'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_8%,transparent)]'
             )}
           >
@@ -110,7 +110,7 @@ export function SurvaiPanelFooter({
   return (
     <div
       className={cn(
-        'border-t border-border bg-secondary/40 px-4 py-3',
+        'border-t border-border bg-brand-soft/70 px-4 py-3',
         className
       )}
     >

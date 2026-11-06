@@ -24,6 +24,8 @@ class CollectStatsPublic(BaseModel):
     current_version_id: UUID | None = None
     status: str
     collection_path: str | None = None
+    response_quota: int | None = None
+    closes_at: datetime | None = None
 
 
 class PublicQuestionOut(BaseModel):

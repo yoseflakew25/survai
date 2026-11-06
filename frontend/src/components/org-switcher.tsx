@@ -18,7 +18,13 @@ export function OrgSwitcher() {
 
   const orgName = user?.organizationName ?? 'Survai';
   const roleLabel =
-    user?.role === 'system_admin' ? 'System admin' : 'Organization';
+    user?.role === 'system_admin'
+      ? 'System admin'
+      : user?.role === 'researcher'
+        ? 'Researcher'
+        : user?.role === 'viewer'
+          ? 'Viewer'
+          : 'Owner';
 
   return (
     <SidebarMenu>

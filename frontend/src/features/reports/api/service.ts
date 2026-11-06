@@ -299,7 +299,7 @@ export async function sendReportChat(
 
 export async function exportReport(
   reportId: string,
-  type: 'pdf' | 'markdown' = 'pdf'
+  type: 'pdf' | 'docx' | 'markdown' = 'pdf'
 ): Promise<ExportResult> {
   const res = await apiFetch(
     `/reports/${reportId}/export`,
@@ -319,6 +319,28 @@ export async function exportReport(
   }
   if (!res.ok) await readError(res, 'Could not export report');
   return mapExport((await res.json()) as ApiExport);
+}
+
+export async function downloadExportPack(
+  reportId: string,
+  title: string
+): Promise<void> {
+  const res = await apiFetch(
+    `/reports/${reportId}/export-pack`,
+    { method: 'POST' },
+    AI_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not build donor pack');
+  const exported = mapExport((await res.json()) as ApiExport);
+  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
+  if (!exported.contentBase64) {
+    throw new Error('Donor pack returned no file data');
+  }
+  const blob = base64ToBlob(
+    exported.contentBase64,
+    exported.mimeType ?? 'application/zip'
+  );
+  triggerDownload(exported.filename ?? `${safe}-donor-pack.zip`, blob);
 }
 
 function triggerDownload(filename: string, blob: Blob) {
@@ -354,4 +376,22 @@ export async function downloadReportPdf(
     result.mimeType ?? 'application/pdf'
   );
   triggerDownload(result.filename ?? `${safe}.pdf`, blob);
+}
+
+/** Download the grounded report as a Word (.docx) file. */
+export async function downloadReportDocx(
+  reportId: string,
+  title: string
+): Promise<void> {
+  const result = await exportReport(reportId, 'docx');
+  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
+  if (!result.contentBase64) {
+    throw new Error('Word export returned no file data');
+  }
+  const blob = base64ToBlob(
+    result.contentBase64,
+    result.mimeType ??
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  );
+  triggerDownload(result.filename ?? `${safe}.docx`, blob);
 }

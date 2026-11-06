@@ -6,6 +6,7 @@ from app.api.v1.routes import (
     health,
     jobs,
     notifications,
+    org,
     overview,
     plans,
     public_collection,
@@ -18,6 +19,7 @@ from app.api.v1.routes import (
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
+api_router.include_router(org.router)
 api_router.include_router(users.router)
 api_router.include_router(notifications.router)
 api_router.include_router(assistant.router)

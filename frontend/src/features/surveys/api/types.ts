@@ -10,6 +10,8 @@ export interface SurveyListItem {
   responsesCount: number;
   completionRate: number | null;
   lastResponseAt: string | null;
+  instrumentFamilyId: string | null;
+  waveLabel: string | null;
   createdAt: string;
   updatedAt: string;
 }

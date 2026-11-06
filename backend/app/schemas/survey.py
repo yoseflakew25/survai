@@ -73,6 +73,10 @@ class SurveyPublic(BaseModel):
     status: SurveyStatusLiteral
     anonymous_collection: bool
     current_version_id: UUID | None = None
+    response_quota: int | None = None
+    closes_at: datetime | None = None
+    instrument_family_id: UUID | None = None
+    wave_label: str | None = None
     sections: list[SectionPublic] = Field(default_factory=list)
     # Populated on list endpoints so we can skip loading the full tree.
     sections_count: int | None = None
@@ -106,6 +110,10 @@ class SurveyUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     status: SurveyStatusLiteral | None = None
     anonymous_collection: bool | None = None
+    response_quota: int | None = Field(default=None, ge=1, le=1_000_000)
+    closes_at: datetime | None = None
+    clear_response_quota: bool = False
+    clear_closes_at: bool = False
 
 
 class SectionCreate(BaseModel):

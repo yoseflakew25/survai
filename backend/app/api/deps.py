@@ -20,6 +20,8 @@ from app.services.assistant import AssistantService
 from app.services.auth import AuthService
 from app.services.collection import CollectionService
 from app.services.notification import NotificationService
+from app.services.compare import CompareService
+from app.services.org_team import OrgTeamService
 from app.services.overview import OverviewService
 from app.services.plan import PlanService
 from app.services.report import ReportService
@@ -27,6 +29,8 @@ from app.services.respondents import RespondentsService
 from app.services.reviewer import ReviewerService
 from app.services.survey import SurveyService
 from app.services.user import UserService
+from app.core.rbac import is_org_editor, is_org_owner
+from app.core.exceptions import ForbiddenError
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -79,6 +83,14 @@ def get_assistant_service(session: DbSession) -> AssistantService:
     return AssistantService(session)
 
 
+def get_org_team_service(session: DbSession) -> OrgTeamService:
+    return OrgTeamService(session)
+
+
+def get_compare_service(session: DbSession) -> CompareService:
+    return CompareService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
@@ -95,6 +107,8 @@ NotificationServiceDep = Annotated[
     NotificationService, Depends(get_notification_service)
 ]
 AssistantServiceDep = Annotated[AssistantService, Depends(get_assistant_service)]
+OrgTeamServiceDep = Annotated[OrgTeamService, Depends(get_org_team_service)]
+CompareServiceDep = Annotated[CompareService, Depends(get_compare_service)]
 
 
 def _extract_bearer(authorization: str | None) -> str | None:
@@ -144,3 +158,19 @@ def require_roles(*roles: UserRole) -> Callable[[User], User]:
 
 
 AdminUser = Annotated[User, Depends(require_roles(UserRole.system_admin))]
+
+
+async def get_org_editor(current_user: CurrentUser) -> User:
+    if not is_org_editor(current_user):
+        raise ForbiddenError("Viewers cannot change surveys or generate reports")
+    return current_user
+
+
+async def get_org_owner(current_user: CurrentUser) -> User:
+    if not is_org_owner(current_user):
+        raise ForbiddenError("Only the organization owner can do that")
+    return current_user
+
+
+OrgEditor = Annotated[User, Depends(get_org_editor)]
+OrgOwner = Annotated[User, Depends(get_org_owner)]

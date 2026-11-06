@@ -24,9 +24,23 @@ import {
 // Types
 // ============================================================
 
-export type UserRole = 'system_admin' | 'organization';
+export type UserRole =
+  | 'system_admin'
+  | 'organization'
+  | 'researcher'
+  | 'viewer';
 
-/** Logged-in organization account (MVP: one login per org). Not a respondent. */
+/** True for Owner (organization) or Researcher — can mutate surveys/reports. */
+export function canEditOrg(role: UserRole | undefined | null): boolean {
+  return role === 'organization' || role === 'researcher' || role === 'system_admin';
+}
+
+/** True only for org Owner. */
+export function isOrgOwner(role: UserRole | undefined | null): boolean {
+  return role === 'organization' || role === 'system_admin';
+}
+
+/** Logged-in org seat (Owner / Researcher / Viewer). Not a respondent. */
 export interface AuthUser {
   id: string;
   email: string;
@@ -67,10 +81,14 @@ interface AuthContextValue {
   verifyEmail: (email: string, code: string) => Promise<void>;
   /** Resend signup OTP for an unverified email. */
   resendVerification: (email: string) => Promise<RegisterPendingResponse>;
-  /** Request a password-reset email (anti-enumeration; may include dev_reset_url). */
+  /** Request a password-reset OTP email (anti-enumeration; may include dev_code). */
   requestPasswordReset: (email: string) => Promise<ForgotPasswordResponse>;
-  /** Set a new password using the token from the reset email link. */
-  confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
+  /** Set a new password using email + OTP from the reset email. */
+  confirmPasswordReset: (
+    email: string,
+    code: string,
+    newPassword: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   /** Replace local user state after profile updates. */
   setUserFromApi: (apiUser: ApiUser) => void;
@@ -349,18 +367,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const confirmPasswordReset = useCallback(
-    async (token: string, newPassword: string) => {
+    async (email: string, code: string, newPassword: string) => {
       try {
         const res = await apiFetch('/auth/reset-password', {
           method: 'POST',
-          body: JSON.stringify({ token, new_password: newPassword })
+          body: JSON.stringify({
+            email,
+            code,
+            new_password: newPassword
+          })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(
             toUserFacingError(
-              new Error(apiErrorMessage(data, 'Invalid or expired reset link')),
-              'Invalid or expired reset link'
+              new Error(apiErrorMessage(data, 'Invalid or expired reset code')),
+              'Invalid or expired reset code'
             )
           );
         }

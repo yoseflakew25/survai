@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, Response, status
 from app.api.deps import (
     AnalyticsServiceDep,
     CollectionServiceDep,
+    CompareServiceDep,
     CurrentUser,
     RespondentsServiceDep,
     ReviewerServiceDep,
@@ -22,6 +23,7 @@ from app.schemas.analytics import (
     CrossTabResultPublic,
 )
 from app.schemas.collection import CollectStatsPublic, PublishResponse
+from app.schemas.compare import SurveyCompareResponse
 from app.schemas.respondents import RespondentDetailPublic, RespondentsListPublic
 from app.schemas.reviewer import ReviewerReportPublic
 from app.schemas.survey import (
@@ -140,6 +142,32 @@ async def close_survey(
 ) -> CollectStatsPublic:
     """Stop accepting new respondents."""
     return await collection.close(user=current_user, survey_id=survey_id)
+
+
+@router.post(
+    "/{survey_id}/duplicate-as-endline",
+    response_model=SurveyPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def duplicate_as_endline(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    compare: CompareServiceDep,
+) -> SurveyPublic:
+    """Copy instrument into a new draft endline survey (same family)."""
+    return await compare.duplicate_as_endline(user=current_user, survey_id=survey_id)
+
+
+@router.get("/{survey_id}/compare", response_model=SurveyCompareResponse)
+async def compare_surveys(
+    survey_id: UUID,
+    current_user: CurrentUser,
+    compare: CompareServiceDep,
+    other_id: UUID = Query(..., description="Sibling survey in the same family"),
+) -> SurveyCompareResponse:
+    return await compare.compare(
+        user=current_user, survey_id=survey_id, other_id=other_id
+    )
 
 
 @router.get("/{survey_id}/collect-stats", response_model=CollectStatsPublic)

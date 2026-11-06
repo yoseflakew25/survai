@@ -68,12 +68,13 @@ class ForgotPasswordRequest(BaseModel):
 class ForgotPasswordResponse(BaseModel):
     """Anti-enumeration: same shape whether or not the account exists."""
 
-    message: str = "If that email is registered, a reset link has been sent."
+    message: str = "If that email is registered, a reset code has been sent."
     # Only set when outbound email is not configured (dev) and the account exists.
     # Never returned in production when SMTP/Resend is configured.
-    dev_reset_url: str | None = None
+    dev_code: str | None = None
 
 
 class PasswordResetConfirm(BaseModel):
-    token: str = Field(min_length=1)
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
     new_password: str = Field(min_length=8, max_length=128)

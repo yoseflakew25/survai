@@ -12,6 +12,7 @@ import { exportAnalyticsCsv } from '../api/service';
 import { AnalyticsSummaryStats } from './analytics-summary-stats';
 import { DistributionChart } from './distribution-chart';
 import { CrossTabTable } from './cross-tab-table';
+import { SurveyComparePanel } from './survey-compare-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import { Icons } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
 
 const CROSSTAB_TYPES = new Set([
   'single_choice',
@@ -66,6 +68,8 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const { data: distributions } = useSuspenseQuery(
     distributionsOptions(surveyId)
   );
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
   const [exporting, setExporting] = useState(false);
 
   const crosstabAxes = distributions.filter((d) =>
@@ -178,20 +182,25 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
         {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-6'>
-          <SurvaiBrandCard
-            title='Generate Report?'
-            description='AI will create a comprehensive report with findings and recommendations'
-          >
-            <Link href={`/dashboard/surveys/${surveyId}/reports`} className='block w-full'>
-              <Button
-                className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
-                size='lg'
+          {canEdit ? (
+            <SurvaiBrandCard
+              title='Generate Report?'
+              description='AI will create a comprehensive report with findings and recommendations'
+            >
+              <Link
+                href={`/dashboard/surveys/${surveyId}/reports`}
+                className='block w-full'
               >
-                Generate Report
-                <Icons.arrowRight className='ml-2 h-4 w-4' />
-              </Button>
-            </Link>
-          </SurvaiBrandCard>
+                <Button
+                  className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
+                  size='lg'
+                >
+                  Generate Report
+                  <Icons.arrowRight className='ml-2 h-4 w-4' />
+                </Button>
+              </Link>
+            </SurvaiBrandCard>
+          ) : null}
           <SurvaiPanel>
             <SurvaiPanelBody className='space-y-2'>
               <Button
@@ -209,6 +218,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
               </Button>
             </SurvaiPanelBody>
           </SurvaiPanel>
+          <SurveyComparePanel surveyId={surveyId} />
         </div>
       </div>
     </div>
@@ -223,7 +233,7 @@ export function AnalyticsDashboardSkeleton() {
         <div className='space-y-6 lg:col-span-2'>
           {/* Summary stats section */}
           <div className='rounded-lg border'>
-            <div className='border-b bg-muted/30 px-4 py-3'>
+            <div className='border-b border-border bg-brand-soft px-4 py-3'>
               <div className='flex items-center gap-3'>
                 <Skeleton className='size-6 rounded' />
                 <div className='space-y-1.5'>
@@ -241,7 +251,7 @@ export function AnalyticsDashboardSkeleton() {
 
           {/* Charts section */}
           <div className='rounded-lg border'>
-            <div className='border-b bg-muted/30 px-4 py-3'>
+            <div className='border-b border-border bg-brand-soft px-4 py-3'>
               <div className='flex items-center gap-3'>
                 <Skeleton className='size-6 rounded' />
                 <div className='space-y-1.5'>
@@ -259,7 +269,7 @@ export function AnalyticsDashboardSkeleton() {
 
           {/* Cross-tab section */}
           <div className='rounded-lg border'>
-            <div className='border-b bg-muted/30 px-4 py-3'>
+            <div className='border-b border-border bg-brand-soft px-4 py-3'>
               <div className='flex items-center gap-3'>
                 <Skeleton className='size-6 rounded' />
                 <div className='space-y-1.5'>

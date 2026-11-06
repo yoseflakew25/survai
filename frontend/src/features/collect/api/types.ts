@@ -8,6 +8,8 @@ export interface CollectStats {
   currentVersionId: string | null;
   status: string;
   collectionPath: string | null;
+  responseQuota: number | null;
+  closesAt: string | null;
 }
 
 export interface PublishResult {

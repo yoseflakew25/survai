@@ -56,7 +56,7 @@ export interface ReportChatMessage {
 
 export interface ExportResult {
   id: string;
-  type: 'docx' | 'pdf' | 'csv' | 'markdown';
+  type: 'docx' | 'pdf' | 'csv' | 'markdown' | 'zip';
   status: string;
   contentText: string | null;
   contentBase64: string | null;

@@ -52,7 +52,7 @@ export function DataTableSkeleton({
 
       <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
         <Table>
-          <TableHeader className='border-b border-border bg-muted/30'>
+          <TableHeader className='border-b border-border bg-brand-soft'>
             {Array.from({ length: 1 }).map((_, i) => (
               <TableRow key={i} className='hover:bg-transparent'>
                 {Array.from({ length: columnCount }).map((_, j) => (

@@ -8,7 +8,7 @@ export type ApiUser = {
   id: string;
   email: string;
   full_name: string;
-  role: 'system_admin' | 'organization';
+  role: 'system_admin' | 'organization' | 'researcher' | 'viewer';
   is_active: boolean;
   is_superuser: boolean;
   email_verified: boolean;
@@ -41,7 +41,7 @@ export type RegisterPendingResponse = {
 export type ForgotPasswordResponse = {
   message: string;
   /** Present only when Resend/SMTP are not configured (local/dev). */
-  dev_reset_url?: string | null;
+  dev_code?: string | null;
 };
 
 export function apiErrorMessage(data: unknown, fallback: string): string {

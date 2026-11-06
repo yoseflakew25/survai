@@ -3,13 +3,14 @@
 import { useState, useCallback } from 'react';
 import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
 import { surveyByIdOptions, surveyKeys } from '@/features/builder/api/queries';
+import { updateCollectionSettings } from '@/features/builder/api/service';
 import { collectStatsOptions } from '../api/queries';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Heading } from '@/components/ui/heading';
 import {
   SurvaiBrandCard,
   SurvaiPanel,
@@ -21,6 +22,7 @@ import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
 import { closeSurvey, publishSurvey } from '../api/service';
 import { collectStatsKeys } from '../api/queries';
 import { CollectionQr } from './collection-qr';
@@ -30,15 +32,32 @@ interface CollectViewProps {
   surveyId: string;
 }
 
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function CollectView({ surveyId }: CollectViewProps) {
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const { data: stats } = useSuspenseQuery(collectStatsOptions(surveyId));
   const queryClient = useQueryClient();
   const { run, activeId } = useSurveyActivity();
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
 
   const isPublishing = activeId === 'publish-survey';
   const [isClosing, setIsClosing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [quotaDraft, setQuotaDraft] = useState(
+    () => (survey?.responseQuota != null ? String(survey.responseQuota) : '')
+  );
+  const [closesAtDraft, setClosesAtDraft] = useState(() =>
+    toDatetimeLocalValue(survey?.closesAt ?? null)
+  );
+  const [savingSettings, setSavingSettings] = useState(false);
 
   if (!survey) {
     notFound();
@@ -128,15 +147,94 @@ export function CollectView({ surveyId }: CollectViewProps) {
     }
   }, [collectionUrl]);
 
+  const handleSaveSettings = useCallback(async () => {
+    if (!canEdit || savingSettings) return;
+    setSavingSettings(true);
+    try {
+      const trimmed = quotaDraft.trim();
+      const quota =
+        trimmed === ''
+          ? null
+          : Number.parseInt(trimmed, 10);
+      if (trimmed !== '' && (!Number.isFinite(quota) || quota! < 1)) {
+        toast.error('Invalid quota', {
+          description: 'Response quota must be a positive whole number.'
+        });
+        return;
+      }
+      const closesAt =
+        closesAtDraft.trim() === ''
+          ? null
+          : new Date(closesAtDraft).toISOString();
+      if (closesAtDraft.trim() && Number.isNaN(new Date(closesAtDraft).getTime())) {
+        toast.error('Invalid close date');
+        return;
+      }
+      await updateCollectionSettings(surveyId, {
+        responseQuota: quota,
+        closesAt
+      });
+      await queryClient.invalidateQueries({
+        queryKey: surveyKeys.detail(surveyId)
+      });
+      await queryClient.invalidateQueries({
+        queryKey: collectStatsKeys.stats(surveyId)
+      });
+      toast.success('Collection settings saved');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Could not save settings'
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }, [
+    canEdit,
+    savingSettings,
+    quotaDraft,
+    closesAtDraft,
+    surveyId,
+    queryClient
+  ]);
+
+  const handlePrintShareSheet = useCallback(() => {
+    if (!collectionUrl) return;
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      toast.error('Pop-up blocked', {
+        description: 'Allow pop-ups to print the share sheet.'
+      });
+      return;
+    }
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&ecc=M&data=${encodeURIComponent(collectionUrl)}`;
+    printWindow.document.write(`<!doctype html><html><head><title>${survey.title} — share</title>
+<style>
+  body{font-family:system-ui,sans-serif;padding:2rem;text-align:center;color:#111}
+  h1{font-size:1.5rem;margin:0 0 .5rem}
+  p{font-size:.95rem;word-break:break-all;margin:.75rem 0 1.5rem}
+  img{width:220px;height:220px}
+  @media print{body{padding:0}}
+</style></head><body>
+<h1>${survey.title.replace(/</g, '&lt;')}</h1>
+<p>${collectionUrl.replace(/</g, '&lt;')}</p>
+<img src="${qrSrc}" alt="QR code" />
+<script>window.onload=()=>{window.print();}</script>
+</body></html>`);
+    printWindow.document.close();
+  }, [collectionUrl, survey.title]);
+
+  const responseQuota = stats.responseQuota ?? survey.responseQuota;
+  const quotaLabel =
+    responseQuota != null
+      ? `${stats.responseCount} / ${responseQuota} responses`
+      : `${stats.responseCount} responses`;
+
   return (
     <div className='space-y-4'>
-     
-
       <div className='grid gap-6 lg:grid-cols-3'>
         <div className='space-y-6 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              // icon={<Icons.collect className='size-3.5' />}
               title='Collect Responses'
               subtitle={
                 isLive
@@ -157,6 +255,20 @@ export function CollectView({ surveyId }: CollectViewProps) {
               }
             />
             <SurvaiPanelBody className='space-y-5'>
+              {(responseQuota != null || stats.closesAt || survey.closesAt) && (
+                <div className='rounded-xl border border-border bg-muted/20 px-3.5 py-3 text-sm'>
+                  <p className='font-semibold tabular-nums'>{quotaLabel}</p>
+                  {(stats.closesAt || survey.closesAt) && (
+                    <p className='text-muted-foreground mt-0.5 text-xs'>
+                      Closes{' '}
+                      {new Date(
+                        stats.closesAt ?? survey.closesAt!
+                      ).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {!isLive ? (
                 <div className='space-y-4'>
                   <div className='rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center'>
@@ -171,24 +283,30 @@ export function CollectView({ surveyId }: CollectViewProps) {
                       without an account.
                     </p>
                   </div>
-                  <Button
-                    onClick={() => void handlePublish()}
-                    disabled={isPublishing}
-                    size='lg'
-                    className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105'
-                  >
-                    {isPublishing ? (
-                      <>
-                        <Icons.spinner className='mr-2 size-4 animate-spin' />
-                        Publishing…
-                      </>
-                    ) : (
-                      <>
-                        <Icons.sparkles className='mr-2 size-4' />
-                        Publish Survey
-                      </>
-                    )}
-                  </Button>
+                  {canEdit ? (
+                    <Button
+                      onClick={() => void handlePublish()}
+                      disabled={isPublishing}
+                      size='lg'
+                      className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105'
+                    >
+                      {isPublishing ? (
+                        <>
+                          <Icons.spinner className='mr-2 size-4 animate-spin' />
+                          Publishing…
+                        </>
+                      ) : (
+                        <>
+                          <Icons.sparkles className='mr-2 size-4' />
+                          Publish Survey
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <p className='text-muted-foreground text-center text-xs'>
+                      Viewers cannot publish surveys.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>
@@ -270,9 +388,21 @@ export function CollectView({ surveyId }: CollectViewProps) {
                     <>
                       <div className='border-border border-t border-dashed' />
                       <div className='space-y-2'>
-                        <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
-                          QR code
-                        </p>
+                        <div className='flex flex-wrap items-center justify-between gap-2'>
+                          <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
+                            Share pack
+                          </p>
+                          <Button
+                            type='button'
+                            variant='outline'
+                            size='sm'
+                            className='h-8 rounded-lg text-xs'
+                            onClick={handlePrintShareSheet}
+                          >
+                            <Icons.page className='mr-1.5 size-3.5' />
+                            Print share sheet
+                          </Button>
+                        </div>
                         <CollectionQr url={collectionUrl} />
                       </div>
                     </>
@@ -291,6 +421,51 @@ export function CollectView({ surveyId }: CollectViewProps) {
               </SurvaiPanelFooter>
             ) : null}
           </SurvaiPanel>
+
+          {canEdit ? (
+            <SurvaiPanel>
+              <SurvaiPanelHeader
+                title='Collection settings'
+                subtitle='Optional quota and automatic close time'
+              />
+              <SurvaiPanelBody className='space-y-4'>
+                <div className='space-y-1.5'>
+                  <Label htmlFor='response-quota'>Response quota</Label>
+                  <Input
+                    id='response-quota'
+                    type='number'
+                    min={1}
+                    inputMode='numeric'
+                    placeholder='Unlimited'
+                    value={quotaDraft}
+                    onChange={(e) => setQuotaDraft(e.target.value)}
+                    className='h-10 rounded-xl'
+                  />
+                </div>
+                <div className='space-y-1.5'>
+                  <Label htmlFor='closes-at'>Close date & time</Label>
+                  <Input
+                    id='closes-at'
+                    type='datetime-local'
+                    value={closesAtDraft}
+                    onChange={(e) => setClosesAtDraft(e.target.value)}
+                    className='h-10 rounded-xl'
+                  />
+                </div>
+                <Button
+                  type='button'
+                  onClick={() => void handleSaveSettings()}
+                  disabled={savingSettings}
+                  className='h-10 w-full rounded-xl'
+                >
+                  {savingSettings ? (
+                    <Icons.spinner className='mr-2 size-4 animate-spin' />
+                  ) : null}
+                  Save settings
+                </Button>
+              </SurvaiPanelBody>
+            </SurvaiPanel>
+          ) : null}
         </div>
 
         <div className='sticky top-[4.5rem] self-start space-y-6'>
@@ -298,7 +473,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
             title='View Results?'
             description={
               isLive
-                ? `Collecting responses — ${stats.responseCount} received so far`
+                ? `Collecting responses — ${quotaLabel}`
                 : 'Publish your survey to start collecting responses'
             }
           >
@@ -337,7 +512,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                   </Button>
                 </a>
               ) : null}
-              {isPublished ? (
+              {isPublished && canEdit ? (
                 <Button
                   variant='outline'
                   className='w-full justify-start rounded-xl text-destructive hover:text-destructive'

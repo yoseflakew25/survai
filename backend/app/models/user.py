@@ -1,7 +1,5 @@
-"""User ORM — login principal for an Organization account (MVP: 1:1).
+"""User ORM — login principal for an Organization (Owner / Researcher / Viewer).
 
-MVP has no multi-user seats: the Organization account is the actor; this row
-holds email/password for that org. Roles remain for a later multi-seat phase.
 Respondents never get a User row — they only fill public forms.
 """
 
@@ -23,14 +21,18 @@ if TYPE_CHECKING:
 
 
 class UserRole(str, enum.Enum):
-    """Platform RBAC roles.
+    """Platform + org seat roles.
 
-    - system_admin: SurvAI operators (platform-wide)
-    - organization: organization workspace accounts (default for signups)
+    - system_admin: SurvAI operators
+    - organization: org Owner (signup creator; can invite)
+    - researcher: edit/publish surveys, generate reports
+    - viewer: read analytics/reports/assistant only
     """
 
     system_admin = "system_admin"
     organization = "organization"
+    researcher = "researcher"
+    viewer = "viewer"
 
 
 class User(Base):

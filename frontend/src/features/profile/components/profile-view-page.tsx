@@ -38,6 +38,7 @@ import {
   updateMe
 } from '@/features/profile/api/service';
 import { PasswordInput } from '@/features/auth/components/password-input';
+import { TeamPanel } from '@/features/team/components/team-panel';
 import { toast } from '@/lib/toast';
 
 const profileSchema = z.object({
@@ -99,10 +100,11 @@ const passwordSchema = z
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
-type ProfileSection = 'profile' | 'security' | 'danger';
+type ProfileSection = 'profile' | 'team' | 'security' | 'danger';
 
 const navItems: { id: ProfileSection; label: string; icon: keyof typeof Icons }[] = [
   { id: 'profile', label: 'Profile', icon: 'account' },
+  { id: 'team', label: 'Team', icon: 'users' },
   { id: 'security', label: 'Security', icon: 'lock' },
   { id: 'danger', label: 'Danger Zone', icon: 'logout' }
 ];
@@ -115,7 +117,7 @@ function normalizeWebsite(value: string | undefined): string | null {
 }
 
 function sectionFromTab(tab: string | null): ProfileSection {
-  if (tab === 'security' || tab === 'danger') {
+  if (tab === 'team' || tab === 'security' || tab === 'danger') {
     return tab;
   }
   return 'profile';
@@ -299,7 +301,7 @@ export default function ProfileViewPage() {
       <div
         role='tablist'
         aria-label='Profile sections'
-        className='mb-6 flex flex-wrap gap-1 rounded-full bg-secondary p-1'
+        className='mb-6 flex flex-wrap gap-1 rounded-full bg-brand-soft p-1'
       >
         {navItems.map((item) => {
           const Icon = Icons[item.icon];
@@ -349,6 +351,8 @@ export default function ProfileViewPage() {
             brandCtaClass={brandCtaClass}
           />
         )}
+
+        {activeSection === 'team' && <TeamPanel />}
 
         {activeSection === 'security' && (
           <SecuritySection

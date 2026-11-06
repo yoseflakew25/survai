@@ -48,7 +48,7 @@ def _smtp_password(settings) -> str:
 def email_delivery_configured() -> bool:
     """True when SMTP (with password) or Resend will deliver outbound mail."""
     settings = get_settings()
-    if settings.smtp_enabled and _smtp_password(settings):
+    if (settings.smtp_user or "").strip() and _smtp_password(settings):
         return True
     if (settings.resend_api_key or "").strip():
         return True
@@ -74,9 +74,23 @@ def _attach_logo(message: EmailMessage) -> None:
     )
 
 
+def _format_from_header(settings) -> str:
+    """Resend/SMTP require `email@domain` or `Name <email@domain>` — never empty."""
+    address = (settings.emails_from_email or "").strip()
+    if not address or "<" in address or ">" in address:
+        # Empty .env override / bad paste → Resend test sender (works without a domain).
+        address = "onboarding@resend.dev"
+    name = (settings.emails_from_name or "SurvAI").strip() or "SurvAI"
+    # Strip characters that break `Name <email>` parsing.
+    name = name.replace("<", "").replace(">", "").replace("\n", " ").strip()
+    return f"{name} <{address}>"
+
+
 async def send_email(*, to_email: str, subject: str, html_body: str, text_body: str) -> None:
+    # Always re-read settings so .env toggles apply after reload.
+    get_settings.cache_clear()
     settings = get_settings()
-    from_email = f"{settings.emails_from_name} <{settings.emails_from_email}>"
+    from_email = _format_from_header(settings)
     message = EmailMessage()
     message["From"] = from_email
     message["To"] = to_email
@@ -85,13 +99,27 @@ async def send_email(*, to_email: str, subject: str, html_body: str, text_body: 
     message.add_alternative(html_body, subtype="html")
     _attach_logo(message)
 
-    # SMTP first when enabled (Gmail app password, Brevo, etc.).
-    if settings.smtp_enabled and _smtp_password(settings):
+    smtp_password = _smtp_password(settings)
+    smtp_ready = bool(
+        (settings.smtp_user or "").strip() and smtp_password and settings.smtp_host
+    )
+    # Honor SMTP whenever Gmail/SMTP creds exist — even if a stale shell
+    # RESEND_API_KEY / SMTP_ENABLED=false would otherwise force Resend.
+    use_smtp = bool(settings.smtp_enabled or smtp_ready) and smtp_ready
+    resend_key = (settings.resend_api_key or "").strip()
+
+    if use_smtp:
+        logger.info(
+            "Sending email via SMTP (%s:%s) to %s",
+            settings.smtp_host,
+            settings.smtp_port,
+            to_email,
+        )
         await _send_via_smtp(message, settings=settings)
         return
 
-    resend_key = (settings.resend_api_key or "").strip()
     if resend_key:
+        logger.info("Sending email via Resend to %s (from %s)", to_email, from_email)
         await _send_via_resend(
             api_key=resend_key,
             to_email=to_email,
@@ -265,37 +293,79 @@ def _cta_button(*, href: str, label: str) -> str:
 """
 
 
-async def send_password_reset_email(*, to_email: str, reset_token: str) -> None:
-    settings = get_settings()
-    minutes = settings.password_reset_token_expire_minutes
-    reset_url = f"{settings.password_reset_url_base}?token={reset_token}"
-    subject = "Reset your SurvAI password"
+async def send_org_invite_email(
+    *,
+    to_email: str,
+    org_name: str,
+    role: str,
+    invite_url: str,
+    invited_by_name: str,
+) -> None:
+    role_label = "Researcher" if role == "researcher" else "Viewer"
+    subject = f"You're invited to {org_name} on SurvAI"
     text_body = (
-        f"You requested a password reset for SurvAI.\n\n"
-        f"Open this link to choose a new password (expires in {minutes} minutes):\n"
-        f"{reset_url}\n\n"
-        f"If you did not request this, you can ignore this email.\n"
+        f"{invited_by_name} invited you to join {org_name} on SurvAI as a {role_label}.\n\n"
+        f"Accept the invite (expires in 7 days):\n{invite_url}\n"
     )
     body = f"""\
 <p style="margin:0 0 8px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.55;color:{_MUTED};">
-  You asked to reset the password for your SurvAI organization account.
-  Click the button below to continue.
+  <strong style="color:{_FG};">{html.escape(invited_by_name)}</strong> invited you to join
+  <strong style="color:{_FG};">{html.escape(org_name)}</strong> as a
+  <strong style="color:{_FG};">{role_label}</strong>.
 </p>
-{_cta_button(href=reset_url, label="Reset your password")}
-<p style="margin:0 0 16px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
-  BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:{_MUTED};">
-  This link expires in <strong style="color:{_FG};">{minutes} minutes</strong>.
-</p>
+{_cta_button(href=invite_url, label="Accept invite")}
 <p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;line-height:1.5;color:{_MUTED};
   word-break:break-all;">
   Or paste this URL into your browser:<br />
-  <a href="{html.escape(reset_url, quote=True)}" style="color:{_BRAND_STRONG};">{html.escape(reset_url)}</a>
+  <a href="{html.escape(invite_url, quote=True)}" style="color:{_BRAND_STRONG};">{html.escape(invite_url)}</a>
 </p>
 """
     html_body = _email_shell(
-        preheader=f"Reset your SurvAI password — link expires in {minutes} minutes.",
+        preheader=f"Join {org_name} on SurvAI as a {role_label}.",
+        title="You're invited to SurvAI",
+        body_html=body,
+        footnote="This invite expires in 7 days. If you weren't expecting it, ignore this email.",
+    )
+    await send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
+
+
+async def send_password_reset_otp(*, to_email: str, code: str) -> None:
+    """6-digit OTP to reset password (same delivery path as signup verification)."""
+    settings = get_settings()
+    minutes = settings.email_verification_otp_expire_minutes
+    safe_code = html.escape(code)
+    subject = "Your SurvAI password reset code"
+    text_body = (
+        f"Your SurvAI password reset code is: {code}\n\n"
+        f"It expires in {minutes} minutes. If you did not request a reset, ignore this email.\n"
+    )
+    body = f"""\
+<p style="margin:0 0 20px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
+  BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.55;color:{_MUTED};">
+  Enter this code with your new password to reset your SurvAI account.
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+  style="margin:0 0 20px 0;">
+  <tr>
+    <td align="center" style="background:{_BRAND_SOFT};border:1px solid {_BRAND};
+      border-radius:14px;padding:22px 16px;">
+      <div style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+        font-size:32px;font-weight:700;letter-spacing:0.28em;color:{_FG};line-height:1;">
+        {safe_code}
+      </div>
+    </td>
+  </tr>
+</table>
+<p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
+  BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:{_MUTED};">
+  This code expires in <strong style="color:{_FG};">{minutes} minutes</strong>.
+  Don’t share it with anyone.
+</p>
+"""
+    html_body = _email_shell(
+        preheader=f"Your SurvAI reset code is {code} — expires in {minutes} minutes.",
         title="Reset your password",
         body_html=body,
         footnote="If you did not request a password reset, you can safely ignore this email.",
