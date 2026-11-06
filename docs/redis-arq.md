@@ -1,49 +1,42 @@
-# Redis + ARQ (free-tier)
+# Redis + ARQ (optional)
 
-Long **report generation** and **report export** return **202 Accepted** +
-`job_id` when `REDIS_URL` is set and enqueue succeeds. The frontend polls
-`GET /api/v1/jobs/{job_id}` until the worker finishes.
+**SurvAI does not require Redis.** Report generate/export run **inline** on the
+API process by default (`JOBS_USE_REDIS=false`).
 
-Without `REDIS_URL` (or if enqueue fails), both stay **inline** (201) — same
-behavior as before. Check `GET /api/v1/health` → `jobs.redis`
-(`ok` | `disabled` | `error`).
+Set both only when you explicitly want a background queue:
 
-## Local
+```bash
+JOBS_USE_REDIS=true
+REDIS_URL=rediss://default:…@….upstash.io:6379   # TLS URL
+```
+
+Then create/export may return **202** + `job_id`; the frontend polls
+`GET /api/v1/jobs/{job_id}`. `scripts/start.sh` starts an in-process ARQ worker.
+
+If Redis is missing, exhausted, or unreachable, enqueue fails soft and the API
+**falls back to inline** — the app stays up.
+
+`GET /api/v1/health` always returns `"status":"ok"`. Inspect `jobs.mode`
+(`inline` | `queue`) and `jobs.redis` (`disabled` | `ok` | `error`).
+
+## Local (optional queue)
 
 ```bash
 cd backend
 docker compose --profile jobs up -d redis
 # in .env:
+JOBS_USE_REDIS=true
 REDIS_URL=redis://localhost:6379
 
-# terminal A — API (inline worker also starts if you use scripts/start.sh)
 uvicorn app.main:app --reload --port 8000
-
-# terminal B — dedicated worker (optional when using compose `worker` service)
+# optional dedicated worker:
 arq app.jobs.worker.WorkerSettings
 ```
 
-Or: `docker compose --profile jobs up --build`
+## Production recommendation (Render free)
 
-## Production (Render free + Upstash free)
-
-1. Create a free Redis DB at [Upstash](https://upstash.com) (region near Render).
-2. Copy the **Redis URL** — must be `rediss://…` (TLS), not a redis-cli snippet.
-3. In the Render web service → Environment → add:
-   - `REDIS_URL` = that URL
-4. Redeploy. `scripts/start.sh` starts the ARQ worker in the **same** container
-   as uvicorn (no second paid service). Confirm logs show
-   `REDIS_URL set — starting ARQ worker`.
-5. Smoke: `GET /api/v1/health` should show `"jobs":{"enabled":true,"redis":"ok"}`.
-
-### Troubleshooting
-
-| Symptom | Likely cause |
-| --- | --- |
-| Reports always 201 | `REDIS_URL` unset or enqueue failed (see API logs) |
-| Jobs stay `queued` | Worker not running — use `start.sh` or a dedicated `arq` process |
-| `jobs.redis=error` | Bad DSN, TLS (`rediss://`), or Upstash network block |
-| Export 202 but FE hangs | Old frontend — export polling ships with pilot polish |
+Leave **`JOBS_USE_REDIS` unset/false** and **do not set `REDIS_URL`**.
+Inline jobs are enough for pilot traffic and avoid Upstash free-tier limits.
 
 ## Smoke
 
@@ -52,6 +45,4 @@ export SMOKE_API_BASE=https://YOUR-HOST/api/v1
 export SMOKE_EMAIL=…
 export SMOKE_PASSWORD=…
 python backend/scripts/pilot_smoke.py
-# full path (publish → submit → report → assistant):
-python backend/scripts/pilot_full_path.py
 ```

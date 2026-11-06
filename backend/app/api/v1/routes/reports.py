@@ -50,7 +50,7 @@ async def create_report(
     reports: ReportServiceDep,
     response: Response,
 ) -> ReportPublic | JobAccepted:
-    """Generate a report. With REDIS_URL, returns 202 + job_id for the worker."""
+    """Generate a report. Inline by default; 202 + job_id only if JOBS_USE_REDIS."""
     if jobs_enabled():
         job_id = await enqueue_job(
             "generate_report_job",
@@ -131,7 +131,7 @@ async def export_report(
     reports: ReportServiceDep,
     response: Response,
 ) -> ExportPublic | JobAccepted:
-    """Export report. With REDIS_URL, returns 202 + job_id when enqueue succeeds."""
+    """Export report. Inline by default; 202 + job_id only if JOBS_USE_REDIS."""
     if jobs_enabled():
         job_id = await enqueue_job(
             "export_report_job",

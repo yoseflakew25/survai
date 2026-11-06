@@ -35,6 +35,8 @@ services:
         sync: false
       - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
-      # Upstash rediss://… — enables ARQ worker in start.sh + 202 report jobs
+      # Redis is optional. Leave unset / JOBS_USE_REDIS=false (default) for inline jobs.
+      - key: JOBS_USE_REDIS
+        value: "false"
       - key: REDIS_URL
         sync: false

@@ -63,7 +63,7 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
   - Chat: retrieve top-k → Gemini plan → structured tools → grounded answer + citations
   - API: `/assistant/threads`, messages, **`POST …/messages/stream` (SSE)**, `POST /knowledge/reindex`
   - Docker: model pre-baked into image (`EMBEDDING_CACHE_DIR`)
-- **Jobs / ARQ:** optional `REDIS_URL` for report **and export** 202 + poll; inline fallback; `GET /health` reports `jobs.redis`.
+- **Jobs / ARQ:** **inline by default** (`JOBS_USE_REDIS=false`). Redis is opt-in only; exhausted/missing Redis never blocks the API.
 - **Alembic:** through **`0016_org_assistant`**.
 - Pytest: assistant isolation/retrieve/chat; plus existing suites (auth tests may fail if live Resend key returns 403 in local env).
 
@@ -108,7 +108,7 @@ uvicorn app.main:app --reload --port 8000
 
 ## 6. Known next (priority)
 
-1. Set prod `REDIS_URL` (Upstash `rediss://`) if async report/export jobs are desired; check `GET /health` → `jobs.redis=ok`.
+1. On Render: leave `JOBS_USE_REDIS=false` (or unset) and clear `REDIS_URL` — no Upstash needed.
 2. Run `pilot_full_path.py` / Playwright with staging `SMOKE_*` / `E2E_*` after deploy.
 3. Multi-seat org roles when DICDO needs staff invites.
 

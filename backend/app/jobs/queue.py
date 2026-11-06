@@ -1,4 +1,4 @@
-"""Enqueue helpers — ARQ when Redis is configured, else callers run inline."""
+"""Enqueue helpers — ARQ when Redis is opted in, else callers run inline."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from app.jobs.settings import redis_dsn
 logger = logging.getLogger(__name__)
 
 _pool: Any | None = None
+_pool_failed: bool = False
 
 
 def get_redis_settings() -> Any | None:
@@ -26,24 +27,38 @@ def get_redis_settings() -> Any | None:
 
 
 def jobs_enabled() -> bool:
+    """True only when Redis queue is opted in and not marked failed."""
+    if _pool_failed:
+        return False
     return get_redis_settings() is not None
 
 
 async def get_arq_pool() -> Any | None:
-    """Shared ARQ pool for enqueue + job status (None when Redis unset)."""
-    global _pool
+    """Shared ARQ pool for enqueue + job status (None → run inline)."""
+    global _pool, _pool_failed
+    if _pool_failed:
+        return None
     settings = get_redis_settings()
     if settings is None:
         return None
     if _pool is None:
-        from arq import create_pool
+        try:
+            from arq import create_pool
 
-        _pool = await create_pool(settings)
+            _pool = await create_pool(settings)
+        except Exception:
+            _pool_failed = True
+            _pool = None
+            logger.exception(
+                "Redis/ARQ pool failed — disabling queue; jobs run inline"
+            )
+            return None
     return _pool
 
 
 async def enqueue_job(job_name: str, *args: Any, **kwargs: Any) -> str | None:
     """Enqueue a named ARQ function. Returns job_id, or None to run inline."""
+    global _pool_failed, _pool
     redis = await get_arq_pool()
     if redis is None:
         return None
@@ -54,7 +69,11 @@ async def enqueue_job(job_name: str, *args: Any, **kwargs: Any) -> str | None:
             return None
         return job.job_id
     except Exception:
-        logger.exception("ARQ enqueue failed for %s; caller should run inline", job_name)
+        logger.exception(
+            "ARQ enqueue failed for %s — disabling queue; run inline", job_name
+        )
+        _pool_failed = True
+        _pool = None
         return None
 
 
@@ -68,7 +87,7 @@ async def get_job_status(job_id: str) -> dict[str, Any]:
             "job_id": job_id,
             "status": "not_found",
             "result": None,
-            "error": "Job queue is not configured",
+            "error": "Job queue is not configured (inline mode)",
         }
 
     job = Job(job_id, redis)

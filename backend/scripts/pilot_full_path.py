@@ -97,16 +97,12 @@ def main() -> None:
         headers = {"Authorization": f"Bearer {tokens['access_token']}"}
         ok(f"login as {tokens['user']['email']}")
 
-        # --- Redis / ARQ ---
-        probe = client.get(
-            "/jobs/00000000-0000-0000-0000-000000000001", headers=headers
-        )
-        if probe.status_code != 200:
-            fail(f"jobs probe → {probe.status_code}")
-        perr = (probe.json() or {}).get("error")
-        if perr == "Job queue is not configured":
-            fail("REDIS_URL empty on this API — report jobs will run inline")
-        ok("REDIS_URL configured (ARQ job status reachable)")
+        # --- Jobs mode (Redis optional) ---
+        health = client.get("/health")
+        if health.status_code != 200:
+            fail(f"health → {health.status_code}")
+        jobs = (health.json() or {}).get("jobs") or {}
+        ok(f"jobs mode={jobs.get('mode', 'inline')} redis={jobs.get('redis', 'disabled')}")
 
         pub_body: dict[str, Any]
         if SURVEY_ID:

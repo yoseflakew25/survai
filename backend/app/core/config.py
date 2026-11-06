@@ -187,7 +187,10 @@ class Settings(BaseSettings):
         "gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.5-flash"
     )
 
-    # ARQ / Redis — empty disables the queue and runs jobs inline
+    # ARQ / Redis — off by default. Jobs (report generate/export) run inline
+    # on the API process. Set JOBS_USE_REDIS=true AND REDIS_URL only when you
+    # explicitly want a queue (e.g. paid Upstash). Free-tier Redis is optional.
+    jobs_use_redis: bool = False
     redis_url: str = ""
 
     @field_validator("cors_origins", mode="before")
