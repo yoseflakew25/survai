@@ -492,6 +492,8 @@ class CollectionService:
                 q_by_id[qkey], value
             )
 
+        from app.services.conditional_logic import condition_is_active
+
         answered = {
             str(qid): val
             for qid, val in cleaned_by_qid.items()
@@ -502,7 +504,9 @@ class CollectionService:
         missing = [
             qid
             for qid, q in q_by_id.items()
-            if q.get("is_required") and qid not in answered
+            if q.get("is_required")
+            and condition_is_active(q.get("conditional_logic"), answered)
+            and qid not in answered
         ]
         if missing:
             raise BadRequestError(
@@ -650,6 +654,8 @@ class CollectionService:
                 existing.answer_value = cleaned
                 existing.answered_at = now
 
+        from app.services.conditional_logic import condition_is_active
+
         answered = {
             str(qid): row.answer_value
             for qid, row in by_qid.items()
@@ -665,7 +671,9 @@ class CollectionService:
         missing = [
             qid
             for qid, q in q_by_id.items()
-            if q.get("is_required") and qid not in answered
+            if q.get("is_required")
+            and condition_is_active(q.get("conditional_logic"), answered)
+            and qid not in answered
         ]
         if missing:
             raise BadRequestError(

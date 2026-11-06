@@ -167,7 +167,7 @@ export function NotificationCenter() {
             <div className='flex flex-wrap items-start justify-between gap-3'>
               <div className='min-w-0'>
                 <div className='flex flex-wrap items-center gap-2'>
-                  <SheetTitle className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+                  <SheetTitle className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
                     Notifications
                   </SheetTitle>
                   {count > 0 ? (

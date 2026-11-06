@@ -3,7 +3,8 @@
 > Living snapshot of what is implemented vs mock vs next.
 > Last updated: **6 November 2026** — Plan → Reports live; Org Assistant;
 > **multi-seat orgs** (Owner / Researcher / Viewer); collection quota + share
-> pack; donor ZIP export; baseline/endline compare.
+> pack; donor ZIP export; baseline/endline compare; **skip/branch logic
+> (BLD-08)**; **saved analysis views**; report **`?reportId=`** deep-links.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -69,8 +70,15 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Collection settings:** Alembic **`0018_collection_compare`** — `response_quota`, `closes_at` enforced on public submit + collect-stats.
 - **Donor pack:** `POST /reports/{id}/export-pack` → ZIP (PDF + DOCX + analytics CSV).
 - **Compare:** `instrument_family_id` / `wave_label`; `POST …/duplicate-as-endline`; `GET …/compare?other_id=`.
+- **Skip / branch (BLD-08):** shared `conditional_logic` evaluator (snake + camel);
+  public submit + complete skip inactive required questions; builder confirm/clear.
+- **Saved analyses:** `GET`/`POST /surveys/{id}/saved-analyses`; report create accepts
+  `saved_analysis_id` and freezes filtered metrics in `metrics_snapshot`.
+- **Report deep-link:** `GET /reports/{id}`; `notify_report_ready` href includes
+  `?reportId=`.
 - **Alembic:** through **`0018_collection_compare`**.
-- Pytest: `test_dicdo_features` (invites isolation, quota reject, ZIP contents, compare matching) + assistant suites.
+- Pytest: `test_dicdo_features` + `test_branching_and_reports` (skip-on-submit,
+  saved-view filters, GET by id, Owner→Researcher dogfood) + assistant suites.
 
 **Run API locally:**
 ```bash
@@ -100,10 +108,11 @@ uvicorn app.main:app --reload --port 8000
 - **Assistant** (`/dashboard/assistant`): thread list + chat, markdown rendering, citation chips, New chat in brand header.
 - **Team** (Account → Team): invite researchers/viewers; `/auth/accept-invite`.
 - **Collect:** quota + close datetime settings; share pack (QR + print sheet); progress toward quota.
-- **Reports:** Save as PDF / Word; **Download donor pack** ZIP.
-- **Analytics:** Duplicate as endline + compare table for instrument-family siblings.
-- Viewer role: mutate CTAs hidden (publish, generate report, etc.).
-- Notifications drawer; Launchpot light theme chrome (`SurvaiPanel`, brand CTAs).
+- **Builder:** interactive preview + minimal skip-logic editor (confirm/clear).
+- **Reports:** Save as PDF / Word; **Download donor pack** ZIP; open via `?reportId=`.
+- **Analytics:** Duplicate as endline + compare table; **saved views** (save/apply filters; optional reuse on report).
+- Viewer role: mutate CTAs hidden (publish, generate report, etc.); Account nav Owner-only.
+- Notifications drawer (clickable cards → href); Launchpot light theme chrome (`SurvaiPanel`, brand CTAs).
 - Forms: RHF + Zod; TanStack Query.
 
 ---
@@ -125,9 +134,9 @@ uvicorn app.main:app --reload --port 8000
 
 ## 7. Files that matter
 
-**Backend:** `app/api/v1/routes/{assistant,notifications,...}.py`, `services/{assistant,knowledge_index,notification,...}.py`, `ai/{client,embeddings,prompts/assistant_v1.py}`, `models/assistant.py`, `alembic/versions/0016_org_assistant.py`, `Dockerfile`, `tests/test_assistant.py`
+**Backend:** `app/api/v1/routes/{assistant,notifications,reports,...}.py`, `services/{assistant,collection,conditional_logic,knowledge_index,notification,report,...}.py`, `ai/{client,embeddings,prompts/assistant_v1.py}`, `models/assistant.py`, `alembic/versions/0016_org_assistant.py`, `Dockerfile`, `tests/test_{assistant,branching_and_reports,dicdo_features}.py`
 
-**Frontend:** `features/assistant/**`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys,overview}/**`
+**Frontend:** `features/assistant/**`, `features/builder/**` (skip preview/editor), `features/analytics/components/saved-analyses.tsx`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys,overview}/**`
 
 ---
 
