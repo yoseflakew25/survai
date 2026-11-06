@@ -39,6 +39,14 @@ Set these on the **API** service (Variables tab). Do **not** commit secrets.
 
 Optional model overrides: `GEMINI_MODEL_*` (defaults are already set in code).
 
+Org RAG embeddings use a local Hugging Face model (`BAAI/bge-small-en-v1.5`
+via FastEmbed), pre-baked in the Docker image. Optional overrides:
+
+| Variable | Default |
+| --- | --- |
+| `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` |
+| `EMBEDDING_CACHE_DIR` | `/app/.cache/fastembed` (set in Dockerfile) |
+
 If Railway wired Postgres as a reference variable, you can use:
 
 ```text

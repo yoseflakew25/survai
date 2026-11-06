@@ -19,6 +19,13 @@ COPY . .
 
 RUN chmod +x scripts/start.sh
 
+# Pre-download HF embedding model into the image so first RAG request
+# does not hit Hugging Face at runtime (cold start / offline-friendly).
+ENV EMBEDDING_CACHE_DIR=/app/.cache/fastembed \
+    HF_HOME=/app/.cache/huggingface
+RUN mkdir -p "$EMBEDDING_CACHE_DIR" "$HF_HOME" \
+    && python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5', cache_dir='$EMBEDDING_CACHE_DIR')"
+
 # Aiven Runtime / most hosts: EXPOSE is used for port detection.
 # Some platforms inject PORT; start.sh defaults to 8000.
 EXPOSE 8000

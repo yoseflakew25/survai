@@ -18,8 +18,9 @@
   drifts into template libraries, multi-language generation, offline
   collection, etc., point it back to that section.
 - **§2a (Frontend stack enforcements)** is a hard gate for any `frontend/`
-  work — shadcn, TanStack Query, RHF+Zod, Zustand, Better Auth (FE UX only).
-  Real auth is **JWT + cookies** (§7). Reject alternate FE libraries.
+  work — shadcn, TanStack Query, RHF+Zod, Zustand. Auth UX is custom pages +
+  Google GIS against FastAPI. Real auth is **JWT + cookies** (§7). Reject
+  alternate FE libraries.
 - This plan assumes a solo/small-team build. It over-specifies schemas and
   contracts deliberately, because that's what keeps independent AI-assisted
   sessions (planner today, analytics next week) consistent with each other.
@@ -61,7 +62,7 @@ these two rules.
 | --- | --- |
 | AI provider | **Gemini** (Google AI) via `google-genai` — OpenAI retired for this repo |
 | Auth (real) | **JWT + httpOnly cookies** — FastAPI issues short-lived access JWT + refresh token in cookies; API validates JWT on every protected route. Users/roles live in Postgres. |
-| Auth (frontend UX) | **Better Auth** — sign-in/sign-up UI, client helpers, Next.js route gating UX only. It does **not** replace JWT+cookies as the security model. |
+| Auth (frontend UX) | Custom auth pages + **Google Identity Services (GIS)** against FastAPI — no Better Auth. JWT+cookies remain the security model. |
 | Deployment | Vercel (web) + Render/Railway (API) + managed Postgres |
 | Frontend UI | **shadcn/ui** + Tailwind |
 | Frontend server state | **TanStack Query** (`@tanstack/react-query`) |
@@ -69,7 +70,7 @@ these two rules.
 | Frontend client UI state | **Zustand** |
 | Validation / schemas (FE) | **Zod** |
 
-Frontend library choices above are **non-negotiable for new work**. Auth security model is JWT+cookies (§7); Better Auth is FE UX only. See §2a.
+Frontend library choices above are **non-negotiable for new work**. Auth security model is JWT+cookies (§7); FE auth pages call FastAPI (email/OTP + Google GIS). See §2a.
 
 **Recommended defaults for everything the PRD leaves open** (swappable —
 override before building against them):
@@ -95,7 +96,7 @@ alternate library for any of these concerns, reject it and redirect here.
 | --- | --- | --- |
 | UI primitives | **shadcn/ui** in `frontend/src/components/ui/` | MUI, Chakra, Ant Design, raw Radix-only kits that bypass shadcn |
 | Auth security | **JWT + httpOnly / Secure / SameSite cookies** (API is source of truth) | Access tokens in `localStorage` / `sessionStorage`; trusting client-only role claims |
-| Auth FE UX | **Better Auth** for sign-in/up UI + client helpers that sit on top of JWT+cookies | Clerk; treating Better Auth as a second auth backend that bypasses FastAPI JWT |
+| Auth FE UX | Custom auth pages + **Google GIS** calling FastAPI auth routes | Clerk; a second auth backend that bypasses FastAPI JWT; tokens in `localStorage` |
 | Server / async data | **TanStack Query** | SWR, ad-hoc `useEffect` + `fetch` for feature data, React Query v3 APIs |
 | Forms | **React Hook Form + Zod** (`useForm` + `FormProvider` + `zodResolver`) | TanStack Form, Formik, uncontrolled `useState` form blobs for validated flows |
 | Client UI state | **Zustand** | Redux, Jotai, Recoil for new global UI state |
@@ -134,7 +135,7 @@ Agent-facing copies of this gate also live in:
 ### Frontend — `frontend/` (Next.js App Router; formerly planned as `apps/web`)
 - **Next.js 16 (App Router), TypeScript (strict mode), React 19**
 - Tailwind CSS v4 + **shadcn/ui**
-- **Auth UX:** Better Auth for sign-in/sign-up UI and related client helpers; cookies carry JWT/refresh from the API
+- **Auth UX:** Custom sign-in/up + OTP + Google GIS; cookies carry JWT/refresh from the API
 - **TanStack Query v5** (server state) + **Zustand** (local UI / wizard drafts)
 - **React Hook Form + Zod** for all forms (`FormProvider` + field components in `src/components/forms/fields`)
 - **nuqs** for URL search-param state (tables, filters, pagination)
@@ -144,31 +145,30 @@ Agent-facing copies of this gate also live in:
 - Drag-and-drop: `@dnd-kit/*` (question/section reordering)
 - Icons: `@tabler/icons-react` **only through** `src/components/icons.tsx`
 
-### Backend — `backend/` (domain APIs live through Reports + Overview)
+### Backend — `backend/` (Plan→Reports + Overview + Notifications + Org Assistant)
 - **FastAPI, Python 3.12+**
 - Pydantic v2 + pydantic-settings
 - SQLAlchemy 2.0 (async) + Alembic + `asyncpg` (SSL for managed Postgres)
 - **Clean architecture:** routes → services → repositories → models; DI via FastAPI `Depends`
-- Auth: **JWT + httpOnly cookies** — `python-jose` access JWT; **bcrypt** (passlib) passwords; opaque refresh tokens hashed in DB; email OTP verify + password recovery (SMTP/Resend)
-- Background jobs: **ARQ + Redis** — report generate returns 202 when `REDIS_URL` set; inline fallback otherwise (`docs/redis-arq.md`)
-- Analytics: deterministic engine in `app/analytics/engine.py` (not Pandas)
-- AI SDK: **Google Gemini** via `google-genai` + structured JSON (`app/ai/client.py`)
-- Report export: **fpdf2 PDF** + **stdlib OOXML DOCX** (WeasyPrint/docxtpl optional later)
-- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient`
-- Docker Compose (dev/prod, `--profile jobs` for Redis/worker) + GH Actions `backend-ci` / `backend-cd` / keep-render-warm
+- Auth: **JWT + httpOnly cookies** — email OTP + **Google OAuth**; bcrypt passwords; refresh tokens in DB
+- Background jobs: **ARQ + Redis** — report generate returns 202 when `REDIS_URL` set; inline fallback otherwise
+- Analytics: deterministic engine in `app/analytics/engine.py`
+- AI: **Gemini** (`app/ai/client.py`) + **HF FastEmbed** (`app/ai/embeddings.py`) for Org Assistant RAG
+- Report export: **fpdf2 PDF** + **stdlib OOXML DOCX**
+- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient` (incl. `tests/test_assistant.py`)
+- Docker image bakes embedding model; GH Actions backend CI/CD
 
 ### Data & Infra
-- PostgreSQL (Aiven for managed DB; Docker Compose Postgres locally)
-- Redis (Upstash free / local compose) — ARQ job queue for long report generation
-- Object storage: Cloudflare R2 (or AWS S3) — still optional for MVP (exports return inline/base64)
-- Hosting: **Vercel** (web) + **Render** Docker (API); UptimeRobot keep-alive on `/api/v1/health`
-- CI/CD: GitHub Actions (backend lint/test/image)
-- Error tracking: Sentry (both apps)
+- PostgreSQL (Aiven; Docker Compose locally) — Alembic through **`0016_org_assistant`**
+- Redis (Upstash / local) — optional ARQ for long report generation
+- Object storage: Cloudflare R2 (or AWS S3) — still optional for MVP
+- Hosting: **Vercel** (web) + **Railway/Render** Docker (API); health `GET`/`HEAD` `/api/v1/health`
+- CI/CD: GitHub Actions; see `backend/RAILWAY.md`
 
 ### AI
-- Provider: OpenAI, via the **Responses API**
-- Models: parameterize per feature (`OPENAI_MODEL_PLANNER`, `OPENAI_MODEL_REVIEWER`, `OPENAI_MODEL_BUILDER`, `OPENAI_MODEL_REPORT`, `OPENAI_MODEL_CHAT`) rather than hardcoding a model string anywhere in business logic. OpenAI's lineup and naming move fast (multiple flagship revisions have shipped in 2026 alone) — check `https://platform.openai.com/docs/models` at implementation time and pick a current strict-structured-output-capable model for the judgment-heavy tasks (planner/reviewer/report) and a faster/cheaper variant for report chat, where latency matters more than depth.
-- Every AI call goes through **one** service module (`app/ai/client.py`) — this is the "abstract the vendor behind a service layer" mitigation the PRD's risk table asks for (§17 risk: vendor/API dependency).
+- Provider: **Google Gemini** via `google-genai` (structured JSON). Parameterize per feature (`GEMINI_MODEL_PLANNER`, `GEMINI_MODEL_BUILDER`, `GEMINI_MODEL_REVIEWER`, `GEMINI_MODEL_REPORT`, `GEMINI_MODEL_CHAT`, `GEMINI_MODEL_ASSISTANT`). Prefer `gemini-3.1-flash-lite` for structured JSON.
+- **Org RAG embeddings:** local Hugging Face via **FastEmbed** (`EMBEDDING_MODEL=BAAI/bge-small-en-v1.5`) — not Gemini. Pre-baked in Docker (`EMBEDDING_CACHE_DIR`).
+- Every LLM call goes through **`app/ai/client.py`**; embeddings through **`app/ai/embeddings.py`**.
 
 ---
 
@@ -178,33 +178,25 @@ Agent-facing copies of this gate also live in:
 
 ```
 survai/
-├── frontend/                    # Next.js App Router (live UI)
-├── backend/                     # FastAPI (auth scaffold live)
+├── frontend/                    # Next.js App Router (live UI + Assistant)
+├── backend/                     # FastAPI (full lifecycle + Assistant)
 │   ├── app/
 │   │   ├── main.py
-│   │   ├── core/                # config, security, exceptions
-│   │   ├── db/                  # session, Base, SSL helpers
-│   │   ├── models/              # User (RBAC), Organization, RefreshToken, PasswordResetToken (+ §6 later)
-│   │   ├── schemas/
-│   │   ├── repositories/
-│   │   ├── services/            # auth, user, email
-│   │   └── api/v1/routes/       # health, auth, users
-│   ├── alembic/
+│   │   ├── core/ · db/ · models/ · schemas/ · repositories/
+│   │   ├── services/            # auth … report, assistant, knowledge_index, notification
+│   │   ├── ai/                  # client, embeddings (HF), prompts/*, services/*
+│   │   ├── analytics/           # deterministic engine
+│   │   ├── jobs/                # ARQ worker
+│   │   └── api/v1/routes/       # health, auth, plans, surveys, reports, assistant, …
+│   ├── alembic/                 # through 0016_org_assistant
 │   ├── tests/
-│   ├── docker-compose.yml
-│   ├── docker-compose.prod.yml  # Traefik + Let's Encrypt
-│   └── README.md
-├── .github/workflows/
-│   ├── backend-ci.yml
-│   └── backend-cd.yml
-├── plan.md
-├── status.md
-└── PRODUCT.md
+│   ├── Dockerfile               # bakes HF embedding model
+│   └── README.md · RAILWAY.md
+├── plan.md · status.md · PRODUCT.md · DESIGN.md
+└── .github/workflows/
 ```
 
-Still planned under `backend/app/` (not created yet): `ai/`, `analytics/`,
-`reports/`, `jobs/` — see earlier architecture notes in this section’s history /
-§8–§14. Frontend feature modules stay under `frontend/src/features/`.
+Frontend feature modules live under `frontend/src/features/` (incl. `assistant/`).
 
 ---
 
@@ -233,9 +225,11 @@ flowchart LR
     end
 
     subgraph AiLayer[AI orchestration — app/ai]
-      Client[OpenAI Responses API client]
+      Client[Gemini structured client]
+      Embed[HF FastEmbed embeddings]
       Validator[Pydantic schema validator]
       Reconciler[Metric reconciliation check]
+      RAG[Org knowledge retrieve]
     end
 
     subgraph Store[Persistence]
@@ -254,10 +248,15 @@ flowchart LR
     RptSvc --> Client
     Client --> Validator --> Reconciler --> RptSvc
     ReportUI --> ChatSvc --> Client
+    AssistUI[Org Assistant UI] --> AssistSvc[Assistant service]
+    AssistSvc --> RAG --> Embed
+    AssistSvc --> Engine
+    AssistSvc --> Client
     RptSvc --> S3
     BuildSvc --> PG
     RevSvc --> PG
     ChatSvc --> PG
+    AssistSvc --> PG
     Api --> Redis
 ```
 
@@ -578,9 +577,8 @@ CREATE TABLE audit_log (
 
 ## 7. Authentication & Authorization
 
-**Security model: JWT + cookies.** Better Auth is **frontend UX only**
-(sign-in/up screens, client helpers, Next.js gating UX) — it does not replace
-FastAPI as the issuer/validator of credentials.
+**Security model: JWT + cookies.** Frontend auth pages (email/OTP + Google GIS)
+call FastAPI only — FastAPI is the issuer/validator of credentials.
 
 ### Tenancy language (MVP)
 
@@ -596,7 +594,8 @@ FastAPI as the issuer/validator of credentials.
 Live routes under `/api/v1`: `POST /auth/register` (organization account →
 OTP emailed), `POST /auth/verify-email`, `POST /auth/resend-verification`,
 `/auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me`,
-`POST /auth/forgot-password`, `POST /auth/reset-password`.
+`POST /auth/forgot-password`, `POST /auth/reset-password`,
+`POST /auth/google` (Google Identity credential → same cookies).
 
 - **Signup flow:** register creates org + user with `email_verified=false` →
   6-digit OTP (hashed in `email_verification_otps`, ~10 min TTL) →
@@ -608,8 +607,7 @@ OTP emailed), `POST /auth/verify-email`, `POST /auth/resend-verification`,
 - **Transport:** tokens set as **httpOnly** cookies *and* returned in JSON so
   the Next.js client can use cookies (`credentials: 'include'`) and/or Bearer.
   Prefer cookies long-term; **do not** persist access tokens in
-  `localStorage` / `sessionStorage` (current FE still uses `sessionStorage` —
-  remove when wiring Better Auth UX properly).
+  `localStorage` / `sessionStorage`.
 - **Server-side authorization:** FastAPI deps (`get_current_user`,
   `require_roles`) check JWT then DB user row.
 - **Refresh:** cookie or `{ refresh_token }` body; rotates refresh + issues new
@@ -624,20 +622,16 @@ OTP emailed), `POST /auth/verify-email`, `POST /auth/resend-verification`,
   console log (OTP may return `dev_code` only when delivery is unconfigured).
   Transactional HTML uses SurvAI brand tokens + embedded mark (`cid:survai-mark`).
 
-### Frontend UX (auth pages + Better Auth)
+### Frontend UX (auth pages + Google GIS)
 
 - Live pages: `/auth/sign-in`, `/auth/sign-up` (form → OTP step),
   `/auth/forgot-password`, `/auth/reset-password?token=…` — RHF + Zod;
-  `auth-context` wires `register` / `verifyEmail` / `resendVerification` /
-  `requestPasswordReset` / `confirmPasswordReset` to the JWT+cookie API.
-- Better Auth remains optional FE UX helpers on top of that API (not a second
-  identity store). Prefer cookies (`credentials: 'include'`); **do not** put
-  access tokens in `localStorage` (current FE still uses in-memory +
-  `sessionStorage` fallback — remove when finishing FE↔API auth).
+  Google button posts ID token to `POST /auth/google`.
+- Prefer cookies (`credentials: 'include'`); **do not** put access tokens in
+  `localStorage`.
 - Next.js layout gates for `/dashboard/*` should read the same cookie session
   the API trusts.
-- **Do not:** reintroduce Clerk; do not invent a parallel Better Auth–only
-  identity the API never sees.
+- **Do not:** reintroduce Clerk or a parallel identity store the API never sees.
 
 ### Roles & public routes (MVP RBAC — live)
 
@@ -646,7 +640,7 @@ MVP uses **two roles** (multi-seat PRD personas deferred until staff invites):
 | Role | Who | Access |
 | --- | --- | --- |
 | `system_admin` | SurvAI operators (seeded from `FIRST_SUPERUSER_*`) | Full access + `/users` admin routes; `is_superuser=true` |
-| `organization` | Every org signup / non-platform account | Org workspace: Planner → Build → Review → Collect → Analytics → Report |
+| `organization` | Every org signup / non-platform account | Org workspace: Plan→Report + Overview + Assistant |
 
 - **Signup** always creates `role=organization` (never `system_admin`).
 - **Bootstrap:** on API startup, `ensure_first_superuser()` creates/syncs the
@@ -678,6 +672,7 @@ system ever returns free text without a schema.
 | Survey Reviewer | `review_survey()` | `ReviewerOutput` | current section/question tree |
 | Report Generator | `generate_report()`, `regenerate_report_section()` | `ReportGenerationOutput` | `AnalyticsSnapshot` + curated `QualitativeExcerpt`s only — **never raw rows** |
 | Report Chat | `answer_report_chat()` | `ReportChatOutput` | the report's `sections` + its `metrics_snapshot` only |
+| Org Assistant | `AssistantService.send_message()` | `AssistantPlanOutput` + `AssistantAnswerOutput` (`assistant_v1`) | RAG top-k `org_knowledge_chunks` + structured tools (survey list, analytics summary, report snapshot) — **never invent numbers** |
 
 ### Schemas (`app/ai/schemas.py`)
 
@@ -1092,16 +1087,16 @@ EMAILS_FROM_NAME=SurvAI
 
 # Later:
 # REDIS_URL=
-# OPENAI_API_KEY=
-# OPENAI_MODEL_*=
+# GEMINI_API_KEY=
+# GEMINI_MODEL_*=
+# EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+# EMBEDDING_CACHE_DIR=
 
 # --- frontend/.env ---
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_AUTH_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 NEXT_PUBLIC_SENTRY_DISABLED=true
-
-# Better Auth (FE UX helpers only — does not replace JWT_SECRET / cookie auth)
 ```
 
 ---
@@ -1248,59 +1243,56 @@ conflicts, **§2a wins**.
 
 ---
 
-## 23. Implementation Status (as of 29 October 2026)
+## 23. Implementation Status (as of 6 November 2026)
 
-> Tracks frontend + backend. **Plan → Reports is live end-to-end** (grounded
-> narrative, chat, fpdf2 PDF, OOXML DOCX, activity modal). Org overview KPIs/chart
-> use real aggregates. Report create supports **202 + ARQ** when `REDIS_URL` is set.
-> Deployed: Vercel FE + Render API. See `status.md`.
+> Tracks frontend + backend. **Plan → Reports is live end-to-end.** **Org
+> Assistant (RAG + structured tools)** is live. Notifications + Google OAuth
+> live. HF FastEmbed embeddings (Docker-baked). Deploy: Vercel FE +
+> Railway/Render API. See `status.md`.
 
 ### ✅ Completed — Backend (`backend/`)
 
 | Module | Status | Notes |
 | --- | --- | --- |
-| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, Render `scripts/start.sh` |
-| **Auth API (§7)** | ✅ Done | register → OTP → verify; login/refresh/logout/me; forgot/reset; JWT + httpOnly cookies; verified users cannot mint tokens via verify-email; `DELETE /users/me` keeps org if teammates remain |
+| **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, `scripts/start.sh` |
+| **Auth API (§7)** | ✅ Done | email OTP + **Google OAuth**; JWT cookies; forgot/reset; `DELETE /users/me` |
 | **Email delivery** | ✅ Done | SMTP and/or Resend; `dev_code` when mail unconfigured |
 | **AI gateway + Planner** | ✅ Done | Gemini `app/ai/client.py`; plans CRUD + generate (`planner_v1`) |
-| **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate (`builder_v1`) |
-| **Reviewer AI** | ✅ Done | `POST /surveys/{id}/review`, latest, finding status (`reviewer_v1`); Alembic `0010` |
-| **Collection** | ✅ Done | publish/close; `survey_versions`; public GET/submit; Alembic `0011`–`0012` |
-| **Respondents** | ✅ Done | list + detail scoped to `current_version_id` |
-| **Analytics engine** | ✅ Done | summary / query / crosstab / CSV export / saved analyses |
-| **Reports + §9** | ✅ Done | Alembic `0013`; `report_v1` + compact chat; reconciliation; **PDF via fpdf2**; **DOCX via OOXML** |
-| **Overview** | ✅ Done | `GET /api/v1/overview` — org KPIs + 12‑month started/completed series |
-| **ARQ + Redis (§14)** | ✅ Done | `generate_report_job` → 202 + poll `/jobs/{id}`; inline when `REDIS_URL` empty; worker co-located in `start.sh`; see `docs/redis-arq.md` |
-| **Integrity locks** | ✅ Done | 1:1 plan↔survey; plan lock; publish-once; question lock; no delete of published/closed/archived |
-| **RBAC (MVP)** | ✅ Done | `system_admin` \| `organization`; `FIRST_SUPERUSER_*` seed |
-| **Postgres** | ✅ Live | Aiven + Render; Alembic through **`0013_reports`** |
-| **Health** | ✅ Done | `GET` + `HEAD` `/api/v1/health` (uptime monitors) |
-| **Tests / CI** | ✅ Done | Pytest incl. integrity, reports, overview, jobs; GH Actions + keep-render-warm |
+| **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate |
+| **Reviewer AI** | ✅ Done | review + findings; prefer `gemini-3.1-flash-lite` |
+| **Collection** | ✅ Done | publish/close; versions; public GET/submit |
+| **Respondents / Analytics / Reports / Overview** | ✅ Done | deterministic engine; §9 reconciliation; PDF/DOCX; KPIs |
+| **Notifications** | ✅ Done | in-app feed; lifecycle emitters |
+| **Org Assistant** | ✅ Done | Alembic **`0016`**; RAG (HF embeddings) + tools; `/assistant/*`; reindex |
+| **Embeddings** | ✅ Done | `app/ai/embeddings.py` + FastEmbed; not Gemini |
+| **ARQ + Redis (§14)** | ✅ Done | report 202 + poll when `REDIS_URL` set; inline otherwise |
+| **Integrity locks / RBAC** | ✅ Done | plan↔survey; publish locks; `system_admin` \| `organization` |
+| **Postgres** | ✅ Live | Aiven (+ Railway/Render); Alembic through **`0016_org_assistant`** |
+| **Health / Tests / CI** | ✅ Done | health GET+HEAD; pytest incl. `test_assistant`; GH Actions |
 
 ### ✅ Completed — Frontend
 
 | Module | Status | Notes |
 | --- | --- | --- |
-| **Auth UI** | ✅ Done | Email/password + OTP; Google OAuth remnants removed |
-| **Plans / Builder / Review** | ✅ Live API | Generate, edit, AI review, locks when published |
-| **Collect / Respondents / Analytics** | ✅ Live API | Publish + QR; respondents; charts/crosstabs/CSV |
-| **Reports workspace** | ✅ Live API | Generate, edit, grounded chat, Save as PDF/Word, stale-snapshot banner; polls jobs on 202 |
-| **Overview dashboard** | ✅ Live API | Real KPIs + response-activity chart; recent surveys with `responses_count` |
-| **Survey activity modal** | ✅ Done | Shared instrument modal for long AI / page-load actions |
-| **BLD-04 confirm UX** | ✅ Done | Pending skip-logic banner in question editor |
-| **Pill nav** | ✅ Done | Plan→Report + All surveys; hub page redirects to Plan |
-| **Forms / Query stack** | ✅ Done | RHF+Zod; TanStack Query |
-| **API resilience** | ✅ Done | 90s client timeout + cold-start copy for Render free wake |
-| **Playwright / API smoke** | ✅ Soft | `e2e/smoke.spec.ts` + `backend/scripts/pilot_smoke.py` — need env credentials |
+| **Auth UI** | ✅ Done | Email/password + OTP + **Google GIS** |
+| **Plans → Reports** | ✅ Live | Full lifecycle pill nav + activity modal |
+| **Overview** | ✅ Live | KPIs + response activity |
+| **Assistant** | ✅ Live | `/dashboard/assistant` threads + markdown chat + citations |
+| **Notifications** | ✅ Live | Header drawer |
+| **Design chrome** | ✅ Live | Launchpot light theme / `SurvaiPanel` / brand CTAs |
+| **Forms / Query** | ✅ Done | RHF+Zod; TanStack Query |
+| **Playwright / smoke** | ✅ Soft | needs staging credentials |
 
 ### 🔄 Soft / next
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **Prod Redis** | Soft | Confirm Upstash `REDIS_URL` on Render for every environment |
-| **Full E2E path** | Soft | Publish → submit → analytics → report with staging `E2E_*` / `SMOKE_*` |
+| **Deploy Assistant** | Soft | Ship image with 0016 + reindex orgs once |
+| **Prod Redis** | Soft | Confirm `REDIS_URL` where async reports desired |
+| **Full E2E path** | Soft | Publish → submit → analytics → report → assistant |
 | **Multi-seat orgs** | Soft | When needed beyond MVP 1:1 |
-| **Auth hardening** | Soft | Bootstrap password sync, default-secret guards, CSRF with cross-site cookies |
+| **pgvector** | Soft | Only if chunk volume outgrows JSON cosine |
+| **CSRF** | Soft | With `SameSite=None` cross-site cookies |
 
 ---
 
@@ -1403,8 +1395,13 @@ frontend/src/
 | Done | Org overview KPIs + response activity chart | — |
 | Done | ARQ report jobs (202 + poll; inline fallback) | §14 |
 | Done | Vercel + Render deploy; health HEAD; uptime keep-alive | — |
-| Soft | Confirm prod `REDIS_URL` (Upstash) on Render | §14 |
+| Done | Auth bootstrap: no password reset-on-boot; prod secret checks | §7 |
+| Done | Google OAuth + in-app notifications | §7 |
+| Done | Org Assistant (RAG + structured tools, Alembic 0016) | — |
+| Done | Local HF embeddings (FastEmbed) + Docker bake | — |
+| Soft | Deploy Assistant image + per-org knowledge reindex | — |
+| Soft | Confirm prod `REDIS_URL` where async reports desired | §14 |
 | Soft | Playwright / API pilot smoke on live creds | §19 |
 | Soft | Multi-seat org roles | — |
-| Done | Auth bootstrap: no password reset-on-boot; prod secret checks | §7 |
+| Soft | pgvector if chunk volume outgrows JSON cosine | — |
 | Soft | CSRF with SameSite=None cookies | §7 |

@@ -51,8 +51,16 @@ def _get_model() -> Any:
             ) from exc
 
         model_name = _resolve_model_name()
-        logger.info("Loading HF embedding model %s (first run may download)", model_name)
-        _model = TextEmbedding(model_name=model_name)
+        cache_dir = (settings.embedding_cache_dir or "").strip() or None
+        logger.info(
+            "Loading HF embedding model %s (cache=%s)",
+            model_name,
+            cache_dir or "default",
+        )
+        _model = TextEmbedding(
+            model_name=model_name,
+            cache_dir=cache_dir,
+        )
         return _model
 
 

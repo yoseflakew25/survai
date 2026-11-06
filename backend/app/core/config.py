@@ -178,6 +178,8 @@ class Settings(BaseSettings):
     # Gemini is not used for embeddings (quota / model-id churn).
     embedding_provider: Literal["huggingface"] = "huggingface"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    # Set in Docker to the pre-baked FastEmbed cache path.
+    embedding_cache_dir: str = ""
     # Deprecated alias — ignored; kept so old .env keys don't crash settings.
     gemini_embedding_model: str = ""
     # Comma-separated fallbacks tried on 429/503 (quota / high demand).

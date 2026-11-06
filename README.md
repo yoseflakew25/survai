@@ -39,9 +39,10 @@
 | **Product Lead / Fellow** | Yosef Lakew |
 | **CSO Partner Lead** | Mr. Demissie Afework (Executive Director & General Manager, DICDO) |
 | **PRD status** | Under review |
+| **Engineering status** | Plan→Reports + Org Assistant live — see `status.md` (6 Nov 2026) |
 | **Repo** | Full-stack monorepo (`frontend/` + `backend/`) |
 
-This README is the **canonical product + engineering brief**: product requirements, trust model, and how to run the codebase.
+This README is the **canonical product + engineering brief**: product requirements, trust model, and how to run the codebase. Living implementation detail: `status.md` / `plan.md` §23.
 
 ---
 
@@ -95,6 +96,7 @@ Dire Integrated Community Development Organization (DICDO) conducts field resear
 | **Collect** | Survey Collection | Structured responses via a simple web experience |
 | **Analyze** | Survey Statistics & Analysis | Transparent, reproducible statistics and visualizations |
 | **Report** | AI Report Generator + Chat | Professional narrative reporting and conversational exploration of findings |
+| **Assist** | Org Assistant (RAG + tools) | Cross-survey Q&A grounded in indexed knowledge + deterministic analytics |
 
 **In one sentence:** Survai helps an organization move from “We need to learn something” to “Here are reliable findings and a report we can act on.”
 
@@ -175,7 +177,8 @@ Broader landing audience: CSOs, NGOs, researchers, and policy teams — shaped w
 6. **Collect** — Respondents submit answers through a responsive web interface (`/s/...`).
 7. **Analyze** — System calculates statistics, visualizations, filters, and cross-tabs deterministically.
 8. **Report** — AI turns validated statistics and selected qualitative evidence into a structured report.
-9. **Ask** — User chats with the report to explore findings and prepare concise versions for different audiences.
+9. **Ask (report)** — User chats with the report to explore findings and prepare concise versions for different audiences.
+10. **Ask (org)** — User opens Org Assistant to ask across surveys/reports; retrieval + structured tools keep numbers grounded.
 
 ---
 
@@ -191,6 +194,7 @@ Broader landing audience: CSOs, NGOs, researchers, and policy teams — shaped w
 | Survey Collection | Collect responses | Not required for core collection | Must |
 | Survey Statistics & Analysis | Reliable quantitative analysis | Not used for core calculations | Must |
 | AI Report Generator + Report Chat | Narrative reports + follow-up Q&A | LLM grounded in computed results + selected responses | Must |
+| Org Assistant | Cross-survey workspace Q&A | RAG over indexed org knowledge + tools for live metrics | Must |
 
 ### 7.2 Explicitly out of scope (MVP)
 
@@ -277,6 +281,15 @@ Broader landing audience: CSOs, NGOs, researchers, and policy teams — shaped w
 | RPT-05 | Edit before export | Must | Modify text; regenerate sections |
 | RPT-06 | Export | Must | At least DOCX/PDF (or supported pipeline) |
 
+### 8.8 Org Assistant
+
+| ID | Requirement | Priority | Acceptance |
+| --- | --- | --- | --- |
+| AST-01 | Threaded org chat | Must | Create/list threads; send message; org-scoped isolation |
+| AST-02 | Knowledge index | Must | Survey/report/review chunks with embeddings; reindex endpoint |
+| AST-03 | Grounded numbers | Must | Counts/% from analytics/report tools — never invented from RAG text |
+| AST-04 | Citations | Must | Answer surfaces retrieved source chips where applicable |
+
 ---
 
 ## 9. AI requirements & guardrails
@@ -292,6 +305,8 @@ Survai uses AI for language-heavy and judgment-supporting tasks. It must **not**
 | Question review | Identify quality issues | Issue type + rationale + rewrite; human decision |
 | Report generation | Narrative synthesis of validated findings | Only pass computed metrics + selected evidence |
 | Report chat | Answer questions about the report | Restrict to report + linked analytics; disclose uncertainty |
+| Org Assistant | Plan tools + answer from retrieve/tools | HF embeddings RAG for context; Gemini for language; tools for numbers |
+| Embeddings | Local FastEmbed (`BAAI/bge-small-en-v1.5`) | Not Gemini; Docker-baked cache for deploy |
 
 ### 9.2 Anti-hallucination strategy
 
@@ -334,13 +349,15 @@ Layers are separated so AI failures cannot corrupt survey data or numerical resu
 
 | Layer | Technology | Responsibility |
 | --- | --- | --- |
-| Web application | Next.js 16 + TypeScript + Tailwind CSS v4 + shadcn/ui | Planner, builder, reviewer, collection, analytics, reports, landing |
-| Application / API | FastAPI (Python 3.12) | Auth, survey CRUD, responses, analytics orchestration, AI orchestration |
-| Database | PostgreSQL 16 | Users, surveys, versions, questions, responses, reports, analytics metadata |
-| ORM / migrations | SQLAlchemy 2 (async) + Alembic | Persistence and schema evolution |
+| Web application | Next.js 16 + TypeScript + Tailwind CSS v4 + shadcn/ui | Planner, builder, reviewer, collection, analytics, reports, assistant, landing |
+| Application / API | FastAPI (Python 3.12) | Auth, survey CRUD, responses, analytics, assistant, AI orchestration |
+| Database | PostgreSQL 16 | Users, surveys, versions, questions, responses, reports, assistant threads/chunks |
+| ORM / migrations | SQLAlchemy 2 (async) + Alembic | Persistence and schema evolution (through `0016_org_assistant`) |
 | Analytics engine | Python + SQL | Deterministic calculations and transforms |
-| AI provider | LLM API (e.g. Gemini via `google-genai`) | Planning, generation, review, report narrative, report chat |
-| Auth | JWT access + httpOnly cookies; opaque refresh tokens | Organization workspaces; server is source of truth |
+| LLM | Gemini via `google-genai` | Planning, generation, review, report narrative, chat, assistant |
+| Embeddings | FastEmbed (HF `BAAI/bge-small-en-v1.5`) | Org knowledge vectors; baked in Docker image |
+| Auth | JWT + httpOnly cookies; email OTP + Google OAuth | Organization workspaces; server is source of truth |
+| Jobs | Optional Redis + ARQ | Async report generation (202 + poll); inline fallback |
 | Object storage | S3-compatible / similar | Exports and optional assets |
 | Observability | App logs + optional Sentry | Failures without dumping survey content unnecessarily |
 
@@ -351,15 +368,16 @@ User (Next.js)
     │  HTTPS + httpOnly cookies
     ▼
 FastAPI (/api/v1)
-    ├── Auth / Survey CRUD / Collection
+    ├── Auth / Survey CRUD / Collection / Notifications
     ├── Analytics engine  ──►  computed metrics (source of truth)
-    └── AI orchestration  ──►  LLM (language only; metrics injected)
+    ├── Org Assistant     ──►  HF retrieve + tools + Gemini answer
+    └── AI orchestration  ──►  Gemini (language only; metrics injected)
             │
             ▼
        PostgreSQL
 ```
 
-**Rule:** Raw responses → deterministic analytics → structured metrics → (optional) LLM narrative. Never the reverse for numbers.
+**Rule:** Raw responses → deterministic analytics → structured metrics → (optional) LLM narrative. Never the reverse for numbers. Assistant RAG chunks are narrative context only.
 
 ### 11.2 Frontend stack (canonical)
 
@@ -398,6 +416,8 @@ Core concepts (logical):
 - **Response / answer** — respondent submissions tied to a version
 - **Analysis context** — filters, cross-tabs, saved views
 - **Report** — generated narrative grounded in analytics outputs
+- **Assistant thread / message** — org-scoped chat history
+- **Org knowledge chunk** — indexed survey/report/review text + embedding vector
 
 Versioning must ensure historical responses always map to the instrument respondents actually saw.
 
@@ -465,6 +485,7 @@ Survey responses may include personal, demographic, health, legal, or other sens
 - [ ] View deterministic statistics and basic cross-tabs
 - [ ] Generate a report whose numerical values match analytics
 - [ ] Ask questions about the generated report
+- [ ] Ask Org Assistant a cross-survey question with grounded citations/tools
 - [ ] Core workflow tested with real or representative survey data
 
 ---
@@ -582,8 +603,9 @@ Monorepo layout:
 
 ```
 survai/
-├── frontend/     # Next.js 16 app (UI + landing + dashboard)
-├── backend/      # FastAPI API (auth, surveys, AI, analytics)
+├── frontend/     # Next.js 16 (lifecycle UI + Assistant + landing)
+├── backend/      # FastAPI (auth → reports, assistant, RAG embeddings)
+├── plan.md · status.md · PRODUCT.md · DESIGN.md
 └── README.md     # This document
 ```
 
@@ -650,7 +672,10 @@ App: http://localhost:3000
 | `DATABASE_URL` | Async Postgres URL |
 | `CORS_ORIGINS` / `FRONTEND_URL` | Frontend origin (e.g. `http://localhost:3000`) |
 | `JWT_SECRET_KEY` | Access token signing |
-| Cookie / SMTP / Resend / AI provider keys | Per `backend/.env.example` |
+| `GEMINI_API_KEY` / model overrides | LLM calls (`backend/.env.example`) |
+| `EMBEDDING_MODEL` / `EMBEDDING_CACHE_DIR` | Local HF FastEmbed (Docker bakes cache) |
+| `REDIS_URL` | Optional ARQ report jobs |
+| Cookie / SMTP / Resend / Google OAuth | Per `backend/.env.example` |
 
 ---
 
@@ -659,21 +684,21 @@ App: http://localhost:3000
 ```
 frontend/src/
 ├── app/                  # App Router (landing, auth, dashboard, /s collection)
-├── components/           # UI primitives, layout, themes
-├── features/             # Domain modules (surveys, builder, collect, analytics, reports, board, …)
+├── components/           # UI primitives, layout, themes, chat-markdown
+├── features/             # surveys, builder, collect, analytics, reports, assistant, …
 ├── lib/                  # API client, auth helpers, utils
 ├── hooks/ · config/ · constants/ · styles/ · types/
 
 backend/app/
-├── api/v1/routes/        # HTTP handlers
-├── services/             # Business use-cases
+├── api/v1/routes/        # HTTP handlers (incl. assistant, notifications)
+├── services/             # Business use-cases (incl. assistant, knowledge_index)
 ├── repositories/         # Data access
-├── models/               # SQLAlchemy ORM
-├── schemas/              # Pydantic contracts
-├── ai/                   # AI orchestration
-├── core/                 # Config, security, exceptions
-└── db/                   # Engine, session, Base
+├── models/ · schemas/    # ORM + Pydantic
+├── ai/                   # Gemini client, embeddings (HF), prompts/*
+├── analytics/ · jobs/    # Deterministic engine + ARQ
+├── core/ · db/
 ```
+See `status.md` for live vs soft; `backend/RAILWAY.md` for deploy.
 
 Feature API pattern on the frontend:
 
