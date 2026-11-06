@@ -208,6 +208,7 @@ class ReportService:
         await self.session.commit()
         await self.session.refresh(report)
 
+        from app.services.knowledge_index import KnowledgeIndexService
         from app.services.notification import NotificationService
 
         try:
@@ -220,6 +221,20 @@ class ReportService:
         except Exception:
             logger.exception(
                 "report_ready notification failed survey=%s", survey.id
+            )
+
+        try:
+            await KnowledgeIndexService(self.session).index_report(
+                organization_id=org_id,
+                report_id=report.id,
+                survey_id=survey.id,
+                title=report.title,
+                sections=list(report.sections or []),
+            )
+            await self.session.commit()
+        except Exception:
+            logger.exception(
+                "knowledge index on report failed survey=%s", survey.id
             )
 
         return await self._to_public_with_integrity(

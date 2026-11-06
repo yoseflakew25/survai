@@ -124,7 +124,7 @@ class Settings(BaseSettings):
     emails_from_email: str = "onboarding@resend.dev"
     emails_from_name: str = "SurvAI"
 
-    # Google Identity (GIS) — Web client ID from Google Cloud Console.
+     # Google Identity (GIS) — Web client ID from Google Cloud Console.
     # Empty disables POST /auth/google. Same value as NEXT_PUBLIC_GOOGLE_CLIENT_ID.
     google_oauth_client_id: str = ""
 
@@ -173,6 +173,13 @@ class Settings(BaseSettings):
     gemini_model_reviewer: str = "gemini-3.1-flash-lite"
     gemini_model_report: str = "gemini-3.1-flash-lite"
     gemini_model_chat: str = "gemini-3.1-flash-lite"
+    gemini_model_assistant: str = "gemini-3.1-flash-lite"
+    # Org RAG embeddings — local Hugging Face model via FastEmbed (ONNX).
+    # Gemini is not used for embeddings (quota / model-id churn).
+    embedding_provider: Literal["huggingface"] = "huggingface"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    # Deprecated alias — ignored; kept so old .env keys don't crash settings.
+    gemini_embedding_model: str = ""
     # Comma-separated fallbacks tried on 429/503 (quota / high demand).
     gemini_model_fallbacks: str = (
         "gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.5-flash"

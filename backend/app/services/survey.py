@@ -332,6 +332,7 @@ class SurveyService:
             raise
         await ensure_required_identity_fields(self.session, survey_id=survey.id)
         await self.session.commit()
+        await self._index_survey_safe(survey)
         return await self.get_survey(user=user, survey_id=survey.id)
 
     async def create_from_plan(
@@ -443,6 +444,7 @@ class SurveyService:
                 )
             survey.anonymous_collection = data["anonymous_collection"]
         await self.session.commit()
+        await self._index_survey_safe(survey)
         return await self.get_survey(user=user, survey_id=survey_id)
 
     async def delete_survey(self, *, user: User, survey_id: UUID) -> None:
@@ -836,3 +838,17 @@ class SurveyService:
         if plan is None:
             raise NotFoundError("Plan not found")
         return plan
+
+    async def _index_survey_safe(self, survey: Survey) -> None:
+        """Best-effort RAG index update — never block survey mutations."""
+        try:
+            from app.services.knowledge_index import KnowledgeIndexService
+
+            await KnowledgeIndexService(self.session).index_survey(survey)
+            await self.session.commit()
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "knowledge index on survey write failed survey=%s", survey.id
+            )

@@ -157,6 +157,7 @@ class ReviewerService:
         loaded = await self.reports.latest_for_survey(survey_id=survey.id)
         assert loaded is not None
 
+        from app.services.knowledge_index import KnowledgeIndexService
         from app.services.notification import NotificationService
 
         try:
@@ -172,6 +173,21 @@ class ReviewerService:
 
             logging.getLogger(__name__).exception(
                 "review_complete notification failed survey=%s", survey.id
+            )
+
+        try:
+            await KnowledgeIndexService(self.session).index_review(
+                organization_id=org_id,
+                report=loaded,
+                survey_id=survey.id,
+                survey_title=survey_title,
+            )
+            await self.session.commit()
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "knowledge index on review failed survey=%s", survey.id
             )
 
         return self._report_public(loaded, survey)

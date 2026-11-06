@@ -39,6 +39,8 @@ _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
     "reviewer": reviewer_v1.PROMPT_VERSION,
     "report": report_v1.PROMPT_VERSION,
     "report_chat": chat_v1.PROMPT_VERSION,
+    "assistant_plan": "assistant_v1",
+    "assistant_answer": "assistant_v1",
 }
 
 
@@ -75,6 +77,8 @@ def _model_for(feature: str) -> str:
         "reviewer": settings.gemini_model_reviewer,
         "report": settings.gemini_model_report,
         "report_chat": settings.gemini_model_chat,
+        "assistant_plan": settings.gemini_model_assistant,
+        "assistant_answer": settings.gemini_model_assistant,
     }
     return mapping.get(feature, settings.gemini_model_planner)
 
@@ -176,6 +180,8 @@ async def call_structured(
                 temperature = 0.55
             elif feature == "report_chat":
                 temperature = 0.2
+            elif feature in ("assistant_plan", "assistant_answer"):
+                temperature = 0.25
 
             gen_config_kwargs: dict[str, Any] = {
                 "system_instruction": system,
@@ -189,8 +195,10 @@ async def call_structured(
             }
             if feature == "report":
                 gen_config_kwargs["max_output_tokens"] = _REPORT_MAX_OUTPUT_TOKENS
-            elif feature == "report_chat":
-                gen_config_kwargs["max_output_tokens"] = _CHAT_MAX_OUTPUT_TOKENS
+            elif feature in ("report_chat", "assistant_plan", "assistant_answer"):
+                gen_config_kwargs["max_output_tokens"] = (
+                    768 if feature.startswith("assistant") else _CHAT_MAX_OUTPUT_TOKENS
+                )
                 # Gemini 3 Flash-Lite rejects thinking_budget=0 (400). Use
                 # minimal thinking_level instead — lowest-latency chat path.
                 gen_config_kwargs["thinking_config"] = types.ThinkingConfig(
@@ -368,3 +376,5 @@ def _user_message_for_ai_error(feature: str, exc: BaseException | None) -> str:
             "Check the model name and response schema, then try again."
         )
     return f"AI could not produce a valid {feature} result. Please try again."
+
+

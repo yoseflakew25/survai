@@ -269,6 +269,7 @@ class CollectionService:
         await self.session.commit()
         await self.session.refresh(version)
 
+        from app.services.knowledge_index import KnowledgeIndexService
         from app.services.notification import NotificationService
 
         try:
@@ -283,6 +284,20 @@ class CollectionService:
 
             logging.getLogger(__name__).exception(
                 "survey_published notification failed survey=%s", survey_id
+            )
+
+        try:
+            survey_row = await self.surveys.get_for_org_meta(
+                survey_id=survey_id, organization_id=org_id
+            )
+            if survey_row is not None:
+                await KnowledgeIndexService(self.session).index_survey(survey_row)
+                await self.session.commit()
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception(
+                "knowledge index on publish failed survey=%s", survey_id
             )
 
         return PublishResponse(

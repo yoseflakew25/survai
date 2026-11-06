@@ -1,4 +1,11 @@
 from app.models.ai_generation_log import AiGenerationLog
+from app.models.assistant import (
+    AssistantMessage,
+    AssistantMessageRole,
+    AssistantThread,
+    KnowledgeSourceType,
+    OrgKnowledgeChunk,
+)
 from app.models.collection import Respondent, ResponseAnswer, SurveyVersion
 from app.models.email_verification import EmailVerificationOtp
 from app.models.notification import Notification, NotificationType
@@ -32,10 +39,15 @@ from app.models.user import User, UserRole
 
 __all__ = [
     "AiGenerationLog",
+    "AssistantMessage",
+    "AssistantMessageRole",
+    "AssistantThread",
     "EmailVerificationOtp",
     "ExportRecord",
+    "KnowledgeSourceType",
     "Notification",
     "NotificationType",
+    "OrgKnowledgeChunk",
     "Organization",
     "PasswordResetToken",
     "PlanStatus",
