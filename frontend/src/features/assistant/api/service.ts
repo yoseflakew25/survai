@@ -149,6 +149,89 @@ export async function sendMessage(
   };
 }
 
+const STREAM_TIMEOUT_MS = 180_000;
+
+export type AssistantStreamHandlers = {
+  onStatus?: (stage: string) => void;
+  onDelta?: (text: string) => void;
+};
+
+/** SSE send — status + progressive deltas; resolves with final messages. */
+export async function sendMessageStream(
+  threadId: string,
+  content: string,
+  handlers: AssistantStreamHandlers = {}
+): Promise<AssistantSendResult> {
+  const res = await apiFetch(
+    `/assistant/threads/${threadId}/messages/stream`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body: JSON.stringify({ content })
+    },
+    STREAM_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not send message');
+  if (!res.body) {
+    throw new Error('Assistant stream returned an empty body');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: AssistantSendResult | null = null;
+  let streamError: string | null = null;
+
+  const consumeBlock = (block: string) => {
+    const lines = block.split('\n');
+    let event = 'message';
+    const dataLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (!dataLines.length) return;
+    let payload: unknown;
+    try {
+      payload = JSON.parse(dataLines.join('\n'));
+    } catch {
+      return;
+    }
+    if (event === 'status' && payload && typeof payload === 'object') {
+      const stage = (payload as { stage?: string }).stage;
+      if (stage) handlers.onStatus?.(stage);
+    } else if (event === 'delta' && payload && typeof payload === 'object') {
+      const text = (payload as { text?: string }).text;
+      if (text) handlers.onDelta?.(text);
+    } else if (event === 'done' && payload && typeof payload === 'object') {
+      const data = payload as { thread: ApiThread; messages: ApiMessage[] };
+      result = {
+        thread: mapThread(data.thread),
+        messages: data.messages.map(mapMessage)
+      };
+    } else if (event === 'error' && payload && typeof payload === 'object') {
+      streamError =
+        (payload as { detail?: string }).detail || 'Assistant stream failed';
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop() ?? '';
+    for (const block of parts) {
+      if (block.trim()) consumeBlock(block);
+    }
+  }
+  if (buffer.trim()) consumeBlock(buffer);
+
+  if (streamError) throw new Error(streamError);
+  if (!result) throw new Error('Assistant stream ended without a reply');
+  return result;
+}
+
 export async function reindexKnowledge(): Promise<{
   surveys: number;
   reports: number;

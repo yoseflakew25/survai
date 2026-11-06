@@ -44,7 +44,8 @@ def main() -> None:
         health = client.get("/health")
         if health.status_code != 200:
             fail(f"health → {health.status_code}")
-        ok("health")
+        jobs = (health.json() or {}).get("jobs") or {}
+        ok(f"health jobs.enabled={jobs.get('enabled')} redis={jobs.get('redis')}")
 
         login = client.post(
             "/auth/login",
@@ -120,12 +121,39 @@ def main() -> None:
             json={"type": "pdf"},
             timeout=120.0,
         )
-        if export.status_code != 200:
+        if export.status_code == 202:
+            job_id = export.json()["job_id"]
+            ok(f"pdf export queued job_id={job_id}")
+            body = _poll_job(client, headers, job_id)
+        elif export.status_code in (200, 201):
+            body = export.json()
+        else:
             fail(f"pdf export → {export.status_code} {export.text[:200]}")
-        body = export.json()
         if not body.get("content_base64") and not body.get("file_url"):
             fail("pdf export missing content")
         ok("pdf export")
+
+        # Org Assistant (sync JSON path — streaming is covered in UI)
+        thread = client.post(
+            "/assistant/threads",
+            headers=headers,
+            json={"title": "Smoke assistant"},
+        )
+        if thread.status_code != 201:
+            fail(f"assistant thread → {thread.status_code} {thread.text[:200]}")
+        thread_id = thread.json()["id"]
+        ask = client.post(
+            f"/assistant/threads/{thread_id}/messages",
+            headers=headers,
+            json={"content": "Briefly list our surveys."},
+            timeout=180.0,
+        )
+        if ask.status_code != 200:
+            fail(f"assistant message → {ask.status_code} {ask.text[:300]}")
+        msgs = ask.json().get("messages") or []
+        if len(msgs) < 2 or msgs[-1].get("role") != "assistant":
+            fail("assistant reply missing")
+        ok("assistant reply")
 
     print("\nPilot smoke passed.")
 

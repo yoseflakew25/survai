@@ -296,6 +296,64 @@ async def test_send_message_happy_path(
 
 
 @pytest.mark.asyncio
+async def test_send_message_stream_sse(
+    client: AsyncClient, session, monkeypatch
+) -> None:
+    await _org_user(session, email="stream@example.com")
+    headers = await _login(client, "stream@example.com")
+
+    async def fake_embed(
+        texts: list[str], *, task_type: str = "RETRIEVAL_DOCUMENT"
+    ) -> list[list[float]]:
+        del task_type
+        return [[1.0, 0.0, 0.0] for _ in texts]
+
+    monkeypatch.setattr(
+        "app.services.knowledge_index.embed_texts", fake_embed
+    )
+
+    plan = AssistantPlanOutput(
+        survey_ids_for_analytics=[],
+        report_ids_to_open=[],
+        rationale="none",
+    )
+    answer = AssistantAnswerOutput(
+        answer="Streaming reply about surveys.",
+        confidence="partial",
+        citation_chunk_ids=[],
+        metric_refs=[],
+    )
+
+    async def fake_structured(**kwargs):
+        feature = kwargs.get("feature")
+        value = plan if feature == "assistant_plan" else answer
+        return SimpleNamespace(value=value)
+
+    monkeypatch.setattr(
+        "app.services.assistant.call_structured", fake_structured
+    )
+
+    thread = await client.post(
+        "/api/v1/assistant/threads", headers=headers, json={}
+    )
+    assert thread.status_code == 201
+    thread_id = thread.json()["id"]
+
+    res = await client.post(
+        f"/api/v1/assistant/threads/{thread_id}/messages/stream",
+        headers=headers,
+        json={"content": "Stream please"},
+    )
+    assert res.status_code == 200, res.text
+    assert "text/event-stream" in res.headers.get("content-type", "")
+    body = res.text
+    assert "event: status" in body
+    assert "event: delta" in body or "event: done" in body
+    assert "event: done" in body
+    assert "Streaming reply" in body
+
+
+@pytest.mark.asyncio
 async def test_reindex_endpoint(client: AsyncClient, session, monkeypatch) -> None:
     user = await _org_user(session, email="reindex@example.com")
     headers = await _login(client, "reindex@example.com")

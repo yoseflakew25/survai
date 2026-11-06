@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Full prod pilot: Redis check → plan+survey → publish → N responses → report → PDF.
+"""Full prod pilot: Redis check → plan+survey → publish → N responses → report → PDF → assistant.
 
   cd backend && source .venv/bin/activate
   export SMOKE_API_BASE=https://survai-mzam.onrender.com/api/v1
@@ -253,6 +253,35 @@ def main() -> None:
             ok(f"pdf export ({body.get('status')})")
         else:
             fail(f"pdf export → {export.status_code} {export.text[:200]}")
+
+        # --- Org Assistant ---
+        reindex = client.post("/assistant/knowledge/reindex", headers=headers, timeout=180.0)
+        if reindex.status_code != 200:
+            fail(f"assistant reindex → {reindex.status_code} {reindex.text[:200]}")
+        ok(f"assistant reindex {reindex.json()}")
+
+        thread = client.post(
+            "/assistant/threads",
+            headers=headers,
+            json={"title": "Pilot smoke"},
+        )
+        if thread.status_code != 201:
+            fail(f"assistant thread → {thread.status_code} {thread.text[:200]}")
+        thread_id = thread.json()["id"]
+        ok(f"assistant thread {thread_id}")
+
+        ask = client.post(
+            f"/assistant/threads/{thread_id}/messages",
+            headers=headers,
+            json={"content": "What surveys do we have?"},
+            timeout=180.0,
+        )
+        if ask.status_code != 200:
+            fail(f"assistant message → {ask.status_code} {ask.text[:300]}")
+        msgs = ask.json().get("messages") or []
+        if len(msgs) < 2 or msgs[-1].get("role") != "assistant":
+            fail("assistant reply missing")
+        ok(f"assistant reply ({len(msgs[-1].get('content') or '')} chars)")
 
     print("\nFull pilot path passed.")
     print(f"Survey: {survey_id}")

@@ -60,10 +60,10 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Org Assistant (RAG + tools):** Alembic **`0016_org_assistant`**
   - Tables: `assistant_threads`, `assistant_messages`, `org_knowledge_chunks`
   - Index: survey / report / review → chunks with **local HF embeddings** (`fastembed`, `BAAI/bge-small-en-v1.5`)
-  - Chat: retrieve top-k → Gemini plan → structured tools (`list_surveys`, analytics summary, report) → grounded answer + citations
-  - API: `/api/v1/assistant/threads`, messages, `POST /knowledge/reindex`
+  - Chat: retrieve top-k → Gemini plan → structured tools → grounded answer + citations
+  - API: `/assistant/threads`, messages, **`POST …/messages/stream` (SSE)**, `POST /knowledge/reindex`
   - Docker: model pre-baked into image (`EMBEDDING_CACHE_DIR`)
-- **Jobs / ARQ:** optional `REDIS_URL` for report 202 + poll; inline fallback.
+- **Jobs / ARQ:** optional `REDIS_URL` for report **and export** 202 + poll; inline fallback; `GET /health` reports `jobs.redis`.
 - **Alembic:** through **`0016_org_assistant`**.
 - Pytest: assistant isolation/retrieve/chat; plus existing suites (auth tests may fail if live Resend key returns 403 in local env).
 
@@ -101,17 +101,16 @@ uvicorn app.main:app --reload --port 8000
 
 ## 5. Frontend — soft / gaps
 
-- Full Playwright path (publish → submit → analytics → report → assistant) needs staging creds.
-- Assistant: no SSE streaming yet (v1 request/response).
+- Full Playwright path needs staging creds (`E2E_*`). Assistant UI smoke sends a starter and waits for a reply.
+- API pilots: `pilot_smoke.py` + `pilot_full_path.py` cover report → PDF → **assistant**.
 
 ---
 
 ## 6. Known next (priority)
 
-1. Deploy backend image (Railway/Render) with `alembic upgrade` → **0016**; set env from `RAILWAY.md`.
-2. Install `fastembed` in any local venv that still lacks it; reindex org knowledge once.
-3. Confirm prod Redis if report queue is required.
-4. Pilot smoke (`SMOKE_*` / Playwright `E2E_*`).
+1. Set prod `REDIS_URL` (Upstash `rediss://`) if async report/export jobs are desired; check `GET /health` → `jobs.redis=ok`.
+2. Run `pilot_full_path.py` / Playwright with staging `SMOKE_*` / `E2E_*` after deploy.
+3. Multi-seat org roles when DICDO needs staff invites.
 
 ---
 

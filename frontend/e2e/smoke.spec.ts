@@ -78,4 +78,34 @@ test.describe('SurvAI pilot smoke', () => {
       page.getByText(/report|generate|sections|download|pdf/i).first()
     ).toBeVisible({ timeout: 30_000 });
   });
+
+  test('assistant workspace opens and can send a starter', async ({ page }) => {
+    await signIn(page);
+    await page.goto(`${base}/dashboard/assistant`);
+    await expect(
+      page.getByText(/org research assistant|assistant|new chat/i).first()
+    ).toBeVisible({ timeout: 20_000 });
+
+    const starter = page
+      .getByRole('button', {
+        name: /what surveys do we have|summarize the latest|needs the most attention/i
+      })
+      .first();
+    if (await starter.count()) {
+      await starter.click();
+    } else {
+      const input = page.getByPlaceholder(/ask about your org research/i);
+      await input.fill('What surveys do we have?');
+      await page.getByRole('button', { name: /send message/i }).click();
+    }
+
+    await expect(
+      page.getByText(/searching org knowledge|planning tools|fetching metrics|writing answer|working/i).first()
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Grounded Gemini reply — allow cold start + tools
+    await expect(
+      page.locator('[class*="rounded-bl-md"]').filter({ hasText: /.+/ }).last()
+    ).toBeVisible({ timeout: 180_000 });
+  });
 });

@@ -1287,9 +1287,10 @@ conflicts, **§2a wins**.
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **Deploy Assistant** | Soft | Ship image with 0016 + reindex orgs once |
-| **Prod Redis** | Soft | Confirm `REDIS_URL` where async reports desired |
-| **Full E2E path** | Soft | Publish → submit → analytics → report → assistant |
+| **Assistant SSE** | ✅ Done | `POST …/messages/stream` + FE progressive UI |
+| **Export ARQ** | ✅ Done | Report export 202 + poll when Redis set; `/health` jobs probe |
+| **Pilot smoke** | ✅ Soft | Scripts + Playwright cover assistant; need staging `SMOKE_*`/`E2E_*` |
+| **Prod Redis** | Soft | Confirm Upstash `REDIS_URL` where async jobs desired |
 | **Multi-seat orgs** | Soft | When needed beyond MVP 1:1 |
 | **pgvector** | Soft | Only if chunk volume outgrows JSON cosine |
 | **CSRF** | Soft | With `SameSite=None` cross-site cookies |
@@ -1399,8 +1400,8 @@ frontend/src/
 | Done | Google OAuth + in-app notifications | §7 |
 | Done | Org Assistant (RAG + structured tools, Alembic 0016) | — |
 | Done | Local HF embeddings (FastEmbed) + Docker bake | — |
-| Soft | Deploy Assistant image + per-org knowledge reindex | — |
-| Soft | Confirm prod `REDIS_URL` where async reports desired | §14 |
+| Done | Assistant SSE streaming + export ARQ wiring | — |
+| Soft | Confirm prod `REDIS_URL` (Upstash `rediss://`) | §14 |
 | Soft | Playwright / API pilot smoke on live creds | §19 |
 | Soft | Multi-seat org roles | — |
 | Soft | pgvector if chunk volume outgrows JSON cosine | — |

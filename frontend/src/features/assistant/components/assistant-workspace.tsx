@@ -21,7 +21,7 @@ import {
 import {
   createThread,
   deleteThread,
-  sendMessage,
+  sendMessageStream,
   updateThread
 } from '../api/service';
 import type { AssistantMessage, AssistantThread } from '../api/types';
@@ -31,6 +31,14 @@ const STARTERS = [
   'Summarize the latest findings across our reports',
   'Which survey needs the most attention right now?'
 ] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  saving: 'Saving your question…',
+  retrieving: 'Searching org knowledge…',
+  planning: 'Planning tools…',
+  tools: 'Fetching metrics…',
+  answering: 'Writing answer…'
+};
 
 const brandCtaClass =
   'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
@@ -64,6 +72,8 @@ export function AssistantWorkspace() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [streamStage, setStreamStage] = useState<string | null>(null);
+  const [streamDraft, setStreamDraft] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -83,7 +93,7 @@ export function AssistantWorkspace() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, sending]);
+  }, [messages, sending, streamDraft, streamStage]);
 
   const refreshThreads = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: assistantKeys.threads() });
@@ -141,6 +151,8 @@ export function AssistantWorkspace() {
 
       let threadId = activeId;
       setSending(true);
+      setStreamStage('saving');
+      setStreamDraft('');
       try {
         if (!threadId) {
           const thread = await createThread();
@@ -165,7 +177,10 @@ export function AssistantWorkspace() {
         ]);
         setInput('');
 
-        const result = await sendMessage(threadId, content);
+        const result = await sendMessageStream(threadId, content, {
+          onStatus: (stage) => setStreamStage(stage),
+          onDelta: (text) => setStreamDraft((curr) => curr + text)
+        });
         queryClient.setQueryData(
           assistantKeys.messages(threadId),
           result.messages
@@ -182,6 +197,8 @@ export function AssistantWorkspace() {
         }
       } finally {
         setSending(false);
+        setStreamStage(null);
+        setStreamDraft('');
       }
     },
     [activeId, input, sending, queryClient, refreshThreads]
@@ -467,7 +484,11 @@ export function AssistantWorkspace() {
             {sending ? (
               <div
                 className='flex gap-2.5 animate-in fade-in duration-200'
-                aria-label='SurvAI is typing'
+                aria-label={
+                  streamDraft
+                    ? 'SurvAI is answering'
+                    : STAGE_LABELS[streamStage ?? ''] || 'SurvAI is working'
+                }
               >
                 <div
                   className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
@@ -475,17 +496,28 @@ export function AssistantWorkspace() {
                 >
                   <Icons.sparkles className='size-3.5' />
                 </div>
-                <div className='flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-card/95 px-4 py-3'>
-                  {[0, 1, 2].map((dot) => (
-                    <span
-                      key={dot}
-                      className='size-1.5 animate-bounce rounded-full bg-foreground/45'
-                      style={{
-                        animationDelay: `${dot * 140}ms`,
-                        animationDuration: '900ms'
-                      }}
-                    />
-                  ))}
+                <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-border bg-card/95 px-3.5 py-2.5 text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
+                  {streamDraft ? (
+                    <ChatMarkdown content={streamDraft} />
+                  ) : (
+                    <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                      <span className='flex items-center gap-1.5'>
+                        {[0, 1, 2].map((dot) => (
+                          <span
+                            key={dot}
+                            className='size-1.5 animate-bounce rounded-full bg-foreground/45'
+                            style={{
+                              animationDelay: `${dot * 140}ms`,
+                              animationDuration: '900ms'
+                            }}
+                          />
+                        ))}
+                      </span>
+                      <span>
+                        {STAGE_LABELS[streamStage ?? ''] ?? 'Working…'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}

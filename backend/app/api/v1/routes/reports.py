@@ -120,15 +120,31 @@ async def post_report_chat(
 
 @router.post(
     "/reports/{report_id}/export",
-    response_model=ExportPublic,
+    response_model=ExportPublic | JobAccepted,
     status_code=status.HTTP_201_CREATED,
+    responses={202: {"model": JobAccepted}},
 )
 async def export_report(
     report_id: UUID,
     body: ExportRequest,
     current_user: CurrentUser,
     reports: ReportServiceDep,
-) -> ExportPublic:
+    response: Response,
+) -> ExportPublic | JobAccepted:
+    """Export report. With REDIS_URL, returns 202 + job_id when enqueue succeeds."""
+    if jobs_enabled():
+        job_id = await enqueue_job(
+            "export_report_job",
+            str(current_user.id),
+            str(report_id),
+            body.type,
+        )
+        if job_id:
+            response.status_code = status.HTTP_202_ACCEPTED
+            return JobAccepted(
+                job_id=job_id,
+                poll_url=f"/api/v1/jobs/{job_id}",
+            )
     return await reports.export_report(
         user=current_user, report_id=report_id, body=body
     )

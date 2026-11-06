@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Response, status
+from fastapi.responses import StreamingResponse
 
 from app.api.deps import AssistantServiceDep, CurrentUser
+from app.core.exceptions import AppError
 from app.schemas.assistant import (
     AssistantMessageCreate,
     AssistantMessageListResponse,
@@ -97,6 +101,51 @@ async def send_message(
 ) -> AssistantSendResponse:
     return await assistant.send_message(
         user=current_user, thread_id=thread_id, content=body.content
+    )
+
+
+@router.post("/threads/{thread_id}/messages/stream")
+async def send_message_stream(
+    thread_id: UUID,
+    body: AssistantMessageCreate,
+    current_user: CurrentUser,
+    assistant: AssistantServiceDep,
+) -> StreamingResponse:
+    """SSE progress + progressive answer text; final `done` carries full messages."""
+
+    async def event_gen() -> AsyncIterator[str]:
+        try:
+            async for event, payload in assistant.iter_send_message(
+                user=current_user,
+                thread_id=thread_id,
+                content=body.content,
+                stream_deltas=True,
+            ):
+                if event == "done":
+                    assert isinstance(payload, AssistantSendResponse)
+                    data = payload.model_dump(mode="json")
+                else:
+                    data = payload
+                yield f"event: {event}\ndata: {json.dumps(data)}\n\n"
+        except AppError as exc:
+            yield (
+                "event: error\n"
+                f"data: {json.dumps({'detail': exc.detail, 'status_code': exc.status_code})}\n\n"
+            )
+        except Exception:
+            yield (
+                "event: error\n"
+                f"data: {json.dumps({'detail': 'Assistant stream failed'})}\n\n"
+            )
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

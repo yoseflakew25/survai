@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -44,6 +46,7 @@ from app.services.knowledge_index import KnowledgeIndexService
 logger = logging.getLogger(__name__)
 
 _TITLE_MAX = 80
+_DELTA_CHUNK = 28
 
 
 def _require_org(user: User) -> UUID:
@@ -161,6 +164,30 @@ class AssistantService:
     async def send_message(
         self, *, user: User, thread_id: UUID, content: str
     ) -> AssistantSendResponse:
+        result: AssistantSendResponse | None = None
+        async for event, payload in self.iter_send_message(
+            user=user, thread_id=thread_id, content=content, stream_deltas=False
+        ):
+            if event == "done":
+                assert isinstance(payload, AssistantSendResponse)
+                result = payload
+        if result is None:
+            raise BadRequestError("Assistant could not complete the reply")
+        return result
+
+    async def iter_send_message(
+        self,
+        *,
+        user: User,
+        thread_id: UUID,
+        content: str,
+        stream_deltas: bool = True,
+    ) -> AsyncIterator[tuple[str, Any]]:
+        """Yield (event, payload) for SSE or a single done event for JSON send.
+
+        Events: status → optional delta chunks → done (AssistantSendResponse).
+        Structured Gemini calls stay non-streaming; deltas are progressive UI only.
+        """
         org_id = _require_org(user)
         question = content.strip()
         if not question:
@@ -171,6 +198,8 @@ class AssistantService:
         )
         if thread is None:
             raise NotFoundError("Thread not found")
+
+        yield ("status", {"stage": "saving"})
 
         prior = await self.messages.list_for_thread(thread_id=thread.id)
         if not prior and thread.title == "New chat":
@@ -189,6 +218,7 @@ class AssistantService:
             for m in prior[-6:]
         ]
 
+        yield ("status", {"stage": "retrieving"})
         retrieved = await self.knowledge.retrieve(
             organization_id=org_id, query=question, top_k=6
         )
@@ -224,6 +254,7 @@ class AssistantService:
             for s in surveys
         ]
 
+        yield ("status", {"stage": "planning"})
         plan_call = await call_structured(
             feature="assistant_plan",
             system=assistant_v1.SYSTEM_PLAN,
@@ -241,6 +272,7 @@ class AssistantService:
         plan = plan_call.value
         assert isinstance(plan, AssistantPlanOutput)
 
+        yield ("status", {"stage": "tools"})
         tool_payload, tool_trace = await self._run_tools(
             user=user,
             org_id=org_id,
@@ -253,6 +285,7 @@ class AssistantService:
             ],
         )
 
+        yield ("status", {"stage": "answering"})
         answer_call = await call_structured(
             feature="assistant_answer",
             system=assistant_v1.SYSTEM_ANSWER,
@@ -270,14 +303,22 @@ class AssistantService:
         answer = answer_call.value
         assert isinstance(answer, AssistantAnswerOutput)
 
+        reply = (
+            answer.answer.strip()
+            or "I could not find enough grounded data to answer that."
+        )
+        if stream_deltas and reply:
+            for i in range(0, len(reply), _DELTA_CHUNK):
+                yield ("delta", {"text": reply[i : i + _DELTA_CHUNK]})
+                await asyncio.sleep(0)
+
         citations = self._build_citations(
             answer=answer, chunks=chunk_payload, tool_trace=tool_trace
         )
         assistant_msg = AssistantMessage(
             thread_id=thread.id,
             role=AssistantMessageRole.assistant.value,
-            content=answer.answer.strip()
-            or "I could not find enough grounded data to answer that.",
+            content=reply,
             citations=citations,
             tool_trace=tool_trace,
         )
@@ -287,9 +328,12 @@ class AssistantService:
 
         rows = await self.messages.list_for_thread(thread_id=thread.id)
         await self.session.refresh(thread)
-        return AssistantSendResponse(
-            thread=_thread_public(thread),
-            messages=[_message_public(m) for m in rows],
+        yield (
+            "done",
+            AssistantSendResponse(
+                thread=_thread_public(thread),
+                messages=[_message_public(m) for m in rows],
+            ),
         )
 
     async def reindex_org(self, *, user: User) -> KnowledgeReindexResponse:
