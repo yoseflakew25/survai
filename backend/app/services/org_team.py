@@ -28,7 +28,7 @@ from app.schemas.org import (
     OrgTeamResponse,
 )
 from app.services.auth import AuthService
-from app.services.email import send_org_invite_email
+from app.services.email import email_delivery_configured, send_org_invite_email
 
 logger = logging.getLogger(__name__)
 
@@ -115,25 +115,30 @@ class OrgTeamService:
         invite_url = (
             f"{settings.frontend_url.rstrip('/')}/auth/accept-invite?token={raw}"
         )
-        # Always keep the invite even if outbound mail fails — return the
-        # accept link so the owner can share it manually (Team UI toast).
-        email_ok = False
-        try:
-            await send_org_invite_email(
-                to_email=email,
-                org_name=org_name,
-                role=role.value,
-                invite_url=invite_url,
-                invited_by_name=user.full_name,
+        # Keep the invite even if outbound mail fails — return the accept
+        # link so the owner can share it manually (Team UI toast).
+        delivered = False
+        if email_delivery_configured():
+            try:
+                await send_org_invite_email(
+                    to_email=email,
+                    org_name=org_name,
+                    role=role.value,
+                    invite_url=invite_url,
+                    invited_by_name=user.full_name,
+                )
+                delivered = True
+            except Exception:
+                logger.exception("org invite email failed for %s", email)
+        else:
+            logger.info(
+                "Invite email skipped (no SMTP/Resend) — share link for %s", email
             )
-            email_ok = True
-        except Exception:
-            logger.exception("org invite email failed for %s", email)
 
         return OrgInviteCreateResponse(
             invite=OrgInvitePublic.model_validate(invite),
             # Include link when mail is off or failed so demos never 500.
-            dev_invite_url=None if email_ok else invite_url,
+            dev_invite_url=None if delivered else invite_url,
         )
 
     async def revoke_invite(self, *, user: User, invite_id: UUID) -> None:

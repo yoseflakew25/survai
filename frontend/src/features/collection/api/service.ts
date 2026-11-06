@@ -7,6 +7,7 @@ import {
   apiErrorMessage,
   toUserFacingError
 } from '@/lib/api';
+import { normalizeConditionalLogic } from '@/lib/conditional-logic';
 
 import type {
   AnswerPayload,
@@ -117,7 +118,9 @@ function mapQuestion(q: ApiQuestion): PublicQuestion {
     orderIndex: q.order_index,
     options: q.options,
     validationRules: q.validation_rules,
-    conditionalLogic: q.conditional_logic
+    conditionalLogic: normalizeConditionalLogic(
+      q.conditional_logic
+    ) as ConditionalLogic | null
   };
 }
 

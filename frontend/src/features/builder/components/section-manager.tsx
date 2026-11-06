@@ -513,6 +513,38 @@ export function SectionManager({
     [editingQuestion, onSectionsChange, sections, surveyId]
   );
 
+  const handleClearConditionalLogic = useCallback(async () => {
+    if (!editingQuestion) return;
+    try {
+      const updated = await updateQuestion(surveyId, editingQuestion.id, {
+        conditionalLogic: null
+      });
+      if (updated) {
+        onSectionsChange(
+          sections.map((s) =>
+            s.id === editingQuestion.sectionId
+              ? {
+                  ...s,
+                  questions: s.questions.map((q) =>
+                    q.id === editingQuestion.id
+                      ? { ...updated, pendingConditionalLogic: null }
+                      : q
+                  )
+                }
+              : s
+          )
+        );
+        setEditingQuestion({
+          ...updated,
+          pendingConditionalLogic: null
+        });
+        toast.success('Skip logic cleared');
+      }
+    } catch {
+      toast.error('Could not clear skip logic');
+    }
+  }, [editingQuestion, onSectionsChange, sections, surveyId]);
+
   const handleDeleteQuestion = useCallback(
     async (questionId: string) => {
       await deleteQuestion(surveyId, questionId);
@@ -613,6 +645,7 @@ export function SectionManager({
         onDraftPendingLogic={handleDraftPendingLogic}
         onDismissPendingLogic={handleDismissPendingLogic}
         onConfirmPendingLogic={handleConfirmPendingLogic}
+        onClearConditionalLogic={handleClearConditionalLogic}
       />
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,11 +108,14 @@ const brandCtaClass =
 
 export function ReportView({ surveyId }: ReportViewProps) {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const deepReportId = searchParams.get('reportId');
+  const savedAnalysisId = searchParams.get('savedAnalysisId');
   const { run, activeId } = useSurveyActivity();
   const { user } = useAuth();
   const canEdit = canEditOrg(user?.role);
   const { data: report, isLoading, isError, error, refetch } = useQuery(
-    reportOptions(surveyId)
+    reportOptions(surveyId, deepReportId)
   );
   const [sections, setSections] = useState<ReportSection[]>([]);
   const [reportTitle, setReportTitle] = useState('');
@@ -155,11 +159,15 @@ export function ReportView({ surveyId }: ReportViewProps) {
 
   const applyReport = useCallback(
     (next: SurveyReport) => {
-      queryClient.setQueryData(reportKeys.detail(surveyId), next);
+      queryClient.setQueryData(
+        reportKeys.detail(surveyId, deepReportId),
+        next
+      );
+      queryClient.setQueryData(reportKeys.detail(surveyId, next.id), next);
       setSections(next.sections);
       setReportTitle(next.title);
     },
-    [queryClient, surveyId]
+    [queryClient, surveyId, deepReportId]
   );
 
   const handleGenerateReport = useCallback(async () => {
@@ -168,7 +176,11 @@ export function ReportView({ surveyId }: ReportViewProps) {
     const activity = report ? 'regenerate-report' : 'generate-report';
     try {
       await run(activity, async () => {
-        const next = await generateReport(surveyId);
+        const next = await generateReport(
+          surveyId,
+          'internal',
+          savedAnalysisId
+        );
         applyReport(next);
         await queryClient.invalidateQueries({
           queryKey: reportKeys.chat(next.id)
@@ -187,7 +199,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
             : 'Could not generate the report. Please try again.'
       });
     }
-  }, [applyReport, queryClient, report, run, surveyId]);
+  }, [applyReport, queryClient, report, run, savedAnalysisId, surveyId]);
 
   const startEditSection = useCallback((section: ReportSection) => {
     setDraftSection({ ...section });

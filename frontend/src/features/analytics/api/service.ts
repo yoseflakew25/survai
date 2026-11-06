@@ -133,13 +133,22 @@ export async function getAnalyticsSummary(
   return mapSummary((await res.json()) as ApiSummary);
 }
 
+function serializeFilters(filters: Filter[] = []) {
+  return filters.map((f) => ({
+    question_id: f.questionId,
+    op: f.op,
+    value: f.value
+  }));
+}
+
 export async function getQuestionDistributions(
-  surveyId: string
+  surveyId: string,
+  filters: Filter[] = []
 ): Promise<QuestionDistribution[]> {
   const res = await apiFetch(`/surveys/${surveyId}/analytics/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
+    body: JSON.stringify({ filters: serializeFilters(filters) })
   });
   if (!res.ok) await readError(res, 'Could not load question distributions');
   const data = (await res.json()) as ApiQueryResponse;
@@ -149,14 +158,16 @@ export async function getQuestionDistributions(
 export async function getCrossTab(
   surveyId: string,
   questionAId: string,
-  questionBId: string
+  questionBId: string,
+  filters: Filter[] = []
 ): Promise<CrossTabResult> {
   const res = await apiFetch(`/surveys/${surveyId}/analytics/crosstab`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       question_a_id: questionAId,
-      question_b_id: questionBId
+      question_b_id: questionBId,
+      filters: serializeFilters(filters)
     })
   });
   if (!res.ok) await readError(res, 'Could not load cross-tabulation');
@@ -210,11 +221,7 @@ export async function createSavedAnalysis(
     method: 'POST',
     body: JSON.stringify({
       name,
-      filters: filters.map((f) => ({
-        question_id: f.questionId,
-        op: f.op,
-        value: f.value
-      }))
+      filters: serializeFilters(filters)
     })
   });
   if (!res.ok) await readError(res, 'Could not save analysis');

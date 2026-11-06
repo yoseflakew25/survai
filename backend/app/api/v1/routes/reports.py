@@ -37,6 +37,15 @@ async def get_latest_report(
     return await reports.get_latest(user=current_user, survey_id=survey_id)
 
 
+@router.get("/reports/{report_id}", response_model=ReportPublic)
+async def get_report(
+    report_id: UUID,
+    current_user: CurrentUser,
+    reports: ReportServiceDep,
+) -> ReportPublic:
+    return await reports.get_report(user=current_user, report_id=report_id)
+
+
 @router.post(
     "/surveys/{survey_id}/reports",
     response_model=ReportPublic | JobAccepted,

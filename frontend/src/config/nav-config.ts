@@ -39,7 +39,9 @@ export const navGroups: NavGroup[] = [
         icon: 'account',
         isActive: false,
         shortcut: ['m', 'm'],
-        items: []
+        items: [],
+        // Org Owner (and platform admin) only — seats manage password via reset.
+        access: { role: 'organization' }
       }
     ]
   }

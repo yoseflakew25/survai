@@ -26,7 +26,7 @@ import {
 import type { ComponentType } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { navGroups } from '@/config/nav-config';
-import { useAuth } from '@/lib/auth-context';
+import { isOrgOwner, useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
 import Link from 'next/link';
@@ -106,6 +106,7 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const { user, logout, isLoggingOut } = useAuth();
   const router = useRouter();
+  const owner = isOrgOwner(user?.role);
   const filteredGroups = useFilteredNavGroups(navGroups);
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
@@ -231,15 +232,22 @@ export default function AppSidebar() {
                 </div>
                 <DropdownMenuSeparator />
 
-                {/* Actions */}
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
-                    <Icons.account className='text-muted-foreground mr-2 size-4' />
-                    <span>Account</span>
-                    <span className='text-muted-foreground ml-auto text-xs'>⌘P</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
+                {owner ? (
+                  <>
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        onClick={() => router.push('/dashboard/profile')}
+                      >
+                        <Icons.account className='text-muted-foreground mr-2 size-4' />
+                        <span>Account</span>
+                        <span className='text-muted-foreground ml-auto text-xs'>
+                          ⌘P
+                        </span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
 
                 {/* Sign out */}
                 <DropdownMenuGroup>

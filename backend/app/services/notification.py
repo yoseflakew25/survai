@@ -294,7 +294,10 @@ class NotificationService:
         survey_title: str,
         report_id: UUID,
     ) -> None:
-        href = f"/dashboard/surveys/{survey_id}/reports"
+        href = (
+            f"/dashboard/surveys/{survey_id}/reports"
+            f"?reportId={report_id}"
+        )
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.report_ready,

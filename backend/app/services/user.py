@@ -143,16 +143,20 @@ class UserService:
         return refreshed
 
     async def ensure_first_superuser(self) -> User | None:
-        """Ensure the configured system admin exists; all others stay organization."""
+        """Ensure the configured system admin exists without touching org seats.
+
+        Researchers/viewers must keep their roles across API restarts — never
+        blanket-reset every non-admin to Owner.
+        """
         from app.core.config import settings
 
         admin_email = settings.first_superuser_email.lower().strip()
 
-        # Demote every other account to organization (MVP: single platform admin).
+        # Strip platform-admin flag from everyone else; leave seat roles alone.
         await self.users.session.execute(
             update(User)
-            .where(User.email != admin_email)
-            .values(role=UserRole.organization, is_superuser=False)
+            .where(User.email != admin_email, User.is_superuser.is_(True))
+            .values(is_superuser=False)
         )
 
         existing = await self.users.get_by_email(admin_email)

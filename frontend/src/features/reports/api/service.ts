@@ -170,6 +170,12 @@ export async function getLatestReport(
   return mapReport(data as ApiReport);
 }
 
+export async function getReport(reportId: string): Promise<SurveyReport> {
+  const res = await apiFetch(`/reports/${reportId}`);
+  if (!res.ok) await readError(res, 'Could not load report');
+  return mapReport((await res.json()) as ApiReport);
+}
+
 async function pollJobResult<T extends object>(
   jobId: string,
   label = 'Report job'
@@ -196,13 +202,19 @@ async function pollJobResult<T extends object>(
 
 export async function generateReport(
   surveyId: string,
-  audience: ReportAudience = 'internal'
+  audience: ReportAudience = 'internal',
+  savedAnalysisId?: string | null
 ): Promise<SurveyReport> {
   const res = await apiFetch(
     `/surveys/${surveyId}/reports`,
     {
       method: 'POST',
-      body: JSON.stringify({ audience })
+      body: JSON.stringify({
+        audience,
+        ...(savedAnalysisId
+          ? { saved_analysis_id: savedAnalysisId }
+          : {})
+      })
     },
     AI_TIMEOUT_MS
   );

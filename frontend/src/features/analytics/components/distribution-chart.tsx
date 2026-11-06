@@ -27,11 +27,14 @@ const CHART_COLORS = [
 interface DistributionChartProps {
   distribution: QuestionDistribution;
   surveyId: string;
+  /** When set, clicking a bar applies an analytics filter instead of opening respondents. */
+  onFilterBucket?: (bucketLabel: string) => void;
 }
 
 export function DistributionChart({
   distribution,
-  surveyId
+  surveyId,
+  onFilterBucket
 }: DistributionChartProps) {
   const router = useRouter();
   const data = distribution.buckets.map((b) => ({
@@ -42,6 +45,10 @@ export function DistributionChart({
 
   const drillInto = (bucketLabel: string | undefined) => {
     if (!bucketLabel) return;
+    if (onFilterBucket) {
+      onFilterBucket(bucketLabel);
+      return;
+    }
     const params = new URLSearchParams({
       question: distribution.questionId,
       answer: bucketLabel
@@ -114,7 +121,9 @@ export function DistributionChart({
       </div>
       <p className='text-muted-foreground mt-1 flex items-center justify-end gap-1 text-[11px]'>
         <Icons.arrowRight className='h-3 w-3' />
-        Click a bar to view those respondents
+        {onFilterBucket
+          ? 'Click a bar to filter this view'
+          : 'Click a bar to view those respondents'}
       </p>
     </div>
   );

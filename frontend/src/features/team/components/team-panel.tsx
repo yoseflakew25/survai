@@ -3,6 +3,16 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +31,17 @@ import {
   fetchTeam,
   removeMember,
   revokeInvite,
-  type InviteRole
+  type InviteRole,
+  type OrgInvite,
+  type OrgMember
 } from '../api/service';
+
+function roleLabel(role: string): string {
+  if (role === 'organization') return 'Owner';
+  if (role === 'researcher') return 'Researcher';
+  if (role === 'viewer') return 'Viewer';
+  return role;
+}
 
 export function TeamPanel() {
   const { user } = useAuth();
@@ -31,6 +50,10 @@ export function TeamPanel() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InviteRole>('researcher');
   const [sending, setSending] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<OrgMember | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [inviteToRevoke, setInviteToRevoke] = useState<OrgInvite | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   const teamQuery = useQuery({
     queryKey: ['org-team'],
@@ -41,6 +64,44 @@ export function TeamPanel() {
   const refresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['org-team'] });
   }, [queryClient]);
+
+  async function confirmRemoveMember() {
+    if (!memberToRemove || removing) return;
+    setRemoving(true);
+    try {
+      await removeMember(memberToRemove.id);
+      setMemberToRemove(null);
+      await refresh();
+      toast.success('Member removed', {
+        description: `${memberToRemove.fullName} no longer has access.`
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Could not remove member'
+      );
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  async function confirmRevokeInvite() {
+    if (!inviteToRevoke || revoking) return;
+    setRevoking(true);
+    try {
+      await revokeInvite(inviteToRevoke.id);
+      setInviteToRevoke(null);
+      await refresh();
+      toast.success('Invite revoked', {
+        description: `${inviteToRevoke.email} can no longer accept this invite.`
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Could not revoke invite'
+      );
+    } finally {
+      setRevoking(false);
+    }
+  }
 
   if (!owner) {
     return (
@@ -148,7 +209,7 @@ export function TeamPanel() {
                 </div>
                 <div className='flex shrink-0 items-center gap-2'>
                   <Badge variant='secondary' className='capitalize'>
-                    {m.role === 'organization' ? 'Owner' : m.role}
+                    {roleLabel(m.role)}
                   </Badge>
                   {m.role !== 'organization' && m.id !== user?.id ? (
                     <Button
@@ -156,21 +217,7 @@ export function TeamPanel() {
                       variant='ghost'
                       size='sm'
                       className='text-destructive h-8'
-                      onClick={() => {
-                        void (async () => {
-                          try {
-                            await removeMember(m.id);
-                            await refresh();
-                            toast.success('Member removed');
-                          } catch (err) {
-                            toast.error(
-                              err instanceof Error
-                                ? err.message
-                                : 'Could not remove'
-                            );
-                          }
-                        })();
-                      }}
+                      onClick={() => setMemberToRemove(m)}
                     >
                       Remove
                     </Button>
@@ -180,6 +227,56 @@ export function TeamPanel() {
             ))}
           </ul>
         </div>
+
+        <AlertDialog
+          open={memberToRemove !== null}
+          onOpenChange={(open) => {
+            if (!open && !removing) setMemberToRemove(null);
+          }}
+        >
+          <AlertDialogContent className='gap-0 overflow-hidden p-0 sm:max-w-md'>
+            <AlertDialogHeader className='gap-0 border-b border-border bg-muted/40 px-5 py-4 text-left sm:place-items-start sm:text-left'>
+              <AlertDialogTitle className='text-base font-semibold tracking-tight'>
+                Remove team member?
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription className='text-pretty px-5 py-4'>
+              {memberToRemove ? (
+                <>
+                  <span className='text-foreground font-medium'>
+                    {memberToRemove.fullName}
+                  </span>{' '}
+                  ({memberToRemove.email}) will lose access to this organization
+                  as a {roleLabel(memberToRemove.role)}. You can invite them
+                  again later if needed.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+
+            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-muted/40 px-5 py-4'>
+              <AlertDialogCancel disabled={removing} className='rounded-xl'>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className='rounded-xl bg-destructive text-white shadow-none hover:bg-destructive/90'
+                disabled={removing}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void confirmRemoveMember();
+                }}
+              >
+                {removing ? (
+                  <>
+                    <Icons.spinner className='mr-2 size-4 animate-spin' />
+                    Removing…
+                  </>
+                ) : (
+                  'Remove member'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {invites.length > 0 ? (
           <div className='space-y-2'>
@@ -203,21 +300,8 @@ export function TeamPanel() {
                     type='button'
                     variant='ghost'
                     size='sm'
-                    onClick={() => {
-                      void (async () => {
-                        try {
-                          await revokeInvite(i.id);
-                          await refresh();
-                          toast.success('Invite revoked');
-                        } catch (err) {
-                          toast.error(
-                            err instanceof Error
-                              ? err.message
-                              : 'Could not revoke'
-                          );
-                        }
-                      })();
-                    }}
+                    className='text-destructive h-8'
+                    onClick={() => setInviteToRevoke(i)}
                   >
                     Revoke
                   </Button>
@@ -226,6 +310,59 @@ export function TeamPanel() {
             </ul>
           </div>
         ) : null}
+
+        <AlertDialog
+          open={inviteToRevoke !== null}
+          onOpenChange={(open) => {
+            if (!open && !revoking) setInviteToRevoke(null);
+          }}
+        >
+          <AlertDialogContent className='gap-0 overflow-hidden p-0 sm:max-w-md'>
+            <AlertDialogHeader className='gap-0 border-b border-border bg-muted/40 px-5 py-4 text-left sm:place-items-start sm:text-left'>
+              <AlertDialogTitle className='text-base font-semibold tracking-tight'>
+                Revoke invite?
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription className='text-pretty px-5 py-4'>
+              {inviteToRevoke ? (
+                <>
+                  The pending{' '}
+                  <span className='text-foreground font-medium'>
+                    {roleLabel(inviteToRevoke.role)}
+                  </span>{' '}
+                  invite for{' '}
+                  <span className='text-foreground font-medium'>
+                    {inviteToRevoke.email}
+                  </span>{' '}
+                  will stop working. You can send a new invite later if needed.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+
+            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-muted/40 px-5 py-4'>
+              <AlertDialogCancel disabled={revoking} className='rounded-xl'>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className='rounded-xl bg-destructive text-white shadow-none hover:bg-destructive/90'
+                disabled={revoking}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void confirmRevokeInvite();
+                }}
+              >
+                {revoking ? (
+                  <>
+                    <Icons.spinner className='mr-2 size-4 animate-spin' />
+                    Revoking…
+                  </>
+                ) : (
+                  'Revoke invite'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SurvaiPanelBody>
     </SurvaiPanel>
   );

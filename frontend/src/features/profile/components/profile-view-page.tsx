@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth, type AuthUser } from '@/lib/auth-context';
+import { isOrgOwner, useAuth, type AuthUser } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertDialog,
@@ -124,8 +124,10 @@ function sectionFromTab(tab: string | null): ProfileSection {
 }
 
 export default function ProfileViewPage() {
-  const { user, setUserFromApi, logout } = useAuth();
+  const { user, setUserFromApi, logout, isLoading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const owner = isOrgOwner(user?.role);
   const [activeSection, setActiveSection] = useState<ProfileSection>(() =>
     sectionFromTab(searchParams.get('tab'))
   );
@@ -136,6 +138,12 @@ export default function ProfileViewPage() {
   useEffect(() => {
     setActiveSection(sectionFromTab(searchParams.get('tab')));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!isLoading && user && !owner) {
+      router.replace('/dashboard/overview');
+    }
+  }, [isLoading, user, owner, router]);
 
   const {
     register: registerProfile,
@@ -286,6 +294,19 @@ export default function ProfileViewPage() {
 
   const brandCtaClass =
     'h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 disabled:opacity-50';
+
+  if (isLoading || !user || !owner) {
+    return (
+      <div
+        className='flex flex-1 items-center justify-center py-16'
+        role='status'
+        aria-live='polite'
+        aria-busy='true'
+      >
+        <Icons.spinner className='text-muted-foreground size-5 animate-spin' />
+      </div>
+    );
+  }
 
   return (
     <div className='mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>

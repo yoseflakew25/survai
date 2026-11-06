@@ -18,6 +18,7 @@ import {
   displaySurveyDescription,
   displaySurveyTitle
 } from '@/lib/survey-display';
+import { conditionIsActive } from '@/lib/conditional-logic';
 
 interface CollectionFormProps {
   survey: PublicSurvey;
@@ -32,50 +33,6 @@ function isAnswered(value: AnswerValue): boolean {
 
 function estimateMinutes(questionCount: number): number {
   return Math.max(2, Math.round(questionCount * 0.4));
-}
-
-/** Conditional rule evaluation — matches `ConditionalRule.op` semantics. */
-function ruleMatches(rule: { questionId: string; op: string; value: string | number }, answers: Record<string, AnswerValue>): boolean {
-  const current = answers[rule.questionId];
-  if (current === null || current === undefined) return false;
-
-  // single_choice / dropdown / number / rating_scale → numeric or string equality
-  const check = (a: unknown, b: unknown): boolean => {
-    if (typeof a === 'number' && typeof b === 'number') return a === b;
-    return String(a) === String(b);
-  };
-
-  switch (rule.op) {
-    case 'eq':
-      return (
-        (Array.isArray(current) ? current.includes(rule.value as string) : check(current, rule.value))
-      );
-    case 'neq':
-      return !(
-        (Array.isArray(current) ? current.includes(rule.value as string) : check(current, rule.value))
-      );
-    case 'gt':
-      return typeof current === 'number' && typeof rule.value === 'number' && current > rule.value;
-    case 'lt':
-      return typeof current === 'number' && typeof rule.value === 'number' && current < rule.value;
-    case 'contains':
-      return typeof current === 'string' && String(current).includes(String(rule.value));
-    case 'between':
-      if (typeof current !== 'number' || typeof rule.value !== 'number') return false;
-      const lo = rule.value ?? 0;
-      const hi = rule.value ?? lo;
-      return current >= lo && current <= hi;
-    default:
-      return false;
-  }
-}
-
-function conditionIsActive(logic: { operator: string; rules: { questionId: string; op: string; value: string | number }[] }, answers: Record<string, AnswerValue>): boolean {
-  if (!logic || logic.rules.length === 0) return true;
-  const results = logic.rules.map((r) => ruleMatches(r, answers));
-  return logic.operator === 'AND'
-    ? results.every(Boolean)
-    : results.some(Boolean);
 }
 
 export function CollectionForm({ survey }: CollectionFormProps) {

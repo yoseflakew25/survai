@@ -701,12 +701,15 @@ class CollectionService:
             and not (isinstance(a.answer_value, list) and len(a.answer_value) == 0)
         }
 
+        from app.services.conditional_logic import condition_is_active
+
         missing: list[str] = []
         for qid, q in q_by_id.items():
             if not q.get("is_required"):
                 continue
-            # Skip required questions gated by inactive conditional logic — client
-            # already filtered; server treats unknown logic as required.
+            # Skip required questions whose branch/skip logic is inactive.
+            if not condition_is_active(q.get("conditional_logic"), answered):
+                continue
             if qid not in answered:
                 missing.append(qid)
         if missing:

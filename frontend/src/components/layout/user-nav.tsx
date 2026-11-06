@@ -15,13 +15,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { Icons } from '@/components/icons';
-import { useAuth } from '@/lib/auth-context';
+import { isOrgOwner, useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 
 export function UserNav() {
   const { user, logout, isLoggingOut } = useAuth();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const owner = isOrgOwner(user?.role);
 
   if (!user) return null;
 
@@ -73,15 +74,19 @@ export function UserNav() {
             </div>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem
-            disabled={signingOut}
-            onClick={() => router.push('/dashboard/profile')}
-          >
-            Account
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
+        {owner ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                disabled={signingOut}
+                onClick={() => router.push('/dashboard/profile')}
+              >
+                Account
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem

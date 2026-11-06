@@ -269,6 +269,7 @@ export function NotificationCenter() {
                   actions={notificationActions(notification)}
                   onMarkAsRead={(id) => markReadMutation.mutate(id)}
                   onAction={(id) => handleAction(id)}
+                  onOpen={(id) => handleAction(id)}
                 />
               ))}
             </div>

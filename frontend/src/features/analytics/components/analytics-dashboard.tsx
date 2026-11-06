@@ -2,16 +2,24 @@
 
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import {
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery
+} from '@tanstack/react-query';
+import {
+  analyticsKeys,
   analyticsSummaryOptions,
   distributionsOptions,
-  crossTabOptions
+  crossTabOptions,
+  savedAnalysesOptions
 } from '../api/queries';
-import { exportAnalyticsCsv } from '../api/service';
+import { createSavedAnalysis, exportAnalyticsCsv } from '../api/service';
+import type { Filter, SavedAnalysis } from '../api/types';
 import { AnalyticsSummaryStats } from './analytics-summary-stats';
 import { DistributionChart } from './distribution-chart';
 import { CrossTabTable } from './cross-tab-table';
+import { SavedAnalyses } from './saved-analyses';
 import { SurveyComparePanel } from './survey-compare-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,13 +72,19 @@ function AnalyticsSection({
 }
 
 function AnalyticsContent({ surveyId }: { surveyId: string }) {
-  const { data: summary } = useSuspenseQuery(analyticsSummaryOptions(surveyId));
-  const { data: distributions } = useSuspenseQuery(
-    distributionsOptions(surveyId)
-  );
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const canEdit = canEditOrg(user?.role);
   const [exporting, setExporting] = useState(false);
+  const [savingView, setSavingView] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Filter[]>([]);
+  const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
+
+  const { data: summary } = useSuspenseQuery(analyticsSummaryOptions(surveyId));
+  const { data: distributions } = useSuspenseQuery(
+    distributionsOptions(surveyId, activeFilters)
+  );
+  const { data: savedAnalyses = [] } = useQuery(savedAnalysesOptions(surveyId));
 
   const crosstabAxes = distributions.filter((d) =>
     CROSSTAB_TYPES.has(d.questionType)
@@ -78,8 +92,16 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const questionAId = crosstabAxes[0]?.questionId ?? '';
   const questionBId = crosstabAxes[1]?.questionId ?? '';
   const { data: crossTab, isLoading: crossTabLoading } = useQuery(
-    crossTabOptions(surveyId, questionAId, questionBId)
+    crossTabOptions(surveyId, questionAId, questionBId, activeFilters)
   );
+
+  function applyFilter(questionId: string, value: string) {
+    setActiveAnalysisId(null);
+    setActiveFilters([{ questionId, op: 'eq', value }]);
+    toast.success('Filter applied', {
+      description: `Showing responses where answer is “${value}”.`
+    });
+  }
 
   async function handleExportCsv() {
     setExporting(true);
@@ -95,6 +117,37 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
       setExporting(false);
     }
   }
+
+  async function handleSaveView(name: string) {
+    setSavingView(true);
+    try {
+      const saved = await createSavedAnalysis(surveyId, name, activeFilters);
+      await queryClient.invalidateQueries({
+        queryKey: analyticsKeys.saved(surveyId)
+      });
+      setActiveAnalysisId(saved.id);
+      toast.success('View saved', {
+        description: 'Reports can reuse these filters when generating.'
+      });
+    } catch (err) {
+      toast.error('Could not save view', {
+        description: err instanceof Error ? err.message : 'Try again.'
+      });
+    } finally {
+      setSavingView(false);
+    }
+  }
+
+  function handleApplySaved(analysis: SavedAnalysis) {
+    setActiveFilters(analysis.filters);
+    setActiveAnalysisId(analysis.id);
+    toast.success(`Applied “${analysis.name}”`);
+  }
+
+  const reportHref =
+    activeAnalysisId != null
+      ? `/dashboard/surveys/${surveyId}/reports?savedAnalysisId=${activeAnalysisId}`
+      : `/dashboard/surveys/${surveyId}/reports`;
 
   return (
     <div className='space-y-4'>
@@ -121,7 +174,11 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
           <AnalyticsSection
             icon={<Icons.analytics className='h-3.5 w-3.5' />}
             title='Question Distributions'
-            subtitle='Per-question response breakdown'
+            subtitle={
+              activeFilters.length > 0
+                ? 'Filtered response breakdown'
+                : 'Per-question response breakdown'
+            }
             badge={
               <Badge variant='secondary' className='text-xs'>
                 {distributions.length} charts
@@ -140,6 +197,9 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                     key={dist.questionId}
                     distribution={dist}
                     surveyId={surveyId}
+                    onFilterBucket={(label) =>
+                      applyFilter(dist.questionId, label)
+                    }
                   />
                 ))}
               </div>
@@ -182,15 +242,29 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
         {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-6'>
+          <SavedAnalyses
+            analyses={savedAnalyses}
+            activeFilters={activeFilters}
+            activeAnalysisId={activeAnalysisId}
+            canEdit={canEdit}
+            saving={savingView}
+            onApply={handleApplySaved}
+            onClear={() => {
+              setActiveFilters([]);
+              setActiveAnalysisId(null);
+            }}
+            onSave={handleSaveView}
+          />
           {canEdit ? (
             <SurvaiBrandCard
               title='Generate Report?'
-              description='AI will create a comprehensive report with findings and recommendations'
+              description={
+                activeAnalysisId
+                  ? 'Report will use the active saved view filters'
+                  : 'AI will create a comprehensive report with findings and recommendations'
+              }
             >
-              <Link
-                href={`/dashboard/surveys/${surveyId}/reports`}
-                className='block w-full'
-              >
+              <Link href={reportHref} className='block w-full'>
                 <Button
                   className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
                   size='lg'

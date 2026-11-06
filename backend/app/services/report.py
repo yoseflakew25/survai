@@ -144,6 +144,20 @@ class ReportService:
             report, survey_title=survey.title, survey=survey, user=user
         )
 
+    async def get_report(
+        self, *, user: User, report_id: UUID
+    ) -> ReportPublic:
+        org_id = _require_org(user)
+        report = await self.reports.get_for_org(
+            report_id=report_id, organization_id=org_id
+        )
+        if report is None:
+            raise NotFoundError("Report not found")
+        survey = await self._owned_survey(user, report.survey_id)
+        return await self._to_public_with_integrity(
+            report, survey_title=survey.title, survey=survey, user=user
+        )
+
     async def create_report(
         self, *, user: User, survey_id: UUID, body: ReportCreateRequest
     ) -> ReportPublic:
@@ -152,7 +166,11 @@ class ReportService:
         if survey.current_version_id is None:
             raise BadRequestError("Publish the survey and collect responses first.")
 
-        snapshot = await self._build_metrics_snapshot(user=user, survey_id=survey.id)
+        snapshot = await self._build_metrics_snapshot(
+            user=user,
+            survey_id=survey.id,
+            saved_analysis_id=body.saved_analysis_id,
+        )
         snap_version = UUID(str(snapshot["survey_version_id"]))
         if snap_version != survey.current_version_id:
             raise BadRequestError(
@@ -670,12 +688,49 @@ class ReportService:
             created_at=row.created_at,
         )
 
+    async def _resolve_saved_filters(
+        self, *, survey_id: UUID, saved_analysis_id: UUID | None
+    ) -> list[Any]:
+        if saved_analysis_id is None:
+            return []
+        from app.schemas.analytics import AnalyticsFilter
+
+        row = await self.saved.get_by_id(saved_analysis_id)
+        if row is None or row.survey_id != survey_id:
+            raise BadRequestError("Saved analysis view not found for this survey")
+        filters: list[AnalyticsFilter] = []
+        for raw in row.filters or []:
+            if not isinstance(raw, dict):
+                continue
+            qid = raw.get("question_id") or raw.get("questionId")
+            op = raw.get("op")
+            if not qid or not op:
+                continue
+            try:
+                filters.append(
+                    AnalyticsFilter(
+                        question_id=UUID(str(qid)),
+                        op=op,
+                        value=raw.get("value"),
+                    )
+                )
+            except Exception:
+                continue
+        return filters
+
     async def _build_metrics_snapshot(
-        self, *, user: User, survey_id: UUID
+        self,
+        *,
+        user: User,
+        survey_id: UUID,
+        saved_analysis_id: UUID | None = None,
     ) -> dict[str, Any]:
+        filters = await self._resolve_saved_filters(
+            survey_id=survey_id, saved_analysis_id=saved_analysis_id
+        )
         summary = await self.analytics.summary(user=user, survey_id=survey_id)
         frame = await self.analytics._load_frame(  # noqa: SLF001
-            user=user, survey_id=survey_id, filters=[]
+            user=user, survey_id=survey_id, filters=filters
         )
         qids = distribution_question_ids(frame.questions, only=None)
         distributions = []
@@ -725,6 +780,10 @@ class ReportService:
             "metrics": metrics,
             "distributions": distributions,
             "qualitative_excerpts": [],
+            "saved_analysis_id": str(saved_analysis_id)
+            if saved_analysis_id
+            else None,
+            "filter_count": len(filters),
         }
 
     async def _owned_survey(self, user: User, survey_id: UUID):

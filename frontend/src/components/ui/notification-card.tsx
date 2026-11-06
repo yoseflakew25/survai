@@ -29,6 +29,8 @@ export interface NotificationCardProps {
     actionId: string,
     actionType: ActionType
   ) => void;
+  /** Open the notification target (deep-link). Makes the card body clickable. */
+  onOpen?: (id: string) => void;
   loadingActionId?: string;
   /** Tighter spacing for popovers / drawers. */
   compact?: boolean;
@@ -79,6 +81,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
   actions = [],
   onMarkAsRead,
   onAction,
+  onOpen,
   loadingActionId,
   compact = false,
   className
@@ -91,8 +94,22 @@ export const NotificationCard: FC<NotificationCardProps> = ({
         'group relative transition-colors',
         compact ? 'px-3.5 py-3' : 'px-5 py-3.5',
         isUnread ? 'bg-brand-soft/35' : 'hover:bg-muted/40',
+        onOpen && 'cursor-pointer',
         className
       )}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen ? () => onOpen(id) : undefined}
+      onKeyDown={
+        onOpen
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen(id);
+              }
+            }
+          : undefined
+      }
     >
       <div className='flex gap-2.5'>
         <div className='mt-1.5 w-2 shrink-0'>
@@ -122,7 +139,10 @@ export const NotificationCard: FC<NotificationCardProps> = ({
               {isUnread && onMarkAsRead ? (
                 <button
                   type='button'
-                  onClick={() => onMarkAsRead(id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMarkAsRead(id);
+                  }}
                   className='rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100'
                   aria-label='Mark as read'
                 >
@@ -160,7 +180,10 @@ export const NotificationCard: FC<NotificationCardProps> = ({
                     key={action.id}
                     type='button'
                     disabled={isLoading || isExecuted}
-                    onClick={() => onAction?.(id, action.id, action.type)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAction?.(id, action.id, action.type);
+                    }}
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
                       isPrimary

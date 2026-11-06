@@ -57,6 +57,8 @@ class ReportPublic(BaseModel):
 class ReportCreateRequest(BaseModel):
     audience: ReportAudienceLiteral = "internal"
     title: str | None = None
+    # Optional saved view — analytics filters applied to the metrics snapshot.
+    saved_analysis_id: UUID | None = None
 
 
 class ReportUpdateRequest(BaseModel):

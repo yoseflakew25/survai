@@ -111,3 +111,56 @@ async def test_bootstrap_does_not_reset_existing_admin_password(
     await session.refresh(admin)
     assert verify_password(original, admin.hashed_password)
     assert not verify_password("env-password-should-not-apply", admin.hashed_password)
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_preserves_researcher_seat_roles(
+    session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "app.core.config.settings.first_superuser_email", "admin@example.com"
+    )
+    monkeypatch.setattr(
+        "app.core.config.settings.first_superuser_password", "bootstrap-pw"
+    )
+    monkeypatch.setattr(
+        "app.core.config.settings.first_superuser_full_name", "SurvAI System Admin"
+    )
+    monkeypatch.setattr(
+        "app.core.config.settings.first_superuser_organization_name", "SurvAI"
+    )
+
+    org = Organization(name="NGO")
+    session.add(org)
+    await session.flush()
+
+    owner = User(
+        email="owner@example.com",
+        full_name="Owner",
+        hashed_password=hash_password("SecurePass1!"),
+        role=UserRole.organization,
+        is_superuser=False,
+        is_active=True,
+        email_verified=True,
+        organization_id=org.id,
+    )
+    researcher = User(
+        email="researcher@example.com",
+        full_name="Researcher",
+        hashed_password=hash_password("SecurePass1!"),
+        role=UserRole.researcher,
+        is_superuser=False,
+        is_active=True,
+        email_verified=True,
+        organization_id=org.id,
+    )
+    session.add_all([owner, researcher])
+    await session.commit()
+
+    service = UserService(session)
+    await service.ensure_first_superuser()
+
+    await session.refresh(owner)
+    await session.refresh(researcher)
+    assert owner.role == UserRole.organization
+    assert researcher.role == UserRole.researcher

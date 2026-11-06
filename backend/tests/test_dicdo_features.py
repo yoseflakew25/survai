@@ -166,8 +166,10 @@ async def test_org_invite_accept_and_cross_org_isolation(
 
     team = await client.get("/api/v1/org/team", headers=headers_a)
     assert team.status_code == 200, team.text
-    emails = {m["email"] for m in team.json()["members"]}
-    assert "researcher@example.com" in emails
+    by_email = {m["email"]: m for m in team.json()["members"]}
+    assert "researcher@example.com" in by_email
+    assert by_email["researcher@example.com"]["role"] == "researcher"
+    assert by_email["owner-a@example.com"]["role"] == "organization"
 
     # Researcher cannot invite
     researcher_headers = {
