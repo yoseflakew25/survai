@@ -443,7 +443,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                   <h3 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl'>
                     Research plan
                   </h3>
-                  <p className='mt-0.5 text-sm leading-snug text-primary-foreground/80'>
+                  <p className=' text-sm leading-snug text-primary-foreground/80'>
                     What this survey is trying to learn
                   </p>
                 </div>

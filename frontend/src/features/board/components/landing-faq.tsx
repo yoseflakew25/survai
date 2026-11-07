@@ -74,7 +74,7 @@ export function LandingFaq() {
                   <span className='flex min-w-0 items-start gap-3'>
                     <span
                       className={cn(
-                        'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold tabular-nums transition-colors',
+                        ' flex size-7 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold tabular-nums transition-colors',
                         isOpen
                           ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
                           : 'border border-border bg-secondary text-muted-foreground'
@@ -89,7 +89,7 @@ export function LandingFaq() {
                   </span>
                   <span
                     className={cn(
-                      'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-sm transition-all',
+                      ' flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-sm transition-all',
                       isOpen
                         ? 'rotate-45 border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
                         : 'border-border bg-card text-muted-foreground'

@@ -137,7 +137,7 @@ export function SurveyActivityProgress({
               >
                 <span
                   className={cn(
-                    'mt-0.5 w-7 shrink-0 font-mono text-[11px] font-semibold tabular-nums tracking-wide',
+                    ' w-7 shrink-0 font-mono text-[11px] font-semibold tabular-nums tracking-wide',
                     currentStage && 'text-foreground',
                     done && 'text-foreground/45',
                     pending && 'text-foreground/30'
@@ -155,7 +155,7 @@ export function SurveyActivityProgress({
                 >
                   {stage.label}
                 </span>
-                <span className='mt-0.5 flex size-4 shrink-0 items-center justify-center'>
+                <span className=' flex size-4 shrink-0 items-center justify-center'>
                   {done ? (
                     <Icons.check
                       className='size-3.5 text-foreground/70'

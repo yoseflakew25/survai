@@ -500,12 +500,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
             role='status'
           >
             <div className='flex min-w-0 items-start gap-2.5'>
-              <Icons.warning className='mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400' />
+              <Icons.warning className=' size-4 shrink-0 text-amber-700 dark:text-amber-400' />
               <div className='min-w-0'>
                 <p className='text-sm font-semibold tracking-tight'>
                   Report snapshot is stale
                 </p>
-                <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
+                <p className='text-muted-foreground  text-xs leading-relaxed'>
                   New responses arrived after this report was generated
                   {liveCount != null
                     ? ` (${snapshotCount} → ${liveCount} responses)`
@@ -590,7 +590,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                         <Button
                           type='button'
                           size='sm'
-                          className='mt-0.5 h-9 shrink-0 gap-2 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-3 text-sm font-semibold text-background hover:bg-foreground/90'
+                          className=' h-9 shrink-0 gap-2 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-3 text-sm font-semibold text-background hover:bg-foreground/90'
                           onClick={() => {
                             setTitleDraft(reportTitle);
                             setEditingTitle(true);
@@ -844,7 +844,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
               <h3 className='font-display text-2xl  font-extrabold tracking-tight text-primary-foreground'>
                 Chat with the report
               </h3>
-              <p className='mt-0.5 text-xs leading-relaxed text-primary-foreground/80'>
+              <p className=' text-xs leading-relaxed text-primary-foreground/80'>
                 Ask about findings, donors, or next steps — answers stay
                 grounded in the metrics snapshot.
               </p>
@@ -895,7 +895,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   >
                     {msg.role === 'assistant' ? (
                       <div
-                        className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                        className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                         aria-hidden
                       >
                         <Icons.sparkles className='size-3.5' />
@@ -951,7 +951,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   aria-label='SurvAI is typing'
                 >
                   <div
-                    className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />

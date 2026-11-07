@@ -164,10 +164,10 @@ export function RespondentDetailView({
                     {isComplete ? 'Completed' : 'Partial'}
                   </Badge>
                 </div>
-                <p className='mt-0.5 truncate text-xs text-brand-foreground/80'>
+                <p className=' truncate text-xs text-brand-foreground/80'>
                   {detail.email}
                 </p>
-                <p className='mt-0.5 truncate font-mono text-[10px] tracking-wide text-brand-foreground/65 uppercase'>
+                <p className=' truncate font-mono text-[10px] tracking-wide text-brand-foreground/65 uppercase'>
                   {surveyLabel}
                 </p>
               </div>
@@ -260,7 +260,7 @@ export function RespondentDetailView({
               </Badge>
             </div>
 
-            <p className='mt-0.5 truncate text-sm text-brand-foreground/80'>
+            <p className=' truncate text-sm text-brand-foreground/80'>
               {detail.email}
               <span className='mx-1.5 opacity-40'>·</span>
               <span>{surveyLabel}</span>
@@ -317,7 +317,7 @@ function MetaStat({
       </dt>
       <dd
         className={cn(
-          'mt-0.5 truncate text-xs font-semibold text-foreground',
+          ' truncate text-xs font-semibold text-foreground',
           mono && 'font-mono tabular-nums'
         )}
       >
@@ -402,7 +402,7 @@ function AnsweredQuestion({
             {answer.promptText}
           </p>
           {answer.helpText ? (
-            <p className='text-muted-foreground mt-0.5 text-xs'>
+            <p className='text-muted-foreground  text-xs'>
               {answer.helpText}
             </p>
           ) : null}

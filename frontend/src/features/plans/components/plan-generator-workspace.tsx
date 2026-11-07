@@ -271,7 +271,7 @@ export function PlanGeneratorWorkspace() {
               <h2 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground'>
                 {brief.titleHint.trim() || 'New survey plan'}
               </h2>
-              <p className='mt-0.5 text-sm leading-relaxed text-primary-foreground/80'>
+              <p className=' text-sm leading-relaxed text-primary-foreground/80'>
                 Chat to shape the research goal, then generate the plan
               </p>
             </div>
@@ -449,7 +449,7 @@ export function PlanGeneratorWorkspace() {
                         onClick={() => void handleSend(starter)}
                         className='group flex w-full items-start gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-left transition-colors hover:border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] hover:bg-brand-soft/60 disabled:opacity-60'
                       >
-                        <span className='mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[10px] font-bold text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground'>
+                        <span className=' flex size-5 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[10px] font-bold text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground'>
                           {index + 1}
                         </span>
                         <span className='text-[11px] font-medium leading-snug text-foreground'>
@@ -467,14 +467,14 @@ export function PlanGeneratorWorkspace() {
                 {readyToGenerate || generateEnabled ? (
                   <div className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-3 py-2.5'>
                     <div className='flex items-start gap-2'>
-                      <div className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
+                      <div className=' flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
                         <Icons.circleCheck className='size-3.5' />
                       </div>
                       <div className='min-w-0'>
                         <p className='text-xs font-semibold text-foreground'>
                           Ready to generate
                         </p>
-                        <p className='text-muted-foreground mt-0.5 text-[11px] leading-relaxed'>
+                        <p className='text-muted-foreground  text-[11px] leading-relaxed'>
                           SurvAI can draft objectives, questions, and sections
                           from this brief.
                         </p>
@@ -661,7 +661,7 @@ export function PlanGeneratorWorkspace() {
 function AssistantAvatar() {
   return (
     <div
-      className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+      className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
       aria-hidden
     >
       <Icons.sparkles className='size-3.5' />

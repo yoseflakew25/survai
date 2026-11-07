@@ -116,7 +116,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                         >
                           <div className='flex items-start gap-1.5 text-xs'>
                             {TypeIcon ? (
-                              <TypeIcon className='text-muted-foreground mt-0.5 h-3 w-3 shrink-0' />
+                              <TypeIcon className='text-muted-foreground  h-3 w-3 shrink-0' />
                             ) : null}
                             <div className='min-w-0 flex-1'>
                               <p className='leading-relaxed'>

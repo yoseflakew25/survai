@@ -155,7 +155,7 @@ function SortableSection({
                 <>
                   <CardTitle className='text-sm'>{section.title}</CardTitle>
                   {section.description && (
-                    <p className='text-muted-foreground mt-0.5 text-xs'>
+                    <p className='text-muted-foreground  text-xs'>
                       {section.description}
                     </p>
                   )}

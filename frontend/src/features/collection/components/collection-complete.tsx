@@ -110,7 +110,7 @@ export function CollectionComplete({
               <p className='font-display text-sm font-bold tracking-tight text-foreground'>
                 {collectsIdentity ? 'Details received' : 'Submitted securely'}
               </p>
-              <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
+              <p className='text-muted-foreground  text-xs leading-relaxed'>
                 {collectsIdentity
                   ? 'Contact details are visible only to the survey organizer and are used for this research only.'
                   : 'No identifying details were collected with this response.'}

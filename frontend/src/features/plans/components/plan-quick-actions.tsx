@@ -89,7 +89,7 @@ function ActionTile({
         >
           {label}
         </p>
-        <p className='text-muted-foreground mt-0.5 text-[11px] leading-snug'>
+        <p className='text-muted-foreground  text-[11px] leading-snug'>
           {hint}
         </p>
       </div>
@@ -133,11 +133,11 @@ export function PlanQuickActions({
           </p>
           <ul className='text-muted-foreground space-y-1.5 text-xs leading-relaxed'>
             <li className='flex gap-2'>
-              <Icons.circleCheck className='mt-0.5 size-3.5 shrink-0 text-primary' />
+              <Icons.circleCheck className=' size-3.5 shrink-0 text-primary' />
               Goal, objectives, and sections stay as the source of truth.
             </li>
             <li className='flex gap-2'>
-              <Icons.review className='mt-0.5 size-3.5 shrink-0 text-primary' />
+              <Icons.review className=' size-3.5 shrink-0 text-primary' />
               Change survey questions on the Review tab instead.
             </li>
           </ul>
@@ -240,7 +240,7 @@ export function PlanQuickActions({
                     ? 'Save progress'
                     : 'All changes saved'}
               </span>
-              <span className='text-muted-foreground mt-0.5 block text-[11px] leading-snug'>
+              <span className='text-muted-foreground  block text-[11px] leading-snug'>
                 {hasUnsavedChanges
                   ? 'Keep your latest edits on the plan'
                   : "You're up to date — keep editing"}
@@ -273,7 +273,7 @@ export function PlanQuickActions({
                 <span className='text-foreground block text-sm font-semibold tracking-tight'>
                   {isGenerating ? 'Regenerating…' : 'Regenerate with AI'}
                 </span>
-                <span className='text-muted-foreground mt-0.5 block text-[11px] leading-snug'>
+                <span className='text-muted-foreground  block text-[11px] leading-snug'>
                   {canRegenerate
                     ? 'Rewrite objectives, questions, audiences & sections from your goal'
                     : 'Add a research goal to enable AI regenerate'}

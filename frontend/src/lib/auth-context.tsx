@@ -96,6 +96,26 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Refresh rotates + revokes the previous refresh cookie. Concurrent POSTs
+ * (React Strict Mode double-mount, multiple tabs/effects) race: the loser
+ * gets 401 even though the session is fine. Share one in-flight refresh.
+ */
+let refreshInFlight: Promise<TokenPairResponse | null> | null = null;
+
+function refreshSession(): Promise<TokenPairResponse | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const res = await apiFetch('/auth/refresh', { method: 'POST' });
+      if (!res.ok) return null;
+      return (await res.json()) as TokenPairResponse;
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
 function mapUser(u: ApiUser): AuthUser {
   return {
     id: u.id,
@@ -155,13 +175,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hydrate = useEffectEvent(async () => {
     try {
       // Prefer refresh so we get a fresh access JWT into memory + rotate cookie.
-      const refreshed = await apiFetch('/auth/refresh', { method: 'POST' });
-      if (refreshed.ok) {
-        applyTokenPair((await refreshed.json()) as TokenPairResponse);
+      const pair = await refreshSession();
+      if (pair) {
+        applyTokenPair(pair);
         return;
       }
 
-      // Fallback: access cookie may still be valid.
+      // Fallback: access cookie may still be valid after a lost refresh race.
       const me = await apiFetch('/auth/me');
       if (me.ok) {
         setUser(mapUser((await me.json()) as ApiUser));
@@ -191,12 +211,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const timer = setTimeout(async () => {
       try {
-        const res = await apiFetch('/auth/refresh', { method: 'POST' });
-        if (res.ok) {
-          applyTokenPair((await res.json()) as TokenPairResponse);
-        } else {
-          clearSession();
+        const pair = await refreshSession();
+        if (pair) {
+          applyTokenPair(pair);
+          return;
         }
+        // Don't wipe a still-valid access session on a lost rotation race.
+        const me = await apiFetch('/auth/me');
+        if (!me.ok) clearSession();
       } catch {
         clearSession();
       }

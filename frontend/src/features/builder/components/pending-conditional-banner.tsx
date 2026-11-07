@@ -28,12 +28,12 @@ export function PendingConditionalBanner({
       role='status'
     >
       <div className='flex items-start gap-2'>
-        <Icons.sparkles className='mt-0.5 size-3.5 shrink-0 text-foreground' />
+        <Icons.sparkles className=' size-3.5 shrink-0 text-foreground' />
         <div className='min-w-0 flex-1'>
           <p className='text-xs font-semibold tracking-tight'>
             Pending conditional logic
           </p>
-          <p className='text-muted-foreground mt-0.5 text-[11px] leading-relaxed'>
+          <p className='text-muted-foreground  text-[11px] leading-relaxed'>
             Suggested skip rule is not live yet. Confirm to write it to the
             question, or dismiss to discard.
           </p>

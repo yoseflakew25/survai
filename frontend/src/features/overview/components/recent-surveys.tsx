@@ -65,7 +65,7 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
 
   return (
     <Link
-      href={`/dashboard/surveys/${survey.id}/plan`}
+      href={`/dashboard/surveys/${survey.id}/review`}
       className='group flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/50'
     >
       <div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft font-mono text-[11px] font-bold tracking-wide text-primary ring-1 ring-[color-mix(in_srgb,var(--brand)_28%,transparent)]'>
@@ -135,7 +135,6 @@ export function RecentSurveys() {
   return (
     <SurvaiPanel className='flex h-full min-h-full flex-col'>
       <SurvaiPanelHeader
-        icon={<Icons.survey className='size-3.5' />}
         title='Recent Surveys'
         subtitle={subtitle}
         badge={

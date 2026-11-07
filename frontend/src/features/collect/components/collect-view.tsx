@@ -259,7 +259,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                 <div className='rounded-xl border border-border bg-muted/20 px-3.5 py-3 text-sm'>
                   <p className='font-semibold tabular-nums'>{quotaLabel}</p>
                   {(stats.closesAt || survey.closesAt) && (
-                    <p className='text-muted-foreground mt-0.5 text-xs'>
+                    <p className='text-muted-foreground  text-xs'>
                       Closes{' '}
                       {new Date(
                         stats.closesAt ?? survey.closesAt!
@@ -320,7 +320,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                   >
                     <span
                       className={cn(
-                        'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+                        ' flex size-8 shrink-0 items-center justify-center rounded-lg',
                         isPublished
                           ? 'border border-border bg-foreground text-background'
                           : 'border border-border bg-card text-muted-foreground'
@@ -334,7 +334,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                           ? 'Your survey is live'
                           : 'This survey is closed'}
                       </p>
-                      <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
+                      <p className='text-muted-foreground  text-xs leading-relaxed'>
                         {isPublished
                           ? 'Share the link or QR below. No account required for respondents.'
                           : 'Existing links no longer accept new responses. Start a new survey from a plan for another round.'}

@@ -106,11 +106,11 @@ export const columns: ColumnDef<SurveyListItem>[] = [
               ) : null}
             </div>
             {survey.description ? (
-              <p className='text-muted-foreground mt-0.5 truncate text-xs leading-snug'>
+              <p className='text-muted-foreground  truncate text-xs leading-snug'>
                 {survey.description}
               </p>
             ) : (
-              <p className='text-muted-foreground/60 mt-0.5 text-xs italic'>
+              <p className='text-muted-foreground/60  text-xs italic'>
                 No description
               </p>
             )}

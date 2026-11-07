@@ -92,7 +92,6 @@ export function NeedsAttention() {
   return (
     <SurvaiPanel className='flex h-full flex-col'>
       <SurvaiPanelHeader
-        icon={<Icons.warning className='size-3.5' />}
         title='Needs attention'
         subtitle={
           items.length === 0
@@ -133,7 +132,7 @@ export function NeedsAttention() {
               >
                 <span
                   className={cn(
-                    'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl',
+                    ' flex size-8 shrink-0 items-center justify-center rounded-xl',
                     meta.className
                   )}
                 >

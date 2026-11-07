@@ -7,7 +7,6 @@ import { surveyListKeys } from '@/features/surveys/api/queries';
 import { latestReviewOptions, reviewerKeys } from '../api/queries';
 import { triggerReview } from '../api/service';
 import type { ReviewerFinding, ReviewerReport } from '../api/types';
-import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -272,7 +271,29 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   ]);
 
   if (!survey) {
-    notFound();
+    return (
+      <div className='mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16 text-center'>
+        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+          <Icons.survey className='size-5 text-foreground' />
+        </div>
+        <div className='space-y-1.5'>
+          <h2 className='font-display text-xl font-extrabold tracking-tight'>
+            Survey not found
+          </h2>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            This survey is missing or you don&apos;t have access to it.
+          </p>
+        </div>
+        <Button
+          nativeButton={false}
+          render={<Link href='/dashboard/surveys' />}
+          className={brandCtaClass}
+        >
+          Back to Surveys
+          <Icons.arrowRight className='ml-1.5 size-4' />
+        </Button>
+      </div>
+    );
   }
 
   const title = displaySurveyTitle(survey.title);
@@ -586,7 +607,7 @@ function SectionReviewCard({
           <h2 className='font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
             {section.title}
           </h2>
-          <p className='text-muted-foreground mt-0.5 text-xs leading-snug'>
+          <p className='text-muted-foreground  text-xs leading-snug'>
             {section.description?.trim() ||
               `${questionCount} question${questionCount === 1 ? '' : 's'}${
                 requiredCount > 0 ? ` · ${requiredCount} required` : ''
@@ -856,7 +877,7 @@ function QuestionReviewItem({
         <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)] sm:p-5'>
           <div className='flex flex-wrap items-center gap-2'>
             <span
-              className='text-muted-foreground mt-0.5 w-6 shrink-0 text-right font-mono text-[11px] font-medium tabular-nums'
+              className='text-muted-foreground  w-6 shrink-0 text-right font-mono text-[11px] font-medium tabular-nums'
               aria-label={`Question ${index + 1}`}
             >
               Q{index + 1}
@@ -1095,7 +1116,7 @@ function QuestionReviewItem({
       )}
     >
       <span
-        className='mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted font-mono text-[10px] font-bold tabular-nums text-foreground group-hover:bg-primary group-hover:text-primary-foreground'
+        className=' flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted font-mono text-[10px] font-bold tabular-nums text-foreground group-hover:bg-primary group-hover:text-primary-foreground'
         aria-label={`Question ${index + 1}`}
       >
         Q{index + 1}
@@ -1223,7 +1244,7 @@ function QuestionReviewItem({
           type='button'
           variant='outline'
           size='sm'
-          className='border-border bg-card mt-0.5 h-8 shrink-0 rounded-xl px-2.5 text-xs opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
+          className='border-border bg-card  h-8 shrink-0 rounded-xl px-2.5 text-xs opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
           onClick={startEditing}
         >
           <Icons.edit className='size-3.5' />

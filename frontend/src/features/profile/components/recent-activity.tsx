@@ -113,7 +113,7 @@ export function RecentActivity() {
 
           return (
             <div key={item.id} className='flex items-start gap-3 px-4 py-3.5 sm:px-5'>
-              <div className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-foreground'>
+              <div className=' flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-foreground'>
                 {Icon ? <Icon className='size-3.5' /> : null}
               </div>
               <div className='min-w-0 flex-1'>
@@ -126,11 +126,11 @@ export function RecentActivity() {
                     {config.label}
                   </Badge>
                 </div>
-                <p className='text-muted-foreground mt-0.5 text-xs'>
+                <p className='text-muted-foreground  text-xs'>
                   {item.description}
                 </p>
               </div>
-              <span className='text-muted-foreground mt-0.5 shrink-0 font-mono text-[11px] whitespace-nowrap tabular-nums'>
+              <span className='text-muted-foreground  shrink-0 font-mono text-[11px] whitespace-nowrap tabular-nums'>
                 {formatTimeAgo(item.timestamp)}
               </span>
             </div>

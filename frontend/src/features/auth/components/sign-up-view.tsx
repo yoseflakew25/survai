@@ -199,7 +199,7 @@ export default function SignUpViewPage() {
                 <p className='font-medium text-foreground'>
                   Email is not configured yet
                 </p>
-                <p className='text-muted-foreground mt-0.5'>
+                <p className='text-muted-foreground '>
                   Dev code:{' '}
                   <span className='font-mono text-base font-semibold tracking-widest text-foreground'>
                     {devCode}

@@ -55,7 +55,7 @@ export function AreaGraph() {
             <CardTitle className='font-display text-xl font-extrabold tracking-tight'>
               Response activity
             </CardTitle>
-            <CardDescription className='mt-0.5'>
+            <CardDescription className=''>
               Completed vs started over the last 12 months
             </CardDescription>
           </div>

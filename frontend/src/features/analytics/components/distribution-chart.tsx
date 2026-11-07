@@ -63,7 +63,7 @@ export function DistributionChart({
       <div className='flex items-start justify-between gap-2'>
         <div className='min-w-0 flex-1'>
           <p className='truncate text-sm font-medium'>{distribution.questionText}</p>
-          <p className='text-muted-foreground mt-0.5 text-xs'>
+          <p className='text-muted-foreground  text-xs'>
             {distribution.totalResponses} responses · {distribution.missingCount} missing
           </p>
         </div>

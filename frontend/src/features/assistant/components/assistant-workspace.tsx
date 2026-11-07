@@ -215,7 +215,7 @@ export function AssistantWorkspace() {
               <h2 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground'>
                 {chatTitle}
               </h2>
-              <p className='mt-0.5 text-sm leading-relaxed text-primary-foreground/80'>
+              <p className=' text-sm leading-relaxed text-primary-foreground/80'>
                 Ask across your surveys, reports, and reviews
               </p>
             </div>
@@ -366,7 +366,7 @@ export function AssistantWorkspace() {
               <div className='space-y-4 px-1 py-2'>
                 <div className='flex items-start gap-3'>
                   <div
-                    className='mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-muted text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className=' flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-muted text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />
@@ -407,7 +407,7 @@ export function AssistantWorkspace() {
               >
                 {msg.role === 'assistant' ? (
                   <div
-                    className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />
@@ -474,7 +474,7 @@ export function AssistantWorkspace() {
                 }
               >
                 <div
-                  className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                  className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                   aria-hidden
                 >
                   <Icons.sparkles className='size-3.5' />

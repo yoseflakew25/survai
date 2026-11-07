@@ -74,7 +74,7 @@ export function SurveyTable() {
             <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
               Surveys
             </h1>
-            <p className='text-muted-foreground mt-0.5 text-sm'>
+            <p className='text-muted-foreground  text-sm'>
               Build, publish, and collect responses for your surveys
             </p>
           </div>
@@ -175,7 +175,7 @@ export function SurveyTable() {
               : 'Create your first survey to start collecting responses.'
           }
           onRowClick={(survey) =>
-            router.push(`/dashboard/surveys/${survey.id}/plan`)
+            router.push(`/dashboard/surveys/${survey.id}/review`)
           }
         />
       </div>

@@ -263,7 +263,7 @@ export default function ForgotPasswordViewPage() {
             {devCode ? (
               <div className='border-border bg-card rounded-xl border px-3.5 py-3 text-sm'>
                 <p className='font-medium'>Dev code</p>
-                <p className='text-muted-foreground mt-0.5 font-mono text-lg tracking-widest'>
+                <p className='text-muted-foreground  font-mono text-lg tracking-widest'>
                   {devCode}
                 </p>
               </div>

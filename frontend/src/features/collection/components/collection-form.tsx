@@ -339,7 +339,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
                   {currentSection.title}
                 </h2>
                 {currentSection.description && (
-                  <p className='text-muted-foreground mt-0.5 text-xs leading-relaxed'>
+                  <p className='text-muted-foreground  text-xs leading-relaxed'>
                     {currentSection.description}
                   </p>
                 )}

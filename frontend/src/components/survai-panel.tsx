@@ -75,7 +75,7 @@ export function SurvaiPanelHeader({
             <div className='min-w-0'>{title}</div>
           )}
           {subtitle ? (
-            <p className='text-muted-foreground mt-0.5 text-sm leading-snug'>
+            <p className='text-muted-foreground  text-sm leading-snug'>
               {subtitle}
             </p>
           ) : null}

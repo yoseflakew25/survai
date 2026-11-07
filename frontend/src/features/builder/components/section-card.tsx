@@ -145,7 +145,7 @@ export function SectionCard({
               <div>
                 <h3 className='font-semibold'>{section.title}</h3>
                 {section.description && (
-                  <p className='text-muted-foreground mt-0.5 text-sm'>
+                  <p className='text-muted-foreground  text-sm'>
                     {section.description}
                   </p>
                 )}

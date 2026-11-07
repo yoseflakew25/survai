@@ -176,7 +176,7 @@ export function NotificationCenter() {
                     </span>
                   ) : null}
                 </div>
-                <SheetDescription className='mt-0.5 text-brand-foreground/80'>
+                <SheetDescription className=' text-brand-foreground/80'>
                   Survey lifecycle updates for your organization.
                 </SheetDescription>
               </div>

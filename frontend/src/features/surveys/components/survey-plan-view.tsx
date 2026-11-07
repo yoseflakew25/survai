@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { notFound } from 'next/navigation';
 
 import { surveyByIdOptions } from '@/features/builder/api/queries';
 import { PlanDetailView } from '@/features/plans/components/plan-detail-view';
@@ -29,7 +28,29 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
 
   if (!survey) {
-    notFound();
+    return (
+      <div className='mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16 text-center'>
+        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+          <Icons.survey className='size-5 text-foreground' />
+        </div>
+        <div className='space-y-1.5'>
+          <h2 className='font-display text-xl font-extrabold tracking-tight'>
+            Survey not found
+          </h2>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            This survey is missing or you don&apos;t have access to it.
+          </p>
+        </div>
+        <Button
+          nativeButton={false}
+          render={<Link href='/dashboard/surveys' />}
+          className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
+        >
+          Back to Surveys
+          <Icons.arrowRight className='ml-1.5 size-4' />
+        </Button>
+      </div>
+    );
   }
 
   if (!survey.planId) {
