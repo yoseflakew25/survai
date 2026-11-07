@@ -13,9 +13,11 @@ interface SavedAnalysesProps {
   activeAnalysisId: string | null;
   canEdit: boolean;
   saving?: boolean;
+  deletingId?: string | null;
   onApply: (analysis: SavedAnalysis) => void;
   onClear: () => void;
   onSave: (name: string) => Promise<void> | void;
+  onDelete?: (analysis: SavedAnalysis) => Promise<void> | void;
 }
 
 export function SavedAnalyses({
@@ -24,9 +26,11 @@ export function SavedAnalyses({
   activeAnalysisId,
   canEdit,
   saving = false,
+  deletingId = null,
   onApply,
   onClear,
-  onSave
+  onSave,
+  onDelete
 }: SavedAnalysesProps) {
   const [name, setName] = useState('');
 
@@ -108,37 +112,59 @@ export function SavedAnalyses({
         <div className='space-y-2'>
           {analyses.map((analysis) => {
             const isActive = activeAnalysisId === analysis.id;
+            const isDeleting = deletingId === analysis.id;
             return (
-              <button
+              <div
                 key={analysis.id}
-                type='button'
-                onClick={() => onApply(analysis)}
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+                  'flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors',
                   isActive
                     ? 'border-foreground/30 bg-muted/50'
                     : 'hover:bg-muted/50'
                 )}
               >
-                <div className='bg-primary/10 flex size-8 shrink-0 items-center justify-center rounded-md'>
-                  <Icons.analytics className='text-primary size-4' />
-                </div>
-                <div className='min-w-0 flex-1'>
-                  <p className='truncate text-sm font-medium text-primary'>
-                    {analysis.name}
-                  </p>
-                  <p className='text-muted-foreground text-xs'>
-                    {new Date(analysis.createdAt).toLocaleDateString()} ·{' '}
-                    {analysis.filters.length} filter
-                    {analysis.filters.length === 1 ? '' : 's'}
-                  </p>
-                </div>
-                {isActive ? (
-                  <Icons.check className='text-foreground size-3.5 shrink-0' />
-                ) : (
-                  <Icons.chevronRight className='text-muted-foreground size-3.5 shrink-0' />
-                )}
-              </button>
+                <button
+                  type='button'
+                  onClick={() => onApply(analysis)}
+                  className='flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 text-left'
+                >
+                  <div className='bg-primary/10 flex size-8 shrink-0 items-center justify-center rounded-md'>
+                    <Icons.analytics className='text-primary size-4' />
+                  </div>
+                  <div className='min-w-0 flex-1'>
+                    <p className='truncate text-sm font-medium text-primary'>
+                      {analysis.name}
+                    </p>
+                    <p className='text-muted-foreground text-xs'>
+                      {new Date(analysis.createdAt).toLocaleDateString()} ·{' '}
+                      {analysis.filters.length} filter
+                      {analysis.filters.length === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  {isActive ? (
+                    <Icons.check className='text-foreground size-3.5 shrink-0' />
+                  ) : (
+                    <Icons.chevronRight className='text-muted-foreground size-3.5 shrink-0' />
+                  )}
+                </button>
+                {canEdit && onDelete ? (
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon-sm'
+                    className='text-muted-foreground hover:text-destructive shrink-0'
+                    disabled={isDeleting}
+                    aria-label={`Delete saved view ${analysis.name}`}
+                    onClick={() => void onDelete(analysis)}
+                  >
+                    {isDeleting ? (
+                      <Icons.spinner className='size-3.5 animate-spin' />
+                    ) : (
+                      <Icons.trash className='size-3.5' />
+                    )}
+                  </Button>
+                ) : null}
+              </div>
             );
           })}
         </div>

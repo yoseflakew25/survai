@@ -1,15 +1,21 @@
-"""Survey plans — CRUD + Gemini generate."""
+"""Survey plans — CRUD + Gemini generate + interview stream."""
 
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, status
+from fastapi.responses import StreamingResponse
 
 from app.api.deps import CurrentUser, PlanServiceDep
+from app.core.exceptions import AppError
 from app.schemas.plan import (
     PlanCreate,
     PlanGenerateRequest,
+    PlanInterviewTurnRequest,
+    PlanInterviewTurnResponse,
     PlanListResponse,
     PlanPublic,
     PlanUpdate,
@@ -48,6 +54,47 @@ async def create_plan_with_ai(
 ) -> SurveyPlanGenerateResponse:
     """Create a plan from a research goal and run the Gemini planner."""
     return await plans.create_and_generate(user=current_user, body=body)
+
+
+@router.post("/interview/turn/stream")
+async def plan_interview_turn_stream(
+    body: PlanInterviewTurnRequest,
+    current_user: CurrentUser,
+    plans: PlanServiceDep,
+) -> StreamingResponse:
+    """SSE plan interview turn — status → delta → done (stateless transcript)."""
+
+    async def event_gen() -> AsyncIterator[str]:
+        try:
+            async for event, payload in plans.iter_interview_turn(
+                user=current_user, body=body, stream_deltas=True
+            ):
+                if event == "done":
+                    assert isinstance(payload, PlanInterviewTurnResponse)
+                    data = payload.model_dump(mode="json")
+                else:
+                    data = payload
+                yield f"event: {event}\ndata: {json.dumps(data)}\n\n"
+        except AppError as exc:
+            yield (
+                "event: error\n"
+                f"data: {json.dumps({'detail': exc.detail, 'status_code': exc.status_code})}\n\n"
+            )
+        except Exception:
+            yield (
+                "event: error\n"
+                f"data: {json.dumps({'detail': 'Plan interview stream failed'})}\n\n"
+            )
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/{plan_id}", response_model=PlanPublic)

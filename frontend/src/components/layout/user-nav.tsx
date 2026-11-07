@@ -74,19 +74,23 @@ export function UserNav() {
             </div>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
-        {owner ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                disabled={signingOut}
-                onClick={() => router.push('/dashboard/profile')}
-              >
-                Account
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </>
-        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          {owner ? (
+            <DropdownMenuItem
+              disabled={signingOut}
+              onClick={() => router.push('/dashboard/profile')}
+            >
+              Account
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            disabled={signingOut}
+            onClick={() => router.push('/dashboard/security')}
+          >
+            Security
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem

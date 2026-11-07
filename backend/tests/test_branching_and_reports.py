@@ -367,6 +367,23 @@ async def test_saved_analysis_filters_report_and_get_by_id(
     assert by_id.json()["id"] == report_id
     assert by_id.json()["survey_id"] == survey_id
 
+    deleted = await client.delete(
+        f"/api/v1/surveys/{survey_id}/saved-analyses/{saved_id}",
+        headers=headers,
+    )
+    assert deleted.status_code == 204, deleted.text
+    listed_after = await client.get(
+        f"/api/v1/surveys/{survey_id}/saved-analyses",
+        headers=headers,
+    )
+    assert listed_after.status_code == 200, listed_after.text
+    assert all(row["id"] != saved_id for row in listed_after.json())
+    missing = await client.delete(
+        f"/api/v1/surveys/{survey_id}/saved-analyses/{saved_id}",
+        headers=headers,
+    )
+    assert missing.status_code == 404, missing.text
+
     # Cross-org isolation
     other = await _register_and_verify(
         client,

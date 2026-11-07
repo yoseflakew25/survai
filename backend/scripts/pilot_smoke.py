@@ -133,6 +133,65 @@ def main() -> None:
             fail("pdf export missing content")
         ok("pdf export")
 
+        # Donor pack (0018-era feature) — JSON envelope with base64 ZIP
+        pack = client.post(
+            f"/reports/{report['id']}/export-pack",
+            headers=headers,
+            timeout=180.0,
+        )
+        if pack.status_code not in (200, 201):
+            fail(f"donor pack → {pack.status_code} {pack.text[:200]}")
+        pack_body = pack.json()
+        b64 = pack_body.get("content_base64") or ""
+        if not b64:
+            fail("donor pack missing content_base64")
+        if (pack_body.get("mime_type") or "") != "application/zip":
+            fail(f"donor pack mime={pack_body.get('mime_type')!r}")
+        import base64
+
+        raw = base64.b64decode(b64)
+        if raw[:2] != b"PK":
+            fail("donor pack base64 is not a ZIP")
+        ok(f"donor pack ({len(raw)} bytes, {pack_body.get('filename')})")
+
+        # Collection quota (0018) — write + read back, then clear
+        patched = client.patch(
+            f"/surveys/{survey_id}",
+            headers=headers,
+            json={"response_quota": 500},
+        )
+        if patched.status_code != 200:
+            fail(f"set quota → {patched.status_code} {patched.text[:200]}")
+        if patched.json().get("response_quota") != 500:
+            fail("quota not persisted")
+        cleared = client.patch(
+            f"/surveys/{survey_id}",
+            headers=headers,
+            json={"response_quota": None},
+        )
+        if cleared.status_code != 200:
+            fail(f"clear quota → {cleared.status_code} {cleared.text[:200]}")
+        ok("quota patch/clear")
+
+        # Org invite create + revoke (0017)
+        invite = client.post(
+            "/org/invites",
+            headers=headers,
+            json={
+                "email": f"smoke-invite-{int(time.time())}@example.com",
+                "role": "viewer",
+            },
+        )
+        if invite.status_code != 201:
+            fail(f"create invite → {invite.status_code} {invite.text[:200]}")
+        invite_id = (invite.json().get("invite") or invite.json()).get("id")
+        if not invite_id:
+            fail("invite id missing")
+        revoked = client.delete(f"/org/invites/{invite_id}", headers=headers)
+        if revoked.status_code not in (200, 204):
+            fail(f"revoke invite → {revoked.status_code} {revoked.text[:200]}")
+        ok("invite create/revoke")
+
         # Org Assistant (sync JSON path — streaming is covered in UI)
         thread = client.post(
             "/assistant/threads",

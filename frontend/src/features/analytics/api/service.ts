@@ -184,6 +184,7 @@ type ApiSavedAnalysis = {
     op: Filter['op'];
     value: Filter['value'];
   }[];
+  chart_config?: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -198,7 +199,7 @@ function mapSaved(a: ApiSavedAnalysis): SavedAnalysis {
       op: f.op,
       value: f.value
     })),
-    chartConfig: null,
+    chartConfig: a.chart_config ?? null,
     createdAt: a.created_at
   };
 }
@@ -215,17 +216,30 @@ export async function getSavedAnalyses(
 export async function createSavedAnalysis(
   surveyId: string,
   name: string,
-  filters: Filter[] = []
+  filters: Filter[] = [],
+  chartConfig: Record<string, unknown> | null = null
 ): Promise<SavedAnalysis> {
   const res = await apiFetch(`/surveys/${surveyId}/saved-analyses`, {
     method: 'POST',
     body: JSON.stringify({
       name,
-      filters: serializeFilters(filters)
+      filters: serializeFilters(filters),
+      chart_config: chartConfig
     })
   });
   if (!res.ok) await readError(res, 'Could not save analysis');
   return mapSaved((await res.json()) as ApiSavedAnalysis);
+}
+
+export async function deleteSavedAnalysis(
+  surveyId: string,
+  analysisId: string
+): Promise<void> {
+  const res = await apiFetch(
+    `/surveys/${surveyId}/saved-analyses/${analysisId}`,
+    { method: 'DELETE' }
+  );
+  if (!res.ok) await readError(res, 'Could not delete saved view');
 }
 
 export async function exportAnalyticsCsv(surveyId: string): Promise<void> {

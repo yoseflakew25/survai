@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/ui/table/data-table';
 import { useDataTable } from '@/hooks/use-data-table';
@@ -21,8 +20,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Icons } from '@/components/icons';
 
-import { NewSurveyDialog } from '../new-survey-dialog';
-
 const columnIds = columns
   .map((c) => c.id)
   .filter((id): id is string => Boolean(id) && id !== 'open');
@@ -39,7 +36,6 @@ const brandCtaClass =
 
 export function SurveyTable() {
   const router = useRouter();
-  const [newSurveyOpen, setNewSurveyOpen] = useState(false);
 
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
@@ -154,7 +150,7 @@ export function SurveyTable() {
 
             <Button
               className={brandCtaClass}
-              onClick={() => setNewSurveyOpen(true)}
+              onClick={() => router.push('/dashboard/surveys/new')}
             >
               <Icons.add className='mr-1 h-3.5 w-3.5' />
               New Survey
@@ -185,8 +181,6 @@ export function SurveyTable() {
           }
         />
       </div>
-
-      <NewSurveyDialog open={newSurveyOpen} onOpenChange={setNewSurveyOpen} />
     </>
   );
 }

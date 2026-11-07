@@ -4,7 +4,8 @@
 > Last updated: **6 November 2026** — Plan → Reports live; Org Assistant;
 > **multi-seat orgs** (Owner / Researcher / Viewer); collection quota + share
 > pack; donor ZIP export; baseline/endline compare; **skip/branch logic
-> (BLD-08)**; **saved analysis views**; report **`?reportId=`** deep-links.
+> (BLD-08)**; **saved analysis views** + crosstab `chart_config`; report
+> **`?reportId=`** deep-links; **plan interview chat** at `/surveys/new`.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -35,7 +36,7 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 | `researcher` | Edit/publish/build/report; no seat management |
 | `viewer` | Read analytics/reports/assistant; no mutate CTAs |
 
-- **Sidebar nav:** Dashboard, Surveys, **Assistant**, Account (`nav-config.ts`).
+- **Sidebar nav:** Dashboard, Surveys, **Assistant**, Account (Owner), **Security** (all seats) (`nav-config.ts`).
 - **Auth:** JWT + httpOnly cookies; email/password + OTP; **Google Identity (GIS)** → same cookies.
 - **FE env:** `NEXT_PUBLIC_API_BASE_URL` → API `/api/v1` (use `localhost`, not `127.0.0.1`, for cookies).
 - **Prod path:** Vercel FE → Railway/Render API; health `GET`/`HEAD` `/api/v1/health`.
@@ -58,11 +59,14 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Auth:** register → OTP → verify; login/refresh/logout/me; forgot/reset; **Google OAuth**; JWT + cookies.
 - **Email:** SMTP and/or Resend; `dev_code` when outbound mail unconfigured.
 - **Plans / Builder / Reviewer / Collection / Respondents / Analytics / Reports / Overview** — live (see prior milestones).
-- **Notifications:** in-app feed + unread; emitters on publish / response milestones / report ready / review complete.
+- **Plan interview (SSE):** `POST /plans/interview/turn/stream` — Gemini structured stream with true
+  `assistant_reply` token deltas (`iter_stream_structured`), then brief / research_goal / ready flag.
+- **Notifications:** in-app feed + unread; emitters on publish / response milestones / report ready / review complete;
+  `response_received` deep-links `?respondent=`.
 - **Org Assistant (RAG + tools):** Alembic **`0016_org_assistant`**
   - Tables: `assistant_threads`, `assistant_messages`, `org_knowledge_chunks`
   - Index: survey / report / review → chunks with **local HF embeddings** (`fastembed`, `BAAI/bge-small-en-v1.5`)
-  - Chat: retrieve top-k → Gemini plan → structured tools → grounded answer + citations
+  - Chat: retrieve top-k → Gemini plan → structured tools (analytics, **saved views**, reports) → grounded answer + citations
   - API: `/assistant/threads`, messages, **`POST …/messages/stream` (SSE)**, `POST /knowledge/reindex`
   - Docker: model pre-baked into image (`EMBEDDING_CACHE_DIR`)
 - **Jobs / ARQ:** **inline by default** (`JOBS_USE_REDIS=false`). Redis is opt-in only; exhausted/missing Redis never blocks the API.
@@ -71,14 +75,13 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Donor pack:** `POST /reports/{id}/export-pack` → ZIP (PDF + DOCX + analytics CSV).
 - **Compare:** `instrument_family_id` / `wave_label`; `POST …/duplicate-as-endline`; `GET …/compare?other_id=`.
 - **Skip / branch (BLD-08):** shared `conditional_logic` evaluator (snake + camel);
-  public submit + complete skip inactive required questions; builder confirm/clear.
-- **Saved analyses:** `GET`/`POST /surveys/{id}/saved-analyses`; report create accepts
-  `saved_analysis_id` and freezes filtered metrics in `metrics_snapshot`.
-- **Report deep-link:** `GET /reports/{id}`; `notify_report_ready` href includes
-  `?reportId=`.
-- **Alembic:** through **`0018_collection_compare`**.
-- Pytest: `test_dicdo_features` + `test_branching_and_reports` (skip-on-submit,
-  saved-view filters, GET by id, Owner→Researcher dogfood) + assistant suites.
+  public submit + complete skip inactive required questions; builder confirm/clear; multi-rule AND/OR editor.
+- **Saved analyses:** `GET`/`POST`/`DELETE /surveys/{id}/saved-analyses`; optional `chart_config` (crosstab axes);
+  report create accepts `saved_analysis_id` and freezes filtered metrics in `metrics_snapshot`.
+- **Report deep-link:** `GET /reports/{id}`; `notify_report_ready` href includes `?reportId=`.
+- **Alembic:** through **`0019_saved_analysis_chart_config`** (includes 0017 + 0018).
+- Pytest: `test_dicdo_features` (invite / quota / donor pack) + `test_branching_and_reports`
+  (skip-on-submit, saved-view filters/delete, GET by id, Owner→Researcher dogfood) + plan interview + assistant suites.
 
 **Run API locally:**
 ```bash
@@ -96,7 +99,7 @@ uvicorn app.main:app --reload --port 8000
 
 - Confirm prod `REDIS_URL` where async report jobs are desired.
 - Run `POST /assistant/knowledge/reindex` once per org after first Assistant deploy (or after embedding model change).
-- Run `alembic upgrade head` on Aiven/Render for **0017 + 0018**.
+- On Render: leave `JOBS_USE_REDIS=false` (or unset) and clear `REDIS_URL` — no Upstash needed.
 - Optional: multi-org switcher / custom role matrices / SSO; pgvector; CSRF with `SameSite=None`.
 
 ---
@@ -105,41 +108,48 @@ uvicorn app.main:app --reload --port 8000
 
 - Auth UI (email/OTP + Google); Plans → Builder → Review → Collect → Respondents → Analytics → Reports.
 - Overview KPIs + activity; survey activity modal; pill nav.
-- **Assistant** (`/dashboard/assistant`): thread list + chat, markdown rendering, citation chips, New chat in brand header.
+- **New survey / plan chat** (`/dashboard/surveys/new` → `PlanGeneratorWorkspace`):
+  - Gemini interview SSE (status → true token deltas → done)
+  - Brief sidebar with **inline edit** (title, summary, goal, audiences/decisions/constraints)
+  - **localStorage draft** resume (`planInterviewDraft:v1`) + **Start over**
+  - Generate plan CTA when ready / force after enough turns
+  - Assistant-like padded chat shell (not edge-to-edge)
+- **Assistant** (`/dashboard/assistant`): thread list + chat, markdown rendering, citation chips, New chat in brand header; fixed shell scroll.
 - **Team** (Account → Team): invite researchers/viewers; `/auth/accept-invite`.
+- **Security** (`/dashboard/security`): password change for all seats (Account remains Owner-only).
 - **Collect:** quota + close datetime settings; share pack (QR + print sheet); progress toward quota.
-- **Builder:** interactive preview + minimal skip-logic editor (confirm/clear).
+- **Builder:** interactive preview + multi-rule skip-logic editor (AND/OR, add/remove, confirm/clear).
 - **Reports:** Save as PDF / Word; **Download donor pack** ZIP; open via `?reportId=`.
-- **Analytics:** Duplicate as endline + compare table; **saved views** (save/apply filters; optional reuse on report).
-- Viewer role: mutate CTAs hidden (publish, generate report, etc.); Account nav Owner-only.
-- Notifications drawer (clickable cards → href); Launchpot light theme chrome (`SurvaiPanel`, brand CTAs).
+- **Analytics:** Duplicate as endline + compare table; **saved views** (save/apply/delete + crosstab axis `chart_config`).
+- Viewer role: mutate CTAs hidden (publish, generate report, etc.).
+- Notifications drawer (clickable cards → href); response notifications deep-link `?respondent=`; Launchpot light theme chrome (`SurvaiPanel`, brand CTAs).
 - Forms: RHF + Zod; TanStack Query.
 
 ---
 
 ## 5. Frontend — soft / gaps
 
-- Full Playwright path needs staging creds (`E2E_*`). Assistant UI smoke sends a starter and waits for a reply.
-- API pilots: `pilot_smoke.py` + `pilot_full_path.py` cover report → PDF → **assistant**.
+- Playwright: set `PLAYWRIGHT_BASE_URL`, `E2E_*`, and on newer Ubuntu hosts `PLAYWRIGHT_CHANNEL=chrome` (bundled browsers unsupported).
+- Optional polish: server-side plan interview draft persistence (today: localStorage).
 
 ---
 
 ## 6. Known next (priority)
 
-1. Apply Alembic **0017/0018** on deployed DB; smoke invite + quota + donor pack.
-2. On Render: leave `JOBS_USE_REDIS=false` (or unset) and clear `REDIS_URL` — no Upstash needed.
-3. Run `pilot_full_path.py` / Playwright with staging `SMOKE_*` / `E2E_*` after deploy.
+1. Optional Redis for async report jobs on Render only if needed.
+2. Re-run pilots against remote staging with dedicated `SMOKE_*` / `E2E_*` when available (local pilots green).
+3. Optional polish: server-side plan interview draft persistence.
 
 ---
 
 ## 7. Files that matter
 
-**Backend:** `app/api/v1/routes/{assistant,notifications,reports,...}.py`, `services/{assistant,collection,conditional_logic,knowledge_index,notification,report,...}.py`, `ai/{client,embeddings,prompts/assistant_v1.py}`, `models/assistant.py`, `alembic/versions/0016_org_assistant.py`, `Dockerfile`, `tests/test_{assistant,branching_and_reports,dicdo_features}.py`
+**Backend:** `app/api/v1/routes/{plans,assistant,notifications,reports,...}.py`, `services/{plan,assistant,collection,conditional_logic,knowledge_index,notification,report,...}.py`, `ai/{client,embeddings,prompts/{assistant_v1,planner_interview_v1}.py}`, `models/assistant.py`, `alembic/versions/0016_org_assistant.py` … `0019_saved_analysis_chart_config.py`, `scripts/pilot_{smoke,full_path}.py`, `tests/test_{assistant,branching_and_reports,dicdo_features,plans}.py`
 
-**Frontend:** `features/assistant/**`, `features/builder/**` (skip preview/editor), `features/analytics/components/saved-analyses.tsx`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys,overview}/**`
+**Frontend:** `features/plans/components/plan-generator-workspace.tsx`, `features/plans/lib/interview-draft.ts`, `features/assistant/**`, `features/builder/**` (skip preview/editor), `features/analytics/**`, `features/profile/components/security-view-page.tsx`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys,overview}/**`, `e2e/smoke.spec.ts`
 
 ---
 
 ## 8. Out of this snapshot
 
-- Do not commit secrets (`GEMINI_API_KEY`, `FIRST_SUPERUSER_PASSWORD`, SMTP/Resend, `REDIS_URL`, DB URLs) into git.
+- Do not commit secrets (`GEMINI_API_KEY`, `FIRST_SUPERUSER_PASSWORD`, SMTP/Resend, `REDIS_URL`, DB URLs, `SMOKE_*` / `E2E_*`) into git.

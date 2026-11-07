@@ -41,6 +41,33 @@ class PlanGenerateRequest(BaseModel):
     research_goal: str | None = Field(default=None, min_length=10, max_length=5000)
 
 
+class PlanInterviewMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class PlanInterviewTurnRequest(BaseModel):
+    """Stateless interview turn — FE sends prior transcript + new user message."""
+
+    messages: list[PlanInterviewMessage] = Field(default_factory=list, max_length=40)
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class PlanInterviewBriefPublic(BaseModel):
+    title_hint: str = ""
+    audiences: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    summary: str = ""
+
+
+class PlanInterviewTurnResponse(BaseModel):
+    assistant_reply: str
+    ready_to_generate: bool
+    research_goal_draft: str
+    brief: PlanInterviewBriefPublic
+
+
 class PlanPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

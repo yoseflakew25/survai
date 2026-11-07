@@ -53,6 +53,7 @@ export function actionLabelFor(type: NotificationApiType): string {
     case 'survey_closed':
       return 'View Analytics';
     case 'response_received':
+      return 'View Response';
     case 'response_milestone':
     case 'response_digest':
       return 'View Respondents';

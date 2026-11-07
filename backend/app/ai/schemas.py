@@ -32,6 +32,25 @@ class SurveyPlanOutput(BaseModel):
     notes: str | None = None
 
 
+# --- Planner interview (multi-turn chat before generate) ---
+# Gemini-simple: avoid nullable nested fields; use empty string / empty lists.
+
+
+class PlanInterviewBrief(BaseModel):
+    title_hint: str = ""
+    audiences: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    summary: str = ""
+
+
+class PlanInterviewTurnOutput(BaseModel):
+    assistant_reply: str
+    ready_to_generate: bool = False
+    research_goal_draft: str = ""
+    brief: PlanInterviewBrief
+
+
 # --- Builder ---
 
 

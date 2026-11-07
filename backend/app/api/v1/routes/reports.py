@@ -216,3 +216,19 @@ async def create_saved_analysis(
     return await reports.create_saved_analysis(
         user=current_user, survey_id=survey_id, body=body
     )
+
+
+@router.delete(
+    "/surveys/{survey_id}/saved-analyses/{analysis_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_saved_analysis(
+    survey_id: UUID,
+    analysis_id: UUID,
+    current_user: CurrentUser,
+    reports: ReportServiceDep,
+) -> Response:
+    await reports.delete_saved_analysis(
+        user=current_user, survey_id=survey_id, analysis_id=analysis_id
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

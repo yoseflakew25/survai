@@ -29,7 +29,7 @@ from app.repositories.assistant import (
     AssistantMessageRepository,
     AssistantThreadRepository,
 )
-from app.repositories.report import ReportRepository
+from app.repositories.report import ReportRepository, SavedAnalysisRepository
 from app.repositories.survey import SurveyRepository
 from app.schemas.assistant import (
     AssistantMessageListResponse,
@@ -84,6 +84,7 @@ class AssistantService:
         self.messages = AssistantMessageRepository(session)
         self.surveys = SurveyRepository(session)
         self.reports = ReportRepository(session)
+        self.saved = SavedAnalysisRepository(session)
         self.analytics = AnalyticsService(session)
         self.knowledge = KnowledgeIndexService(session)
 
@@ -354,6 +355,7 @@ class AssistantService:
             {"tool": "list_surveys", "ok": True, "count": len(survey_catalog)}
         ]
         analytics_out: list[dict[str, Any]] = []
+        saved_views_out: list[dict[str, Any]] = []
         reports_out: list[dict[str, Any]] = []
 
         survey_ids: list[UUID] = []
@@ -365,6 +367,20 @@ class AssistantService:
             if sid not in survey_ids:
                 survey_ids.append(sid)
         survey_ids = survey_ids[:3]
+
+        saved_view_survey_ids: list[UUID] = []
+        for raw in [
+            *plan.survey_ids_for_saved_views,
+            *plan.survey_ids_for_analytics,
+            *retrieved_survey_ids,
+        ]:
+            try:
+                sid = UUID(str(raw))
+            except ValueError:
+                continue
+            if sid not in saved_view_survey_ids:
+                saved_view_survey_ids.append(sid)
+        saved_view_survey_ids = saved_view_survey_ids[:3]
 
         for sid in survey_ids:
             survey = await self.surveys.get_for_org_meta(
@@ -396,6 +412,51 @@ class AssistantService:
                 trace.append(
                     {
                         "tool": "get_survey_analytics_summary",
+                        "survey_id": str(sid),
+                        "ok": False,
+                        "error": str(exc)[:200],
+                    }
+                )
+
+        for sid in saved_view_survey_ids:
+            survey = await self.surveys.get_for_org_meta(
+                survey_id=sid, organization_id=org_id
+            )
+            if survey is None:
+                continue
+            try:
+                rows = await self.saved.list_for_survey(survey_id=sid)
+                views = [
+                    {
+                        "id": str(row.id),
+                        "name": row.name,
+                        "filter_count": len(row.filters or []),
+                        "filters": list(row.filters or [])[:12],
+                        "chart_config": row.chart_config
+                        if isinstance(row.chart_config, dict)
+                        else None,
+                    }
+                    for row in rows[:12]
+                ]
+                saved_views_out.append(
+                    {
+                        "survey_id": str(sid),
+                        "title": survey.title,
+                        "views": views,
+                    }
+                )
+                trace.append(
+                    {
+                        "tool": "list_saved_views",
+                        "survey_id": str(sid),
+                        "ok": True,
+                        "count": len(views),
+                    }
+                )
+            except Exception as exc:
+                trace.append(
+                    {
+                        "tool": "list_saved_views",
                         "survey_id": str(sid),
                         "ok": False,
                         "error": str(exc)[:200],
@@ -459,6 +520,7 @@ class AssistantService:
         payload = {
             "list_surveys": survey_catalog,
             "analytics_summaries": analytics_out,
+            "saved_views": saved_views_out,
             "reports": reports_out,
         }
         return payload, trace

@@ -57,13 +57,21 @@ export interface AnalyticsSummary {
   metrics: MetricValue[];
 }
 
+export type CrosstabChartConfig = {
+  type: 'crosstab';
+  questionAId: string;
+  questionBId: string;
+};
+
+export type SavedChartConfig = CrosstabChartConfig | Record<string, unknown>;
+
 export interface SavedAnalysis {
   id: string;
   surveyId: string;
   surveyVersionId: string;
   name: string;
   filters: Filter[];
-  chartConfig: Record<string, unknown> | null;
+  chartConfig: SavedChartConfig | null;
   createdAt: string;
 }
 

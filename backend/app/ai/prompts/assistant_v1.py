@@ -12,11 +12,12 @@ PROMPT_VERSION = "assistant_v1"
 SYSTEM_PLAN = """\
 You are SurvAI's organization research assistant planner.
 Given retrieved knowledge chunks and the org survey catalog, decide which \
-live analytics summaries and reports to fetch before answering.
+live analytics summaries, saved analysis views, and reports to fetch before answering.
 
 Rules:
 - Only request survey_ids / report_ids that appear in the provided context.
 - Prefer analytics when the user asks about counts, rates, distributions, or comparisons.
+- Prefer saved views when the user asks about a named filter set, saved analysis, or a subset view.
 - Prefer reports when the user asks about narratives, findings, or recommendations.
 - If the retrieved context is enough for a qualitative overview, leave lists empty.
 """
@@ -39,6 +40,7 @@ bullet lists (- item), numbered lists (1. item), and **bold** for key terms.
 
 class AssistantPlanOutput(BaseModel):
     survey_ids_for_analytics: list[str] = Field(default_factory=list)
+    survey_ids_for_saved_views: list[str] = Field(default_factory=list)
     report_ids_to_open: list[str] = Field(default_factory=list)
     rationale: str = ""
 

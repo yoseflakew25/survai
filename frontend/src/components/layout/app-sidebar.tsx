@@ -232,22 +232,26 @@ export default function AppSidebar() {
                 </div>
                 <DropdownMenuSeparator />
 
-                {owner ? (
-                  <>
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem
-                        onClick={() => router.push('/dashboard/profile')}
-                      >
-                        <Icons.account className='text-muted-foreground mr-2 size-4' />
-                        <span>Account</span>
-                        <span className='text-muted-foreground ml-auto text-xs'>
-                          ⌘P
-                        </span>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                  </>
-                ) : null}
+                <DropdownMenuGroup>
+                  {owner ? (
+                    <DropdownMenuItem
+                      onClick={() => router.push('/dashboard/profile')}
+                    >
+                      <Icons.account className='text-muted-foreground mr-2 size-4' />
+                      <span>Account</span>
+                      <span className='text-muted-foreground ml-auto text-xs'>
+                        ⌘P
+                      </span>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    onClick={() => router.push('/dashboard/security')}
+                  >
+                    <Icons.lock className='text-muted-foreground mr-2 size-4' />
+                    <span>Security</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
 
                 {/* Sign out */}
                 <DropdownMenuGroup>

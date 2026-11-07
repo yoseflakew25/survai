@@ -1,13 +1,18 @@
-"""Survey plan use-cases: CRUD, approve, Gemini generate."""
+"""Survey plan use-cases: CRUD, approve, Gemini generate + interview."""
 
 from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.ai.schemas import SurveyPlanOutput
-from app.ai.services.planner import generate_survey_plan
+from app.ai.client import StructuredCallResult
+from app.ai.schemas import PlanInterviewTurnOutput, SurveyPlanOutput
+from app.ai.services.planner import generate_survey_plan, iter_interview_plan_turn
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.rbac import require_org_editor
 from app.models.survey import Survey
 from app.models.survey_plan import PlanStatus, SurveyPlan
 from app.models.user import User
@@ -15,6 +20,9 @@ from app.repositories.survey import SurveyRepository
 from app.repositories.survey_plan import SurveyPlanRepository
 from app.schemas.plan import (
     PlanCreate,
+    PlanInterviewBriefPublic,
+    PlanInterviewTurnRequest,
+    PlanInterviewTurnResponse,
     PlanListResponse,
     PlanPublic,
     PlanUpdate,
@@ -223,6 +231,78 @@ class PlanService:
         """Create a draft plan then immediately run the planner (New Survey flow)."""
         created = await self.create_plan(user=user, body=body)
         return await self.generate(user=user, plan_id=created.id)
+
+    async def iter_interview_turn(
+        self,
+        *,
+        user: User,
+        body: PlanInterviewTurnRequest,
+        stream_deltas: bool = True,
+    ) -> AsyncIterator[tuple[str, Any]]:
+        """Yield SSE events for one Gemini interview turn (stateless transcript)."""
+        require_org_editor(user)
+        _require_org(user)
+        content = body.content.strip()
+        if not content:
+            raise BadRequestError("Message cannot be empty")
+
+        history = [
+            {"role": m.role, "content": m.content.strip()}
+            for m in body.messages
+            if m.content.strip()
+        ]
+
+        yield ("status", {"stage": "thinking"})
+        call: StructuredCallResult | None = None
+        answering = False
+        async for kind, payload in iter_interview_plan_turn(
+            content=content,
+            history=history,
+            user_id=user.id,
+            session=self.session,
+        ):
+            if kind == "delta" and stream_deltas:
+                text = str(payload or "")
+                if not text:
+                    continue
+                if not answering:
+                    yield ("status", {"stage": "answering"})
+                    answering = True
+                yield ("delta", {"text": text})
+            elif kind == "result":
+                call = payload  # type: ignore[assignment]
+
+        if call is None:
+            raise BadRequestError("Plan interview produced no result")
+        output = call.value
+        assert isinstance(output, PlanInterviewTurnOutput)
+
+        reply = (
+            output.assistant_reply.strip()
+            or "Tell me a bit more about what you want to learn."
+        )
+        if stream_deltas and not answering and reply:
+            yield ("status", {"stage": "answering"})
+            yield ("delta", {"text": reply})
+
+        brief = output.brief
+        draft = (output.research_goal_draft or "").strip()
+        ready = bool(output.ready_to_generate) and len(draft) >= 10
+        yield (
+            "done",
+            PlanInterviewTurnResponse(
+                assistant_reply=reply,
+                ready_to_generate=ready,
+                research_goal_draft=draft,
+                brief=PlanInterviewBriefPublic(
+                    title_hint=(brief.title_hint or "").strip(),
+                    audiences=list(brief.audiences or []),
+                    decisions=list(brief.decisions or []),
+                    constraints=list(brief.constraints or []),
+                    summary=(brief.summary or "").strip(),
+                ),
+            ),
+        )
 
     async def _get_owned(self, user: User, plan_id) -> SurveyPlan:
         _require_org(user)

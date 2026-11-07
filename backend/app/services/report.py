@@ -662,6 +662,9 @@ class ReportService:
                 survey_id=r.survey_id,
                 name=r.name,
                 filters=list(r.filters or []),
+                chart_config=dict(r.chart_config)
+                if isinstance(r.chart_config, dict)
+                else None,
                 created_at=r.created_at,
             )
             for r in rows
@@ -676,6 +679,7 @@ class ReportService:
             created_by=user.id,
             name=body.name.strip(),
             filters=body.filters,
+            chart_config=body.chart_config,
         )
         self.session.add(row)
         await self.session.commit()
@@ -685,8 +689,21 @@ class ReportService:
             survey_id=row.survey_id,
             name=row.name,
             filters=list(row.filters or []),
+            chart_config=dict(row.chart_config)
+            if isinstance(row.chart_config, dict)
+            else None,
             created_at=row.created_at,
         )
+
+    async def delete_saved_analysis(
+        self, *, user: User, survey_id: UUID, analysis_id: UUID
+    ) -> None:
+        survey = await self._owned_survey(user, survey_id)
+        row = await self.saved.get_by_id(analysis_id)
+        if row is None or row.survey_id != survey.id:
+            raise NotFoundError("Saved analysis view not found")
+        await self.saved.delete(row)
+        await self.session.commit()
 
     async def _resolve_saved_filters(
         self, *, survey_id: UUID, saved_analysis_id: UUID | None

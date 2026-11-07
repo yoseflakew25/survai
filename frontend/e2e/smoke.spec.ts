@@ -20,8 +20,8 @@ const configured = Boolean(base && email && password);
 
 async function signIn(page: Page) {
   await page.goto(`${base}/auth/sign-in`);
-  await page.getByLabel(/email/i).fill(email!);
-  await page.getByLabel(/password/i).fill(password!);
+  await page.locator('#sign-in-email, input[name="email"]').first().fill(email!);
+  await page.locator('#sign-in-password, input[name="password"]').first().fill(password!);
   await page.getByRole('button', { name: /sign in|log in/i }).click();
   await expect(page).toHaveURL(/dashboard/, { timeout: 30_000 });
 }
@@ -37,7 +37,8 @@ test.describe('SurvAI pilot smoke', () => {
     await signIn(page);
 
     if (surveyId) {
-      await page.goto(`${base}/dashboard/surveys/${surveyId}/plan`);
+      // Collect loads without the plan hippie dialog that covers tabs.
+      await page.goto(`${base}/dashboard/surveys/${surveyId}/collect`);
     } else {
       const surveyLink = page.locator('a[href*="/dashboard/surveys/"]').first();
       if (!(await surveyLink.count())) {
@@ -47,12 +48,23 @@ test.describe('SurvAI pilot smoke', () => {
       await surveyLink.click();
     }
 
-    await expect(page.getByRole('link', { name: /^plan$/i }).first()).toBeVisible({
-      timeout: 20_000
+    await expect(
+      page.getByRole('dialog', { name: /loading/i })
+    ).toHaveCount(0, { timeout: 60_000 });
+
+    const workflow = page.getByRole('tablist', { name: /survey workflow/i });
+    await expect(workflow.getByRole('tab', { name: /plan/i })).toBeVisible({
+      timeout: 30_000
     });
-    for (const label of ['Build', 'Review', 'Collect', 'Analytics', 'Report']) {
+    for (const label of [
+      'Review',
+      'Collect',
+      'Respondents',
+      'Analytics',
+      'Report'
+    ]) {
       await expect(
-        page.getByRole('link', { name: new RegExp(`^${label}$`, 'i') }).first()
+        workflow.getByRole('tab', { name: new RegExp(label, 'i') })
       ).toBeVisible();
     }
   });
@@ -70,12 +82,12 @@ test.describe('SurvAI pilot smoke', () => {
 
     await page.goto(`${base}/dashboard/surveys/${surveyId}/analytics`);
     await expect(
-      page.getByText(/analytics|responses|distribution|summary/i).first()
+      page.getByText(/response summary|question distributions|saved views/i).first()
     ).toBeVisible({ timeout: 30_000 });
 
-    await page.goto(`${base}/dashboard/surveys/${surveyId}/report`);
+    await page.goto(`${base}/dashboard/surveys/${surveyId}/reports`);
     await expect(
-      page.getByText(/report|generate|sections|download|pdf/i).first()
+      page.getByText(/generate report|download|pdf|donor|sections|report/i).first()
     ).toBeVisible({ timeout: 30_000 });
   });
 
@@ -83,7 +95,10 @@ test.describe('SurvAI pilot smoke', () => {
     await signIn(page);
     await page.goto(`${base}/dashboard/assistant`);
     await expect(
-      page.getByText(/org research assistant|assistant|new chat/i).first()
+      page.getByRole('button', { name: /new chat/i }).first()
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByPlaceholder(/ask about your org research/i)
     ).toBeVisible({ timeout: 20_000 });
 
     const starter = page
@@ -100,8 +115,12 @@ test.describe('SurvAI pilot smoke', () => {
     }
 
     await expect(
-      page.getByText(/searching org knowledge|planning tools|fetching metrics|writing answer|working/i).first()
-    ).toBeVisible({ timeout: 15_000 });
+      page
+        .getByText(
+          /saving your question|searching org knowledge|planning tools|fetching metrics|writing answer|typing/i
+        )
+        .first()
+    ).toBeVisible({ timeout: 20_000 });
 
     // Grounded Gemini reply — allow cold start + tools
     await expect(

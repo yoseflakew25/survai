@@ -557,6 +557,7 @@ class CollectionService:
                     survey_id=survey.id,
                     survey_title=survey.title,
                     response_count=count,
+                    respondent_id=respondent.id,
                 )
             except Exception:
                 import logging

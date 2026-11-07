@@ -61,3 +61,25 @@ export interface SurveyPlanOutput {
   estimatedLengthMinutes: number;
   notes: string | null;
 }
+
+export type PlanInterviewRole = 'user' | 'assistant';
+
+export interface PlanInterviewMessage {
+  role: PlanInterviewRole;
+  content: string;
+}
+
+export interface PlanInterviewBrief {
+  titleHint: string;
+  audiences: string[];
+  decisions: string[];
+  constraints: string[];
+  summary: string;
+}
+
+export interface PlanInterviewTurnResult {
+  assistantReply: string;
+  readyToGenerate: boolean;
+  researchGoalDraft: string;
+  brief: PlanInterviewBrief;
+}

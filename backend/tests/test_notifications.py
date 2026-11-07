@@ -142,13 +142,19 @@ async def test_response_received_for_non_milestone(
     )
     svc = NotificationService(session)
     sid = uuid4()
+    rid = uuid4()
     await svc.maybe_notify_responses(
         organization_id=user.organization_id,
         survey_id=sid,
         survey_title="Live Survey",
         response_count=4,
+        respondent_id=rid,
     )
     listed = await svc.list_mine(user=user)
     assert listed.total == 1
     assert listed.notifications[0].type == "response_received"
     assert listed.notifications[0].status == "unread"
+    assert listed.notifications[0].href == (
+        f"/dashboard/surveys/{sid}/respondents?respondent={rid}"
+    )
+    assert (listed.notifications[0].meta or {}).get("respondent_id") == str(rid)

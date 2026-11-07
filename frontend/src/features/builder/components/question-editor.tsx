@@ -14,14 +14,35 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Icons } from '@/components/icons';
+import { cn } from '@/lib/utils';
 import type {
   ConditionalLogic,
+  ConditionalRule,
   Question,
   QuestionType,
   QuestionOption
 } from '../api/types';
 import { QUESTION_TYPES, getQuestionTypeMeta } from '../api/types';
 import { PendingConditionalBanner } from './pending-conditional-banner';
+
+type SkipOp = ConditionalRule['op'];
+
+type DraftSkipRule = {
+  questionId: string;
+  op: SkipOp;
+  value: string;
+};
+
+function emptySkipRule(questionId = ''): DraftSkipRule {
+  return { questionId, op: 'eq', value: '' };
+}
+
+function normalizeOp(op: string | undefined): SkipOp {
+  if (op === 'neq' || op === 'gt' || op === 'lt' || op === 'contains') {
+    return op;
+  }
+  return 'eq';
+}
 
 interface QuestionEditorProps {
   question: Question | null;
@@ -63,13 +84,10 @@ export function QuestionEditor({
   );
   const [busyLogic, setBusyLogic] = useState(false);
   const priorQuestions = siblingQuestions.filter((q) => q.id !== question?.id);
-  const [ruleQuestionId, setRuleQuestionId] = useState(
-    priorQuestions[0]?.id ?? ''
-  );
-  const [ruleOp, setRuleOp] = useState<'eq' | 'neq' | 'gt' | 'lt' | 'contains'>(
-    'eq'
-  );
-  const [ruleValue, setRuleValue] = useState('');
+  const [logicOperator, setLogicOperator] = useState<'AND' | 'OR'>('AND');
+  const [draftRules, setDraftRules] = useState<DraftSkipRule[]>(() => [
+    emptySkipRule(priorQuestions[0]?.id ?? '')
+  ]);
 
   useEffect(() => {
     if (!question) return;
@@ -79,14 +97,22 @@ export function QuestionEditor({
     setType(question.type);
     setOptions(question.options ?? []);
     const priors = siblingQuestions.filter((q) => q.id !== question.id);
-    const existing = question.conditionalLogic?.rules[0];
-    setRuleQuestionId(existing?.questionId ?? priors[0]?.id ?? '');
-    setRuleOp(existing?.op === 'contains' || existing?.op === 'gt' || existing?.op === 'lt' || existing?.op === 'neq' ? existing.op : 'eq');
-    setRuleValue(
-      existing?.value !== undefined && existing?.value !== null
-        ? String(existing.value)
-        : ''
-    );
+    const source =
+      question.pendingConditionalLogic ?? question.conditionalLogic;
+    if (source?.rules?.length) {
+      setLogicOperator(source.operator === 'OR' ? 'OR' : 'AND');
+      setDraftRules(
+        source.rules.map((r) => ({
+          questionId: r.questionId || priors[0]?.id || '',
+          op: normalizeOp(r.op),
+          value:
+            r.value !== undefined && r.value !== null ? String(r.value) : ''
+        }))
+      );
+    } else {
+      setLogicOperator('AND');
+      setDraftRules([emptySkipRule(priors[0]?.id ?? '')]);
+    }
   }, [question, siblingQuestions]);
 
   const typeMeta = getQuestionTypeMeta(type);
@@ -135,23 +161,33 @@ export function QuestionEditor({
   }
 
   function handleDraftFromEditor() {
-    if (!onDraftPendingLogic || !ruleQuestionId || !ruleValue.trim()) return;
-    const numeric =
-      ruleOp === 'gt' || ruleOp === 'lt' ? Number(ruleValue) : ruleValue.trim();
-    onDraftPendingLogic({
-      operator: 'AND',
-      rules: [
-        {
-          questionId: ruleQuestionId,
-          op: ruleOp,
+    if (!onDraftPendingLogic) return;
+    const rules = draftRules
+      .map((r) => {
+        const valueRaw = r.value.trim();
+        if (!r.questionId || !valueRaw) return null;
+        const numeric =
+          r.op === 'gt' || r.op === 'lt' ? Number(valueRaw) : valueRaw;
+        return {
+          questionId: r.questionId,
+          op: r.op,
           value:
             typeof numeric === 'number' && Number.isFinite(numeric)
               ? numeric
-              : ruleValue.trim()
-        }
-      ]
+              : valueRaw
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null);
+    if (rules.length === 0) return;
+    onDraftPendingLogic({
+      operator: logicOperator,
+      rules
     });
   }
+
+  const canDraftLogic = draftRules.some(
+    (r) => r.questionId && r.value.trim()
+  );
 
   async function handleConfirmPending() {
     if (!pending || !onConfirmPendingLogic) return;
@@ -172,9 +208,6 @@ export function QuestionEditor({
       setBusyLogic(false);
     }
   }
-
-  const selectedPrior = priorQuestions.find((q) => q.id === ruleQuestionId);
-  const priorChoices = selectedPrior?.options ?? [];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -287,72 +320,170 @@ export function QuestionEditor({
           )}
 
           {priorQuestions.length > 0 && onDraftPendingLogic ? (
-            <div className='space-y-2 rounded-xl border border-border p-3'>
-              <p className='text-xs font-semibold'>Skip logic</p>
-              <p className='text-muted-foreground text-[11px]'>
-                Show this question only when the rule matches. Draft first, then
-                confirm.
-              </p>
-              <div className='grid gap-2'>
-                <select
-                  className='border-input bg-background h-9 w-full rounded-md border px-2 text-xs'
-                  value={ruleQuestionId}
-                  onChange={(e) => {
-                    setRuleQuestionId(e.target.value);
-                    setRuleValue('');
-                  }}
-                >
-                  {priorQuestions.map((q) => (
-                    <option key={q.id} value={q.id}>
-                      {q.promptText.slice(0, 60) || 'Untitled'}
-                    </option>
-                  ))}
-                </select>
-                <div className='grid grid-cols-2 gap-2'>
-                  <select
-                    className='border-input bg-background h-9 rounded-md border px-2 text-xs'
-                    value={ruleOp}
-                    onChange={(e) =>
-                      setRuleOp(e.target.value as typeof ruleOp)
-                    }
-                  >
-                    <option value='eq'>equals</option>
-                    <option value='neq'>not equals</option>
-                    <option value='gt'>greater than</option>
-                    <option value='lt'>less than</option>
-                    <option value='contains'>contains</option>
-                  </select>
-                  {priorChoices.length > 0 &&
-                  (ruleOp === 'eq' || ruleOp === 'neq') ? (
-                    <select
-                      className='border-input bg-background h-9 rounded-md border px-2 text-xs'
-                      value={ruleValue}
-                      onChange={(e) => setRuleValue(e.target.value)}
-                    >
-                      <option value=''>Select value…</option>
-                      {priorChoices.map((opt) => (
-                        <option key={opt.id} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      className='h-9 text-xs'
-                      value={ruleValue}
-                      onChange={(e) => setRuleValue(e.target.value)}
-                      placeholder='Value'
-                    />
-                  )}
+            <div className='space-y-3 rounded-xl border border-border p-3'>
+              <div className='flex items-start justify-between gap-2'>
+                <div className='min-w-0'>
+                  <p className='text-xs font-semibold'>Skip logic</p>
+                  <p className='text-muted-foreground text-[11px]'>
+                    Show this question when the rules match. Draft, then confirm.
+                  </p>
                 </div>
+                <div className='flex shrink-0 rounded-lg border border-border p-0.5'>
+                  {(['AND', 'OR'] as const).map((op) => (
+                    <button
+                      key={op}
+                      type='button'
+                      className={cn(
+                        'rounded-md px-2 py-1 text-[10px] font-semibold transition-colors',
+                        logicOperator === op
+                          ? 'bg-brand-soft text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                      onClick={() => setLogicOperator(op)}
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className='space-y-2'>
+                {draftRules.map((rule, index) => {
+                  const selectedPrior = priorQuestions.find(
+                    (q) => q.id === rule.questionId
+                  );
+                  const priorChoices = selectedPrior?.options ?? [];
+                  return (
+                    <div
+                      key={`skip-rule-${index}`}
+                      className='space-y-2 rounded-lg border border-border/80 bg-muted/20 p-2.5'
+                    >
+                      <div className='flex items-center justify-between gap-2'>
+                        <p className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'>
+                          Rule {index + 1}
+                          {index > 0 ? ` · ${logicOperator}` : ''}
+                        </p>
+                        {draftRules.length > 1 ? (
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            className='text-destructive h-6 px-1.5 text-[10px]'
+                            onClick={() =>
+                              setDraftRules((prev) =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        ) : null}
+                      </div>
+                      <select
+                        className='border-input bg-background h-9 w-full rounded-md border px-2 text-xs'
+                        value={rule.questionId}
+                        onChange={(e) => {
+                          const questionId = e.target.value;
+                          setDraftRules((prev) =>
+                            prev.map((r, i) =>
+                              i === index
+                                ? { ...r, questionId, value: '' }
+                                : r
+                            )
+                          );
+                        }}
+                      >
+                        {priorQuestions.map((q) => (
+                          <option key={q.id} value={q.id}>
+                            {q.promptText.slice(0, 60) || 'Untitled'}
+                          </option>
+                        ))}
+                      </select>
+                      <div className='grid grid-cols-2 gap-2'>
+                        <select
+                          className='border-input bg-background h-9 rounded-md border px-2 text-xs'
+                          value={rule.op}
+                          onChange={(e) => {
+                            const op = normalizeOp(e.target.value);
+                            setDraftRules((prev) =>
+                              prev.map((r, i) =>
+                                i === index ? { ...r, op } : r
+                              )
+                            );
+                          }}
+                        >
+                          <option value='eq'>equals</option>
+                          <option value='neq'>not equals</option>
+                          <option value='gt'>greater than</option>
+                          <option value='lt'>less than</option>
+                          <option value='contains'>contains</option>
+                        </select>
+                        {priorChoices.length > 0 &&
+                        (rule.op === 'eq' || rule.op === 'neq') ? (
+                          <select
+                            className='border-input bg-background h-9 rounded-md border px-2 text-xs'
+                            value={rule.value}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setDraftRules((prev) =>
+                                prev.map((r, i) =>
+                                  i === index ? { ...r, value } : r
+                                )
+                              );
+                            }}
+                          >
+                            <option value=''>Select value…</option>
+                            {priorChoices.map((opt) => (
+                              <option key={opt.id} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Input
+                            className='h-9 text-xs'
+                            value={rule.value}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setDraftRules((prev) =>
+                                prev.map((r, i) =>
+                                  i === index ? { ...r, value } : r
+                                )
+                              );
+                            }}
+                            placeholder='Value'
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className='flex flex-col gap-2'>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  className='h-8 justify-start rounded-xl px-2 text-xs'
+                  disabled={draftRules.length >= 6}
+                  onClick={() =>
+                    setDraftRules((prev) => [
+                      ...prev,
+                      emptySkipRule(priorQuestions[0]?.id ?? '')
+                    ])
+                  }
+                >
+                  <Icons.add className='mr-1 size-3' />
+                  Add rule
+                </Button>
                 <Button
                   type='button'
                   variant='outline'
                   className='w-full rounded-xl text-xs'
-                  disabled={!ruleQuestionId || !ruleValue.trim() || busyLogic}
+                  disabled={!canDraftLogic || busyLogic}
                   onClick={handleDraftFromEditor}
                 >
-                  Draft skip rule
+                  Draft skip logic
                 </Button>
               </div>
             </div>

@@ -198,15 +198,24 @@ class NotificationService:
         survey_id: UUID,
         survey_title: str,
         response_count: int,
+        respondent_id: UUID | None = None,
     ) -> None:
         """In-app on every completed response; email on milestones / digests."""
         if response_count < 1:
             return
-        href = f"/dashboard/surveys/{survey_id}/respondents"
-        meta = {
+        if respondent_id is not None:
+            href = (
+                f"/dashboard/surveys/{survey_id}/respondents"
+                f"?respondent={respondent_id}"
+            )
+        else:
+            href = f"/dashboard/surveys/{survey_id}/respondents"
+        meta: dict[str, Any] = {
             "survey_id": str(survey_id),
             "response_count": response_count,
         }
+        if respondent_id is not None:
+            meta["respondent_id"] = str(respondent_id)
 
         if response_count in RESPONSE_MILESTONES:
             await self.notify_org(

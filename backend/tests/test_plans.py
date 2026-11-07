@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import json
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
 
 from app.ai.client import StructuredCallResult
-from app.ai.schemas import ProposedSection, SurveyPlanOutput
+from app.ai.schemas import (
+    PlanInterviewBrief,
+    PlanInterviewTurnOutput,
+    ProposedSection,
+    SurveyPlanOutput,
+)
 
 
 async def _register_and_verify(
@@ -290,3 +296,138 @@ async def test_plan_locks_after_survey_questions_generated(
     )
     assert blocked_gen.status_code == 400, blocked_gen.text
     assert "locked" in blocked_gen.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_plan_interview_stream_mocked(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tokens = await _register_and_verify(
+        client,
+        email="interview@example.com",
+        password="SecurePass1!",
+        code=fixed_otp,
+    )
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    fake = PlanInterviewTurnOutput(
+        assistant_reply="Who should take this survey?",
+        ready_to_generate=False,
+        research_goal_draft="Assess healthcare access in rural clinics.",
+        brief=PlanInterviewBrief(
+            title_hint="Clinic access",
+            audiences=["Patients"],
+            decisions=["Program design"],
+            constraints=[],
+            summary="Exploring healthcare access for patients.",
+        ),
+    )
+
+    async def _fake_interview(**kwargs):  # noqa: ANN003
+        yield ("delta", "Who should take this survey?")
+        yield (
+            "result",
+            StructuredCallResult(
+                value=fake,
+                model="gemini-test",
+                prompt_version="planner_interview_v1",
+                request_id=str(uuid4()),
+                latency_ms=8,
+            ),
+        )
+
+    monkeypatch.setattr(
+        "app.services.plan.iter_interview_plan_turn",
+        _fake_interview,
+    )
+
+    res = await client.post(
+        "/api/v1/plans/interview/turn/stream",
+        headers=headers,
+        json={
+            "messages": [],
+            "content": "I want to understand healthcare access in rural clinics.",
+        },
+    )
+    assert res.status_code == 200, res.text
+    assert "text/event-stream" in res.headers.get("content-type", "")
+    text = res.text
+    assert "event: status" in text
+    assert "event: delta" in text
+    assert "event: done" in text
+    assert "Who should take this survey?" in text
+    assert "Clinic access" in text
+
+
+@pytest.mark.asyncio
+async def test_plan_interview_ready_to_generate(
+    client: AsyncClient, fixed_otp: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tokens = await _register_and_verify(
+        client,
+        email="interview-ready@example.com",
+        password="SecurePass1!",
+        code=fixed_otp,
+    )
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    fake = PlanInterviewTurnOutput(
+        assistant_reply="Great — we have enough to draft the plan.",
+        ready_to_generate=True,
+        research_goal_draft=(
+            "Assess healthcare access barriers among adult patients in "
+            "rural DICDO clinics to inform outreach program design."
+        ),
+        brief=PlanInterviewBrief(
+            title_hint="Healthcare access",
+            audiences=["Adult patients"],
+            decisions=["Outreach design"],
+            constraints=["Rural clinics"],
+            summary="Ready to generate a healthcare access plan.",
+        ),
+    )
+
+    async def _fake_interview(**kwargs):  # noqa: ANN003
+        yield ("delta", fake.assistant_reply)
+        yield (
+            "result",
+            StructuredCallResult(
+                value=fake,
+                model="gemini-test",
+                prompt_version="planner_interview_v1",
+                request_id=str(uuid4()),
+                latency_ms=8,
+            ),
+        )
+
+    monkeypatch.setattr(
+        "app.services.plan.iter_interview_plan_turn",
+        _fake_interview,
+    )
+
+    res = await client.post(
+        "/api/v1/plans/interview/turn/stream",
+        headers=headers,
+        json={
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Healthcare access in rural clinics for adults.",
+                },
+                {
+                    "role": "assistant",
+                    "content": "What decisions should the survey inform?",
+                },
+            ],
+            "content": "Outreach program design for DICDO clinics.",
+        },
+    )
+    assert res.status_code == 200, res.text
+    # Parse final done event
+    blocks = [b for b in res.text.split("\n\n") if b.strip()]
+    done = next(b for b in blocks if b.startswith("event: done"))
+    data_line = next(line for line in done.split("\n") if line.startswith("data:"))
+    payload = json.loads(data_line[5:].strip())
+    assert payload["ready_to_generate"] is True
+    assert len(payload["research_goal_draft"]) >= 10
+    assert payload["brief"]["title_hint"] == "Healthcare access"

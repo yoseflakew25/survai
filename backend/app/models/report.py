@@ -107,6 +107,9 @@ class SavedAnalysis(Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     filters: Mapped[list[Any]] = mapped_column(JsonType, nullable=False, default=list)
+    chart_config: Mapped[dict[str, Any] | None] = mapped_column(
+        JsonType, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

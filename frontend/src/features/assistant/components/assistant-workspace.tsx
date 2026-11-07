@@ -210,10 +210,10 @@ export function AssistantWorkspace() {
       : 'Org research assistant';
 
   return (
-    <div className='flex flex-1 flex-col'>
-      <SurvaiPanel className='flex min-h-[min(70vh,44rem)] flex-1 flex-col overflow-hidden'>
+    <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
+      <SurvaiPanel className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
         {/* Single full-width brand header — aligns both columns */}
-        <div className='relative shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 py-4'>
+        <div className='relative shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 py-4 sm:px-6'>
           <div
             className='pointer-events-none absolute inset-0 opacity-35'
             aria-hidden
@@ -250,8 +250,8 @@ export function AssistantWorkspace() {
 
         <div className='flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row'>
           {/* Thread rail */}
-          <aside className='flex max-h-[36vh] w-full shrink-0 flex-col border-b border-border lg:max-h-none lg:w-72 lg:border-r lg:border-b-0'>
-            <div className='min-h-0 flex-1 overflow-y-auto'>
+          <aside className='flex max-h-[36vh] w-full shrink-0 flex-col overflow-hidden border-b border-border lg:max-h-none lg:h-full lg:w-72 lg:border-r lg:border-b-0'>
+            <div className='min-h-0 flex-1 overflow-y-auto overscroll-contain'>
               {threadsQuery.isLoading ? (
                 <ThreadListSkeleton />
               ) : threadsQuery.isError ? (
@@ -361,10 +361,10 @@ export function AssistantWorkspace() {
           </aside>
 
           {/* Chat column */}
-          <div className='flex min-h-[28rem] min-w-0 flex-1 flex-col'>
+          <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
           <div
             aria-live='polite'
-            className='flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3.5 py-4'
+            className='flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 md:px-8'
             style={{
               backgroundImage: `
                 radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
@@ -524,7 +524,7 @@ export function AssistantWorkspace() {
             <div ref={endRef} />
           </div>
 
-          <div className='shrink-0 space-y-3 border-t border-border bg-[color-mix(in_srgb,var(--background)_55%,var(--brand-soft))] px-3.5 py-3.5'>
+          <div className='shrink-0 space-y-3 border-t border-border bg-[color-mix(in_srgb,var(--background)_55%,var(--brand-soft))] px-4 py-3.5 sm:px-6 md:px-8'>
             <div className='relative'>
               <Input
                 value={input}

@@ -109,9 +109,11 @@ class SavedAnalysisPublic(BaseModel):
     survey_id: UUID
     name: str
     filters: list[dict[str, Any]] = Field(default_factory=list)
+    chart_config: dict[str, Any] | None = None
     created_at: datetime
 
 
 class SavedAnalysisCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     filters: list[dict[str, Any]] = Field(default_factory=list)
+    chart_config: dict[str, Any] | None = None

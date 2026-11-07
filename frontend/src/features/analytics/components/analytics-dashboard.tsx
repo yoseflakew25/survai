@@ -14,7 +14,11 @@ import {
   crossTabOptions,
   savedAnalysesOptions
 } from '../api/queries';
-import { createSavedAnalysis, exportAnalyticsCsv } from '../api/service';
+import {
+  createSavedAnalysis,
+  deleteSavedAnalysis,
+  exportAnalyticsCsv
+} from '../api/service';
 import type { Filter, SavedAnalysis } from '../api/types';
 import { AnalyticsSummaryStats } from './analytics-summary-stats';
 import { DistributionChart } from './distribution-chart';
@@ -77,8 +81,11 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const canEdit = canEditOrg(user?.role);
   const [exporting, setExporting] = useState(false);
   const [savingView, setSavingView] = useState(false);
+  const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Filter[]>([]);
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
+  const [crosstabAId, setCrosstabAId] = useState<string | null>(null);
+  const [crosstabBId, setCrosstabBId] = useState<string | null>(null);
 
   const { data: summary } = useSuspenseQuery(analyticsSummaryOptions(surveyId));
   const { data: distributions } = useSuspenseQuery(
@@ -89,8 +96,18 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   const crosstabAxes = distributions.filter((d) =>
     CROSSTAB_TYPES.has(d.questionType)
   );
-  const questionAId = crosstabAxes[0]?.questionId ?? '';
-  const questionBId = crosstabAxes[1]?.questionId ?? '';
+  const questionAId =
+    (crosstabAId &&
+    crosstabAxes.some((d) => d.questionId === crosstabAId)
+      ? crosstabAId
+      : crosstabAxes[0]?.questionId) ?? '';
+  const questionBId =
+    (crosstabBId &&
+    crosstabAxes.some((d) => d.questionId === crosstabBId) &&
+    crosstabBId !== questionAId
+      ? crosstabBId
+      : crosstabAxes.find((d) => d.questionId !== questionAId)?.questionId) ??
+    '';
   const { data: crossTab, isLoading: crossTabLoading } = useQuery(
     crossTabOptions(surveyId, questionAId, questionBId, activeFilters)
   );
@@ -121,7 +138,20 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   async function handleSaveView(name: string) {
     setSavingView(true);
     try {
-      const saved = await createSavedAnalysis(surveyId, name, activeFilters);
+      const chartConfig =
+        questionAId && questionBId
+          ? {
+              type: 'crosstab' as const,
+              questionAId,
+              questionBId
+            }
+          : null;
+      const saved = await createSavedAnalysis(
+        surveyId,
+        name,
+        activeFilters,
+        chartConfig
+      );
       await queryClient.invalidateQueries({
         queryKey: analyticsKeys.saved(surveyId)
       });
@@ -141,7 +171,40 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   function handleApplySaved(analysis: SavedAnalysis) {
     setActiveFilters(analysis.filters);
     setActiveAnalysisId(analysis.id);
+    const cfg = analysis.chartConfig;
+    if (
+      cfg &&
+      typeof cfg === 'object' &&
+      cfg.type === 'crosstab' &&
+      typeof cfg.questionAId === 'string' &&
+      typeof cfg.questionBId === 'string'
+    ) {
+      setCrosstabAId(cfg.questionAId);
+      setCrosstabBId(cfg.questionBId);
+    }
     toast.success(`Applied “${analysis.name}”`);
+  }
+
+  async function handleDeleteView(analysis: SavedAnalysis) {
+    setDeletingViewId(analysis.id);
+    try {
+      await deleteSavedAnalysis(surveyId, analysis.id);
+      await queryClient.invalidateQueries({
+        queryKey: analyticsKeys.saved(surveyId)
+      });
+      if (activeAnalysisId === analysis.id) {
+        setActiveAnalysisId(null);
+      }
+      toast.success('View deleted', {
+        description: `Removed “${analysis.name}”.`
+      });
+    } catch (err) {
+      toast.error('Could not delete view', {
+        description: err instanceof Error ? err.message : 'Try again.'
+      });
+    } finally {
+      setDeletingViewId(null);
+    }
   }
 
   const reportHref =
@@ -216,11 +279,50 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                 : 'Compare two categorical questions'
             }
             badge={
-              crossTab ? (
-                <Badge variant='secondary' className='text-xs'>
-                  {crossTab.totalResponses} responses
-                </Badge>
-              ) : null
+              <div className='flex flex-wrap items-center gap-1.5'>
+                {crosstabAxes.length >= 2 ? (
+                  <>
+                    <select
+                      className='border-input bg-background h-7 max-w-[9rem] rounded-md border px-1.5 text-[10px]'
+                      value={questionAId}
+                      onChange={(e) => {
+                        setActiveAnalysisId(null);
+                        setCrosstabAId(e.target.value);
+                      }}
+                      aria-label='Cross-tab row question'
+                    >
+                      {crosstabAxes.map((d) => (
+                        <option key={d.questionId} value={d.questionId}>
+                          {d.questionText.slice(0, 40)}
+                        </option>
+                      ))}
+                    </select>
+                    <span className='text-muted-foreground text-[10px]'>×</span>
+                    <select
+                      className='border-input bg-background h-7 max-w-[9rem] rounded-md border px-1.5 text-[10px]'
+                      value={questionBId}
+                      onChange={(e) => {
+                        setActiveAnalysisId(null);
+                        setCrosstabBId(e.target.value);
+                      }}
+                      aria-label='Cross-tab column question'
+                    >
+                      {crosstabAxes
+                        .filter((d) => d.questionId !== questionAId)
+                        .map((d) => (
+                          <option key={d.questionId} value={d.questionId}>
+                            {d.questionText.slice(0, 40)}
+                          </option>
+                        ))}
+                    </select>
+                  </>
+                ) : null}
+                {crossTab ? (
+                  <Badge variant='secondary' className='text-xs'>
+                    {crossTab.totalResponses} responses
+                  </Badge>
+                ) : null}
+              </div>
             }
           >
             {!questionAId || !questionBId ? (
@@ -248,12 +350,14 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
             activeAnalysisId={activeAnalysisId}
             canEdit={canEdit}
             saving={savingView}
+            deletingId={deletingViewId}
             onApply={handleApplySaved}
             onClear={() => {
               setActiveFilters([]);
               setActiveAnalysisId(null);
             }}
             onSave={handleSaveView}
+            onDelete={handleDeleteView}
           />
           {canEdit ? (
             <SurvaiBrandCard

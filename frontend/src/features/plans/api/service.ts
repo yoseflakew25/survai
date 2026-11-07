@@ -14,6 +14,9 @@ import type {
   Plan,
   PlanListResponse,
   PlanCreatePayload,
+  PlanInterviewBrief,
+  PlanInterviewMessage,
+  PlanInterviewTurnResult,
   PlanUpdatePayload,
   ProposedSection,
   SurveyPlanOutput
@@ -55,6 +58,128 @@ type ApiGenerateResponse = {
 };
 
 const AI_TIMEOUT_MS = 90_000;
+const STREAM_TIMEOUT_MS = 180_000;
+
+type ApiInterviewBrief = {
+  title_hint?: string;
+  audiences?: string[];
+  decisions?: string[];
+  constraints?: string[];
+  summary?: string;
+};
+
+type ApiInterviewTurn = {
+  assistant_reply: string;
+  ready_to_generate: boolean;
+  research_goal_draft: string;
+  brief: ApiInterviewBrief;
+};
+
+function mapInterviewBrief(b: ApiInterviewBrief | undefined): PlanInterviewBrief {
+  return {
+    titleHint: b?.title_hint ?? '',
+    audiences: b?.audiences ?? [],
+    decisions: b?.decisions ?? [],
+    constraints: b?.constraints ?? [],
+    summary: b?.summary ?? ''
+  };
+}
+
+function mapInterviewTurn(t: ApiInterviewTurn): PlanInterviewTurnResult {
+  return {
+    assistantReply: t.assistant_reply,
+    readyToGenerate: Boolean(t.ready_to_generate),
+    researchGoalDraft: t.research_goal_draft ?? '',
+    brief: mapInterviewBrief(t.brief)
+  };
+}
+
+export type PlanInterviewStreamHandlers = {
+  onStatus?: (stage: string) => void;
+  onDelta?: (text: string) => void;
+};
+
+/** SSE interview turn — status + progressive deltas; resolves with final turn. */
+export async function sendPlanInterviewTurnStream(
+  messages: PlanInterviewMessage[],
+  content: string,
+  handlers: PlanInterviewStreamHandlers = {}
+): Promise<PlanInterviewTurnResult> {
+  const res = await apiFetch(
+    '/plans/interview/turn/stream',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream'
+      },
+      body: JSON.stringify({
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content
+        })),
+        content
+      })
+    },
+    STREAM_TIMEOUT_MS
+  );
+  if (!res.ok) await readError(res, 'Could not continue the plan interview');
+  if (!res.body) {
+    throw new Error('Plan interview stream returned an empty body');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: PlanInterviewTurnResult | null = null;
+  let streamError: string | null = null;
+
+  const consumeBlock = (block: string) => {
+    const lines = block.split('\n');
+    let event = 'message';
+    const dataLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (!dataLines.length) return;
+    let payload: unknown;
+    try {
+      payload = JSON.parse(dataLines.join('\n'));
+    } catch {
+      return;
+    }
+    if (event === 'status' && payload && typeof payload === 'object') {
+      const stage = (payload as { stage?: string }).stage;
+      if (stage) handlers.onStatus?.(stage);
+    } else if (event === 'delta' && payload && typeof payload === 'object') {
+      const text = (payload as { text?: string }).text;
+      if (text) handlers.onDelta?.(text);
+    } else if (event === 'done' && payload && typeof payload === 'object') {
+      result = mapInterviewTurn(payload as ApiInterviewTurn);
+    } else if (event === 'error' && payload && typeof payload === 'object') {
+      streamError =
+        (payload as { detail?: string }).detail ||
+        'Plan interview stream failed';
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop() ?? '';
+    for (const block of parts) {
+      if (block.trim()) consumeBlock(block);
+    }
+  }
+  if (buffer.trim()) consumeBlock(buffer);
+
+  if (streamError) throw new Error(streamError);
+  if (!result) throw new Error('Plan interview stream ended without a reply');
+  return result;
+}
 
 function mapSection(s: ApiProposedSection): ProposedSection {
   return { title: s.title, rationale: s.rationale };
