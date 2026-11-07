@@ -656,7 +656,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   onClick={() => void handleSavePdf()}
                   className={cn(
                     blackCtaClass,
-                    'h-10 w-full gap-2 shadow-[0_2px_0_color-mix(in_srgb,var(--foreground)_35%,transparent)]'
+                    'h-10 w-full gap-2 border-border/60 shadow-none'
                   )}
                 >
                   {isExporting ? (
@@ -670,7 +670,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   type='button'
                   disabled={isExporting || !report}
                   onClick={() => void handleSaveDocx()}
-                  className={cn(brandCtaClass, 'h-10 w-full gap-2 px-4 shadow-sm')}
+                  className={cn(
+                    brandCtaClass,
+                    'h-10 w-full gap-2 border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] px-4 shadow-none'
+                  )}
                 >
                   <Icons.page className='size-3.5' />
                   Save as Word
@@ -680,7 +683,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   variant='outline'
                   disabled={isExporting || !report}
                   onClick={() => void handleDonorPack()}
-                  className='h-10 w-full gap-2 rounded-xl border-2 border-foreground/85 bg-transparent px-4 text-sm font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] hover:bg-foreground hover:text-background'
+                  className='h-10 w-full gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-none hover:bg-muted/60'
                 >
                   <Icons.fileZip className='size-3.5' />
                   Download donor pack
@@ -691,7 +694,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     variant='outline'
                     disabled={isGenerating || !!regeneratingId}
                     onClick={() => void handleGenerateReport()}
-                    className='h-10 w-full gap-2 rounded-xl border-2 border-primary bg-brand-soft px-4 text-sm font-semibold text-primary shadow-sm hover:bg-primary hover:text-primary-foreground'
+                    className='h-10 w-full gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 text-sm font-semibold text-primary shadow-none hover:bg-primary hover:text-primary-foreground'
                   >
                     {isGenerating ? (
                       <Icons.spinner className='size-3.5 animate-spin' />
