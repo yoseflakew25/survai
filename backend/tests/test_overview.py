@@ -24,11 +24,14 @@ async def test_overview_empty_workspace(client: AsyncClient, fixed_otp: str) -> 
     assert body["responses_total"] == 0
     assert body["reports_total"] == 0
     assert body["completion_rate"] == 0.0
-    assert len(body["kpis"]) == 4
+    assert len(body["kpis"]) == 3
     assert len(body["activity"]) == 12
     assert all(p["started"] == 0 and p["completed"] == 0 for p in body["activity"])
     assert body["kpis"][0]["label"] == "Total Surveys"
     assert body["kpis"][0]["value"] == "0"
+    assert len(body["lifecycle"]) == 5
+    assert all(stage["count"] == 0 for stage in body["lifecycle"])
+    assert body["attention"] == []
 
 
 @pytest.mark.asyncio

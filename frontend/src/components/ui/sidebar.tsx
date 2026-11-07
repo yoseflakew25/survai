@@ -455,11 +455,11 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  'peer/menu-button group/menu-button flex w-full items-center gap-2.5 overflow-hidden rounded-xl p-2.5 text-left text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding,box-shadow] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground data-active:shadow-[0_1px_2px_rgba(0,0,0,0.08)] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-foreground data-active:[&_svg]:text-foreground [&>span:last-child]:truncate',
+  'peer/menu-button group/menu-button flex w-full items-center gap-2.5 overflow-hidden rounded-lg p-2.5 text-left text-sm ring-sidebar-ring outline-hidden transition-colors group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-0 hover:text-foreground focus-visible:ring-2 active:text-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:font-semibold data-active:text-primary data-active:bg-transparent data-active:shadow-none [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-active:[&_svg]:text-primary [&>span:last-child]:truncate',
   {
     variants: {
       variant: {
-        default: 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        default: 'hover:text-foreground',
         outline:
           'bg-background shadow-[0_0_0_1px_var(--sidebar-border)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_var(--sidebar-accent)]'
       },

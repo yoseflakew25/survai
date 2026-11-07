@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -20,6 +22,23 @@ class OverviewActivityPoint(BaseModel):
     completed: int
 
 
+class OverviewLifecycleStage(BaseModel):
+    key: str = Field(description="plan | review | collect | analytics | report")
+    label: str
+    count: int
+
+
+class OverviewAttentionItem(BaseModel):
+    id: str
+    kind: str = Field(
+        description="plan_ready | draft | no_responses | ready_for_report | stale_report"
+    )
+    title: str
+    detail: str
+    href: str
+    survey_id: UUID | None = None
+
+
 class OverviewResponse(BaseModel):
     kpis: list[OverviewKpi]
     activity: list[OverviewActivityPoint]
@@ -27,3 +46,5 @@ class OverviewResponse(BaseModel):
     responses_total: int
     reports_total: int
     completion_rate: float
+    lifecycle: list[OverviewLifecycleStage] = Field(default_factory=list)
+    attention: list[OverviewAttentionItem] = Field(default_factory=list)

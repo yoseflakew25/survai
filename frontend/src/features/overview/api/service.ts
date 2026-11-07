@@ -6,8 +6,10 @@ import {
 
 import type {
   OverviewActivityPoint,
+  OverviewAttentionItem,
   OverviewData,
   OverviewKpi,
+  OverviewLifecycleStage,
   OverviewTrend
 } from './types';
 
@@ -26,6 +28,21 @@ type ApiActivity = {
   completed: number;
 };
 
+type ApiLifecycle = {
+  key: string;
+  label: string;
+  count: number;
+};
+
+type ApiAttention = {
+  id: string;
+  kind: string;
+  title: string;
+  detail: string;
+  href: string;
+  survey_id?: string | null;
+};
+
 type ApiOverview = {
   kpis: ApiKpi[];
   activity: ApiActivity[];
@@ -33,6 +50,8 @@ type ApiOverview = {
   responses_total: number;
   reports_total: number;
   completion_rate: number;
+  lifecycle?: ApiLifecycle[];
+  attention?: ApiAttention[];
 };
 
 function asTrend(value: string): OverviewTrend {
@@ -59,6 +78,25 @@ function mapActivity(p: ApiActivity): OverviewActivityPoint {
   };
 }
 
+function mapLifecycle(s: ApiLifecycle): OverviewLifecycleStage {
+  return {
+    key: s.key,
+    label: s.label,
+    count: s.count ?? 0
+  };
+}
+
+function mapAttention(item: ApiAttention): OverviewAttentionItem {
+  return {
+    id: item.id,
+    kind: item.kind,
+    title: item.title,
+    detail: item.detail,
+    href: item.href,
+    surveyId: item.survey_id ?? null
+  };
+}
+
 export async function getOverview(): Promise<OverviewData> {
   const res = await apiFetch('/overview');
   if (!res.ok) {
@@ -77,6 +115,8 @@ export async function getOverview(): Promise<OverviewData> {
     surveysTotal: raw.surveys_total ?? 0,
     responsesTotal: raw.responses_total ?? 0,
     reportsTotal: raw.reports_total ?? 0,
-    completionRate: raw.completion_rate ?? 0
+    completionRate: raw.completion_rate ?? 0,
+    lifecycle: (raw.lifecycle ?? []).map(mapLifecycle),
+    attention: (raw.attention ?? []).map(mapAttention)
   };
 }

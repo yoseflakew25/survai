@@ -14,6 +14,25 @@ function TrendIcon({ trend }: { trend: OverviewKpi['trend'] }) {
   return <Icons.trendingUp className='size-3' />;
 }
 
+function WelcomeCard() {
+  return (
+    <article
+      className={cn(
+        'flex flex-col justify-center rounded-[1.125rem] border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft p-4',
+        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+      )}
+    >
+      
+      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground'>
+        Welcome to Survai
+      </h1>
+      <p className='text-muted-foreground text-sm leading-relaxed'>
+        Live counts from your surveys and responses.
+      </p>
+    </article>
+  );
+}
+
 function KpiCard({ kpi }: { kpi: OverviewKpi }) {
   return (
     <article
@@ -24,11 +43,13 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
     >
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
-          <p className='text-[12px] font-medium text-muted-foreground'>{kpi.label}</p>
-          <p className='font-display .5 text-3xl font-extrabold tracking-tight tabular-nums text-primary'>
+          <p className='text-[12px] font-medium text-muted-foreground'>
+            {kpi.label}
+          </p>
+          <p className='font-display text-3xl font-extrabold tracking-tight tabular-nums text-primary'>
             {kpi.value}
           </p>
-          <p className=' font-mono text-[10px] tracking-wide text-muted-foreground uppercase'>
+          <p className='font-mono text-[10px] tracking-wide text-muted-foreground uppercase'>
             {kpi.hint}
           </p>
         </div>
@@ -75,9 +96,12 @@ export function OverviewKpis() {
     );
   }
 
+  const kpis = data.kpis.filter((kpi) => kpi.label !== 'Completion Rate');
+
   return (
     <div className='grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4'>
-      {data.kpis.map((kpi) => (
+      <WelcomeCard />
+      {kpis.map((kpi) => (
         <KpiCard key={kpi.label} kpi={kpi} />
       ))}
     </div>

@@ -12,9 +12,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import ForbiddenError
 from app.models.collection import Respondent
 from app.models.report import Report
-from app.models.survey import Survey
+from app.models.survey import Survey, SurveyStatus
+from app.models.survey_plan import SurveyPlan
 from app.models.user import User
-from app.schemas.overview import OverviewActivityPoint, OverviewKpi, OverviewResponse
+from app.schemas.overview import (
+    OverviewActivityPoint,
+    OverviewAttentionItem,
+    OverviewKpi,
+    OverviewLifecycleStage,
+    OverviewResponse,
+)
 
 
 def _require_org(user: User) -> UUID:
@@ -38,10 +45,6 @@ def _fmt_int(n: int) -> str:
     return f"{n:,}"
 
 
-def _fmt_pct(rate: float) -> str:
-    return f"{rate * 100:.1f}%"
-
-
 def _delta_count(current: int, previous: int, *, unit: str) -> tuple[str, str]:
     diff = current - previous
     if diff > 0:
@@ -49,15 +52,6 @@ def _delta_count(current: int, previous: int, *, unit: str) -> tuple[str, str]:
     if diff < 0:
         return f"{diff} {unit}", "down"
     return f"0 {unit}", "flat"
-
-
-def _delta_rate(current: float, previous: float) -> tuple[str, str]:
-    pts = (current - previous) * 100
-    if abs(pts) < 0.05:
-        return "0.0 pts", "flat"
-    sign = "+" if pts > 0 else ""
-    trend = "up" if pts > 0 else "down"
-    return f"{sign}{pts:.1f} pts", trend
 
 
 class OverviewService:
@@ -186,14 +180,6 @@ class OverviewService:
         completion_rate = (
             lifetime_completed / lifetime_started if lifetime_started else 0.0
         )
-        prev_rate = (
-            completed_prev / started_prev if started_prev else completion_rate
-        )
-        # Prefer month-over-month when both periods have starts; else flat.
-        rate_for_delta_current = (
-            completed_this / started_this if started_this else completion_rate
-        )
-        rate_for_delta_previous = prev_rate if started_prev else rate_for_delta_current
 
         survey_delta, survey_trend = _delta_count(
             surveys_this, surveys_prev, unit="this month"
@@ -203,9 +189,6 @@ class OverviewService:
         )
         report_delta, report_trend = _delta_count(
             reports_this, reports_prev, unit="this month"
-        )
-        rate_delta, rate_trend = _delta_rate(
-            rate_for_delta_current, rate_for_delta_previous
         )
 
         kpis = [
@@ -230,13 +213,6 @@ class OverviewService:
                 hint="AI reports saved",
                 trend=report_trend,
             ),
-            OverviewKpi(
-                label="Completion Rate",
-                value=_fmt_pct(completion_rate),
-                delta=rate_delta,
-                hint="Completed / started",
-                trend=rate_trend,
-            ),
         ]
 
         activity: list[OverviewActivityPoint] = []
@@ -256,6 +232,8 @@ class OverviewService:
             else:
                 cursor = cursor.replace(month=cursor.month + 1)
 
+        lifecycle, attention = await self._lifecycle_and_attention(org_id=org_id)
+
         return OverviewResponse(
             kpis=kpis,
             activity=activity,
@@ -263,7 +241,217 @@ class OverviewService:
             responses_total=lifetime_completed,
             reports_total=reports_total,
             completion_rate=completion_rate,
+            lifecycle=lifecycle,
+            attention=attention,
         )
+
+    async def _lifecycle_and_attention(
+        self, *, org_id: UUID
+    ) -> tuple[list[OverviewLifecycleStage], list[OverviewAttentionItem]]:
+        plans_total = await self._scalar(
+            select(func.count())
+            .select_from(SurveyPlan)
+            .where(SurveyPlan.organization_id == org_id)
+        )
+        draft_total = await self._scalar(
+            select(func.count())
+            .select_from(Survey)
+            .where(
+                Survey.organization_id == org_id,
+                Survey.status == SurveyStatus.draft.value,
+            )
+        )
+        collecting_total = await self._scalar(
+            select(func.count())
+            .select_from(Survey)
+            .where(
+                Survey.organization_id == org_id,
+                Survey.status == SurveyStatus.published.value,
+            )
+        )
+        with_responses = await self._scalar(
+            select(func.count(func.distinct(Respondent.survey_id)))
+            .select_from(Respondent)
+            .join(Survey, Survey.id == Respondent.survey_id)
+            .where(
+                Survey.organization_id == org_id,
+                Respondent.completed_at.is_not(None),
+            )
+        )
+        with_reports = await self._scalar(
+            select(func.count(func.distinct(Report.survey_id)))
+            .select_from(Report)
+            .join(Survey, Survey.id == Report.survey_id)
+            .where(Survey.organization_id == org_id)
+        )
+
+        lifecycle = [
+            OverviewLifecycleStage(key="plan", label="Plan", count=plans_total),
+            OverviewLifecycleStage(key="review", label="Review", count=draft_total),
+            OverviewLifecycleStage(
+                key="collect", label="Collect", count=collecting_total
+            ),
+            OverviewLifecycleStage(
+                key="analytics", label="Analytics", count=with_responses
+            ),
+            OverviewLifecycleStage(key="report", label="Report", count=with_reports),
+        ]
+
+        completed_by_survey: dict[UUID, int] = {
+            row[0]: int(row[1])
+            for row in (
+                await self.session.execute(
+                    select(Respondent.survey_id, func.count())
+                    .join(Survey, Survey.id == Respondent.survey_id)
+                    .where(
+                        Survey.organization_id == org_id,
+                        Respondent.completed_at.is_not(None),
+                    )
+                    .group_by(Respondent.survey_id)
+                )
+            ).all()
+        }
+
+        report_rows = (
+            await self.session.execute(
+                select(
+                    Report.id,
+                    Report.survey_id,
+                    Report.title,
+                    Report.metrics_snapshot,
+                    Report.created_at,
+                    Survey.title,
+                )
+                .join(Survey, Survey.id == Report.survey_id)
+                .where(Survey.organization_id == org_id)
+                .order_by(Report.created_at.desc())
+            )
+        ).all()
+
+        latest_report_by_survey: dict[UUID, tuple] = {}
+        for row in report_rows:
+            sid = row[1]
+            if sid not in latest_report_by_survey:
+                latest_report_by_survey[sid] = row
+
+        surveys = (
+            await self.session.execute(
+                select(Survey.id, Survey.title, Survey.status, Survey.updated_at)
+                .where(Survey.organization_id == org_id)
+                .order_by(Survey.updated_at.desc())
+            )
+        ).all()
+
+        linked_plan_ids = {
+            row[0]
+            for row in (
+                await self.session.execute(
+                    select(Survey.plan_id).where(
+                        Survey.organization_id == org_id,
+                        Survey.plan_id.is_not(None),
+                    )
+                )
+            ).all()
+            if row[0] is not None
+        }
+
+        unlinked_stmt = (
+            select(SurveyPlan.id, SurveyPlan.research_goal, SurveyPlan.updated_at)
+            .where(SurveyPlan.organization_id == org_id)
+            .order_by(SurveyPlan.updated_at.desc())
+            .limit(8)
+        )
+        if linked_plan_ids:
+            unlinked_stmt = unlinked_stmt.where(SurveyPlan.id.notin_(linked_plan_ids))
+        unlinked_plans = (await self.session.execute(unlinked_stmt)).all()
+
+        attention: list[OverviewAttentionItem] = []
+
+        for report_id, survey_id, report_title, snap, _created, survey_title in (
+            latest_report_by_survey.values()
+        ):
+            snapshot_n = int((snap or {}).get("response_count") or 0)
+            live_n = completed_by_survey.get(survey_id, 0)
+            if live_n > snapshot_n:
+                attention.append(
+                    OverviewAttentionItem(
+                        id=f"stale:{report_id}",
+                        kind="stale_report",
+                        title=survey_title or report_title,
+                        detail=(
+                            f"Report snapshot is stale ({snapshot_n} → {live_n} "
+                            "responses)"
+                        ),
+                        href=f"/dashboard/surveys/{survey_id}/reports",
+                        survey_id=survey_id,
+                    )
+                )
+
+        for survey_id, title, status, _updated in surveys:
+            completed = completed_by_survey.get(survey_id, 0)
+            if (
+                status in (SurveyStatus.published.value, SurveyStatus.closed.value)
+                and completed > 0
+                and survey_id not in latest_report_by_survey
+            ):
+                attention.append(
+                    OverviewAttentionItem(
+                        id=f"ready:{survey_id}",
+                        kind="ready_for_report",
+                        title=title,
+                        detail=f"{completed:,} completed · generate a report",
+                        href=f"/dashboard/surveys/{survey_id}/reports",
+                        survey_id=survey_id,
+                    )
+                )
+
+        for survey_id, title, status, _updated in surveys:
+            if status != SurveyStatus.published.value:
+                continue
+            completed = completed_by_survey.get(survey_id, 0)
+            if completed == 0:
+                attention.append(
+                    OverviewAttentionItem(
+                        id=f"empty:{survey_id}",
+                        kind="no_responses",
+                        title=title,
+                        detail="Live survey with no completed responses yet",
+                        href=f"/dashboard/surveys/{survey_id}/collect",
+                        survey_id=survey_id,
+                    )
+                )
+
+        for survey_id, title, status, _updated in surveys:
+            if status != SurveyStatus.draft.value:
+                continue
+            attention.append(
+                OverviewAttentionItem(
+                    id=f"draft:{survey_id}",
+                    kind="draft",
+                    title=title,
+                    detail="Draft questionnaire — continue reviewing",
+                    href=f"/dashboard/surveys/{survey_id}/review",
+                    survey_id=survey_id,
+                )
+            )
+
+        for plan_id, goal, _updated in unlinked_plans:
+            short = (goal or "Untitled plan").strip().replace("\n", " ")
+            if len(short) > 72:
+                short = f"{short[:69]}…"
+            attention.append(
+                OverviewAttentionItem(
+                    id=f"plan:{plan_id}",
+                    kind="plan_ready",
+                    title=short,
+                    detail="Research plan ready — generate survey questions",
+                    href=f"/dashboard/plans/{plan_id}",
+                    survey_id=None,
+                )
+            )
+
+        # Keep order of priority already appended; cap list.
+        return lifecycle, attention[:6]
 
     async def _scalar(self, stmt) -> int:  # noqa: ANN001
         result = await self.session.execute(stmt)
