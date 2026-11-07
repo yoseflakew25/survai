@@ -6,17 +6,42 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import time
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import __version__
 from app.api.v1.router import api_router
+from app.core.cache import close_cache
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.user import UserService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Log requests slower than this (ms) — lightweight substitute until full OTEL.
+_SLOW_REQUEST_MS = 1_500
+
+
+class SlowRequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
+        started = time.perf_counter()
+        response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        if elapsed_ms >= _SLOW_REQUEST_MS:
+            logger.warning(
+                "slow_request method=%s path=%s status=%s duration_ms=%.0f",
+                request.method,
+                request.url.path,
+                response.status_code,
+                elapsed_ms,
+            )
+        response.headers["X-Response-Time-Ms"] = f"{elapsed_ms:.0f}"
+        return response
 
 
 @asynccontextmanager
@@ -33,6 +58,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             # Don't block the API if seed/bootstrap fails (e.g. pending migrations).
             logger.exception("Startup bootstrap failed — API will still serve requests")
     yield
+    await close_cache()
 
 
 app = FastAPI(
@@ -44,6 +70,9 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
+# Outermost first in Starlette: GZip wraps responses after CORS/handlers.
+app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(SlowRequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

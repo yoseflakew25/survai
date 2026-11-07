@@ -190,8 +190,10 @@ class Settings(BaseSettings):
     # ARQ / Redis — off by default. Jobs (report generate/export) run inline
     # on the API process. Set JOBS_USE_REDIS=true AND REDIS_URL only when you
     # explicitly want a queue (e.g. paid Upstash). Free-tier Redis is optional.
+    # REDIS_URL alone enables overview/read caching even when jobs stay inline.
     jobs_use_redis: bool = False
     redis_url: str = ""
+    overview_cache_ttl_seconds: int = 30
 
     @field_validator("cors_origins", mode="before")
     @classmethod

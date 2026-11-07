@@ -96,6 +96,48 @@ class RespondentRepository(BaseRepository[Respondent]):
         )
         return list(result.scalars().all())
 
+    async def list_completed_page(
+        self,
+        *,
+        survey_id: UUID,
+        survey_version_id: UUID | None = None,
+        skip: int = 0,
+        limit: int = 10,
+    ) -> list[Respondent]:
+        """Completed respondents only — paginated in SQL."""
+        stmt = select(Respondent).where(
+            Respondent.survey_id == survey_id,
+            Respondent.completed_at.is_not(None),
+        )
+        if survey_version_id is not None:
+            stmt = stmt.where(Respondent.survey_version_id == survey_version_id)
+        stmt = (
+            stmt.order_by(Respondent.completed_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_completed(
+        self,
+        *,
+        survey_id: UUID,
+        survey_version_id: UUID | None = None,
+    ) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(Respondent)
+            .where(
+                Respondent.survey_id == survey_id,
+                Respondent.completed_at.is_not(None),
+            )
+        )
+        if survey_version_id is not None:
+            stmt = stmt.where(Respondent.survey_version_id == survey_version_id)
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
+
     async def get_for_survey(
         self, *, survey_id: UUID, respondent_id: UUID
     ) -> Respondent | None:
@@ -148,5 +190,17 @@ class ResponseAnswerRepository(BaseRepository[ResponseAnswer]):
             select(ResponseAnswer)
             .join(Respondent, Respondent.id == ResponseAnswer.respondent_id)
             .where(Respondent.survey_id == survey_id)
+        )
+        return list(result.scalars().all())
+
+    async def list_for_respondents(
+        self, *, respondent_ids: list[UUID]
+    ) -> list[ResponseAnswer]:
+        if not respondent_ids:
+            return []
+        result = await self.session.execute(
+            select(ResponseAnswer).where(
+                ResponseAnswer.respondent_id.in_(respondent_ids)
+            )
         )
         return list(result.scalars().all())

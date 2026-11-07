@@ -190,7 +190,7 @@ function mapSurvey(s: ApiSurvey): Survey {
 }
 
 export async function getSurveys(): Promise<SurveyListResponse> {
-  const res = await apiFetch('/surveys');
+  const res = await apiFetch('/surveys?page=1&limit=100');
   if (!res.ok) await readError(res, 'Could not load surveys');
   const data = (await res.json()) as { surveys: ApiSurvey[]; total: number };
   return {

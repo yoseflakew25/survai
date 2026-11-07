@@ -9,6 +9,8 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache_get_json, cache_set_json
+from app.core.config import settings
 from app.core.exceptions import ForbiddenError
 from app.models.collection import Respondent
 from app.models.report import Report
@@ -60,6 +62,23 @@ class OverviewService:
 
     async def get_overview(self, *, user: User) -> OverviewResponse:
         org_id = _require_org(user)
+        cache_key = f"overview:v1:{org_id}"
+        cached = await cache_get_json(cache_key)
+        if isinstance(cached, dict):
+            try:
+                return OverviewResponse.model_validate(cached)
+            except Exception:
+                pass
+
+        overview = await self._build_overview(org_id=org_id)
+        await cache_set_json(
+            cache_key,
+            overview.model_dump(mode="json"),
+            ttl_seconds=max(5, settings.overview_cache_ttl_seconds),
+        )
+        return overview
+
+    async def _build_overview(self, *, org_id: UUID) -> OverviewResponse:
         now = datetime.now(UTC)
         this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if this_month_start.month == 1:

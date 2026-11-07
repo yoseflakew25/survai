@@ -10,5 +10,7 @@ export const surveyListKeys = {
 export const surveysListQueryOptions = (filters: SurveyListFilters) =>
   queryOptions({
     queryKey: surveyListKeys.list(filters),
-    queryFn: () => getSurveysList(filters)
+    queryFn: () => getSurveysList(filters),
+    // Keep previous page visible while the next filter/page loads.
+    placeholderData: (previous) => previous
   });

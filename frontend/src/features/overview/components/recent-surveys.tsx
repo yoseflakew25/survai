@@ -117,14 +117,10 @@ function SurveyRowSkeleton() {
 }
 
 export function RecentSurveys() {
-  const { data, isLoading } = useQuery(surveysListQueryOptions({}));
-  const recentSurveys = (data?.surveys ?? [])
-    .slice()
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    )
-    .slice(0, 5);
+  const { data, isLoading } = useQuery(
+    surveysListQueryOptions({ page: 1, limit: 5, sort: 'updatedAt:desc' })
+  );
+  const recentSurveys = data?.surveys ?? [];
 
   const subtitle = isLoading
     ? 'Loading surveys…'

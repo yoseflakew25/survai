@@ -13,13 +13,37 @@ const baseConfig: NextConfig = {
         protocol: 'https',
         hostname: 'api.slingacademy.com',
         port: ''
-      },
-
+      }
     ]
   },
   transpilePackages: ['geist'],
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production'
+  },
+  // Hashed Next assets are immutable on production (CDN). Skip in dev —
+  // custom Cache-Control on /_next/static breaks HMR.
+  async headers() {
+    if (process.env.NODE_ENV !== 'production') return [];
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      {
+        source: '/icon.svg',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800'
+          }
+        ]
+      }
+    ];
   }
 };
 

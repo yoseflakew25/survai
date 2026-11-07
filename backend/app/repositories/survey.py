@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,6 +16,42 @@ class SurveyRepository(BaseRepository[Survey]):
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(session, Survey)
 
+    def _org_list_filters(
+        self,
+        *,
+        organization_id: UUID,
+        require_plan: bool = True,
+        search: str | None = None,
+        status: str | None = None,
+    ):
+        stmt = select(Survey).where(Survey.organization_id == organization_id)
+        if require_plan:
+            stmt = stmt.where(Survey.plan_id.is_not(None))
+        if status:
+            stmt = stmt.where(Survey.status == status)
+        if search and search.strip():
+            q = f"%{search.strip()}%"
+            stmt = stmt.where(
+                or_(Survey.title.ilike(q), Survey.description.ilike(q))
+            )
+        return stmt
+
+    @staticmethod
+    def _order_clause(sort: str | None):
+        if not sort:
+            return Survey.updated_at.desc()
+        field, _, direction = sort.partition(":")
+        desc = direction.lower() == "desc"
+        col = {
+            "title": Survey.title,
+            "status": Survey.status,
+            "createdAt": Survey.created_at,
+            "created_at": Survey.created_at,
+            "updatedAt": Survey.updated_at,
+            "updated_at": Survey.updated_at,
+        }.get(field, Survey.updated_at)
+        return col.desc() if desc else col.asc()
+
     async def list_for_org(
         self,
         *,
@@ -24,11 +60,21 @@ class SurveyRepository(BaseRepository[Survey]):
         limit: int = 100,
         require_plan: bool = True,
         with_tree: bool = True,
+        search: str | None = None,
+        status: str | None = None,
+        sort: str | None = None,
     ) -> list[Survey]:
-        stmt = select(Survey).where(Survey.organization_id == organization_id)
-        if require_plan:
-            stmt = stmt.where(Survey.plan_id.is_not(None))
-        stmt = stmt.order_by(Survey.updated_at.desc()).offset(skip).limit(limit)
+        stmt = self._org_list_filters(
+            organization_id=organization_id,
+            require_plan=require_plan,
+            search=search,
+            status=status,
+        )
+        stmt = (
+            stmt.order_by(self._order_clause(sort))
+            .offset(skip)
+            .limit(limit)
+        )
         if with_tree:
             stmt = stmt.options(
                 selectinload(Survey.sections).selectinload(Section.questions)
@@ -88,16 +134,21 @@ class SurveyRepository(BaseRepository[Survey]):
         return result.scalar_one_or_none()
 
     async def count_for_org(
-        self, *, organization_id: UUID, require_plan: bool = True
+        self,
+        *,
+        organization_id: UUID,
+        require_plan: bool = True,
+        search: str | None = None,
+        status: str | None = None,
     ) -> int:
-        stmt = (
-            select(func.count())
-            .select_from(Survey)
-            .where(Survey.organization_id == organization_id)
+        stmt = self._org_list_filters(
+            organization_id=organization_id,
+            require_plan=require_plan,
+            search=search,
+            status=status,
         )
-        if require_plan:
-            stmt = stmt.where(Survey.plan_id.is_not(None))
-        result = await self.session.execute(stmt)
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        result = await self.session.execute(count_stmt)
         return int(result.scalar_one())
 
     async def get_for_org(

@@ -207,6 +207,65 @@ class RespondentsService:
         # Only completed submissions on the live form (current version) —
         # same instrument as Collect stats and Analytics.
         live_version_id = survey.current_version_id
+        page = max(page, 1)
+        limit = min(max(limit, 1), 100)
+        needs_full_scan = bool(search) or (question_id is not None and bool(answer))
+
+        versions = await self.versions.list_for_survey(survey_id=survey.id)
+        qmeta_by_version: dict[UUID, dict[UUID, _SnapshotQ]] = {
+            v.id: _index_snapshot(v.structure_snapshot or {}) for v in versions
+        }
+        qmeta_flat: dict[UUID, _SnapshotQ] = {}
+        for m in qmeta_by_version.values():
+            qmeta_flat.update(m)
+
+        completed_total = await self.respondents.count_completed(
+            survey_id=survey.id, survey_version_id=live_version_id
+        )
+
+        # Fast path: SQL pagination + answers only for the current page.
+        if not needs_full_scan and status != "partial":
+            respondents = await self.respondents.list_completed_page(
+                survey_id=survey.id,
+                survey_version_id=live_version_id,
+                skip=(page - 1) * limit,
+                limit=limit,
+            )
+            page_answers = await self.answers.list_for_respondents(
+                respondent_ids=[r.id for r in respondents]
+            )
+            answers_by_resp, last_answered = self._index_answers(page_answers)
+            page_items = [
+                self._to_list_item(
+                    resp,
+                    qmeta_by_version=qmeta_by_version,
+                    answers_by_resp=answers_by_resp,
+                    last_answered=last_answered,
+                )
+                for resp in respondents
+            ]
+            if sort:
+                page_items = self._sort_items(page_items, sort)
+            avg = (
+                round(
+                    sum(r.duration_seconds for r in page_items) / len(page_items)
+                )
+                if page_items
+                else 0
+            )
+            return RespondentsListPublic(
+                survey_id=survey.id,
+                total=completed_total,
+                respondents=page_items,
+                summary=RespondentsSummaryPublic(
+                    responses=completed_total,
+                    completed=completed_total,
+                    partial=0,
+                    avg_duration_seconds=avg,
+                ),
+                active_filter=None,
+            )
+
         if live_version_id is not None:
             respondents = [
                 r
@@ -223,46 +282,19 @@ class RespondentsService:
                 )
                 if r.completed_at is not None
             ]
+
         all_answers = await self.answers.list_for_survey(survey_id=survey.id)
-        versions = await self.versions.list_for_survey(survey_id=survey.id)
-        qmeta_by_version: dict[UUID, dict[UUID, _SnapshotQ]] = {
-            v.id: _index_snapshot(v.structure_snapshot or {}) for v in versions
-        }
-        # Flat meta for filter question text lookup
-        qmeta_flat: dict[UUID, _SnapshotQ] = {}
-        for m in qmeta_by_version.values():
-            qmeta_flat.update(m)
+        answers_by_resp, last_answered = self._index_answers(all_answers)
 
-        answers_by_resp: dict[UUID, dict[UUID, Any]] = {}
-        last_answered: dict[UUID, datetime] = {}
-        for ans in all_answers:
-            answers_by_resp.setdefault(ans.respondent_id, {})[
-                ans.question_id
-            ] = ans.answer_value
-            prev = last_answered.get(ans.respondent_id)
-            if prev is None or ans.answered_at > prev:
-                last_answered[ans.respondent_id] = ans.answered_at
-
-        items: list[RespondentListItemPublic] = []
-        for resp in respondents:
-            qmeta = qmeta_by_version.get(resp.survey_version_id, {})
-            row_answers = answers_by_resp.get(resp.id, {})
-            name, email = _identity_from_answers(row_answers, qmeta)
-            status_val = "completed" if resp.completed_at else "partial"
-            submitted = resp.completed_at or resp.started_at
-            items.append(
-                RespondentListItemPublic(
-                    id=resp.id,
-                    name=name,
-                    email=email,
-                    status=status_val,  # type: ignore[arg-type]
-                    submitted_at=submitted,
-                    duration_seconds=_duration_seconds(
-                        resp, last_answered_at=last_answered.get(resp.id)
-                    ),
-                    survey_version_id=resp.survey_version_id,
-                )
+        items = [
+            self._to_list_item(
+                resp,
+                qmeta_by_version=qmeta_by_version,
+                answers_by_resp=answers_by_resp,
+                last_answered=last_answered,
             )
+            for resp in respondents
+        ]
 
         summary = self._summarize(items)
         active_filter: ActiveRespondentFilterPublic | None = None
@@ -299,9 +331,6 @@ class RespondentsService:
             )
 
         filtered = self._sort_items(filtered, sort)
-
-        page = max(page, 1)
-        limit = min(max(limit, 1), 100)
         total = len(filtered)
         start = (page - 1) * limit
         page_items = filtered[start : start + limit]
@@ -389,6 +418,46 @@ class RespondentsService:
             survey_status=survey.status,
             anonymous_collection=survey.anonymous_collection,
             answers=answers_out,
+        )
+
+    @staticmethod
+    def _index_answers(
+        answers: list[Any],
+    ) -> tuple[dict[UUID, dict[UUID, Any]], dict[UUID, datetime]]:
+        answers_by_resp: dict[UUID, dict[UUID, Any]] = {}
+        last_answered: dict[UUID, datetime] = {}
+        for ans in answers:
+            answers_by_resp.setdefault(ans.respondent_id, {})[
+                ans.question_id
+            ] = ans.answer_value
+            prev = last_answered.get(ans.respondent_id)
+            if prev is None or ans.answered_at > prev:
+                last_answered[ans.respondent_id] = ans.answered_at
+        return answers_by_resp, last_answered
+
+    @staticmethod
+    def _to_list_item(
+        resp: Respondent,
+        *,
+        qmeta_by_version: dict[UUID, dict[UUID, _SnapshotQ]],
+        answers_by_resp: dict[UUID, dict[UUID, Any]],
+        last_answered: dict[UUID, datetime],
+    ) -> RespondentListItemPublic:
+        qmeta = qmeta_by_version.get(resp.survey_version_id, {})
+        row_answers = answers_by_resp.get(resp.id, {})
+        name, email = _identity_from_answers(row_answers, qmeta)
+        status_val = "completed" if resp.completed_at else "partial"
+        submitted = resp.completed_at or resp.started_at
+        return RespondentListItemPublic(
+            id=resp.id,
+            name=name,
+            email=email,
+            status=status_val,  # type: ignore[arg-type]
+            submitted_at=submitted,
+            duration_seconds=_duration_seconds(
+                resp, last_answered_at=last_answered.get(resp.id)
+            ),
+            survey_version_id=resp.survey_version_id,
         )
 
     @staticmethod

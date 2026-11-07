@@ -50,8 +50,22 @@ router = APIRouter(prefix="/surveys", tags=["surveys"])
 async def list_surveys(
     current_user: CurrentUser,
     surveys: SurveyServiceDep,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    search: str | None = None,
+    status: str | None = Query(
+        None, pattern="^(draft|published|closed|archived)$"
+    ),
+    sort: str | None = None,
 ) -> SurveyListResponse:
-    return await surveys.list_surveys(user=current_user)
+    return await surveys.list_surveys(
+        user=current_user,
+        page=page,
+        limit=limit,
+        search=search,
+        status=status,
+        sort=sort,
+    )
 
 
 @router.post("", response_model=SurveyPublic, status_code=status.HTTP_201_CREATED)

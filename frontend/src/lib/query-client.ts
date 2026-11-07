@@ -4,7 +4,11 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000
+        // Dedupe identical in-flight requests + keep list UIs warm.
+        staleTime: 60 * 1000,
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        retry: 1
       },
       dehydrate: {
         // Only dehydrate settled successes. Pending auth-gated prefetches

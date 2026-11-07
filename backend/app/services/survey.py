@@ -259,14 +259,36 @@ class SurveyService:
         self.plans = SurveyPlanRepository(session)
         self.review_reports = ReviewerReportRepository(session)
 
-    async def list_surveys(self, *, user: User) -> SurveyListResponse:
+    async def list_surveys(
+        self,
+        *,
+        user: User,
+        page: int = 1,
+        limit: int = 10,
+        search: str | None = None,
+        status: str | None = None,
+        sort: str | None = None,
+    ) -> SurveyListResponse:
         _require_org(user)
         assert user.organization_id is not None
+        page = max(page, 1)
+        limit = min(max(limit, 1), 100)
+        skip = (page - 1) * limit
         # Skip loading full section/question trees — one counts query instead.
         rows = await self.surveys.list_for_org(
-            organization_id=user.organization_id, with_tree=False
+            organization_id=user.organization_id,
+            with_tree=False,
+            skip=skip,
+            limit=limit,
+            search=search,
+            status=status,
+            sort=sort,
         )
-        total = await self.surveys.count_for_org(organization_id=user.organization_id)
+        total = await self.surveys.count_for_org(
+            organization_id=user.organization_id,
+            search=search,
+            status=status,
+        )
         survey_ids = [s.id for s in rows]
         counts = await self.surveys.section_question_counts(survey_ids=survey_ids)
         responses = await self.surveys.completed_response_counts(survey_ids=survey_ids)
