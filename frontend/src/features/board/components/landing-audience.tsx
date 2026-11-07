@@ -54,14 +54,14 @@ export function LandingAudience() {
               </div>
               <div className='min-w-0 flex-1'>
                 <div className='flex flex-wrap items-center gap-2'>
-                  <h3 className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+                  <h3 className='font-display text-2xl  font-extrabold tracking-tight text-foreground'>
                     {item.title}
                   </h3>
                   <span className='rounded-full border border-border bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-muted-foreground uppercase'>
                     {item.tag}
                   </span>
                 </div>
-                <p className='mt-1.5 text-sm leading-relaxed text-muted-foreground'>
+                <p className='.5 text-sm leading-relaxed text-muted-foreground'>
                   {item.body}
                 </p>
               </div>

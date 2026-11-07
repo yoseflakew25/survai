@@ -277,11 +277,11 @@ export function CollectionForm({ survey }: CollectionFormProps) {
           />
           <div className='relative space-y-5 px-5 py-6 sm:px-7 sm:py-7'>
             <div className='space-y-2'>
-              <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.75rem] sm:leading-snug'>
+              <h1 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-[1.75rem] sm:leading-snug'>
                 {displaySurveyTitle(survey.title)}
               </h1>
               {displaySurveyDescription(survey.title, survey.description) ? (
-                <p className='max-w-2xl text-sm leading-relaxed text-foreground/75'>
+                <p className='max-w-2xl text-sm leading-relaxed text-brand-foreground/80'>
                   {displaySurveyDescription(survey.title, survey.description)}
                 </p>
               ) : null}
@@ -298,15 +298,15 @@ export function CollectionForm({ survey }: CollectionFormProps) {
               ].map((chip) => (
                 <span
                   key={chip.label}
-                  className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 text-[11px] font-medium text-foreground'
+                  className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 text-[11px] font-medium text-brand-foreground'
                 >
                   <chip.icon className='size-3 opacity-80' />
                   {chip.label}
                 </span>
               ))}
               {totalRequired > 0 ? (
-                <span className='ml-auto text-[11px] text-foreground/70'>
-                  <span className='font-semibold text-foreground'>*</span>{' '}
+                <span className='ml-auto text-[11px] text-brand-foreground/75'>
+                  <span className='font-semibold text-brand-foreground'>*</span>{' '}
                   required
                 </span>
               ) : null}

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * Shared Survai card chrome — Launchpot-derived:
- * warm paper / white card, soft border, 1.125rem radius, lime brand accents.
+ * warm paper / white card, soft border, 1.125rem radius, orange brand accents.
  */
 export function SurvaiPanel({
   children,
@@ -48,13 +48,14 @@ export function SurvaiPanelHeader({
   return (
     <div
       className={cn(
-        'border-b border-border bg-brand-soft px-4 py-3',
+        'border-b border-border bg-brand-soft px-5 py-3.5',
         className
       )}
     >
       <div className='flex flex-wrap items-center gap-3'>
         {icon ? (
           <div
+            data-slot='panel-icon'
             className={cn(
               'flex size-8 shrink-0 items-center justify-center rounded-xl',
               'border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))]',
@@ -67,14 +68,14 @@ export function SurvaiPanelHeader({
         ) : null}
         <div className='min-w-0 flex-1 basis-[12rem]'>
           {typeof title === 'string' ? (
-            <h3 className='font-display text-lg font-bold tracking-tight text-foreground'>
+            <h3 className='font-display text-base font-bold tracking-tight text-foreground sm:text-lg'>
               {title}
             </h3>
           ) : (
             <div className='min-w-0'>{title}</div>
           )}
           {subtitle ? (
-            <p className='text-muted-foreground text-sm leading-snug'>
+            <p className='text-muted-foreground mt-0.5 text-sm leading-snug'>
               {subtitle}
             </p>
           ) : null}
@@ -97,7 +98,7 @@ export function SurvaiPanelBody({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn('p-4', className)}>{children}</div>;
+  return <div className={cn('p-5', className)}>{children}</div>;
 }
 
 export function SurvaiPanelFooter({
@@ -110,7 +111,7 @@ export function SurvaiPanelFooter({
   return (
     <div
       className={cn(
-        'border-t border-border bg-brand-soft/70 px-4 py-3',
+        'border-t border-border bg-brand-soft/70 px-5 py-3',
         className
       )}
     >
@@ -119,7 +120,7 @@ export function SurvaiPanelFooter({
   );
 }
 
-/** Lime brand CTA card — sidebar Collect / Generate / continue CTAs. */
+/** Brand CTA card — sidebar Collect / Generate / continue CTAs. */
 export function SurvaiBrandCard({
   title,
   description,
@@ -140,7 +141,6 @@ export function SurvaiBrandCard({
         className
       )}
     >
-      {/* Dot-grid wash — Launchpot signature */}
       <div
         className='pointer-events-none absolute inset-0 opacity-[0.35]'
         style={{
@@ -161,7 +161,7 @@ export function SurvaiBrandCard({
               className='size-1.5 shrink-0 animate-pulse rounded-full bg-brand-foreground/80'
               aria-hidden
             />
-            <h3 className='font-display text-lg font-extrabold tracking-tight text-brand-foreground'>
+            <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
               {title}
             </h3>
           </div>
@@ -176,3 +176,11 @@ export function SurvaiBrandCard({
     </div>
   );
 }
+
+/** Primary brand CTA — use for the main task on a surface. */
+export const brandCtaClass =
+  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
+
+/** Secondary quiet action for non-primary buttons. */
+export const quietActionClass =
+  'h-9 rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted/60';

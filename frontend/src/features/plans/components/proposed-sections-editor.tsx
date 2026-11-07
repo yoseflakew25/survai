@@ -108,13 +108,11 @@ export function ProposedSectionsEditor({
   return (
     <div className={cn('space-y-3', className)}>
       {sections.length === 0 ? (
-        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center'>
-          <div className='bg-brand-soft flex size-10 items-center justify-center rounded-xl'>
-            <Icons.kanban className='size-4 text-foreground' />
+        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/40 px-4 py-8 text-center'>
+          <div className='flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
+            <Icons.kanban className='size-4' />
           </div>
-          <p className='text-sm font-medium text-foreground'>
-            No sections yet
-          </p>
+          <p className='text-sm font-semibold text-foreground'>No sections yet</p>
           <p className='text-muted-foreground max-w-xs text-xs leading-relaxed'>
             Sections group questions into a clear flow for respondents.
           </p>
@@ -151,8 +149,8 @@ export function ProposedSectionsEditor({
       )}
 
       {!disabled ? (
-        <div className='space-y-2.5 rounded-xl border border-dashed border-border bg-muted/15 p-3.5'>
-          <p className='text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium tracking-wide uppercase'>
+        <div className='space-y-2.5 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/30 p-3.5'>
+          <p className='text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase'>
             <Icons.add className='size-3.5' />
             New section
           </p>
@@ -161,7 +159,7 @@ export function ProposedSectionsEditor({
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder='Section title'
-            className='h-10 rounded-xl font-medium'
+            className='h-10 rounded-xl border-border bg-card font-medium'
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newTitle.trim()) {
                 e.preventDefault();
@@ -174,12 +172,11 @@ export function ProposedSectionsEditor({
             onChange={(e) => setNewRationale(e.target.value)}
             placeholder='Rationale — why this section matters (optional)'
             rows={2}
-            className='resize-none rounded-xl text-sm'
+            className='resize-none rounded-xl border-border bg-card text-sm'
           />
           <Button
             type='button'
-            variant='outline'
-            className='h-9 w-full rounded-xl font-medium'
+            className='h-9 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground font-semibold text-background hover:bg-foreground/90'
             onClick={handleAdd}
             disabled={!newTitle.trim()}
           >

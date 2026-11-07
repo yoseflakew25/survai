@@ -27,7 +27,7 @@ type SurveyGenerationProgressProps = {
 };
 
 /**
- * Body-only builder progress — nest in `DialogHeader bg-primary` + padded content
+ * Body-only builder progress — nest in a quiet `DialogHeader` + padded content
  * (same shell as plan generation).
  */
 export function SurveyGenerationProgress({

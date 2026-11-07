@@ -60,7 +60,7 @@ export function LandingCollectStrip() {
                 <p className='font-display text-lg font-extrabold tracking-tight text-foreground'>
                   {beat.label}
                 </p>
-                <p className='mt-1 text-sm leading-relaxed text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80'>
+                <p className=' text-sm leading-relaxed text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80'>
                   {beat.detail}
                 </p>
               </div>

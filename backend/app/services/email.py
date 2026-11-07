@@ -22,9 +22,10 @@ _FG = "#111210"
 _MUTED = "#62655e"
 _CARD = "#ffffff"
 _BORDER = "#e6e6de"
-_BRAND = "#c6f432"
-_BRAND_SOFT = "#f1fccf"
-_BRAND_STRONG = "#3d7a00"
+_BRAND = "#d97757"
+_BRAND_SOFT = "#fceedf"
+_BRAND_STRONG = "#9a4b2e"
+_BRAND_FG = "#fffaf7"
 
 # Real SurvAI mark (lime tile + survey bars + check) — embedded via CID.
 _LOGO_CID = "survai-mark"
@@ -284,7 +285,7 @@ def _cta_button(*, href: str, label: str) -> str:
       <a href="{safe_href}"
         style="display:inline-block;padding:14px 22px;font-family:Geist,ui-sans-serif,system-ui,
         -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;font-weight:700;
-        letter-spacing:-0.01em;color:{_FG};text-decoration:none;border-radius:12px;">
+        letter-spacing:-0.01em;color:{_BRAND_FG};text-decoration:none;border-radius:12px;">
         {safe_label}
       </a>
     </td>

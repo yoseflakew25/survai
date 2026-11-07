@@ -6,7 +6,7 @@ type MarkProps = {
   ghost?: boolean;
 };
 
-/** Polished Survai mark — lime rounded tile, survey bars, verified check. */
+/** Polished Survai mark — brand rounded tile, survey bars, verified check. */
 export function SurvaiMark({ className, ghost = false }: MarkProps) {
   return (
     <svg
@@ -16,7 +16,7 @@ export function SurvaiMark({ className, ghost = false }: MarkProps) {
       className={className}
       aria-hidden='true'
     >
-      <rect x='1' y='3' width='34' height='34' rx='10' fill='var(--brand, #c6f432)' />
+      <rect x='1' y='3' width='34' height='34' rx='10' fill='var(--brand, #d97757)' />
       {/* Survey lines — short / long / medium, matching the approved mark */}
       <rect
         x='8'
@@ -24,7 +24,7 @@ export function SurvaiMark({ className, ghost = false }: MarkProps) {
         width='14'
         height='3.25'
         rx='1.6'
-        fill={ghost ? 'currentColor' : 'var(--foreground, #111210)'}
+        fill={ghost ? 'currentColor' : 'var(--brand-foreground, #fffaf7)'}
         opacity={ghost ? 0.55 : 1}
       />
       <rect
@@ -33,7 +33,7 @@ export function SurvaiMark({ className, ghost = false }: MarkProps) {
         width='20'
         height='3.25'
         rx='1.6'
-        fill={ghost ? 'currentColor' : 'var(--foreground, #111210)'}
+        fill={ghost ? 'currentColor' : 'var(--brand-foreground, #fffaf7)'}
         opacity={ghost ? 0.55 : 1}
       />
       <rect
@@ -42,19 +42,19 @@ export function SurvaiMark({ className, ghost = false }: MarkProps) {
         width='11'
         height='3.25'
         rx='1.6'
-        fill={ghost ? 'currentColor' : 'var(--foreground, #111210)'}
+        fill={ghost ? 'currentColor' : 'var(--brand-foreground, #fffaf7)'}
         opacity={ghost ? 0.55 : 1}
       />
       <circle
         cx='31.5'
         cy='8.5'
         r='7'
-        fill={ghost ? 'currentColor' : 'var(--foreground, #111210)'}
+        fill={ghost ? 'currentColor' : 'var(--brand-foreground, #fffaf7)'}
         opacity={ghost ? 0.75 : 1}
       />
       <path
         d='M28.6 8.55l1.85 1.85 4.1-4.15'
-        stroke='var(--background, #f7f7f2)'
+        stroke='var(--brand, #d97757)'
         strokeWidth='2.1'
         strokeLinecap='round'
         strokeLinejoin='round'

@@ -73,26 +73,36 @@ export function SortableSectionItem({
           className={cn(
             'flex size-7 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold tabular-nums',
             isExpanded
-              ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground'
-              : 'bg-muted text-muted-foreground'
+              ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
+              : 'bg-muted text-foreground'
           )}
         >
           {index + 1}
         </span>
 
-        <Input
-          value={section.title}
-          onChange={(e) => onUpdate('title', e.target.value)}
-          placeholder='Section title'
-          disabled={disabled}
-          className={cn(
-            'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-semibold shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
-            !section.title && 'text-muted-foreground italic'
-          )}
-          onClick={() => {
-            if (!isExpanded) onToggle();
-          }}
-        />
+        {disabled ? (
+          <p
+            className={cn(
+              'min-w-0 flex-1 px-2 py-1.5 text-sm font-semibold leading-snug text-foreground',
+              !section.title && 'text-muted-foreground italic'
+            )}
+          >
+            {section.title || 'Section title'}
+          </p>
+        ) : (
+          <Input
+            value={section.title}
+            onChange={(e) => onUpdate('title', e.target.value)}
+            placeholder='Section title'
+            className={cn(
+              'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-semibold text-foreground shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
+              !section.title && 'text-muted-foreground italic'
+            )}
+            onClick={() => {
+              if (!isExpanded) onToggle();
+            }}
+          />
+        )}
 
         {!disabled ? (
           <div className='flex shrink-0 items-center gap-0.5'>
@@ -126,22 +136,28 @@ export function SortableSectionItem({
           <label className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
             Rationale
           </label>
-          <Textarea
-            value={section.rationale}
-            onChange={(e) => onUpdate('rationale', e.target.value)}
-            placeholder='Why this section exists — what it helps measure…'
-            disabled={disabled}
-            rows={2}
-            className='border-border bg-card min-h-[4rem] resize-none rounded-xl text-sm'
-          />
-          {!section.rationale.trim() ? (
+          {disabled ? (
+            <p className='border-border bg-card min-h-[4rem] rounded-xl border px-2.5 py-2 text-sm leading-relaxed text-foreground'>
+              {section.rationale.trim() ||
+                'Why this section exists — what it helps measure…'}
+            </p>
+          ) : (
+            <Textarea
+              value={section.rationale}
+              onChange={(e) => onUpdate('rationale', e.target.value)}
+              placeholder='Why this section exists — what it helps measure…'
+              rows={2}
+              className='border-border bg-card min-h-[4rem] resize-none rounded-xl text-sm text-foreground'
+            />
+          )}
+          {!disabled && !section.rationale.trim() ? (
             <p className='text-muted-foreground text-[11px] leading-relaxed'>
               A short rationale helps your team keep the survey focused.
             </p>
           ) : null}
         </div>
       ) : section.rationale ? (
-        <p className='text-muted-foreground border-border line-clamp-1 border-t px-3 py-2 text-xs sm:px-4'>
+        <p className='border-border line-clamp-1 border-t px-3 py-2 text-xs text-foreground/80 sm:px-4'>
           {section.rationale}
         </p>
       ) : null}

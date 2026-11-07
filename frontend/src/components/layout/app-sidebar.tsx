@@ -34,9 +34,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { Icons } from '../icons';
-import { useLogo } from '@/hooks/use-logo';
+import { SurvaiLogo, SurvaiMark } from '@/components/survai-logo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 /** True when pathname is the href or a nested child route under it. */
 function isNavActive(pathname: string, href: string): boolean {
@@ -110,27 +109,27 @@ export default function AppSidebar() {
   const filteredGroups = useFilteredNavGroups(navGroups);
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
-  const { logo, alt } = useLogo(isCollapsed);
 
   return (
     <Sidebar collapsible='icon'>
       {/* Logo */}
-      <SidebarHeader className='group-data-[collapsible=icon]:pt-4'>
-        <SidebarMenu>
+      <SidebarHeader className='flex h-16 shrink-0 justify-center border-b border-sidebar-border px-2 md:h-14 group-data-[collapsible=icon]:px-0'>
+        <SidebarMenu className='w-full justify-center'>
           <SidebarMenuItem>
             <SidebarMenuButton
               size='lg'
-              className='data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground'
+              className='h-full w-full justify-start px-2.5 data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0'
               onClick={() => router.push('/dashboard/overview')}
+              aria-label='Survai'
             >
-              <img
-                src={logo}
-                alt={alt}
-                className={cn(
-                  'transition-all duration-200',
-                  isCollapsed ? 'h-8 w-auto mx-auto' : 'h-8 w-auto'
-                )}
-              />
+              {isCollapsed ? (
+                <SurvaiMark className='mx-auto size-8' />
+              ) : (
+                <SurvaiLogo
+                  className='w-full justify-start gap-2.5 text-[1.65rem] leading-none tracking-[-0.05em] text-primary md:text-[1.5rem]'
+                  markClassName='h-[1.1em] w-auto'
+                />
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -195,7 +194,7 @@ export default function AppSidebar() {
               >
                 {user && (
                   <Avatar className='h-8 w-8 rounded-lg'>
-                    <AvatarFallback className='rounded-lg bg-primary/10 text-primary text-xs font-medium'>
+                    <AvatarFallback className='rounded-lg bg-muted text-muted-foreground text-xs font-medium'>
                       {user.fullName?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -220,7 +219,7 @@ export default function AppSidebar() {
                 <div className='flex items-center gap-2 p-2'>
                   {user && (
                     <Avatar className='h-9 w-9'>
-                      <AvatarFallback className='rounded-lg bg-primary/10 text-primary text-sm font-medium'>
+                      <AvatarFallback className='rounded-lg bg-muted text-muted-foreground text-sm font-medium'>
                         {user.fullName?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>

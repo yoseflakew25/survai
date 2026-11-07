@@ -109,7 +109,7 @@ function SortableSection({
           <div className='flex items-start gap-2'>
             {/* Drag handle */}
             <button
-              className='text-muted-foreground hover:text-foreground mt-1 cursor-grab touch-none active:cursor-grabbing'
+              className='text-muted-foreground hover:text-foreground  cursor-grab touch-none active:cursor-grabbing'
               {...attributes}
               {...listeners}
             >
@@ -117,7 +117,7 @@ function SortableSection({
             </button>
 
             {/* Section number */}
-            <span className='text-muted-foreground mt-1 w-5 shrink-0 text-center text-xs font-medium'>
+            <span className='text-muted-foreground  w-5 shrink-0 text-center text-xs font-medium'>
               {index + 1}
             </span>
 

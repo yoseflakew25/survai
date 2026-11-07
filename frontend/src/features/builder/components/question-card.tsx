@@ -79,7 +79,7 @@ export function QuestionCard({
           <button
             type='button'
             className={cn(
-              'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded',
+              ' flex h-5 w-5 shrink-0 items-center justify-center rounded',
               'text-muted-foreground hover:text-foreground hover:bg-muted',
               'cursor-grab active:cursor-grabbing transition-colors',
               'focus:outline-none focus:ring-2 focus:ring-primary/20'
@@ -90,7 +90,7 @@ export function QuestionCard({
             <Icons.gripVertical className='h-3.5 w-3.5' />
           </button>
         ) : (
-          <span className='mt-1 flex h-5 w-5 shrink-0' />
+          <span className=' flex h-5 w-5 shrink-0' />
         )}
 
         <div className='flex-1 space-y-2'>

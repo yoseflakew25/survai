@@ -49,7 +49,7 @@ export function FindingsList({
         badge={
           <Badge
             variant='secondary'
-            className='rounded-full border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft font-mono text-[10px] font-semibold tabular-nums text-foreground'
+            className='rounded-full border-transparent bg-primary font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'
           >
             {counts.all}
           </Badge>
@@ -74,7 +74,7 @@ export function FindingsList({
                 className={cn(
                   'rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                   active
-                    ? 'border border-[color-mix(in_srgb,var(--brand)_50%,var(--border))] bg-card text-foreground shadow-sm'
+                    ? 'border border-transparent bg-primary text-primary-foreground shadow-sm'
                     : 'border border-transparent text-muted-foreground hover:bg-card/80 hover:text-foreground'
                 )}
               >
@@ -97,7 +97,7 @@ export function FindingsList({
             <p className='font-display text-sm font-bold tracking-tight'>
               {filter === 'all' ? 'No findings detected' : `No ${filter} findings`}
             </p>
-            <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
+            <p className='text-muted-foreground  max-w-xs text-xs leading-relaxed'>
               {filter === 'all'
                 ? 'AI did not flag wording or alignment issues on this draft.'
                 : 'Try another filter to see more findings.'}

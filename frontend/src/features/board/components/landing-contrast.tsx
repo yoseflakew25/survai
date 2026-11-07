@@ -107,7 +107,7 @@ export function LandingContrast() {
                     </h3>
                     <p
                       className={cn(
-                        'mt-1 font-mono text-[11px] font-semibold tracking-wide uppercase',
+                        ' font-mono text-[11px] font-semibold tracking-wide uppercase',
                         isBrand
                           ? 'text-brand-foreground/70'
                           : 'text-muted-foreground'
@@ -141,7 +141,7 @@ export function LandingContrast() {
                     >
                       <span
                         className={cn(
-                          'mt-1.5 size-1.5 shrink-0 rounded-full',
+                          '.5 size-1.5 shrink-0 rounded-full',
                           isBrand ? 'bg-brand-strong' : 'bg-foreground/30'
                         )}
                         aria-hidden='true'

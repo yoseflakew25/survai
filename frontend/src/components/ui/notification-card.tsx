@@ -93,7 +93,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
       className={cn(
         'group relative transition-colors',
         compact ? 'px-3.5 py-3' : 'px-5 py-3.5',
-        isUnread ? 'bg-brand-soft/35' : 'hover:bg-muted/40',
+        isUnread ? 'bg-muted/35' : 'hover:bg-muted/25',
         onOpen && 'cursor-pointer',
         className
       )}
@@ -112,9 +112,9 @@ export const NotificationCard: FC<NotificationCardProps> = ({
       }
     >
       <div className='flex gap-2.5'>
-        <div className='mt-1.5 w-2 shrink-0'>
+        <div className='.5 w-2 shrink-0'>
           {isUnread ? (
-            <span className='block size-2 rounded-full bg-brand shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_35%,transparent)]' />
+            <span className='bg-brand block size-2 rounded-full' />
           ) : null}
         </div>
 
@@ -154,7 +154,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
 
           <p
             className={cn(
-              'mt-1 text-xs leading-relaxed',
+              ' text-xs leading-relaxed',
               isUnread ? 'text-muted-foreground' : 'text-muted-foreground/75',
               compact && 'line-clamp-2'
             )}
@@ -187,7 +187,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
                       isPrimary
-                        ? 'border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground hover:brightness-95'
+                        ? 'border border-border bg-foreground text-background hover:opacity-90'
                         : action.style === 'danger'
                           ? 'border border-destructive/30 text-destructive hover:bg-destructive/5'
                           : 'border border-border bg-card text-muted-foreground hover:text-foreground',

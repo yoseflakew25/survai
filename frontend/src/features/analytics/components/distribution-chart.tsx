@@ -119,7 +119,7 @@ export function DistributionChart({
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className='text-muted-foreground mt-1 flex items-center justify-end gap-1 text-[11px]'>
+      <p className='text-muted-foreground  flex items-center justify-end gap-1 text-[11px]'>
         <Icons.arrowRight className='h-3 w-3' />
         {onFilterBucket
           ? 'Click a bar to filter this view'

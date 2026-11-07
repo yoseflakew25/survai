@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Icons } from '@/components/icons';
+import { brandCtaClass } from '@/components/survai-panel';
 
 const columnIds = columns
   .map((c) => c.id)
@@ -30,9 +31,6 @@ const STATUS_OPTIONS = [
   { label: 'Closed', value: 'closed' },
   { label: 'Archived', value: 'archived' }
 ];
-
-const brandCtaClass =
-  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
 
 export function SurveyTable() {
   const router = useRouter();
@@ -109,7 +107,7 @@ export function SurveyTable() {
                       ?.label ?? 'Status')
                   : 'Status'}
                 {params.status ? (
-                  <span className='rounded-full bg-brand-soft px-1.5 text-[10px] font-bold text-foreground'>
+                  <span className='rounded-full bg-muted px-1.5 text-[10px] font-bold text-foreground'>
                     1
                   </span>
                 ) : (

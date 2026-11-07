@@ -9,7 +9,7 @@ import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SurvaiPanel } from '@/components/survai-panel';
+import { SurvaiPanel, brandCtaClass } from '@/components/survai-panel';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
@@ -39,9 +39,6 @@ const STAGE_LABELS: Record<string, string> = {
   tools: 'Fetching metrics…',
   answering: 'Writing answer…'
 };
-
-const brandCtaClass =
-  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
 
 function formatRelative(iso: string): string {
   const d = new Date(iso);
@@ -212,27 +209,13 @@ export function AssistantWorkspace() {
   return (
     <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
       <SurvaiPanel className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
-        {/* Single full-width brand header — aligns both columns */}
-        <div className='relative shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 py-4 sm:px-6'>
-          <div
-            className='pointer-events-none absolute inset-0 opacity-35'
-            aria-hidden
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
-              backgroundSize: '18px 18px',
-              maskImage:
-                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
-              WebkitMaskImage:
-                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)'
-            }}
-          />
+        <div className='relative shrink-0 border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-4 py-4 sm:px-6'>
           <div className='relative flex flex-wrap items-start justify-between gap-3'>
             <div className='min-w-0 flex-1'>
-              <h2 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+              <h2 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground'>
                 {chatTitle}
               </h2>
-              <p className='mt-0.5 text-sm leading-relaxed text-foreground/70'>
+              <p className='mt-0.5 text-sm leading-relaxed text-primary-foreground/80'>
                 Ask across your surveys, reports, and reviews
               </p>
             </div>
@@ -262,7 +245,7 @@ export function AssistantWorkspace() {
                   <p className='font-display text-sm font-bold tracking-tight'>
                     Couldn’t load chats
                   </p>
-                  <p className='mt-1 text-xs text-muted-foreground'>
+                  <p className=' text-xs text-muted-foreground'>
                     Check that you’re signed in, then try again.
                   </p>
                   <Button
@@ -277,13 +260,13 @@ export function AssistantWorkspace() {
                 </div>
               ) : threads.length === 0 ? (
                 <div className='flex flex-col items-center px-4 py-10 text-center'>
-                  <div className='mb-3 flex size-10 items-center justify-center rounded-2xl bg-brand-soft text-foreground'>
+                  <div className='mb-3 flex size-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground'>
                     <Icons.chat className='size-4' />
                   </div>
                   <p className='font-display text-sm font-bold tracking-tight'>
                     No chats yet
                   </p>
-                  <p className='mt-1 text-xs leading-relaxed text-muted-foreground'>
+                  <p className=' text-xs leading-relaxed text-muted-foreground'>
                     Start a conversation to explore your org knowledge.
                   </p>
                 </div>
@@ -383,7 +366,7 @@ export function AssistantWorkspace() {
               <div className='space-y-4 px-1 py-2'>
                 <div className='flex items-start gap-3'>
                   <div
-                    className='mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className='mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-muted text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />
@@ -405,7 +388,7 @@ export function AssistantWorkspace() {
                       type='button'
                       disabled={sending}
                       onClick={() => void handleSend(starter)}
-                      className='rounded-full border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-brand-soft'
+                      className='rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50'
                     >
                       {starter}
                     </button>
@@ -424,7 +407,7 @@ export function AssistantWorkspace() {
               >
                 {msg.role === 'assistant' ? (
                   <div
-                    className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />
@@ -435,7 +418,7 @@ export function AssistantWorkspace() {
                     'max-w-[min(100%,36rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                     msg.role === 'user'
                       ? 'rounded-br-md bg-foreground text-background'
-                      : 'rounded-bl-md border border-border bg-card/95 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                      : 'rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
                   )}
                 >
                   {msg.role === 'assistant' ? (
@@ -459,7 +442,7 @@ export function AssistantWorkspace() {
                             <Link
                               key={`${c.chunkId ?? 'm'}-${i}`}
                               href={c.href}
-                              className='inline-flex max-w-full truncate rounded-full border border-border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-foreground hover:bg-brand-soft'
+                              className='inline-flex max-w-full truncate rounded-full border border-border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-foreground hover:bg-muted/50'
                             >
                               {label}
                             </Link>
@@ -491,12 +474,12 @@ export function AssistantWorkspace() {
                 }
               >
                 <div
-                  className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                  className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                   aria-hidden
                 >
                   <Icons.sparkles className='size-3.5' />
                 </div>
-                <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-border bg-card/95 px-3.5 py-2.5 text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
+                <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
                   {streamDraft ? (
                     <ChatMarkdown content={streamDraft} />
                   ) : (
@@ -524,7 +507,7 @@ export function AssistantWorkspace() {
             <div ref={endRef} />
           </div>
 
-          <div className='shrink-0 space-y-3 border-t border-border bg-[color-mix(in_srgb,var(--background)_55%,var(--brand-soft))] px-4 py-3.5 sm:px-6 md:px-8'>
+          <div className='shrink-0 space-y-3 border-t border-border bg-brand-soft/70 px-4 py-3.5 sm:px-6 md:px-8'>
             <div className='relative'>
               <Input
                 value={input}

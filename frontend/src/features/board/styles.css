@@ -1,4 +1,4 @@
-/* Launchpot board visual system — scoped to .lp so dashboard themes stay intact */
+/* Board landing visual system — scoped to .lp; brand follows orange tokens */
 
 html:has(.lp),
 html:has(.lp) body {
@@ -29,10 +29,10 @@ html.dark:has(.lp) body {
   --border: #e6e6de;
   --input: #e6e6de;
   --ring: #111210;
-  --brand: #c6f432;
-  --brand-foreground: #111210;
-  --brand-strong: #3d7a00;
-  --brand-soft: #f4fcdd;
+  --brand: #d97757;
+  --brand-foreground: #fffaf7;
+  --brand-strong: #9a4b2e;
+  --brand-soft: #fceedf;
   --gold: #f5b300;
   --radius: 0.875rem;
   --shadow-sm: 0 1px 3px 0 #0000001a, 0 1px 2px -1px #0000001a;
@@ -62,10 +62,10 @@ html.dark:has(.lp) body {
   --border: #2a2c24;
   --input: #2a2c24;
   --ring: #f4f5ef;
-  --brand: #c6f432;
-  --brand-foreground: #111210;
-  --brand-strong: #c6f432;
-  --brand-soft: #232b0f;
+  --brand: #d97757;
+  --brand-foreground: #fffaf7;
+  --brand-strong: #e89272;
+  --brand-soft: #2a1a14;
   --gold: #ffc53d;
 }
 

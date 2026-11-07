@@ -171,7 +171,7 @@ export const PRODUCTS: BoardProduct[] = [
     amount: 403,
     backers: 4,
     upvotes: 15,
-    logoColor: '#c6f432',
+    logoColor: '#d97757',
     logoInitials: 'LP',
     makerColor: '#111210'
   },

@@ -58,7 +58,7 @@ function BoardRow({ product, delayMs }: { product: BoardProduct; delayMs: number
           {product.name}
         </h3>
         <p className='truncate text-sm text-muted-foreground'>{product.description}</p>
-        <p className='mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground'>
+        <p className=' flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground'>
           <MakerAvatar product={product} />
           <span className='truncate'>{product.maker}</span>
           <span className='hidden truncate sm:inline'>· {product.category}</span>

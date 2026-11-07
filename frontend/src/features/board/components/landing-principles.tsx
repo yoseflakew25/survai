@@ -48,7 +48,7 @@ export function LandingPrinciples() {
               className='group flex cursor-default gap-4 border-b border-border px-5 py-5 transition-colors duration-200 last:border-b-0 hover:bg-brand-soft/60 sm:gap-5 sm:px-6 sm:py-6'
             >
               <span
-                className='mt-1 font-display text-2xl leading-none font-extrabold tracking-[-0.04em] text-brand tabular-nums transition-transform duration-200 group-hover:scale-110 group-hover:text-brand-strong'
+                className=' font-display text-2xl leading-none font-extrabold tracking-[-0.04em] text-brand tabular-nums transition-transform duration-200 group-hover:scale-110 group-hover:text-brand-strong'
                 aria-hidden='true'
               >
                 {String(i + 1).padStart(2, '0')}
@@ -57,7 +57,7 @@ export function LandingPrinciples() {
                 <h3 className='font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
                   {item.title}
                 </h3>
-                <p className='mt-1.5 text-sm leading-relaxed text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80'>
+                <p className='.5 text-sm leading-relaxed text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80'>
                   {item.body}
                 </p>
               </div>

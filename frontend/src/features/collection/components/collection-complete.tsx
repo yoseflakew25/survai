@@ -59,40 +59,40 @@ export function CollectionComplete({
           />
 
           <div className='relative flex flex-col items-center px-6 py-10 text-center sm:px-10 sm:py-12'>
-            <p className='mb-5 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-foreground uppercase'>
-              <span className='size-1.5 animate-pulse rounded-full bg-foreground' />
+            <p className='mb-5 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-brand-foreground uppercase'>
+              <span className='size-1.5 animate-pulse rounded-full bg-brand-foreground' />
               Response recorded
             </p>
 
             <div className='relative mb-6 flex items-center justify-center'>
-              <span className='absolute size-[4.5rem] animate-ping rounded-full bg-foreground/10 [animation-duration:2.2s]' />
-              <div className='relative flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground text-background shadow-sm'>
+              <span className='absolute size-[4.5rem] animate-ping rounded-full bg-brand-foreground/15 [animation-duration:2.2s]' />
+              <div className='relative flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground text-brand shadow-sm'>
                 <Icons.check className='size-7' strokeWidth={2.5} />
               </div>
             </div>
 
-            <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[1.75rem]'>
+            <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground sm:text-[1.75rem]'>
               Thank you for your response
             </h1>
-            <p className='mt-2 max-w-md text-sm leading-relaxed text-foreground/75'>
+            <p className='mt-2 max-w-md text-sm leading-relaxed text-brand-foreground/80'>
               Your answers to{' '}
-              <span className='font-semibold text-foreground'>
+              <span className='font-semibold text-brand-foreground'>
                 {displayTitle}
               </span>{' '}
               have been recorded successfully.
             </p>
             {displayDescription ? (
-              <p className='text-foreground/60 mt-1.5 line-clamp-2 max-w-sm text-xs leading-relaxed'>
+              <p className='text-brand-foreground/65 .5 line-clamp-2 max-w-sm text-xs leading-relaxed'>
                 {displayDescription}
               </p>
             ) : null}
 
             <div className='mt-7 flex flex-wrap items-center justify-center gap-2'>
-              <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 text-[11px] font-medium text-foreground'>
+              <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-brand-foreground'>
                 <Icons.circleCheck className='size-3 opacity-80' />
                 {answeredCount} of {totalQuestions} answered
               </span>
-              <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 text-[11px] font-medium text-foreground'>
+              <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-brand-foreground'>
                 <Icons.clock className='size-3 opacity-80' />
                 {formatSubmittedAt(submittedAt)}
               </span>

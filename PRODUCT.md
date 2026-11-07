@@ -7,8 +7,8 @@ AI-assisted survey lifecycle platform (Plan → Build → Review → Collect →
 Researchers and program staff who need trustworthy survey workflows where AI never invents statistics.
 
 ## Brand commitments (session)
-- Visual world for the product UI is explicitly pinned to [Launchpot](https://launchpot.space/board): warm paper ground (`#f7f7f2`), lime brand (`#c6f432`), Geist + Bricolage Grotesque, pill nav, soft borders, board-list density.
-- First surface: recreate the Launchpot `/board` landing as `/` pixel-faithfully (layout, tokens, motion, chrome). Product rebrand of copy/identity follows after the aesthetic lands.
+- Visual world: warm paper ground (`#f7f7f2`), Claude-inspired orange brand (`#d97757`), Geist + Bricolage Grotesque, pill nav, soft borders, board-list density (layout motifs originally from Launchpot; brand hue shifted to orange).
+- First surface: `/` board landing keeps structure/motion; brand accents follow the orange token set.
 
 ## Assumptions
 - Frontend-only for now; mock board data is fine.

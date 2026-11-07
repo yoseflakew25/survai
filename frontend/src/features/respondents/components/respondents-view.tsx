@@ -88,13 +88,13 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
 
         {noResponsesYet ? (
           <div className='flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-16 text-center shadow-sm'>
-            <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
+            <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-muted'>
               <Icons.teams className='size-5 text-foreground' />
             </div>
             <h3 className='font-display font-bold tracking-tight'>
               No responses yet
             </h3>
-            <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
+            <p className='text-muted-foreground  max-w-xs text-sm'>
               Publish your survey and share the collection link to start receiving
               responses.
             </p>
@@ -111,7 +111,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
         ) : (
           <>
             {data.activeFilter && (
-              <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
+              <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm'>
                 <span className='text-muted-foreground text-xs'>
                   Respondents who answered
                 </span>
@@ -145,7 +145,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
               onRowClick={(row) => openRespondent(row.id)}
               isRowSelected={(row) => row.id === params.respondent}
               emptyIcon={
-                <div className='flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
+                <div className='flex size-12 items-center justify-center rounded-2xl bg-muted'>
                   <Icons.search className='size-5 text-foreground' />
                 </div>
               }

@@ -121,13 +121,15 @@ export function EditableList({
   return (
     <div className={cn('space-y-3', className)}>
       {items.length === 0 ? (
-        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center'>
-          <div className='bg-brand-soft flex size-10 items-center justify-center rounded-xl'>
-            <Icons.forms className='size-4 text-foreground' />
+        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/40 px-4 py-8 text-center'>
+          <div className='flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
+            <Icons.forms className='size-4' />
           </div>
-          <p className='text-sm font-medium text-foreground'>{emptyMessage}</p>
-          <p className='text-muted-foreground text-xs'>
-            Add one below, or generate more with AI.
+          <p className='text-sm font-semibold text-foreground'>{emptyMessage}</p>
+          <p className='text-muted-foreground max-w-[16rem] text-xs leading-relaxed'>
+            {disabled
+              ? 'Nothing was captured for this section.'
+              : 'Add one below, or regenerate the plan with AI.'}
           </p>
         </div>
       ) : (
@@ -160,26 +162,36 @@ export function EditableList({
                         'flex size-6 shrink-0 items-center justify-center rounded-lg font-mono text-[11px] font-bold tabular-nums transition-colors',
                         editingIndex === index
                           ? 'bg-foreground text-background'
-                          : 'bg-muted text-muted-foreground'
+                          : 'bg-muted text-foreground'
                       )}
                     >
                       {index + 1}
                     </span>
-                    <Input
-                      value={item}
-                      onChange={(e) => handleUpdate(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, index)}
-                      onFocus={() => setEditingIndex(index)}
-                      onBlur={() => {
-                        window.setTimeout(() => setEditingIndex(null), 150);
-                      }}
-                      placeholder={placeholder}
-                      disabled={disabled}
-                      className={cn(
-                        'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-medium shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
-                        !item && 'text-muted-foreground italic'
-                      )}
-                    />
+                    {disabled ? (
+                      <p
+                        className={cn(
+                          'min-w-0 flex-1 px-2 py-1.5 text-sm font-medium leading-snug text-foreground',
+                          !item && 'text-muted-foreground italic'
+                        )}
+                      >
+                        {item || placeholder}
+                      </p>
+                    ) : (
+                      <Input
+                        value={item}
+                        onChange={(e) => handleUpdate(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, index)}
+                        onFocus={() => setEditingIndex(index)}
+                        onBlur={() => {
+                          window.setTimeout(() => setEditingIndex(null), 150);
+                        }}
+                        placeholder={placeholder}
+                        className={cn(
+                          'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-medium text-foreground shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
+                          !item && 'text-muted-foreground italic'
+                        )}
+                      />
+                    )}
                     {!disabled ? (
                       <Button
                         type='button'

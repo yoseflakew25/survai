@@ -37,7 +37,7 @@ export function PendingConditionalBanner({
             Suggested skip rule is not live yet. Confirm to write it to the
             question, or dismiss to discard.
           </p>
-          <p className='mt-1 font-mono text-[10px] break-all text-foreground/80'>
+          <p className=' font-mono text-[10px] break-all text-foreground/80'>
             Show when {summary || '—'}
           </p>
         </div>

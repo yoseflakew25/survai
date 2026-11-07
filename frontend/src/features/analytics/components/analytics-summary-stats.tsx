@@ -83,14 +83,14 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
                 <IconComponent className='size-4 shrink-0 text-foreground' />
               ) : null}
             </div>
-            <div className='mt-1 flex items-center justify-between gap-2'>
+            <div className=' flex items-center justify-between gap-2'>
               <p className='font-display text-xl font-extrabold tracking-tight tabular-nums'>
                 {stat.value}
               </p>
               {stat.trend ? (
                 <Badge
                   variant='outline'
-                  className='rounded-full border-transparent bg-brand-soft text-[10px] text-foreground'
+                  className='rounded-full border-transparent bg-muted text-[10px] text-muted-foreground'
                 >
                   {stat.trendUp ? (
                     <Icons.trendingUp className='h-2.5 w-2.5' />
@@ -101,7 +101,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
                 </Badge>
               ) : null}
             </div>
-            <p className='text-muted-foreground mt-1 text-xs'>{stat.description}</p>
+            <p className='text-muted-foreground  text-xs'>{stat.description}</p>
           </div>
         );
       })}

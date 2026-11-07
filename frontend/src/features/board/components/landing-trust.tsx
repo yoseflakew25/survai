@@ -49,8 +49,8 @@ export function LandingTrust() {
                 {claim.mark}
               </span>
               <div className='flex items-start gap-3'>
-                <span className='landing-rail mt-1.5 hidden h-10 sm:block' aria-hidden='true' />
-                <h3 className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+                <span className='landing-rail .5 hidden h-10 sm:block' aria-hidden='true' />
+                <h3 className='font-display text-2xl  font-extrabold tracking-tight text-foreground'>
                   {claim.title}
                 </h3>
               </div>

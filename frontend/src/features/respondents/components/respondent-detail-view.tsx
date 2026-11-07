@@ -85,13 +85,13 @@ export function RespondentDetailView({
       {groups.length === 0 ? (
         <SurvaiPanel>
           <div className='flex flex-col items-center px-4 py-12 text-center'>
-            <div className='mb-3 flex size-11 items-center justify-center rounded-xl bg-brand-soft text-foreground'>
+            <div className='mb-3 flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground'>
               <Icons.forms className='size-5' />
             </div>
             <p className='font-display font-bold tracking-tight'>
               No answers recorded
             </p>
-            <p className='text-muted-foreground mt-1 max-w-sm text-sm'>
+            <p className='text-muted-foreground  max-w-sm text-sm'>
               This submission did not include any question responses.
             </p>
           </div>
@@ -145,7 +145,7 @@ export function RespondentDetailView({
 
               <div className='min-w-0 flex-1'>
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-                  <h1 className='font-display truncate text-2xl font-extrabold tracking-tight text-foreground'>
+                  <h1 className='font-display truncate text-2xl font-extrabold tracking-tight text-brand-foreground'>
                     {detail.name}
                   </h1>
                   <Badge
@@ -164,10 +164,10 @@ export function RespondentDetailView({
                     {isComplete ? 'Completed' : 'Partial'}
                   </Badge>
                 </div>
-                <p className='mt-0.5 truncate text-xs text-foreground/75'>
+                <p className='mt-0.5 truncate text-xs text-brand-foreground/80'>
                   {detail.email}
                 </p>
-                <p className='mt-0.5 truncate font-mono text-[10px] tracking-wide text-foreground/60 uppercase'>
+                <p className='mt-0.5 truncate font-mono text-[10px] tracking-wide text-brand-foreground/65 uppercase'>
                   {surveyLabel}
                 </p>
               </div>
@@ -194,17 +194,17 @@ export function RespondentDetailView({
           
           </div>
 
-          <div className='relative flex items-center gap-3 border-t border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_6%,transparent)] px-4 py-2.5 sm:px-5'>
-            <span className='shrink-0 text-[11px] font-medium text-foreground/70'>
+          <div className='relative flex items-center gap-3 border-t border-[color-mix(in_srgb,var(--brand-foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_8%,transparent)] px-4 py-2.5 sm:px-5'>
+            <span className='shrink-0 text-[11px] font-medium text-brand-foreground/75'>
               Completion
             </span>
-            <div className='h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
+            <div className='h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--brand-foreground)_20%,transparent)]'>
               <div
-                className='h-full rounded-full bg-foreground transition-[width] duration-500 ease-out'
+                className='h-full rounded-full bg-brand-foreground transition-[width] duration-500 ease-out'
                 style={{ width: `${completionPct}%` }}
               />
             </div>
-            <span className='shrink-0 font-mono text-[11px] font-semibold tabular-nums text-foreground'>
+            <span className='shrink-0 font-mono text-[11px] font-semibold tabular-nums text-brand-foreground'>
               {completionPct}%
             </span>
           </div>
@@ -240,7 +240,7 @@ export function RespondentDetailView({
 
           <div className='min-w-0 flex-1'>
             <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-              <h1 className='font-display text-xl font-extrabold tracking-tight text-foreground sm:text-2xl'>
+              <h1 className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                 {detail.name}
               </h1>
               <Badge
@@ -260,19 +260,19 @@ export function RespondentDetailView({
               </Badge>
             </div>
 
-            <p className='mt-0.5 truncate text-sm text-foreground/75'>
+            <p className='mt-0.5 truncate text-sm text-brand-foreground/80'>
               {detail.email}
               <span className='mx-1.5 opacity-40'>·</span>
               <span>{surveyLabel}</span>
             </p>
 
-            <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground/80'>
+            <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-brand-foreground/85'>
               <div className='flex items-center gap-1.5'>
                 <Icons.calendar className='size-3.5 shrink-0 opacity-70' />
                 <dt className='sr-only'>Submitted</dt>
                 <dd>{formatDateTime(detail.submittedAt)}</dd>
               </div>
-              <span className='hidden h-3 w-px bg-foreground/20 sm:block' aria-hidden />
+              <span className='hidden h-3 w-px bg-brand-foreground/25 sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
                 <Icons.clock className='size-3.5 shrink-0 opacity-70' />
                 <dt className='sr-only'>Duration</dt>
@@ -280,7 +280,7 @@ export function RespondentDetailView({
                   {formatDuration(detail.durationSeconds)}
                 </dd>
               </div>
-              <span className='hidden h-3 w-px bg-foreground/20 sm:block' aria-hidden />
+              <span className='hidden h-3 w-px bg-brand-foreground/25 sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
                 <Icons.check className='size-3.5 shrink-0 opacity-70' />
                 <dt className='sr-only'>Answered</dt>

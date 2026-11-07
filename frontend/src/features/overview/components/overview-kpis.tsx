@@ -18,23 +18,23 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card p-4 transition-colors duration-200',
-        'hover:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] hover:bg-brand-soft/50'
+        'rounded-[1.125rem] border border-border bg-card p-4 transition-colors duration-200',
+        'hover:bg-muted/30'
       )}
     >
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
           <p className='text-[12px] font-medium text-muted-foreground'>{kpi.label}</p>
-          <p className='font-display mt-1.5 text-3xl font-extrabold tracking-tight tabular-nums text-foreground'>
+          <p className='font-display .5 text-3xl font-extrabold tracking-tight tabular-nums text-primary'>
             {kpi.value}
           </p>
-          <p className='mt-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase'>
+          <p className=' font-mono text-[10px] tracking-wide text-muted-foreground uppercase'>
             {kpi.hint}
           </p>
         </div>
         <Badge
           variant='secondary'
-          className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-foreground'
+          className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground'
         >
           <TrendIcon trend={kpi.trend} />
           {kpi.delta}
@@ -46,7 +46,7 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
 
 function KpiSkeleton() {
   return (
-    <div className='rounded-2xl border border-border bg-card p-4'>
+    <div className='rounded-[1.125rem] border border-border bg-card p-4'>
       <Skeleton className='h-3 w-24' />
       <Skeleton className='mt-3 h-8 w-20' />
       <Skeleton className='mt-2 h-3 w-28' />
@@ -69,7 +69,7 @@ export function OverviewKpis() {
 
   if (isError || !data) {
     return (
-      <div className='rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
+      <div className='rounded-[1.125rem] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
         Could not load workspace stats. Refresh and try again.
       </div>
     );

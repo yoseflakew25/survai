@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 export function RecentSurveysSkeleton() {
   return (
     <Card className='h-full gap-0 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card py-0'>
-      <CardHeader className='border-b border-[color-mix(in_srgb,var(--brand)_25%,var(--border))] bg-muted/25 px-5 py-4'>
+      <CardHeader className='border-b border-border bg-brand-soft px-5 py-4'>
         <Skeleton className='h-6 w-[160px]' />
         <Skeleton className='mt-2 h-4 w-[180px]' />
       </CardHeader>

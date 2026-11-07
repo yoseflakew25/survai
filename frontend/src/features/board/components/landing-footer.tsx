@@ -34,7 +34,7 @@ export function LandingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className='mt-10 border-t border-border bg-[color-mix(in_srgb,var(--secondary)_55%,var(--background))]'>
+    <footer className='0 border-t border-border bg-[color-mix(in_srgb,var(--secondary)_55%,var(--background))]'>
       <div className='mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 sm:py-14'>
           <div className='flex flex-col gap-10 lg:flex-row lg:justify-between'>
             <div className='max-w-sm space-y-4'>
@@ -133,7 +133,7 @@ export function LandingFooter() {
             </div>
           </div>
 
-        <div className='mt-12 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='2 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between'>
           <p className='font-mono text-[11px] text-muted-foreground'>
             © {year} Survai. All rights reserved.
           </p>

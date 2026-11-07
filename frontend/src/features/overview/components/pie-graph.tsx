@@ -50,7 +50,7 @@ export function PieGraph() {
   return (
     <Card className='border flex h-full flex-col'>
       <CardHeader className='items-center border-b pb-0'>
-        <CardTitle className='font-display text-lg font-bold tracking-tight text-foreground'>
+        <CardTitle className='font-display text-xl font-bold tracking-tight text-foreground'>
           Pie Chart
           <Badge variant='outline'>
             <Icons.trendingUp />

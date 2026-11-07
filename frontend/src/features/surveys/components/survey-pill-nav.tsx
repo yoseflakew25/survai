@@ -22,11 +22,11 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
     <div className='relative'>
       {/* Soft edge fades when the row scrolls on small screens */}
       <div
-        className='pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white to-transparent md:hidden dark:from-card'
+        className='pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-card to-transparent md:hidden'
         aria-hidden
       />
       <div
-        className='pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white to-transparent md:hidden dark:from-card'
+        className='pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-card to-transparent md:hidden'
         aria-hidden
       />
 
@@ -34,8 +34,8 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
         role='tablist'
         aria-label='Survey workflow'
         className={cn(
-          'flex items-center gap-1 overflow-x-auto rounded-2xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]',
-          'bg-white p-1 dark:bg-card',
+          'flex items-center gap-1 overflow-x-auto rounded-2xl border border-border',
+          'bg-card p-1',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         )}
       >
@@ -54,16 +54,16 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
               className={cn(
                 'group relative inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-[color,background-color,box-shadow,border-color] duration-150',
                 isActive
-                  ? 'border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-card text-foreground shadow-sm'
-                  : 'border border-transparent text-muted-foreground hover:bg-card/70 hover:text-foreground'
+                  ? 'border border-border bg-background text-foreground shadow-sm'
+                  : 'border border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
             >
               <span
                 className={cn(
                   'flex size-6 shrink-0 items-center justify-center rounded-lg font-mono text-[10px] font-bold tabular-nums transition-colors',
                   isActive
-                    ? 'bg-brand text-brand-foreground'
-                    : 'bg-muted text-muted-foreground group-hover:bg-brand-soft group-hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground group-hover:bg-muted group-hover:text-foreground'
                 )}
               >
                 {index + 1}

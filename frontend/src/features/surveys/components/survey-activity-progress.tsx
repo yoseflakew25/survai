@@ -88,7 +88,7 @@ export function SurveyActivityProgress({
             <p className='font-mono text-[10px] font-semibold tracking-[0.14em] text-foreground/55 uppercase'>
               {previewLabel}
             </p>
-            <p className='mt-1 line-clamp-2 text-sm leading-relaxed text-foreground/80'>
+            <p className=' line-clamp-2 text-sm leading-relaxed text-foreground/80'>
               {previewText.trim()}
             </p>
           </div>
@@ -197,7 +197,7 @@ export function SurveyActivityProgress({
           <p className='text-[11px] font-semibold tracking-wide text-foreground/70 uppercase'>
             {previewLabel}
           </p>
-          <p className='mt-1 line-clamp-3 text-sm leading-relaxed text-foreground'>
+          <p className=' line-clamp-3 text-sm leading-relaxed text-foreground'>
             {previewText.trim()}
           </p>
         </div>

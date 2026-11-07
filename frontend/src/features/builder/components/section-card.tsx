@@ -183,7 +183,7 @@ export function SectionCard({
           <div className='flex flex-col items-center justify-center rounded-lg border border-dashed py-8 text-center'>
             <Icons.forms className='text-muted-foreground/40 mb-2 h-8 w-8' />
             <p className='text-muted-foreground text-sm'>No questions yet</p>
-            <p className='text-muted-foreground/60 mt-1 text-xs'>
+            <p className='text-muted-foreground/60  text-xs'>
               {readOnly
                 ? 'Questions are locked for this survey'
                 : 'Add questions to this section'}

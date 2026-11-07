@@ -42,7 +42,7 @@ export function AlertModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className='sm:max-w-md gap-0 p-0 overflow-hidden'>
-        <DialogHeader className='bg-destructive'>
+        <DialogHeader className='bg-destructive px-5 py-4'>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className='px-4 pt-4 pb-2'>

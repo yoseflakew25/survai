@@ -119,19 +119,28 @@ export function PlanQuickActions({
       <SurvaiPanel>
         <SurvaiPanelHeader
           icon={<Icons.check className='size-3.5' />}
-          title='Plan locked'
+          title='Editing locked'
           subtitle='Questions already generated'
           badge={
-            <span className='bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold'>
+            <span className='inline-flex items-center gap-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground'>
               Read-only
             </span>
           }
         />
-        <SurvaiPanelBody className='p-3'>
-          <p className='text-muted-foreground text-sm leading-relaxed'>
-            This research plan can no longer be edited or regenerated. Change
-            survey questions on the Review tab instead.
+        <SurvaiPanelBody className='space-y-3 p-4'>
+          <p className='text-sm leading-relaxed text-foreground'>
+            This research plan can no longer be edited or regenerated.
           </p>
+          <ul className='text-muted-foreground space-y-1.5 text-xs leading-relaxed'>
+            <li className='flex gap-2'>
+              <Icons.circleCheck className='mt-0.5 size-3.5 shrink-0 text-primary' />
+              Goal, objectives, and sections stay as the source of truth.
+            </li>
+            <li className='flex gap-2'>
+              <Icons.review className='mt-0.5 size-3.5 shrink-0 text-primary' />
+              Change survey questions on the Review tab instead.
+            </li>
+          </ul>
         </SurvaiPanelBody>
       </SurvaiPanel>
     );
@@ -253,7 +262,7 @@ export function PlanQuickActions({
             )}
           >
             <div className='flex items-start gap-3 px-3 py-3'>
-              <span className='bg-brand text-foreground flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm'>
+              <span className='bg-brand text-brand-foreground flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm'>
                 {isGenerating ? (
                   <Icons.spinner className='size-4 animate-spin' />
                 ) : (
@@ -270,7 +279,7 @@ export function PlanQuickActions({
                     : 'Add a research goal to enable AI regenerate'}
                 </span>
               </span>
-              <Icons.arrowRight className='text-foreground/50 mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-disabled:translate-x-0' />
+              <Icons.arrowRight className='text-foreground/50  size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-disabled:translate-x-0' />
             </div>
           </button>
         </SurvaiPanelBody>
@@ -278,7 +287,7 @@ export function PlanQuickActions({
 
       <Dialog open={confirmRegen} onOpenChange={setConfirmRegen}>
         <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
-          <DialogHeader className='bg-primary'>
+          <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
             <DialogTitle>Regenerate this plan?</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>

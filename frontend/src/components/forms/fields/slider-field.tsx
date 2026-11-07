@@ -37,7 +37,7 @@ export function SliderField({
               onBlur={field.onBlur}
               aria-labelledby={labelId}
             />
-            <div className='text-muted-foreground mt-1 flex justify-between text-xs tabular-nums'>
+            <div className='text-muted-foreground  flex justify-between text-xs tabular-nums'>
               <span>{min}</span>
               <span className='text-foreground font-medium'>{field.value}</span>
               <span>{max}</span>

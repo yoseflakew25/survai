@@ -247,7 +247,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                   className={cn(
                     'rounded-full text-[10px] font-semibold',
                     isPublished &&
-                      'border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground'
+                      'border border-border bg-foreground text-background'
                   )}
                 >
                   {isPublished ? 'Live' : isClosed ? 'Closed' : 'Not published'}
@@ -272,7 +272,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
               {!isLive ? (
                 <div className='space-y-4'>
                   <div className='rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center'>
-                    <div className='mx-auto mb-3 flex size-12 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
+                    <div className='mx-auto mb-3 flex size-12 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground'>
                       <Icons.collect className='size-5' />
                     </div>
                     <p className='mb-1 text-sm font-semibold tracking-tight'>
@@ -288,7 +288,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                       onClick={() => void handlePublish()}
                       disabled={isPublishing}
                       size='lg'
-                      className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105'
+                      className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] hover:brightness-[1.03]'
                     >
                       {isPublishing ? (
                         <>
@@ -314,7 +314,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                     className={cn(
                       'flex items-start gap-3 rounded-xl border p-3.5',
                       isPublished
-                        ? 'border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft/70'
+                        ? 'border-border bg-muted/40'
                         : 'border-border bg-muted/40'
                     )}
                   >
@@ -322,8 +322,8 @@ export function CollectView({ surveyId }: CollectViewProps) {
                       className={cn(
                         'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
                         isPublished
-                          ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'
-                          : 'border border-border bg-white text-muted-foreground'
+                          ? 'border border-border bg-foreground text-background'
+                          : 'border border-border bg-card text-muted-foreground'
                       )}
                     >
                       <Icons.circleCheck className='size-4' />
@@ -365,7 +365,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                             'h-11 shrink-0 rounded-xl font-semibold sm:min-w-[7.5rem]',
                             copied
                               ? 'border border-border bg-foreground text-background hover:bg-foreground/90'
-                              : 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-105'
+                              : 'border border-border bg-card text-foreground hover:bg-muted/50'
                           )}
                         >
                           {copied ? (

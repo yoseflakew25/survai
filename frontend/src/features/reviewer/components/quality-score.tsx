@@ -88,7 +88,7 @@ export function QualityScore({
                 / 5
               </span>
             </p>
-            <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+            <p className='text-muted-foreground  text-xs leading-relaxed'>
               Overall advisory quality
             </p>
           </div>

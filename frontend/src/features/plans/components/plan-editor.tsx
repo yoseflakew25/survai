@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
@@ -26,7 +25,6 @@ import { ProposedSectionsEditor } from './proposed-sections-editor';
 import { PlanGenerationProgress } from './plan-generation-progress';
 import { PlanQuickActions } from './plan-quick-actions';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
-import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -34,12 +32,12 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import {
-  SurvaiBrandCard,
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelHeader
 } from '@/components/survai-panel';
 import { displaySurveyTitle } from '@/lib/survey-display';
+import { cn } from '@/lib/utils';
 
 interface PlanEditorProps {
   plan: Plan;
@@ -55,8 +53,39 @@ function surveyHasQuestions(
   return sections.some((s) => (s.questions?.length ?? 0) > 0);
 }
 
-const brandCtaOnLimeClass =
-  'h-10 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card font-semibold text-foreground shadow-sm hover:bg-card/90';
+const blackCtaClass =
+  'h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-4 text-sm font-semibold text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:bg-foreground/90 disabled:opacity-60';
+
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums ring-1',
+        count > 0
+          ? 'bg-primary text-primary-foreground ring-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))]'
+          : 'bg-card text-muted-foreground ring-border'
+      )}
+    >
+      {count}
+    </span>
+  );
+}
+
+/** Highlight only the "Survey title:" label in composed research goals. */
+function ResearchGoalDisplay({ text }: { text: string }) {
+  const trimmed = text.trim();
+  if (!trimmed) return <>No research goal recorded.</>;
+
+  const match = trimmed.match(/^(Survey\s*title:)\s*([\s\S]*)$/i);
+  if (!match) return <>{trimmed}</>;
+
+  return (
+    <>
+      <span className='text-primary'>{match[1]}</span>
+      {match[2] ? <> {match[2]}</> : null}
+    </>
+  );
+}
 
 interface PlanState {
   researchGoal: string;
@@ -365,107 +394,89 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
     targetRespondents.length > 0 ||
     proposedSections.length > 0;
 
-  const planSteps = [
-    { n: 1, label: 'Plan created', state: 'complete' as const },
-    { n: 2, label: 'Review & edit', state: 'current' as const },
-    { n: 3, label: 'Generate survey', state: 'upcoming' as const }
+  const readiness = [
+    {
+      id: 'goal',
+      label: 'Research goal',
+      done: researchGoal.trim().length >= 10
+    },
+    {
+      id: 'objectives',
+      label: 'Objectives',
+      done: objectives.length > 0,
+      count: objectives.length
+    },
+    {
+      id: 'questions',
+      label: 'Research questions',
+      done: researchQuestions.length > 0,
+      count: researchQuestions.length
+    },
+    {
+      id: 'respondents',
+      label: 'Target respondents',
+      done: targetRespondents.length > 0,
+      count: targetRespondents.length
+    },
+    {
+      id: 'sections',
+      label: 'Proposed sections',
+      done: proposedSections.length > 0,
+      count: proposedSections.length
+    }
   ];
+  const readinessDone = readiness.filter((item) => item.done).length;
+  const readinessTotal = readiness.length;
+  const unsaved = hasUnsavedChanges();
+  const canGenerateSurvey = hasContent && researchGoal.trim().length >= 10;
 
   return (
     <div className='space-y-5'>
-      {/* Progress strip only on standalone plan pages — survey hub already has the pill nav. */}
-      {!surveyId ? (
-        <ol
-          aria-label='Plan progress'
-          className='flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:gap-0 sm:px-4 sm:py-3'
-        >
-          {planSteps.map((step, i) => {
-            const complete = step.state === 'complete';
-            const current = step.state === 'current';
-            return (
-              <li
-                key={step.n}
-                className='flex min-w-0 flex-1 items-center gap-2 sm:gap-3'
-              >
-                <div className='flex min-w-0 items-center gap-2.5'>
-                  <span
-                    className={cn(
-                      'flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors',
-                      complete &&
-                        'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]',
-                      current &&
-                        'bg-foreground text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)]',
-                      !complete &&
-                        !current &&
-                        'border border-border bg-muted/60 text-muted-foreground'
-                    )}
-                  >
-                    {complete ? (
-                      <Icons.check className='size-3.5' strokeWidth={2.5} />
-                    ) : (
-                      step.n
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      'truncate text-sm font-medium',
-                      current && 'font-semibold text-foreground',
-                      complete && 'text-foreground',
-                      !complete && !current && 'text-muted-foreground'
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-                {i < planSteps.length - 1 ? (
-                  <span
-                    className={cn(
-                      'mx-1 hidden h-px flex-1 sm:block',
-                      complete ? 'bg-foreground/25' : 'bg-border'
-                    )}
-                    aria-hidden
-                  />
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-      ) : null}
-
       <div className='grid gap-6 lg:grid-cols-3'>
-        {/* Main content area */}
         <div className='space-y-4 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              icon={<Icons.sparkles className='size-3.5' />}
-              title='Research goal'
-              subtitle='What this survey is trying to learn'
+              // icon={<Icons.plan className='size-3.5' />}
+              className='border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary [&_[data-slot=panel-icon]]:border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] [&_[data-slot=panel-icon]]:bg-primary-foreground/12 [&_[data-slot=panel-icon]]:text-primary-foreground [&_[data-slot=panel-icon]]:shadow-none'
+              title={
+                <div className='min-w-0'>
+                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl'>
+                    Research plan
+                  </h3>
+                  <p className='mt-0.5 text-sm leading-snug text-primary-foreground/80'>
+                    What this survey is trying to learn
+                  </p>
+                </div>
+              }
               badge={
-                <Badge
-                  variant='secondary'
-                  className='rounded-full border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft text-[10px] font-semibold'
-                >
-                  {isLocked ? 'Locked' : 'AI draft'}
-                </Badge>
+                <span className='font-mono text-[11px] tabular-nums text-primary-foreground/80'>
+                  {researchGoal.trim().length.toLocaleString()} chars
+                </span>
               }
             />
             <SurvaiPanelBody>
-              <Textarea
-                value={researchGoal}
-                onChange={(e) =>
-                  setPlanState((prev) => ({
-                    ...prev,
-                    researchGoal: e.target.value
-                  }))
-                }
-                rows={4}
-                readOnly={isLocked}
-                disabled={isLocked}
-                className='border-border min-h-[7rem] resize-none rounded-xl border-2 text-sm leading-relaxed focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))] disabled:cursor-default disabled:opacity-100'
-                placeholder='Describe the purpose of your survey…'
-              />
-              <p className='text-muted-foreground mt-3 text-[11px] tabular-nums'>
-                {researchGoal.trim().length.toLocaleString()} characters
+              {isLocked ? (
+                <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft/50 px-4 py-4 text-base font-semibold leading-relaxed text-foreground sm:text-lg'>
+                  <ResearchGoalDisplay text={researchGoal} />
+                </p>
+              ) : (
+                <Textarea
+                  value={researchGoal}
+                  onChange={(e) =>
+                    setPlanState((prev) => ({
+                      ...prev,
+                      researchGoal: e.target.value
+                    }))
+                  }
+                  rows={4}
+                  className='border-border min-h-[7rem] resize-none rounded-xl border-2 text-base font-semibold leading-relaxed text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))] sm:text-lg'
+                  placeholder='Describe the purpose of your survey…'
+                />
+              )}
+              <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>
+                A clear goal guides objectives, questions, audiences, and
+                sections. Regenerate with AI after edits if you want a fresh
+                draft.
               </p>
             </SurvaiPanelBody>
           </SurvaiPanel>
@@ -475,11 +486,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               icon={<Icons.checks className='size-3.5' />}
               title='Objectives'
               subtitle='Outcomes this survey should achieve'
-              badge={
-                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
-                  {objectives.length}
-                </span>
-              }
+              badge={<CountBadge count={objectives.length} />}
             />
             <SurvaiPanelBody>
               <EditableList
@@ -503,11 +510,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               icon={<Icons.forms className='size-3.5' />}
               title='Research questions'
               subtitle='Questions the survey should answer'
-              badge={
-                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
-                  {researchQuestions.length}
-                </span>
-              }
+              badge={<CountBadge count={researchQuestions.length} />}
             />
             <SurvaiPanelBody>
               <EditableList
@@ -531,11 +534,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               icon={<Icons.teams className='size-3.5' />}
               title='Target respondents'
               subtitle='Who should take this survey'
-              badge={
-                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
-                  {targetRespondents.length}
-                </span>
-              }
+              badge={<CountBadge count={targetRespondents.length} />}
             />
             <SurvaiPanelBody>
               <EditableList
@@ -559,11 +558,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               icon={<Icons.kanban className='size-3.5' />}
               title='Proposed sections'
               subtitle='How questions will be grouped in the survey'
-              badge={
-                <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
-                  {proposedSections.length}
-                </span>
-              }
+              badge={<CountBadge count={proposedSections.length} />}
             />
             <SurvaiPanelBody>
               <ProposedSectionsEditor
@@ -580,21 +575,65 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           </SurvaiPanel>
         </div>
 
-        {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <SurvaiBrandCard
-            title={isLocked ? 'Plan locked' : 'Ready to generate?'}
-            description={
-              isLocked
-                ? 'Questions were generated from this plan. View it here anytime — edit questions on Review.'
-                : 'AI will draft survey questions from this plan. You can review and edit everything next.'
-            }
-          >
+          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft p-4 sm:p-5'>
+            <div>
+              <p className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+                {isLocked ? 'Plan locked' : canGenerateSurvey ? 'Ready when you are' : 'Finish the brief'}
+              </p>
+              <p className='text-muted-foreground mt-1 text-sm leading-relaxed'>
+                {isLocked
+                  ? 'Questions already exist for this plan. Continue on Review to edit them.'
+                  : canGenerateSurvey
+                    ? 'AI will draft survey questions from this plan. You can edit everything next.'
+                    : 'Add a goal plus at least one list item before generating questions.'}
+              </p>
+            </div>
+
+            <ul className='space-y-1.5'>
+              {readiness.map((item) => (
+                <li
+                  key={item.id}
+                  className='flex items-center gap-2.5 rounded-xl bg-card/70 px-2.5 py-2 ring-1 ring-border/70'
+                >
+                  <span
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded-lg',
+                      item.done
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {item.done ? (
+                      <Icons.check className='size-3.5' strokeWidth={2.5} />
+                    ) : (
+                      <span className='size-1.5 rounded-full bg-current opacity-50' />
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 text-sm',
+                      item.done
+                        ? 'font-medium text-foreground'
+                        : 'text-muted-foreground'
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                  {typeof item.count === 'number' ? (
+                    <span className='font-mono text-[10px] tabular-nums text-muted-foreground'>
+                      {item.count}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+
             <Button
               type='button'
-              className={brandCtaOnLimeClass}
+              className={blackCtaClass}
               onClick={handleProceedToBuilder}
-              disabled={isCreatingSurvey || !hasContent}
+              disabled={isCreatingSurvey || (!isLocked && !canGenerateSurvey)}
             >
               {isCreatingSurvey ? (
                 <>
@@ -615,7 +654,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                 </>
               )}
             </Button>
-          </SurvaiBrandCard>
+          </div>
 
           <PlanQuickActions
             canUndo={canUndo}
@@ -628,7 +667,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
             onRegenerate={() => void handleAIGenerate()}
             isSaving={isSaving}
             isGenerating={isGenerating}
-            hasUnsavedChanges={hasUnsavedChanges()}
+            hasUnsavedChanges={unsaved}
             canRegenerate={Boolean(researchGoal.trim())}
             locked={isLocked}
           />
@@ -642,18 +681,14 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         }}
       >
         <DialogContent
-          className='sm:max-w-md gap-0 overflow-hidden p-0'
+          className='sm:max-w-2xl gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none'
           showCloseButton={false}
         >
-          <DialogHeader className='bg-primary'>
-            <DialogTitle>Generating survey plan</DialogTitle>
-          </DialogHeader>
-          <div className='px-4 pt-4 pb-4'>
-            <PlanGenerationProgress
-              active={isGenerating}
-              goalPreview={researchGoal}
-            />
-          </div>
+          <DialogTitle className='sr-only'>Generating survey plan</DialogTitle>
+          <PlanGenerationProgress
+            active={isGenerating}
+            goalPreview={researchGoal}
+          />
         </DialogContent>
       </Dialog>
 
@@ -667,8 +702,10 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           className='sm:max-w-md gap-0 overflow-hidden p-0'
           showCloseButton={false}
         >
-          <DialogHeader className='bg-primary'>
-            <DialogTitle>Generating survey questions</DialogTitle>
+          <DialogHeader className='border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-5 py-4'>
+            <DialogTitle className='text-primary-foreground'>
+              Generating survey questions
+            </DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-4'>
             <SurveyGenerationProgress
@@ -679,24 +716,27 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Unsaved Changes Dialog */}
       <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
-        <DialogContent className='sm:max-w-md gap-0 p-0 overflow-hidden'>
-          <DialogHeader className='bg-primary'>
+        <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
+          <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
             <DialogTitle>Save your changes?</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>
-            <p className='text-sm text-muted-foreground'>
-              You have unsaved changes to your survey plan. Would you like to save them before proceeding to the builder?
+            <p className='text-muted-foreground text-sm leading-relaxed'>
+              You have unsaved changes to your survey plan. Save them before
+              generating questions, or discard and continue.
             </p>
           </div>
           <Separator />
-          <div className='px-4 py-3 flex items-center justify-end gap-2'>
+          <div className='flex items-center justify-end gap-2 px-4 py-3'>
             <Button variant='outline' onClick={() => proceedToBuilder(false)}>
-              Discard Changes
+              Discard changes
             </Button>
-            <Button onClick={() => proceedToBuilder(true)}>
-              Save & Proceed
+            <Button
+              className='bg-foreground text-background hover:bg-foreground/90'
+              onClick={() => proceedToBuilder(true)}
+            >
+              Save & proceed
             </Button>
           </div>
         </DialogContent>

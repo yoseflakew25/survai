@@ -13,7 +13,8 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelFooter,
-  SurvaiPanelHeader
+  SurvaiPanelHeader,
+  brandCtaClass
 } from '@/components/survai-panel';
 import { changePassword } from '@/features/profile/api/service';
 import { PasswordInput } from '@/features/auth/components/password-input';
@@ -73,9 +74,6 @@ export default function SecurityViewPage() {
   const newPasswordValue = watch('newPassword');
   const passwordStrength = getPasswordStrength(newPasswordValue || '');
 
-  const brandCtaClass =
-    'h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 disabled:opacity-50';
-
   async function onPasswordSubmit(data: PasswordFormValues) {
     setIsChangingPassword(true);
     try {
@@ -115,7 +113,7 @@ export default function SecurityViewPage() {
         <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
           Security
         </h1>
-        <p className='text-muted-foreground mt-1 text-sm'>
+        <p className='text-muted-foreground  text-sm'>
           Update the password for {user.email}.
         </p>
       </header>

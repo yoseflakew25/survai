@@ -109,7 +109,7 @@ export default function SignInViewPage() {
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
           Welcome back
         </h1>
-        <p className='text-muted-foreground mt-1.5 text-[15px]'>
+        <p className='text-muted-foreground .5 text-[15px]'>
           Sign in with your organization email and password.
         </p>
       </div>

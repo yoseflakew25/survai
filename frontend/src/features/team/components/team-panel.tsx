@@ -235,7 +235,7 @@ export function TeamPanel() {
           }}
         >
           <AlertDialogContent className='gap-0 overflow-hidden p-0 sm:max-w-md'>
-            <AlertDialogHeader className='gap-0 border-b border-border bg-muted/40 px-5 py-4 text-left sm:place-items-start sm:text-left'>
+            <AlertDialogHeader className='gap-0 border-b border-border bg-brand-soft px-5 py-4 text-left sm:place-items-start sm:text-left'>
               <AlertDialogTitle className='text-base font-semibold tracking-tight'>
                 Remove team member?
               </AlertDialogTitle>
@@ -253,7 +253,7 @@ export function TeamPanel() {
               ) : null}
             </AlertDialogDescription>
 
-            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-muted/40 px-5 py-4'>
+            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
               <AlertDialogCancel disabled={removing} className='rounded-xl'>
                 Cancel
               </AlertDialogCancel>
@@ -318,7 +318,7 @@ export function TeamPanel() {
           }}
         >
           <AlertDialogContent className='gap-0 overflow-hidden p-0 sm:max-w-md'>
-            <AlertDialogHeader className='gap-0 border-b border-border bg-muted/40 px-5 py-4 text-left sm:place-items-start sm:text-left'>
+            <AlertDialogHeader className='gap-0 border-b border-border bg-brand-soft px-5 py-4 text-left sm:place-items-start sm:text-left'>
               <AlertDialogTitle className='text-base font-semibold tracking-tight'>
                 Revoke invite?
               </AlertDialogTitle>
@@ -339,7 +339,7 @@ export function TeamPanel() {
               ) : null}
             </AlertDialogDescription>
 
-            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-muted/40 px-5 py-4'>
+            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
               <AlertDialogCancel disabled={revoking} className='rounded-xl'>
                 Cancel
               </AlertDialogCancel>

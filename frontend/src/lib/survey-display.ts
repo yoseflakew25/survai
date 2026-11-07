@@ -11,13 +11,30 @@ export function parseSurveyDisplayLabel(raw: string): {
   if (!text) return { title: 'Survey', description: null };
 
   const titleMatch = text.match(
-    /Survey\s*title:\s*([\s\S]+?)(?=\s+Description:|$)/i
+    /Survey\s*title:\s*([\s\S]+?)(?=\n\n|\s+Description:|$)/i
   );
   if (titleMatch) {
     const title = titleMatch[1].replace(/\s+/g, ' ').trim();
     const descMatch = text.match(/Description:\s*([\s\S]+?)(?=\n\n|$)/i);
-    const description = descMatch?.[1]?.replace(/\s+/g, ' ').trim() || null;
+    const afterTitle = text
+      .slice(titleMatch[0].length)
+      .replace(/^\s+/, '')
+      .trim();
+    const description =
+      descMatch?.[1]?.replace(/\s+/g, ' ').trim() ||
+      (afterTitle && !/^Description:/i.test(afterTitle)
+        ? afterTitle.replace(/\s+/g, ' ').trim()
+        : null);
     return { title: title || text, description };
+  }
+
+  // Fallback: first sentence as title when the whole goal is one long line.
+  const sentence = text.match(/^(.{12,72}?)(?:[.!?](?:\s|$)|$)/);
+  if (sentence && text.length > 80) {
+    return {
+      title: sentence[1].replace(/\s+/g, ' ').trim(),
+      description: text.slice(sentence[1].length).replace(/^\s+/, '').trim() || null
+    };
   }
 
   return { title: text, description: null };

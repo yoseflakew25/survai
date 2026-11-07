@@ -162,7 +162,7 @@ export default function SignUpViewPage() {
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
           {step === 'otp' ? 'Verify your email' : 'Create your organization'}
         </h1>
-        <p className='mt-1.5 text-[15px] text-muted-foreground'>
+        <p className='.5 text-[15px] text-muted-foreground'>
           {step === 'otp'
             ? `Enter the 6-digit code we sent to ${pendingEmail}.`
             : 'One organization account to plan, build, collect, and analyze surveys.'}

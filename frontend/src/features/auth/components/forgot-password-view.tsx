@@ -168,7 +168,7 @@ export default function ForgotPasswordViewPage() {
               ? 'Enter reset code'
               : 'Forgot password'}
         </h1>
-        <p className='text-muted-foreground mt-1.5 text-[15px]'>
+        <p className='text-muted-foreground .5 text-[15px]'>
           {done
             ? 'Your password was updated. Sign in to continue.'
             : step === 'otp'

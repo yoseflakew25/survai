@@ -59,9 +59,7 @@ export function SortableItem({
         >
           <Icons.gripVertical className='size-4' />
         </button>
-      ) : (
-        <div className='w-8 shrink-0' />
-      )}
+      ) : null}
       {children}
     </li>
   );

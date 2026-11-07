@@ -63,7 +63,7 @@ export function LandingDemo() {
             <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
               Sample question
             </p>
-            <p className='mt-1 text-base font-semibold tracking-tight text-foreground'>
+            <p className=' text-base font-semibold tracking-tight text-foreground'>
               {type === 'single' &&
                 'What was the main reason you joined this program?'}
               {type === 'rating' &&

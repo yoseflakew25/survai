@@ -148,7 +148,7 @@ export function LandingLifecycle() {
           <p className='font-mono text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>
             Stage {active + 1} of {STEPS.length}
           </p>
-          <h3 className='font-display mt-1.5 text-xl font-extrabold tracking-tight text-foreground'>
+          <h3 className='font-display .5 text-xl font-extrabold tracking-tight text-foreground'>
             {step.title}
           </h3>
           <p className='mt-2 text-sm leading-relaxed text-muted-foreground'>

@@ -344,21 +344,6 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
         {/* Sidebar */}
         <div className='sticky top-[4.5rem] self-start space-y-6'>
-          <SavedAnalyses
-            analyses={savedAnalyses}
-            activeFilters={activeFilters}
-            activeAnalysisId={activeAnalysisId}
-            canEdit={canEdit}
-            saving={savingView}
-            deletingId={deletingViewId}
-            onApply={handleApplySaved}
-            onClear={() => {
-              setActiveFilters([]);
-              setActiveAnalysisId(null);
-            }}
-            onSave={handleSaveView}
-            onDelete={handleDeleteView}
-          />
           {canEdit ? (
             <SurvaiBrandCard
               title='Generate Report?'
@@ -379,6 +364,21 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
               </Link>
             </SurvaiBrandCard>
           ) : null}
+          <SavedAnalyses
+            analyses={savedAnalyses}
+            activeFilters={activeFilters}
+            activeAnalysisId={activeAnalysisId}
+            canEdit={canEdit}
+            saving={savingView}
+            deletingId={deletingViewId}
+            onApply={handleApplySaved}
+            onClear={() => {
+              setActiveFilters([]);
+              setActiveAnalysisId(null);
+            }}
+            onSave={handleSaveView}
+            onDelete={handleDeleteView}
+          />
           <SurvaiPanel>
             <SurvaiPanelBody className='space-y-2'>
               <Button

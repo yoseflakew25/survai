@@ -50,7 +50,7 @@ export function DataTableSkeleton({
         ) : null}
       </div>
 
-      <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+      <div className='overflow-hidden rounded-[1.125rem] border border-border bg-card shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
         <Table>
           <TableHeader className='border-b border-border bg-brand-soft'>
             {Array.from({ length: 1 }).map((_, i) => (

@@ -64,8 +64,7 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {/* SurvaiPanel-equivalent card chrome */}
-      <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+      <div className='overflow-hidden rounded-[1.125rem] border border-border bg-card shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
         <ScrollArea className='w-full'>
           <Table>
             <TableHeader className='border-b border-border bg-brand-soft'>
@@ -109,7 +108,7 @@ export function DataTable<TData>({
                       role={onRowClick ? 'link' : undefined}
                       className={
                         onRowClick
-                          ? 'cursor-pointer outline-none focus-visible:bg-brand-soft/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40'
+                          ? 'cursor-pointer outline-none focus-visible:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40'
                           : undefined
                       }
                       onClick={
@@ -153,15 +152,15 @@ export function DataTable<TData>({
                   >
                     <div className='flex flex-col items-center justify-center gap-3 px-4 text-center'>
                       {emptyIcon ?? (
-                        <div className='flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
-                          <Icons.forms className='size-5 text-foreground' />
+                        <div className='bg-muted flex size-12 items-center justify-center rounded-2xl'>
+                          <Icons.forms className='text-muted-foreground size-5' />
                         </div>
                       )}
                       <div>
                         <p className='font-display text-sm font-bold tracking-tight'>
                           {emptyTitle ?? 'No surveys found'}
                         </p>
-                        <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
+                        <p className='text-muted-foreground  max-w-xs text-xs leading-relaxed'>
                           {emptyDescription ??
                             'Try adjusting your search or status filter, or create a new survey.'}
                         </p>

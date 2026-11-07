@@ -412,7 +412,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
               <div className='flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center'>
                 <Icons.forms className='text-muted-foreground/40 mb-4 h-12 w-12' />
                 <h3 className='text-lg font-semibold'>No sections yet</h3>
-                <p className='text-muted-foreground mt-1 text-sm'>
+                <p className='text-muted-foreground  text-sm'>
                   Add sections to organize your survey questions, or use AI to generate them.
                 </p>
                 {!questionsLocked ? (

@@ -25,7 +25,7 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
             <Icons.lock className='text-primary size-6' />
           </div>
           <h1 className='text-lg font-bold tracking-tight'>Survey unavailable</h1>
-          <p className='text-muted-foreground mt-1.5 text-sm leading-relaxed'>
+          <p className='text-muted-foreground .5 text-sm leading-relaxed'>
             This survey link is invalid or has expired. Please contact the survey
             owner for a new link.
           </p>

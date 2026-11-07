@@ -31,8 +31,8 @@ export function AreaGraph() {
 
   if (isError || !data) {
     return (
-      <Card className='flex h-full flex-col rounded-2xl border border-destructive/30 bg-card p-5'>
-        <CardTitle className='font-display text-lg font-extrabold'>Response activity</CardTitle>
+      <Card className='flex h-full flex-col rounded-[1.125rem] border border-destructive/30 bg-card p-5'>
+        <CardTitle className='font-display text-xl font-extrabold'>Response activity</CardTitle>
         <CardDescription className='mt-2 text-destructive'>
           Could not load response activity. Refresh and try again.
         </CardDescription>
@@ -48,11 +48,11 @@ export function AreaGraph() {
   const hasAny = chartData.some((p) => p.started > 0 || p.completed > 0);
 
   return (
-    <Card className='flex h-full flex-col gap-0 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card py-0'>
-      <CardHeader className='border-b border-[color-mix(in_srgb,var(--brand)_25%,var(--border))] bg-muted/25 px-5 py-4 sm:px-6'>
+    <Card className='flex h-full flex-col gap-0 rounded-[1.125rem] border border-border bg-card py-0 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
+      <CardHeader className='border-b border-border bg-brand-soft px-5 py-4 sm:px-6'>
         <div className='flex flex-wrap items-start justify-between gap-3'>
           <div>
-            <CardTitle className='font-display text-lg font-extrabold tracking-tight'>
+            <CardTitle className='font-display text-xl font-extrabold tracking-tight'>
               Response activity
             </CardTitle>
             <CardDescription className='mt-0.5'>
@@ -60,14 +60,14 @@ export function AreaGraph() {
             </CardDescription>
           </div>
           <div className='flex flex-wrap gap-2'>
-            <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] bg-card px-2.5 py-1 font-mono text-[10px] font-semibold text-foreground'>
+            <span className='inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[10px] font-medium text-muted-foreground'>
               <span
                 className='size-2 rounded-full bg-[var(--chart-1)]'
                 aria-hidden='true'
               />
               Completed
             </span>
-            <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-2.5 py-1 font-mono text-[10px] font-semibold text-foreground'>
+            <span className='inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 font-mono text-[10px] font-medium text-muted-foreground'>
               <span
                 className='size-2 rounded-full bg-[var(--chart-2)]'
                 aria-hidden='true'
@@ -82,7 +82,7 @@ export function AreaGraph() {
           <div className='flex flex-1 items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-4 py-16 text-center'>
             <div>
               <p className='text-sm font-medium text-foreground'>No responses yet</p>
-              <p className='text-muted-foreground mt-1 max-w-sm text-xs leading-relaxed'>
+              <p className='text-muted-foreground  max-w-sm text-xs leading-relaxed'>
                 Publish a survey and collect submissions — this chart fills with
                 real started vs completed activity.
               </p>

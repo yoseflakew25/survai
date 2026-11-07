@@ -118,7 +118,7 @@ export function PublicQuestionInput({
         )}
 
         {error && (
-          <p className='text-destructive mt-1.5 flex items-center gap-1.5 text-xs font-medium'>
+          <p className='text-destructive .5 flex items-center gap-1.5 text-xs font-medium'>
             <Icons.alertCircle className='size-3.5 shrink-0' />
             {error}
           </p>

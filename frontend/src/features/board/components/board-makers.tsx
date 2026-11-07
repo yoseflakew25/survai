@@ -5,7 +5,7 @@ import { BoardMaker, formatEtb } from '@/features/board/data';
 
 export function BoardMakers({ makers }: { makers: BoardMaker[] }) {
   return (
-    <section id='makers' className='mt-12'>
+    <section id='makers' className='2'>
       <div className='mb-3 flex items-baseline justify-between'>
         <h2 className='font-display text-lg font-bold tracking-tight'>
           Makers fans are backing

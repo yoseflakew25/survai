@@ -111,7 +111,7 @@ export function AIGenerationPanel({
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
-          <DialogHeader className='bg-primary'>
+          <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
             <DialogTitle>Regenerate survey questions?</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>
@@ -153,7 +153,7 @@ export function AIGenerationPanel({
           className='sm:max-w-md gap-0 overflow-hidden p-0'
           showCloseButton={false}
         >
-          <DialogHeader className='bg-primary'>
+          <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
             <DialogTitle>Generating survey questions</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-4'>

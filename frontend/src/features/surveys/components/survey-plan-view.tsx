@@ -50,7 +50,7 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
         <Button
           nativeButton={false}
           render={<Link href={`/dashboard/surveys/${surveyId}/review`} />}
-          className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-foreground'
+          className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
           Go to Review
           <Icons.arrowRight className='ml-1.5 size-4' />

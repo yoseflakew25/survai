@@ -80,7 +80,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
       <div className='space-y-3'>
         <div className='rounded-md bg-muted/50 p-3'>
           <p className='text-sm font-medium'>{title || 'Untitled Survey'}</p>
-          <p className='text-muted-foreground mt-1 text-xs'>
+          <p className='text-muted-foreground  text-xs'>
             {sections.length} sections · {visibleCount} visible
             {hiddenCount > 0 ? ` · ${hiddenCount} skipped` : ''}
           </p>
@@ -122,7 +122,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                               <p className='leading-relaxed'>
                                 {question.promptText}
                               </p>
-                              <div className='mt-1 flex flex-wrap gap-1'>
+                              <div className=' flex flex-wrap gap-1'>
                                 {question.isRequired ? (
                                   <Badge
                                     variant='secondary'

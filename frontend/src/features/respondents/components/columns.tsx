@@ -85,7 +85,7 @@ export function createColumns(
           onClick={() => onSelectRespondent(row.original.id)}
           className='group flex w-full items-center gap-3 rounded-md text-left focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none'
         >
-          <div className='flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-[11px] font-bold text-foreground'>
+          <div className='flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-[11px] font-bold text-muted-foreground'>
             {initialsOf(row.original.name)}
           </div>
           <div className='min-w-0'>

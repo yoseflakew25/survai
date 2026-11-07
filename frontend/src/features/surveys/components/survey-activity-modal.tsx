@@ -76,16 +76,16 @@ export function SurveyActivityModal({
 
             <div className='relative px-5 pt-6 pb-5 sm:px-6'>
               <div className='flex flex-col items-center text-center'>
-                <p className='mb-4 font-mono text-[10px] font-semibold tracking-[0.16em] text-foreground/60 uppercase'>
+                <p className='mb-4 font-mono text-[10px] font-semibold tracking-[0.16em] text-brand-foreground/70 uppercase'>
                   {eyebrow}
                 </p>
 
                 <SurveyActivitySpinner className='mb-4' />
 
-                <h2 className='font-display text-[1.35rem] font-extrabold tracking-[-0.03em] text-foreground sm:text-xl'>
+                <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground sm:text-3xl'>
                   {script.title}
                 </h2>
-                <p className='mt-2 max-w-[20rem] text-sm leading-relaxed text-foreground/70'>
+                <p className='mt-2 max-w-[20rem] text-sm leading-relaxed text-brand-foreground/80'>
                   {script.intro}
                 </p>
               </div>

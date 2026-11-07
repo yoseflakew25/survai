@@ -13,7 +13,7 @@ function Frame({
         'bg-muted/50 relative flex flex-col rounded-2xl p-1',
         stackedPanels
           ? '*:has-[+[data-slot=frame-panel]]:rounded-b-none *:has-[+[data-slot=frame-panel]]:before:hidden dark:*:has-[+[data-slot=frame-panel]]:before:block *:[[data-slot=frame-panel]+[data-slot=frame-panel]]:rounded-t-none *:[[data-slot=frame-panel]+[data-slot=frame-panel]]:border-t-0 dark:*:[[data-slot=frame-panel]+[data-slot=frame-panel]]:before:hidden'
-          : '*:[[data-slot=frame-panel]+[data-slot=frame-panel]]:mt-1',
+          : '*:[[data-slot=frame-panel]+[data-slot=frame-panel]]:',
         className
       )}
       data-slot='frame'

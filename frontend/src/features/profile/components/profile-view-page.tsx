@@ -30,7 +30,8 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelFooter,
-  SurvaiPanelHeader
+  SurvaiPanelHeader,
+  brandCtaClass
 } from '@/components/survai-panel';
 import {
   changePassword,
@@ -292,9 +293,6 @@ export default function ProfileViewPage() {
     }
   };
 
-  const brandCtaClass =
-    'h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 disabled:opacity-50';
-
   if (isLoading || !user || !owner) {
     return (
       <div
@@ -314,7 +312,7 @@ export default function ProfileViewPage() {
         <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
           Account
         </h1>
-        <p className='text-muted-foreground mt-1 text-sm'>
+        <p className='text-muted-foreground  text-sm'>
           Organization profile and security.
         </p>
       </header>
@@ -434,13 +432,13 @@ function ProfileSection({
         <SurvaiPanelBody>
           <div className='flex flex-col gap-4 sm:flex-row sm:items-center'>
             <Avatar className='size-20 rounded-full'>
-              <AvatarFallback className='rounded-full bg-brand text-2xl font-bold text-brand-foreground'>
+              <AvatarFallback className='rounded-full bg-muted text-2xl font-bold text-muted-foreground'>
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className='min-w-0 flex-1 space-y-1'>
               <div className='flex flex-wrap items-center gap-2'>
-                <h3 className='font-display text-lg font-extrabold tracking-tight'>
+                <h3 className='font-display text-2xl  font-extrabold tracking-tight'>
                   {user.organizationName || user.fullName}
                 </h3>
                 <Badge className='rounded-full border-transparent bg-brand text-[10px] text-brand-foreground'>
@@ -837,7 +835,7 @@ function DangerSection({
                   <li key={item} className='flex gap-2'>
                     <span
                       aria-hidden
-                      className='bg-destructive/70 mt-1.5 size-1 shrink-0 rounded-full'
+                      className='bg-destructive/70 .5 size-1 shrink-0 rounded-full'
                     />
                     <span>{item}</span>
                   </li>
@@ -874,7 +872,7 @@ function DangerSection({
               </div>
             </div>
 
-            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-muted/40 px-5 py-4'>
+            <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
               <AlertDialogCancel
                 disabled={isDeleting}
                 className='rounded-xl'

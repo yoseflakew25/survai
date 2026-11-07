@@ -167,7 +167,7 @@ export function NotificationCenter() {
             <div className='flex flex-wrap items-start justify-between gap-3'>
               <div className='min-w-0'>
                 <div className='flex flex-wrap items-center gap-2'>
-                  <SheetTitle className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+                  <SheetTitle className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
                     Notifications
                   </SheetTitle>
                   {count > 0 ? (
@@ -176,7 +176,7 @@ export function NotificationCenter() {
                     </span>
                   ) : null}
                 </div>
-                <SheetDescription className='mt-0.5 text-foreground/70'>
+                <SheetDescription className='mt-0.5 text-brand-foreground/80'>
                   Survey lifecycle updates for your organization.
                 </SheetDescription>
               </div>
@@ -184,7 +184,7 @@ export function NotificationCenter() {
                 <Button
                   variant='outline'
                   size='sm'
-                  className='shrink-0 rounded-xl border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground/10 text-foreground hover:bg-foreground/15'
+                  className='shrink-0 rounded-xl border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground/12 text-brand-foreground hover:bg-brand-foreground/18'
                   disabled={markAllMutation.isPending}
                   onClick={() => markAllMutation.mutate()}
                 >
@@ -215,8 +215,8 @@ export function NotificationCenter() {
                     className={cn(
                       'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-foreground text-background'
-                        : 'bg-[color-mix(in_srgb,var(--foreground)_10%,transparent)] text-foreground/75 hover:bg-[color-mix(in_srgb,var(--foreground)_16%,transparent)] hover:text-foreground'
+                        ? 'bg-brand-foreground text-brand'
+                        : 'bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground/80 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_18%,transparent)] hover:text-brand-foreground'
                     )}
                   >
                     {item.label}
@@ -250,7 +250,7 @@ export function NotificationCenter() {
               <p className='font-display font-bold tracking-tight text-foreground'>
                 {notifications.length === 0 ? 'All caught up' : 'No matches'}
               </p>
-              <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
+              <p className='text-muted-foreground  max-w-xs text-sm'>
                 {notifications.length === 0
                   ? 'Publish, responses, reviews, and reports will show up here.'
                   : 'Try another filter to see more notifications.'}
