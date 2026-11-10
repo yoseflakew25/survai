@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/ui/table/data-table';
 import { useDataTable } from '@/hooks/use-data-table';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { getSortingStateParser } from '@/lib/parsers';
 import { surveysListQueryOptions } from '../../api/queries';
@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Icons } from '@/components/icons';
 import { brandCtaClass } from '@/components/survai-panel';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const columnIds = columns
   .map((c) => c.id)
@@ -33,6 +35,29 @@ const STATUS_OPTIONS = [
 ];
 
 export function SurveyTable() {
+  return (
+    <AuthQueryBoundary fallback={<SurveyTableSkeleton />}>
+      <SurveyTableContent />
+    </AuthQueryBoundary>
+  );
+}
+
+function SurveyTableSkeleton() {
+  return (
+    <div className='flex flex-1 flex-col space-y-5'>
+      <div className='flex flex-wrap items-end justify-between gap-3'>
+        <div className='space-y-2'>
+          <Skeleton className='h-8 w-40 rounded' />
+          <Skeleton className='h-4 w-72 rounded' />
+        </div>
+        <Skeleton className='h-9 w-36 rounded-xl' />
+      </div>
+      <Skeleton className='h-64 w-full rounded-xl' />
+    </div>
+  );
+}
+
+function SurveyTableContent() {
   const router = useRouter();
 
   const [params, setParams] = useQueryStates({
@@ -55,11 +80,13 @@ export function SurveyTable() {
     })
   };
 
-  const { data } = useSuspenseQuery(surveysListQueryOptions(filters));
-  const pageCount = Math.ceil(data.total / params.perPage);
+  const { data, isLoading, isError, error, refetch } = useQuery(
+    surveysListQueryOptions(filters)
+  );
+  const pageCount = Math.ceil((data?.total ?? 0) / params.perPage);
 
   const { table } = useDataTable({
-    data: data.surveys,
+    data: data?.surveys ?? [],
     columns,
     pageCount,
     shallow: true,
@@ -156,28 +183,51 @@ export function SurveyTable() {
           </div>
         </div>
 
-        <DataTable
-          table={table}
-          rowNoun={data.total === 1 ? 'survey' : 'surveys'}
-          emptyIcon={
-            <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
-              <Icons.forms className='size-5 text-foreground' />
-            </div>
-          }
-          emptyTitle={
-            params.title || params.status
-              ? 'No matching surveys'
-              : 'No surveys yet'
-          }
-          emptyDescription={
-            params.title || params.status
-              ? 'Clear search or status filters to see more surveys.'
-              : 'Create your first survey to start collecting responses.'
-          }
-          onRowClick={(survey) =>
-            router.push(`/dashboard/surveys/${survey.id}/review`)
-          }
-        />
+        {isLoading && !data ? (
+          <Skeleton className='h-64 w-full rounded-xl' />
+        ) : isError ? (
+          <div className='flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-4 py-16 text-center'>
+            <p className='font-display text-base font-bold tracking-tight'>
+              Could not load surveys
+            </p>
+            <p className='text-muted-foreground max-w-sm text-sm'>
+              {error instanceof Error
+                ? error.message
+                : 'Something went wrong. Please try again.'}
+            </p>
+            <Button
+              type='button'
+              variant='outline'
+              className='h-9 rounded-xl'
+              onClick={() => void refetch()}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <DataTable
+            table={table}
+            rowNoun={(data?.total ?? 0) === 1 ? 'survey' : 'surveys'}
+            emptyIcon={
+              <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+                <Icons.forms className='size-5 text-foreground' />
+              </div>
+            }
+            emptyTitle={
+              params.title || params.status
+                ? 'No matching surveys'
+                : 'No surveys yet'
+            }
+            emptyDescription={
+              params.title || params.status
+                ? 'Clear search or status filters to see more surveys.'
+                : 'Create your first survey to start collecting responses.'
+            }
+            onRowClick={(survey) =>
+              router.push(`/dashboard/surveys/${survey.id}/review`)
+            }
+          />
+        )}
       </div>
     </>
   );

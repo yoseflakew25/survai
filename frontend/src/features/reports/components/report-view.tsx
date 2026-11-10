@@ -11,7 +11,13 @@ import {
   SurvaiPanelBody,
   SurvaiPanelHeader,
   brandCtaClass,
-  quietActionClass
+  compactCtaClass,
+  panelHeaderToneClass,
+  primaryCtaClass,
+  primaryMetaChipClass,
+  quietActionClass,
+  sectionIndexClass,
+  softActionClass
 } from '@/components/survai-panel';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
@@ -36,9 +42,6 @@ import type {
 import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 import { canEditOrg, useAuth } from '@/lib/auth-context';
-
-const blackCtaClass =
-  'h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-4 text-sm font-semibold text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:bg-foreground/90 disabled:opacity-60';
 
 const CHAT_STARTERS = [
   'What are the top findings?',
@@ -434,13 +437,13 @@ export function ReportView({ surveyId }: ReportViewProps) {
       <div className='mx-auto max-w-xl'>
         <SurvaiPanel>
           <SurvaiPanelHeader
-            className='border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary'
+            tone='primary'
             title={
               <div className='min-w-0'>
-                <h1 className='font-display text-xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl'>
+                <h1 className='font-display text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
                   Generate report
                 </h1>
-                <p className='mt-1 text-sm leading-snug text-primary-foreground/80'>
+                <p className='mt-1 text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
                   Create a grounded narrative from your analytics snapshot
                 </p>
               </div>
@@ -457,7 +460,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
             <Button
               onClick={() => void handleGenerateReport()}
               disabled={isGenerating}
-              className={cn(blackCtaClass, 'mt-1 h-10 w-auto min-w-[12rem] px-4')}
+              className={cn(brandCtaClass, 'mt-1 h-10 w-auto min-w-[12rem] px-4')}
             >
               {isGenerating ? (
                 <Icons.spinner className='mr-2 size-4 animate-spin' />
@@ -532,7 +535,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
         ) : null}
           <SurvaiPanel>
             <SurvaiPanelHeader
-              className='border-b border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_22%,var(--brand-soft))]'
+              tone='primary'
               title={
                 <div className='min-w-0'>
                   {editingTitle ? (
@@ -552,12 +555,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           }
                         }}
                         disabled={saving}
-                        className='font-display h-10 max-w-xl border-border bg-card text-base font-extrabold text-foreground'
+                        className='font-display h-10 max-w-xl border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-primary-foreground/10 text-base font-extrabold text-white placeholder:text-white/50'
                         aria-label='Report title'
                       />
                       <Button
                         size='sm'
-                        className='h-8 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-3 text-xs font-semibold text-background hover:bg-foreground/90'
+                        className={cn(compactCtaClass, 'rounded-xl')}
                         disabled={saving}
                         onClick={() => void handleSaveTitle()}
                       >
@@ -571,7 +574,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                       <Button
                         size='sm'
                         variant='ghost'
-                        className='h-8 rounded-xl text-xs text-foreground hover:bg-muted'
+                        className='h-8 rounded-xl text-xs text-white/80 hover:bg-primary-foreground/12 hover:text-white'
                         disabled={saving}
                         onClick={() => {
                           setEditingTitle(false);
@@ -583,55 +586,56 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     </div>
                   ) : (
                     <div className='flex items-start gap-2'>
-                      <h1 className='font-display min-w-0 flex-1 text-xl font-extrabold tracking-tight text-foreground sm:text-2xl'>
+                      <h1 className='font-display min-w-0 flex-1 text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
                         {reportTitle || 'AI-generated report'}
                       </h1>
                       {canEdit ? (
                         <Button
                           type='button'
                           size='sm'
-                          className=' h-9 shrink-0 gap-2 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-3 text-sm font-semibold text-background hover:bg-foreground/90'
+                          className={cn(brandCtaClass, 'h-8 shrink-0 gap-2 px-3 text-xs')}
                           onClick={() => {
                             setTitleDraft(reportTitle);
                             setEditingTitle(true);
                           }}
                         >
-                          <Icons.edit className='size-4' strokeWidth={2.25} />
+                          <Icons.edit className='size-3.5' strokeWidth={2.25} />
                           Edit title
                         </Button>
                       ) : null}
                     </div>
                   )}
-                  <div className='text-muted-foreground mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px] leading-none'>
-                    <span className='inline-flex items-center gap-1.5 rounded-lg bg-background/55 px-2 py-1 ring-1 ring-border/50'>
-                      <Icons.calendar className='size-3 shrink-0 opacity-70' />
+                  <div className='mt-2.5 flex flex-wrap items-center gap-1.5 leading-none'>
+                    <span className={primaryMetaChipClass}>
+                      <Icons.calendar className='size-3 shrink-0 opacity-80' />
                       {formatDate(report.createdAt)}
                     </span>
-                    <span className='inline-flex items-center gap-1.5 rounded-lg bg-background/55 px-2 py-1 ring-1 ring-border/50'>
-                      <Icons.sparkles className='size-3 shrink-0 opacity-70' />
+                    <span className={primaryMetaChipClass}>
+                      <Icons.sparkles className='size-3 shrink-0 opacity-80' />
                       {report.model ?? 'gemini'}
                     </span>
-                    <span className='inline-flex items-center rounded-lg bg-background/55 px-2 py-1 font-mono tabular-nums ring-1 ring-border/50'>
+                    <span
+                      className={cn(primaryMetaChipClass, 'font-mono tabular-nums')}
+                    >
                       ver {report.surveyVersionId.slice(0, 8)}
                     </span>
-                    <span className='inline-flex items-center gap-1.5 rounded-lg bg-background/55 px-2 py-1 ring-1 ring-border/50'>
-                      <Icons.page className='size-3 shrink-0 opacity-70' />
+                    <span className={primaryMetaChipClass}>
+                      <Icons.page className='size-3 shrink-0 opacity-80' />
                       {totalWords.toLocaleString()} words · {sections.length}{' '}
                       sections
                     </span>
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-lg px-2 py-1 ring-1',
-                        isStale
-                          ? 'bg-amber-500/10 text-amber-800 ring-amber-500/25 dark:text-amber-300'
-                          : 'bg-background/55 ring-border/50'
+                        primaryMetaChipClass,
+                        isStale &&
+                          'border-amber-400/40 bg-amber-500/15 text-amber-200'
                       )}
                     >
                       {isStale ? (
                         <Icons.warning className='size-3 shrink-0' />
                       ) : (
                         <Icons.check
-                          className='size-3 shrink-0 opacity-70'
+                          className='size-3 shrink-0 opacity-80'
                           strokeWidth={2.5}
                         />
                       )}
@@ -641,10 +645,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
                 </div>
               }
             />
-            <SurvaiPanelBody>
+            <SurvaiPanelBody className='py-3.5'>
               <div
                 className={cn(
-                  'grid gap-2.5',
+                  'grid gap-2',
                   canEdit
                     ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
                     : 'grid-cols-1 sm:grid-cols-3'
@@ -654,15 +658,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   type='button'
                   disabled={isExporting || !report}
                   onClick={() => void handleSavePdf()}
-                  className={cn(
-                    blackCtaClass,
-                    'h-10 w-full gap-2 border-border/60 shadow-none'
-                  )}
+                  className={cn(primaryCtaClass, 'h-8 w-full gap-1.5 px-3 text-xs font-medium')}
                 >
                   {isExporting ? (
-                    <Icons.spinner className='size-3.5 animate-spin' />
+                    <Icons.spinner className='size-3 animate-spin' />
                   ) : (
-                    <Icons.fileTypePdf className='size-3.5' />
+                    <Icons.fileTypePdf className='size-3' />
                   )}
                   Save as PDF
                 </Button>
@@ -670,12 +671,9 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   type='button'
                   disabled={isExporting || !report}
                   onClick={() => void handleSaveDocx()}
-                  className={cn(
-                    brandCtaClass,
-                    'h-10 w-full gap-2 border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] px-4 shadow-none'
-                  )}
+                  className={cn(compactCtaClass, 'w-full')}
                 >
-                  <Icons.page className='size-3.5' />
+                  <Icons.page className='size-3' />
                   Save as Word
                 </Button>
                 <Button
@@ -683,9 +681,9 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   variant='outline'
                   disabled={isExporting || !report}
                   onClick={() => void handleDonorPack()}
-                  className='h-10 w-full gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-none hover:bg-muted/60'
+                  className={cn(quietActionClass, 'w-full')}
                 >
-                  <Icons.fileZip className='size-3.5' />
+                  <Icons.fileZip className='size-3' />
                   Download donor pack
                 </Button>
                 {canEdit ? (
@@ -694,12 +692,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     variant='outline'
                     disabled={isGenerating || !!regeneratingId}
                     onClick={() => void handleGenerateReport()}
-                    className='h-10 w-full gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 text-sm font-semibold text-primary shadow-none hover:bg-primary hover:text-primary-foreground'
+                    className={cn(softActionClass, 'w-full')}
                   >
                     {isGenerating ? (
-                      <Icons.spinner className='size-3.5 animate-spin' />
+                      <Icons.spinner className='size-3 animate-spin' />
                     ) : (
-                      <Icons.sparkles className='size-3.5' />
+                      <Icons.sparkles className='size-3' />
                     )}
                     Regenerate report
                   </Button>
@@ -713,9 +711,14 @@ export function ReportView({ surveyId }: ReportViewProps) {
             const isRegen = regeneratingId === section.id;
             return (
               <SurvaiPanel key={section.id}>
-                <div className='flex items-center justify-between gap-3 border-b border-border bg-brand-soft px-4 py-3.5 sm:px-5'>
+                <div
+                  className={cn(
+                    panelHeaderToneClass.soft,
+                    'flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5'
+                  )}
+                >
                   <div className='flex min-w-0 items-center gap-2.5'>
-                    <span className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary font-display text-sm font-extrabold tabular-nums text-primary-foreground shadow-sm'>
+                    <span className={cn(sectionIndexClass, 'size-8 rounded-xl font-display text-sm')}>
                       {index + 1}
                     </span>
                     {isEditing ? (
@@ -731,7 +734,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           )
                         }
                         disabled={saving}
-                        className='font-display h-8 max-w-md text-sm font-bold'
+                        className='font-display h-8 max-w-md border-border bg-card text-sm font-bold text-foreground'
                         aria-label='Section title'
                       />
                     ) : (
@@ -751,7 +754,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           size='sm'
                           variant='outline'
                           disabled={!!regeneratingId || isGenerating}
-                          className='h-8 gap-1.5 rounded-xl border-2 border-primary bg-card px-2.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground'
+                          className={cn(quietActionClass, 'rounded-xl')}
                           onClick={() =>
                             void handleRegenerateSection(section.id)
                           }
@@ -767,7 +770,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           type='button'
                           size='sm'
                           disabled={!!regeneratingId || isGenerating}
-                          className='h-8 gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-2.5 text-xs font-semibold text-background hover:bg-foreground/90'
+                          className={cn(compactCtaClass, 'rounded-xl')}
                           onClick={() => startEditSection(section)}
                         >
                           <Icons.edit className='size-3.5' strokeWidth={2.25} />
@@ -843,11 +846,11 @@ export function ReportView({ surveyId }: ReportViewProps) {
 
         <div className='flex min-h-0 flex-col lg:h-full'>
           <SurvaiPanel className='flex min-h-0 flex-1 flex-col h-[70vh] lg:h-full'>
-            <div className='shrink-0 border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-4 py-4'>
-              <h3 className='font-display text-2xl  font-extrabold tracking-tight text-primary-foreground'>
+            <div className={cn(panelHeaderToneClass.brand, 'shrink-0 px-4 py-4')}>
+              <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
                 Chat with the report
               </h3>
-              <p className=' text-xs leading-relaxed text-primary-foreground/80'>
+              <p className='text-xs leading-relaxed text-[color-mix(in_srgb,var(--primary)_72%,transparent)]'>
                 Ask about findings, donors, or next steps — answers stay
                 grounded in the metrics snapshot.
               </p>
@@ -898,7 +901,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   >
                     {msg.role === 'assistant' ? (
                       <div
-                        className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                        className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                         aria-hidden
                       >
                         <Icons.sparkles className='size-3.5' />
@@ -909,7 +912,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                         'max-w-[min(100%,26rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                         msg.role === 'user'
                           ? 'rounded-br-md bg-foreground text-background'
-                          : 'rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                          : 'rounded-bl-md border border-border bg-muted/70 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
                       )}
                     >
                       <p className='whitespace-pre-wrap break-words'>
@@ -954,12 +957,12 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   aria-label='SurvAI is typing'
                 >
                   <div
-                    className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />
                   </div>
-                  <div className='flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft px-4 py-3'>
+                  <div className='flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-muted/70 px-4 py-3'>
                     {[0, 1, 2].map((dot) => (
                       <span
                         key={dot}

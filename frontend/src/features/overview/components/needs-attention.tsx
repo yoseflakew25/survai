@@ -28,7 +28,7 @@ function kindMeta(kind: string): {
     return {
       label: 'Ready for report',
       icon: Icons.report,
-      className: 'bg-primary text-primary-foreground'
+      className: 'bg-brand text-brand-foreground'
     };
   }
   if (kind === 'no_responses') {
@@ -100,7 +100,7 @@ export function NeedsAttention() {
         }
         badge={
           items.length > 0 ? (
-            <span className='rounded-full bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
+            <span className='rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-brand-foreground'>
               {items.length}
             </span>
           ) : null
@@ -109,7 +109,7 @@ export function NeedsAttention() {
       <SurvaiPanelBody className='flex flex-1 flex-col gap-2'>
         {items.length === 0 ? (
           <div className='flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/40 px-4 py-10 text-center'>
-            <span className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm'>
+            <span className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-brand text-brand-foreground shadow-sm'>
               <Icons.check className='size-5' strokeWidth={2.5} />
             </span>
             <p className='font-display text-sm font-bold tracking-tight text-foreground'>

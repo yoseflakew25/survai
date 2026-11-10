@@ -2,8 +2,71 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * Shared Survai card chrome — Launchpot-derived:
- * warm paper / white card, soft border, 1.125rem radius, orange brand accents.
+ * App chrome rules (landing page excluded):
+ * - primary: page/hero headers — teal bg, white titles, gold accents
+ * - soft: default panel / section headers — light green wash, foreground text
+ * - brand: lead callouts only (chat rail headers, SurvaiBrandCard, CTAs)
+ * - CTAs: brand fill → primary on hover; quiet actions stay outline/card
+ */
+
+export type SurvaiPanelHeaderTone = 'brand' | 'primary' | 'soft';
+
+export const panelHeaderToneClass: Record<SurvaiPanelHeaderTone, string> = {
+  brand:
+    'border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand',
+  primary:
+    'border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary',
+  soft: 'border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft'
+};
+
+const panelTitleToneClass: Record<SurvaiPanelHeaderTone, string> = {
+  brand: 'text-brand-foreground',
+  primary: 'text-primary-foreground',
+  soft: 'text-foreground'
+};
+
+const panelSubtitleToneClass: Record<SurvaiPanelHeaderTone, string> = {
+  brand: 'text-brand-foreground/75',
+  primary: 'text-[color-mix(in_srgb,var(--gold)_55%,white)]',
+  soft: 'text-muted-foreground'
+};
+
+const panelIconToneClass: Record<SurvaiPanelHeaderTone, string> = {
+  brand:
+    'border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_8%,transparent)]',
+  primary:
+    'border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-primary-foreground/12 text-primary-foreground shadow-none',
+  soft:
+    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-white/70 text-primary shadow-none'
+};
+
+/** Meta chips on primary (teal) surfaces. */
+export const primaryMetaChipClass =
+  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] px-2 py-1 text-[11px] text-[var(--gold)]';
+
+/** Meta chips on brand (green) surfaces. */
+export const brandMetaChipClass =
+  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2 py-1 text-[11px] text-[var(--primary)]';
+
+/** Nested section index badge (primary fill). */
+export const sectionIndexClass =
+  'flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary font-mono text-[11px] font-bold tabular-nums text-primary-foreground shadow-sm';
+
+/** Soft nested section header bar (non-SurvaiPanelHeader). */
+export const softSectionHeaderClass =
+  'border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-4 py-3.5 sm:px-5';
+
+/** Dialog / sheet headers. */
+export const dialogHeaderPrimaryClass =
+  'border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-5 py-4 text-primary-foreground';
+export const dialogHeaderBrandClass =
+  'border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 py-4 text-brand-foreground';
+export const dialogHeaderSoftClass =
+  'border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-5 py-4 text-foreground';
+
+/**
+ * Shared Survai card chrome —
+ * white card, soft border, 1.125rem radius, teal/green brand accents.
  */
 export function SurvaiPanel({
   children,
@@ -36,6 +99,7 @@ export function SurvaiPanelHeader({
   subtitle,
   badge,
   actions,
+  tone = 'soft',
   className
 }: {
   icon?: ReactNode;
@@ -43,24 +107,19 @@ export function SurvaiPanelHeader({
   subtitle?: string;
   badge?: ReactNode;
   actions?: ReactNode;
+  /** soft = light default; primary = teal page hero; brand = full secondary green */
+  tone?: SurvaiPanelHeaderTone;
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'border-b border-border bg-brand-soft px-5 py-3.5',
-        className
-      )}
-    >
+    <div className={cn(panelHeaderToneClass[tone], 'px-5 py-3.5', className)}>
       <div className='flex flex-wrap items-center gap-3'>
         {icon ? (
           <div
             data-slot='panel-icon'
             className={cn(
               'flex size-8 shrink-0 items-center justify-center rounded-xl',
-              'border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))]',
-              'bg-card text-foreground',
-              'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_8%,transparent)]'
+              panelIconToneClass[tone]
             )}
           >
             {icon}
@@ -68,14 +127,21 @@ export function SurvaiPanelHeader({
         ) : null}
         <div className='min-w-0 flex-1 basis-[12rem]'>
           {typeof title === 'string' ? (
-            <h3 className='font-display text-base font-bold tracking-tight text-foreground sm:text-lg'>
+            <h3
+              className={cn(
+                'font-display text-base font-bold tracking-tight sm:text-lg',
+                panelTitleToneClass[tone]
+              )}
+            >
               {title}
             </h3>
           ) : (
-            <div className='min-w-0'>{title}</div>
+            <div className={cn('min-w-0', panelTitleToneClass[tone])}>
+              {title}
+            </div>
           )}
           {subtitle ? (
-            <p className='text-muted-foreground  text-sm leading-snug'>
+            <p className={cn('text-sm leading-snug', panelSubtitleToneClass[tone])}>
               {subtitle}
             </p>
           ) : null}
@@ -177,10 +243,22 @@ export function SurvaiBrandCard({
   );
 }
 
-/** Primary brand CTA — use for the main task on a surface. */
+/** Primary brand CTA — secondary green fill, primary teal on hover. */
 export const brandCtaClass =
-  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[filter,box-shadow] hover:brightness-105 hover:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_35%,transparent)]';
+  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[background-color,color,border-color,box-shadow] hover:border-primary hover:bg-primary hover:text-primary-foreground';
+
+/** Compact toolbar / export row CTA. */
+export const compactCtaClass =
+  'h-8 gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand px-3 text-xs font-medium text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground';
+
+/** Strong primary fill CTA (use sparingly — brand CTAs preferred). */
+export const primaryCtaClass =
+  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] transition-[filter] hover:brightness-110 disabled:opacity-60';
 
 /** Secondary quiet action for non-primary buttons. */
 export const quietActionClass =
-  'h-9 rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground shadow-none transition-colors hover:bg-muted/60';
+  'h-8 gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground shadow-none transition-colors hover:bg-muted/60';
+
+/** Soft brand wash action (regenerate / secondary tools). */
+export const softActionClass =
+  'h-8 gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-3 text-xs font-medium text-primary shadow-none transition-[background-color,color] hover:bg-primary hover:text-primary-foreground';

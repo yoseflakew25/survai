@@ -136,9 +136,9 @@ export default function AppSidebar() {
       </SidebarHeader>
 
       {/* Navigation */}
-      <SidebarContent className='overflow-x-hidden'>
+      <SidebarContent className='overflow-x-hidden px-1.5 pt-3'>
         {filteredGroups.map((group) => (
-          <SidebarGroup key={group.label || 'ungrouped'} className='py-0'>
+          <SidebarGroup key={group.label || 'ungrouped'} className='py-1'>
             <SidebarMenu>
               {group.items.map((item) => {
                 const IconComponent = item.icon
@@ -193,20 +193,24 @@ export default function AppSidebar() {
                 }
               >
                 {user && (
-                  <Avatar className='h-8 w-8 rounded-lg'>
-                    <AvatarFallback className='rounded-lg bg-muted text-muted-foreground text-xs font-medium'>
+                  <Avatar className='h-8 w-8 rounded-xl ring-1 ring-[color-mix(in_srgb,var(--brand)_40%,transparent)]'>
+                    <AvatarFallback className='rounded-xl bg-brand text-xs font-semibold text-brand-foreground'>
                       {user.fullName?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 )}
                 {!isCollapsed && (
-                  <div className='flex-1 text-left text-sm leading-tight'>
-                    <span className='truncate font-semibold block'>{user?.fullName || 'User'}</span>
-                    <span className='text-muted-foreground truncate text-xs block'>{user?.email || ''}</span>
+                  <div className='min-w-0 flex-1 text-left text-sm leading-tight'>
+                    <span className='block truncate font-semibold text-foreground'>
+                      {user?.fullName || 'User'}
+                    </span>
+                    <span className='block truncate text-xs text-muted-foreground'>
+                      {user?.email || ''}
+                    </span>
                   </div>
                 )}
                 {!isCollapsed && (
-                  <Icons.chevronsDown className='text-muted-foreground size-4 shrink-0 opacity-50' />
+                  <Icons.chevronsDown className='size-4 shrink-0 text-muted-foreground opacity-60' />
                 )}
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -218,8 +222,8 @@ export default function AppSidebar() {
                 {/* User info header */}
                 <div className='flex items-center gap-2 p-2'>
                   {user && (
-                    <Avatar className='h-9 w-9'>
-                      <AvatarFallback className='rounded-lg bg-muted text-muted-foreground text-sm font-medium'>
+                    <Avatar className='h-9 w-9 rounded-xl'>
+                      <AvatarFallback className='rounded-xl bg-brand text-sm font-semibold text-brand-foreground'>
                         {user.fullName?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>

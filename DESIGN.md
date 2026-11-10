@@ -1,25 +1,32 @@
-# Design system — Survai (Claude-inspired orange)
+# Design system — Survai (teal primary + green accent)
 
-Layout motifs originally from Launchpot board density; brand accent is Claude-like coral orange.
+Layout motifs from Launchpot board density; brand system matches the landing palette.
 
 ## Palette
 
 | Token | Light | Dark |
 | --- | --- | --- |
-| background | `#f7f7f2` | `#0d0e0b` |
-| foreground | `#111210` | `#f4f5ef` |
-| card | `#ffffff` | `#171814` |
-| secondary | `#efefe8` | `#24261f` |
-| muted | `#f1f1eb` | `#1c1d18` |
-| muted-foreground | `#62655e` | `#a3a69b` |
-| border | `#e6e6de` | `#2a2c24` |
-| brand / primary | `#d97757` | `#d97757` |
-| brand-soft | `#fceedf` | `#2a1a14` |
-| brand-strong | `#9a4b2e` | `#e89272` |
-| brand-foreground | `#fffaf7` | `#fffaf7` |
-| gold | `#f5b300` | `#ffc53d` |
+| background | `#ffffff` | `#0a1419` |
+| foreground | `#000000` | `#f4f8fa` |
+| card | `#ffffff` | `#102029` |
+| secondary | `#eef3f5` | `#152833` |
+| muted | `#f3f6f7` | `#12222b` |
+| muted-foreground | `#4a5c66` | `#9bb0ba` |
+| border | `#d7e0e4` | `#1e3540` |
+| primary | `#103344` | `#22f187` |
+| primary-foreground | `#ffffff` | `#0a1419` |
+| brand / gold | `#22f187` | `#22f187` |
+| brand-soft | `#e8fcf2` | `#123028` |
+| brand-strong | `#12c46a` | `#4dffab` |
+| brand-foreground | `#103344` | `#0a1419` |
 | success | `#16a34a` | `#4ade80` |
 | radius | `0.875rem` | same |
+
+## Roles
+
+- **Primary (`#103344`)** — chrome, headers, dark shells, primary operate buttons (light mode)
+- **Brand / secondary green (`#22f187`)** — bold marketing fills, accents, success-adjacent CTAs
+- **White ground + black text** — default reading surface
 
 ## Type
 
@@ -29,13 +36,14 @@ Layout motifs originally from Launchpot board density; brand accent is Claude-li
 
 ## Signature motifs
 
-- Orange marker highlight (`.hl`) — gradient band under emphasized words
-- Pill segmented controls (secondary track + white active chip + soft shadow)
-- Brand CTA (`.btn-back`) — orange fill, 1px mixed border, hover ring
-- Board list — white card `1.125rem` radius, gold `#1` rank badge, hover Back reveal
-- Dot-grid hero wash, pulsing live-dot
+- Green marker highlight (`.hl`) — gradient band under emphasized words
+- Pill segmented controls (primary or secondary track + green active chip)
+- Brand CTA (`.btn-back`) — green fill, teal label, hover ring
+- Board list — white card, green rank accents
+- Dot-grid wash, pulsing live-dot
+- Primary shells with green accents (trust, audience, collect, lifecycle)
 
 ## Implementation
 
-- Dashboard / Operate: `frontend/src/styles/themes/vercel.css` (`data-theme='vercel'`)
-- Landing board: scoped under `.lp` in `frontend/src/features/board/styles.css`
+- App-wide Operate / dashboard / public `/s`: `frontend/src/styles/themes/vercel.css` (`data-theme='vercel'`)
+- Landing + AuthShell: scoped under `.lp` in `frontend/src/features/board/styles.css` (same tokens)

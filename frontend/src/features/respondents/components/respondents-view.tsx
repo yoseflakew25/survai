@@ -7,10 +7,17 @@ import { getSortingStateParser } from '@/lib/parsers';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
-import { SurvaiBrandCard } from '@/components/survai-panel';
+import {
+  SurvaiBrandCard,
+  brandCtaClass,
+  primaryCtaClass
+} from '@/components/survai-panel';
+import { cn } from '@/lib/utils';
 import { DataTable } from '@/components/ui/table/data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 import { respondentsOptions } from '../api/queries';
 import { createColumns } from './columns';
 import { RespondentDetailSheet } from './respondent-detail-sheet';
@@ -24,6 +31,16 @@ interface RespondentsViewProps {
 const SORTABLE_COLUMN_IDS = ['name', 'submittedAt', 'durationSeconds'];
 
 export function RespondentsView({ surveyId }: RespondentsViewProps) {
+  return (
+    <AuthQueryBoundary
+      fallback={<SurveyActivityFallback activity='fetch-respondents' />}
+    >
+      <RespondentsViewContent surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
+}
+
+function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -78,7 +95,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
   const responseCount = data.summary.responses;
 
   return (
-    <div className='grid flex-1 gap-6 lg:grid-cols-[1fr_300px]'>
+    <div className='grid flex-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,26rem)]'>
       <div className='flex min-w-0 flex-col gap-4'>
         <RespondentDetailSheet
           surveyId={surveyId}
@@ -102,7 +119,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
               href={`/dashboard/surveys/${surveyId}/collect`}
               className='mt-4'
             >
-              <Button className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground hover:brightness-105'>
+              <Button className={brandCtaClass}>
                 <Icons.send className='mr-1.5 h-3.5 w-3.5' />
                 Go to Collect
               </Button>
@@ -182,7 +199,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
             }
           >
             <Button
-              className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
+              className={cn(primaryCtaClass, 'h-11 w-full')}
               size='lg'
               disabled={responseCount === 0}
             >

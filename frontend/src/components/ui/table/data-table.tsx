@@ -67,7 +67,7 @@ export function DataTable<TData>({
       <div className='overflow-hidden rounded-[1.125rem] border border-border bg-card shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
         <ScrollArea className='w-full'>
           <Table>
-            <TableHeader className='border-b border-border bg-brand-soft'>
+            <TableHeader className='border-b border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)]'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                   key={headerGroup.id}
@@ -77,7 +77,7 @@ export function DataTable<TData>({
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className='bg-transparent first:pl-4 last:pr-4'
+                      className='bg-transparent py-3 text-sm first:pl-4 last:pr-4'
                       style={{
                         ...getCommonPinningStyles({ column: header.column })
                       }}

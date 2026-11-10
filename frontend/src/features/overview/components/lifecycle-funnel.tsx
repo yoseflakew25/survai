@@ -89,11 +89,11 @@ export function LifecycleFunnel() {
               className='group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card px-3 py-2.5 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/40'
             >
               <div
-                className='pointer-events-none absolute inset-y-0 left-0 bg-primary/12 transition-all'
+                className='pointer-events-none absolute inset-y-0 left-0 bg-brand/20 transition-all'
                 style={{ width: `${fill}%` }}
                 aria-hidden
               />
-              <span className='relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
+              <span className='relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand text-brand-foreground'>
                 <Icon className='size-3.5' />
               </span>
               <div className='relative min-w-0 flex-1'>

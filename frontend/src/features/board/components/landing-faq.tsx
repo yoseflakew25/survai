@@ -32,22 +32,30 @@ export function LandingFaq() {
   return (
     <section id='faq' className='landing-section scroll-mt-24 pt-16 sm:pt-24'>
       <div className='landing-shell overflow-hidden'>
-        <div className='relative border-b border-border px-5 py-8 sm:px-8 sm:py-10'>
+        <div className='relative border-b border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[var(--primary)] px-5 py-8 sm:px-8 '>
           <div
-            className='dot-grid absolute inset-0 opacity-40'
+            className='absolute inset-0 opacity-40'
             aria-hidden='true'
+            style={{
+              backgroundImage:
+                'radial-gradient(color-mix(in srgb, var(--gold) 28%, transparent) 1px, transparent 1px)',
+              backgroundSize: '18px 18px'
+            }}
           />
           <div className='relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
             <div className='max-w-lg'>
-              <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-                Good questions before you <span className='hl'>start</span>
+              <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]'>
+                Good questions before you{' '}
+                <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
+                  start
+                </span>
               </h2>
-              <p className='mt-2.5 text-sm leading-relaxed text-muted-foreground'>
+              <p className=' text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
                 What Survai is for, how AI fits in, and what respondents
                 experience.
               </p>
             </div>
-            <div className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft px-3 py-1.5 font-mono text-[11px] font-semibold text-foreground'>
+            <div className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--gold)_45%,transparent)] bg-[color-mix(in_srgb,var(--gold)_18%,transparent)] px-3 py-1.5 font-mono text-[11px] font-semibold text-[var(--gold)]'>
               <span className='live-dot' aria-hidden='true' />
               {FAQS.length} common questions
             </div>

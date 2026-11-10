@@ -45,19 +45,19 @@ export function LandingPrinciples() {
           {PRINCIPLES.map((item, i) => (
             <li
               key={item.title}
-              className='group flex cursor-default gap-4 border-b border-border px-5 py-5 transition-colors duration-200 last:border-b-0 hover:bg-brand-soft/60 sm:gap-5 sm:px-6 sm:py-6'
+              className='principle-row group flex cursor-default gap-4 border-b border-border px-5 py-5 transition-colors duration-200 last:border-b-0 hover:bg-[var(--primary)] sm:gap-5 sm:px-6 sm:py-6'
             >
               <span
-                className=' font-display text-2xl leading-none font-extrabold tracking-[-0.04em] text-brand tabular-nums transition-transform duration-200 group-hover:scale-110 group-hover:text-brand-strong'
+                className='principle-num font-display text-2xl leading-none font-extrabold tracking-[-0.04em] text-brand tabular-nums transition-transform duration-200 group-hover:scale-110'
                 aria-hidden='true'
               >
                 {String(i + 1).padStart(2, '0')}
               </span>
               <div className='min-w-0'>
-                <h3 className='font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
+                <h3 className='font-display text-base font-extrabold tracking-tight text-foreground transition-colors duration-200 sm:text-lg'>
                   {item.title}
                 </h3>
-                <p className='.5 text-sm leading-relaxed text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80'>
+                <p className='text-sm leading-relaxed text-muted-foreground transition-colors duration-200'>
                   {item.body}
                 </p>
               </div>

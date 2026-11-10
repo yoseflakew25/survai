@@ -62,7 +62,7 @@ export function LandingContrast() {
               focus === side.id
                 ? side.tone === 'brand'
                   ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
-                  : 'bg-card text-foreground shadow-sm'
+                  : 'bg-[var(--primary)] text-white shadow-sm'
                 : 'text-muted-foreground'
             )}
           >
@@ -85,7 +85,7 @@ export function LandingContrast() {
                 'landing-panel-swap relative overflow-hidden rounded-2xl border p-5 text-left transition-all duration-300 sm:p-6',
                 isBrand
                   ? 'border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'
-                  : 'border-border bg-card shadow-sm',
+                  : 'border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] shadow-sm',
                 !isFocus && 'opacity-55 sm:opacity-70',
                 isFocus && 'opacity-100 ring-0 sm:scale-[1.01]'
               )}
@@ -99,18 +99,18 @@ export function LandingContrast() {
                     <h3
                       className={cn(
                         'font-display text-xl font-extrabold tracking-tight',
-                        isBrand ? 'text-brand-foreground' : 'text-foreground',
-                        !isBrand && 'line-through decoration-foreground/25'
+                        isBrand ? 'text-brand-foreground' : 'text-white',
+                        !isBrand && 'line-through decoration-white/30'
                       )}
                     >
                       {side.label}
                     </h3>
                     <p
                       className={cn(
-                        ' font-mono text-[11px] font-semibold tracking-wide uppercase',
+                        'font-mono text-[11px] font-semibold tracking-wide uppercase',
                         isBrand
                           ? 'text-brand-foreground/70'
-                          : 'text-muted-foreground'
+                          : 'text-[var(--gold)]'
                       )}
                     >
                       {side.verdict}
@@ -121,7 +121,7 @@ export function LandingContrast() {
                       'flex size-8 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold',
                       isBrand
                         ? 'border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-card text-foreground'
-                        : 'border-border bg-secondary text-muted-foreground'
+                        : 'border-[color-mix(in_srgb,var(--gold)_40%,transparent)] bg-[color-mix(in_srgb,var(--gold)_16%,transparent)] text-[var(--gold)]'
                     )}
                     aria-hidden='true'
                   >
@@ -136,13 +136,13 @@ export function LandingContrast() {
                         'flex gap-3 rounded-xl px-3 py-2.5 text-sm leading-relaxed',
                         isBrand
                           ? 'border border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] bg-card/90 font-medium text-foreground shadow-sm'
-                          : 'bg-muted/50 text-muted-foreground'
+                          : 'bg-[color-mix(in_srgb,white_8%,transparent)] text-[color-mix(in_srgb,var(--gold)_50%,white)]'
                       )}
                     >
                       <span
                         className={cn(
-                          '.5 size-1.5 shrink-0 rounded-full',
-                          isBrand ? 'bg-brand-strong' : 'bg-foreground/30'
+                          'mt-1.5 size-1.5 shrink-0 rounded-full',
+                          isBrand ? 'bg-brand-strong' : 'bg-[var(--gold)]'
                         )}
                         aria-hidden='true'
                       />

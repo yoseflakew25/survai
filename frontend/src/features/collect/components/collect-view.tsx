@@ -16,7 +16,8 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelFooter,
-  SurvaiPanelHeader
+  SurvaiPanelHeader,
+  brandCtaClass
 } from '@/components/survai-panel';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
@@ -27,6 +28,8 @@ import { closeSurvey, publishSurvey } from '../api/service';
 import { collectStatsKeys } from '../api/queries';
 import { CollectionQr } from './collection-qr';
 import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 
 interface CollectViewProps {
   surveyId: string;
@@ -41,6 +44,16 @@ function toDatetimeLocalValue(iso: string | null): string {
 }
 
 export function CollectView({ surveyId }: CollectViewProps) {
+  return (
+    <AuthQueryBoundary
+      fallback={<SurveyActivityFallback activity='fetch-collect' />}
+    >
+      <CollectViewContent surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
+}
+
+function CollectViewContent({ surveyId }: CollectViewProps) {
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const { data: stats } = useSuspenseQuery(collectStatsOptions(surveyId));
   const queryClient = useQueryClient();
@@ -235,19 +248,25 @@ export function CollectView({ surveyId }: CollectViewProps) {
         <div className='space-y-6 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              title='Collect Responses'
-              subtitle={
-                isLive
-                  ? 'Link and QR for respondents'
-                  : 'Publish to unlock your collection link'
+              tone='primary'
+              title={
+                <div className='min-w-0'>
+                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-2xl'>
+                    Collect Responses
+                  </h3>
+                  <p className='text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                    {isLive
+                      ? 'Link and QR for respondents'
+                      : 'Publish to unlock your collection link'}
+                  </p>
+                </div>
               }
               badge={
                 <Badge
-                  variant='secondary'
                   className={cn(
-                    'rounded-full text-[10px] font-semibold',
+                    'rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] text-[10px] font-semibold text-[var(--gold)]',
                     isPublished &&
-                      'border border-border bg-foreground text-background'
+                      'border-[color-mix(in_srgb,var(--gold)_55%,transparent)] bg-[var(--gold)] text-[var(--primary)]'
                   )}
                 >
                   {isPublished ? 'Live' : isClosed ? 'Closed' : 'Not published'}
@@ -288,7 +307,7 @@ export function CollectView({ surveyId }: CollectViewProps) {
                       onClick={() => void handlePublish()}
                       disabled={isPublishing}
                       size='lg'
-                      className='h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] hover:brightness-[1.03]'
+                      className={cn(brandCtaClass, 'h-11 w-full')}
                     >
                       {isPublishing ? (
                         <>

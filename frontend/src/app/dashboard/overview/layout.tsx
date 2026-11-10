@@ -6,13 +6,9 @@ import React from 'react';
 
 export default function OverViewLayout({
   surveys,
-  pie_stats: _pie_stats,
-  bar_stats: _bar_stats,
   area_stats
 }: {
   surveys: React.ReactNode;
-  pie_stats: React.ReactNode;
-  bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
 }) {
   return (

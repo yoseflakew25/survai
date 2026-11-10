@@ -34,7 +34,8 @@ export function LandingAudience() {
 
       <div className='text-center'>
         <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-          Built for teams who turn surveys into <span className='hl'>decisions</span>
+          Built for teams who turn surveys into{' '}
+          <span className='hl'>decisions</span>
         </h2>
         <p className='mx-auto mt-2.5 max-w-md text-sm leading-relaxed text-muted-foreground'>
           Shaped with Ethiopian civil society organizations — designed for
@@ -42,34 +43,31 @@ export function LandingAudience() {
         </p>
       </div>
 
-      <ul className='mt-8 space-y-3'>
+      <ul className='mt-8 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] shadow-sm'>
         {AUDIENCES.map((item, i) => (
           <li
             key={item.title}
-            className='group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-colors hover:border-[color-mix(in_srgb,var(--brand)_45%,var(--border))]'
+            className='group grid gap-4 border-b border-[color-mix(in_srgb,var(--gold)_18%,transparent)] px-5 py-5 transition-colors duration-200 last:border-b-0 hover:bg-[color-mix(in_srgb,var(--gold)_8%,transparent)] sm:grid-cols-[3rem_minmax(0,1fr)] sm:items-start sm:gap-5 sm:px-6 sm:py-6'
           >
-            <div className='flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6'>
-              <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-display text-lg font-extrabold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] transition-transform group-hover:scale-105'>
-                {String.fromCharCode(65 + i)}
-              </div>
-              <div className='min-w-0 flex-1'>
-                <div className='flex flex-wrap items-center gap-2'>
-                  <h3 className='font-display text-2xl  font-extrabold tracking-tight text-foreground'>
-                    {item.title}
-                  </h3>
-                  <span className='rounded-full border border-border bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-muted-foreground uppercase'>
-                    {item.tag}
-                  </span>
-                </div>
-                <p className='.5 text-sm leading-relaxed text-muted-foreground'>
-                  {item.body}
-                </p>
-              </div>
-            </div>
-            <div
-              className='pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-brand-soft/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100'
+            <span
+              className='flex size-11 items-center justify-center rounded-xl bg-[var(--gold)] font-display text-base font-extrabold text-[var(--primary)] shadow-sm transition-transform duration-200 group-hover:scale-105'
               aria-hidden='true'
-            />
+            >
+              {String.fromCharCode(65 + i)}
+            </span>
+            <div className='min-w-0'>
+              <div className='flex flex-wrap items-baseline gap-x-2.5 gap-y-1'>
+                <h3 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-xl'>
+                  {item.title}
+                </h3>
+                <span className='font-mono text-[10px] font-semibold tracking-[0.08em] text-[var(--gold)] uppercase'>
+                  {item.tag}
+                </span>
+              </div>
+              <p className='mt-1.5 max-w-2xl text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_45%,white)]'>
+                {item.body}
+              </p>
+            </div>
           </li>
         ))}
       </ul>

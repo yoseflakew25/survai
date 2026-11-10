@@ -93,6 +93,98 @@ export function toUserFacingError(err: unknown, fallback: string): string {
 /** Render free tier often needs 30–70s to wake; register also waits on email. */
 export const DEFAULT_TIMEOUT_MS = 90_000;
 
+const REFRESH_STORAGE_KEY = 'survai:refresh_v1';
+
+/**
+ * In-memory access JWT for Authorization: Bearer.
+ * Cookies alone are unreliable cross-origin (localhost:3000 → :8000); AuthProvider
+ * syncs this after login/refresh so credentialed requests still authenticate.
+ */
+let memoryAccessToken: string | null = null;
+
+/**
+ * Refresh JWT kept in memory + sessionStorage so /auth/refresh works when
+ * cross-origin cookies are not sent (SameSite=Lax on :8000 from :3000).
+ */
+let memoryRefreshToken: string | null = null;
+
+export function setApiAccessToken(token: string | null) {
+  memoryAccessToken = token;
+}
+
+export function getApiAccessToken() {
+  return memoryAccessToken;
+}
+
+export function setApiRefreshToken(token: string | null) {
+  memoryRefreshToken = token;
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    if (token) sessionStorage.setItem(REFRESH_STORAGE_KEY, token);
+    else sessionStorage.removeItem(REFRESH_STORAGE_KEY);
+  } catch {
+    // private mode / disabled storage
+  }
+}
+
+export function getApiRefreshToken() {
+  if (memoryRefreshToken) return memoryRefreshToken;
+  try {
+    if (typeof sessionStorage === 'undefined') return null;
+    memoryRefreshToken = sessionStorage.getItem(REFRESH_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+  return memoryRefreshToken;
+}
+
+export function clearApiTokens() {
+  setApiAccessToken(null);
+  setApiRefreshToken(null);
+}
+
+let refreshInFlight: Promise<TokenPairResponse | null> | null = null;
+
+/** Rotate access (+ refresh) using body token and/or refresh cookie. */
+export function refreshApiSession(): Promise<TokenPairResponse | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const refresh = getApiRefreshToken();
+      const headers = new Headers({ 'Content-Type': 'application/json' });
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(refresh ? { refresh_token: refresh } : {})
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as TokenPairResponse;
+      setApiAccessToken(data.access_token);
+      setApiRefreshToken(data.refresh_token);
+      return data;
+    })()
+      .catch(() => null)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
+function shouldSkipAuthRetry(path: string) {
+  return (
+    path.startsWith('/auth/refresh') ||
+    path.startsWith('/auth/login') ||
+    path.startsWith('/auth/logout') ||
+    path.startsWith('/auth/google') ||
+    path.startsWith('/auth/register') ||
+    path.startsWith('/auth/verify-email') ||
+    path.startsWith('/auth/resend-verification') ||
+    path.startsWith('/auth/forgot-password') ||
+    path.startsWith('/auth/reset-password')
+  );
+}
+
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
@@ -101,6 +193,9 @@ export async function apiFetch(
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+  if (memoryAccessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${memoryAccessToken}`);
   }
 
   const controller = new AbortController();
@@ -111,13 +206,30 @@ export async function apiFetch(
     });
   }
 
-  try {
-    return await fetch(`${API_BASE}${path}`, {
+  const run = (requestHeaders: Headers) =>
+    fetch(`${API_BASE}${path}`, {
       ...init,
-      headers,
+      headers: requestHeaders,
       credentials: 'include',
       signal: controller.signal
     });
+
+  try {
+    let res = await run(headers);
+
+    if (res.status === 401 && !shouldSkipAuthRetry(path)) {
+      const pair = await refreshApiSession();
+      if (pair) {
+        const retryHeaders = new Headers(init.headers);
+        if (init.body && !retryHeaders.has('Content-Type')) {
+          retryHeaders.set('Content-Type', 'application/json');
+        }
+        retryHeaders.set('Authorization', `Bearer ${pair.access_token}`);
+        res = await run(retryHeaders);
+      }
+    }
+
+    return res;
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error(

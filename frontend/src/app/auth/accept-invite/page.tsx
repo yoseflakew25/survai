@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AuthShell } from '@/features/auth/components/auth-shell';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { acceptInvite } from '@/features/team/api/service';
 import { useAuth } from '@/lib/auth-context';
@@ -86,16 +87,20 @@ function AcceptInviteForm() {
 
 export default function AcceptInvitePage() {
   return (
-    <div className='mx-auto w-full max-w-md space-y-6 py-8'>
-      <div className='space-y-1 text-center'>
-        <h1 className='text-2xl font-semibold tracking-tight'>Accept invite</h1>
-        <p className='text-muted-foreground text-sm'>
-          Create your password to join the organization on SurvAI.
-        </p>
+    <AuthShell>
+      <div className='space-y-6'>
+        <div className='space-y-1'>
+          <h1 className='font-display text-2xl font-extrabold tracking-tight'>
+            Accept invite
+          </h1>
+          <p className='text-muted-foreground text-sm'>
+            Create your password to join the organization on Survai.
+          </p>
+        </div>
+        <Suspense fallback={<p className='text-sm'>Loading…</p>}>
+          <AcceptInviteForm />
+        </Suspense>
       </div>
-      <Suspense fallback={<p className='text-sm'>Loading…</p>}>
-        <AcceptInviteForm />
-      </Suspense>
-    </div>
+    </AuthShell>
   );
 }

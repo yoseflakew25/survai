@@ -28,16 +28,18 @@ export function LandingDemo() {
 
   return (
     <section id='demo' className='landing-section scroll-mt-24 pt-16 sm:pt-20'>
-      <h2 className='font-display text-center text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-3xl'>
-        See how respondents will answer
-      </h2>
+
+
+      <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
+      See how respondents will answer <span className='hl'>your questions</span>
+        </h2>
       <p className='mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground'>
         Try a few question types — the same clear experience your community
         gets on a phone or laptop.
       </p>
 
       <div className='mt-7 overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
-        <div className='flex gap-1 overflow-x-auto border-b border-border bg-secondary/50 p-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+        <div className='flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
           {TYPES.map((t) => {
             const isActive = type === t.id;
             return (
@@ -48,8 +50,8 @@ export function LandingDemo() {
                 className={cn(
                   'h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors',
                   isActive
-                    ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'
-                    : 'text-muted-foreground hover:bg-card hover:text-foreground'
+                    ? 'bg-[var(--gold)] font-semibold text-[var(--primary)] shadow-sm'
+                    : 'text-white/70 hover:text-[var(--gold)]'
                 )}
               >
                 {t.label}

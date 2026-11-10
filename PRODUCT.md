@@ -7,8 +7,8 @@ AI-assisted survey lifecycle platform (Plan → Build → Review → Collect →
 Researchers and program staff who need trustworthy survey workflows where AI never invents statistics.
 
 ## Brand commitments (session)
-- Visual world: warm paper ground (`#f7f7f2`), Claude-inspired orange brand (`#d97757`), Geist + Bricolage Grotesque, pill nav, soft borders, board-list density (layout motifs originally from Launchpot; brand hue shifted to orange).
-- First surface: `/` board landing keeps structure/motion; brand accents follow the orange token set.
+- Visual world: white ground, primary teal (`#103344`), secondary green (`#22f187`), black text, Geist + Bricolage Grotesque, pill nav, soft borders, board-list density (layout motifs from Launchpot).
+- Surfaces: landing, auth, dashboard, and public collect share the same token set.
 
 ## Assumptions
 - Frontend-only for now; mock board data is fine.

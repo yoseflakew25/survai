@@ -29,6 +29,8 @@ import Link from 'next/link';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 
 interface BuilderViewProps {
   surveyId: string;
@@ -41,7 +43,13 @@ interface SurveyState {
 }
 
 export function BuilderView({ surveyId }: BuilderViewProps) {
-  return <BuilderContent surveyId={surveyId} />;
+  return (
+    <AuthQueryBoundary
+      fallback={<SurveyActivityFallback activity='fetch-review' />}
+    >
+      <BuilderContent surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
 }
 
 function BuilderContent({ surveyId }: { surveyId: string }) {

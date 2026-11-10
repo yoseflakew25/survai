@@ -13,6 +13,11 @@ import {
 import {
   apiErrorMessage,
   apiFetch,
+  clearApiTokens,
+  getApiRefreshToken,
+  refreshApiSession,
+  setApiAccessToken,
+  setApiRefreshToken,
   toUserFacingError,
   type ApiUser,
   type ForgotPasswordResponse,
@@ -96,26 +101,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/**
- * Refresh rotates + revokes the previous refresh cookie. Concurrent POSTs
- * (React Strict Mode double-mount, multiple tabs/effects) race: the loser
- * gets 401 even though the session is fine. Share one in-flight refresh.
- */
-let refreshInFlight: Promise<TokenPairResponse | null> | null = null;
-
-function refreshSession(): Promise<TokenPairResponse | null> {
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      const res = await apiFetch('/auth/refresh', { method: 'POST' });
-      if (!res.ok) return null;
-      return (await res.json()) as TokenPairResponse;
-    })().finally(() => {
-      refreshInFlight = null;
-    });
-  }
-  return refreshInFlight;
-}
-
 function mapUser(u: ApiUser): AuthUser {
   return {
     id: u.id,
@@ -164,24 +149,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearSession = useCallback(() => {
     setAccessToken(null);
+    clearApiTokens();
     setUser(null);
   }, []);
 
   const applyTokenPair = useCallback((data: TokenPairResponse) => {
     setAccessToken(data.access_token);
+    setApiAccessToken(data.access_token);
+    setApiRefreshToken(data.refresh_token);
     setUser(mapUser(data.user));
   }, []);
 
   const hydrate = useEffectEvent(async () => {
     try {
-      // Prefer refresh so we get a fresh access JWT into memory + rotate cookie.
-      const pair = await refreshSession();
+      // Prefer refresh so we get a fresh access JWT into memory (+ body token
+      // when cross-origin cookies are not sent).
+      const pair = await refreshApiSession();
       if (pair) {
         applyTokenPair(pair);
         return;
       }
 
-      // Fallback: access cookie may still be valid after a lost refresh race.
+      // Cookie-only fallback: access cookie may still authorize /auth/me even
+      // when refresh body/cookie is missing (e.g. pre-sessionStorage sessions).
       const me = await apiFetch('/auth/me');
       if (me.ok) {
         setUser(mapUser((await me.json()) as ApiUser));
@@ -211,14 +201,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const timer = setTimeout(async () => {
       try {
-        const pair = await refreshSession();
+        const pair = await refreshApiSession();
         if (pair) {
           applyTokenPair(pair);
           return;
         }
-        // Don't wipe a still-valid access session on a lost rotation race.
-        const me = await apiFetch('/auth/me');
-        if (!me.ok) clearSession();
+        clearSession();
       } catch {
         clearSession();
       }
@@ -421,7 +409,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      await apiFetch('/auth/logout', { method: 'POST' });
+      const refresh = getApiRefreshToken();
+      await apiFetch('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify(refresh ? { refresh_token: refresh } : {})
+      });
     } catch {
       // ignore network errors — clear local session anyway
     } finally {

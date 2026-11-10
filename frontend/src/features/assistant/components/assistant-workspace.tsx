@@ -9,7 +9,12 @@ import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SurvaiPanel, brandCtaClass } from '@/components/survai-panel';
+import {
+  SurvaiPanel,
+  brandCtaClass,
+  compactCtaClass,
+  panelHeaderToneClass
+} from '@/components/survai-panel';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
@@ -209,13 +214,13 @@ export function AssistantWorkspace() {
   return (
     <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
       <SurvaiPanel className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
-        <div className='relative shrink-0 border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-4 py-4 sm:px-6'>
+        <div className={cn(panelHeaderToneClass.primary, 'relative shrink-0 px-4 py-4 sm:px-6')}>
           <div className='relative flex flex-wrap items-start justify-between gap-3'>
             <div className='min-w-0 flex-1'>
-              <h2 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground'>
+              <h2 className='font-display text-2xl font-extrabold tracking-tight text-white'>
                 {chatTitle}
               </h2>
-              <p className=' text-sm leading-relaxed text-primary-foreground/80'>
+              <p className='text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
                 Ask across your surveys, reports, and reviews
               </p>
             </div>
@@ -223,7 +228,7 @@ export function AssistantWorkspace() {
               type='button'
               size='sm'
               onClick={() => void handleNewThread()}
-              className='h-8 shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-3 text-xs font-semibold text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:bg-foreground/90'
+              className={cn(compactCtaClass, 'shrink-0 rounded-xl')}
             >
               <Icons.add className='mr-1 size-3.5' />
               New chat
@@ -279,7 +284,9 @@ export function AssistantWorkspace() {
                         key={thread.id}
                         className={cn(
                           'group flex items-start gap-0.5 rounded-xl px-2 py-2 transition-colors',
-                          active ? 'bg-brand-soft' : 'hover:bg-muted/70'
+                          active
+                            ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)]'
+                            : 'hover:bg-muted/70'
                         )}
                       >
                         <button
@@ -305,10 +312,24 @@ export function AssistantWorkspace() {
                             />
                           ) : (
                             <>
-                              <div className='truncate text-sm font-medium text-foreground'>
+                              <div
+                                className={cn(
+                                  'truncate text-sm font-medium',
+                                  active
+                                    ? 'text-brand-foreground'
+                                    : 'text-foreground'
+                                )}
+                              >
                                 {thread.title}
                               </div>
-                              <div className='font-mono text-[10px] text-muted-foreground'>
+                              <div
+                                className={cn(
+                                  'font-mono text-[10px]',
+                                  active
+                                    ? 'text-brand-foreground/70'
+                                    : 'text-muted-foreground'
+                                )}
+                              >
                                 {formatRelative(thread.updatedAt)}
                               </div>
                             </>
@@ -318,7 +339,12 @@ export function AssistantWorkspace() {
                           <button
                             type='button'
                             aria-label='Rename chat'
-                            className='rounded-lg p-1 text-muted-foreground hover:bg-card hover:text-foreground'
+                            className={cn(
+                              'rounded-lg p-1 hover:bg-card',
+                              active
+                                ? 'text-brand-foreground/70 hover:text-brand-foreground'
+                                : 'text-muted-foreground hover:text-foreground'
+                            )}
                             onClick={() => {
                               setRenamingId(thread.id);
                               setRenameValue(thread.title);
@@ -329,7 +355,12 @@ export function AssistantWorkspace() {
                           <button
                             type='button'
                             aria-label='Delete chat'
-                            className='rounded-lg p-1 text-muted-foreground hover:bg-card hover:text-destructive'
+                            className={cn(
+                              'rounded-lg p-1 hover:bg-card hover:text-destructive',
+                              active
+                                ? 'text-brand-foreground/70'
+                                : 'text-muted-foreground'
+                            )}
                             onClick={() => void handleDelete(thread)}
                           >
                             <Icons.close className='size-3.5' />
@@ -407,7 +438,7 @@ export function AssistantWorkspace() {
               >
                 {msg.role === 'assistant' ? (
                   <div
-                    className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                     aria-hidden
                   >
                     <Icons.sparkles className='size-3.5' />
@@ -474,7 +505,7 @@ export function AssistantWorkspace() {
                 }
               >
                 <div
-                  className=' flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                  className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                   aria-hidden
                 >
                   <Icons.sparkles className='size-3.5' />

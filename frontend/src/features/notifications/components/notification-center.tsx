@@ -16,6 +16,7 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { panelHeaderToneClass } from '@/components/survai-panel';
 
 import {
   notificationActions,
@@ -149,7 +150,7 @@ export function NotificationCenter() {
         showCloseButton
         className='!w-full gap-0 overflow-hidden p-0 sm:!max-w-none md:!w-1/2'
       >
-        <SheetHeader className='relative shrink-0 space-y-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-0 text-left'>
+        <SheetHeader className={cn(panelHeaderToneClass.brand, 'relative shrink-0 space-y-0 overflow-hidden p-0 text-left')}>
           <div
             className='pointer-events-none absolute inset-0 opacity-35'
             aria-hidden
@@ -171,7 +172,7 @@ export function NotificationCenter() {
                     Notifications
                   </SheetTitle>
                   {count > 0 ? (
-                    <span className='rounded-full border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-2 py-0.5 font-mono text-[10px] font-bold text-background'>
+                    <span className='rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground/15 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-foreground'>
                       {count} unread
                     </span>
                   ) : null}
@@ -215,7 +216,7 @@ export function NotificationCenter() {
                     className={cn(
                       'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-brand-foreground text-brand'
+                        ? 'bg-card text-brand-foreground shadow-sm'
                         : 'bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground/80 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_18%,transparent)] hover:text-brand-foreground'
                     )}
                   >
@@ -223,8 +224,10 @@ export function NotificationCenter() {
                     {tabCount > 0 ? (
                       <span
                         className={cn(
-                          'font-mono text-[11px] tabular-nums',
-                          isActive ? 'text-background/70' : 'text-foreground/55'
+                          'rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums',
+                          isActive
+                            ? 'bg-brand text-brand-foreground'
+                            : 'bg-brand-foreground/15 text-brand-foreground/70'
                         )}
                       >
                         {tabCount}

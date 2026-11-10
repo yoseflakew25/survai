@@ -18,15 +18,14 @@ function WelcomeCard() {
   return (
     <article
       className={cn(
-        'flex flex-col justify-center rounded-[1.125rem] border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft p-4',
-        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+        'flex flex-col justify-center rounded-[1.125rem] border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-4',
+        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'
       )}
     >
-      
-      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground'>
+      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-white'>
         Welcome to Survai
       </h1>
-      <p className='text-muted-foreground text-sm leading-relaxed'>
+      <p className='text-sm leading-relaxed text-[var(--gold)]'>
         Live counts from your surveys and responses.
       </p>
     </article>
@@ -55,7 +54,7 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
         </div>
         <Badge
           variant='secondary'
-          className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground'
+          className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-foreground'
         >
           <TrendIcon trend={kpi.trend} />
           {kpi.delta}

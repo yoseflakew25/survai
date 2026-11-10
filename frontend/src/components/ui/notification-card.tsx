@@ -185,12 +185,12 @@ export const NotificationCard: FC<NotificationCardProps> = ({
                       onAction?.(id, action.id, action.type);
                     }}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-[background-color,color,border-color]',
                       isPrimary
-                        ? 'border border-border bg-foreground text-background hover:opacity-90'
+                        ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground'
                         : action.style === 'danger'
                           ? 'border border-destructive/30 text-destructive hover:bg-destructive/5'
-                          : 'border border-border bg-card text-muted-foreground hover:text-foreground',
+                          : 'border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft text-primary hover:border-primary hover:bg-primary hover:text-primary-foreground',
                       showLoading && 'opacity-50',
                       isExecuted && 'cursor-not-allowed opacity-60'
                     )}

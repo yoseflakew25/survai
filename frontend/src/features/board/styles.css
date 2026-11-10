@@ -1,39 +1,42 @@
-/* Board landing visual system — scoped to .lp; brand follows orange tokens */
+/* Landing + AuthShell visual system — scoped to .lp.
+   Primary #103344 · Secondary #22f187 · black text · white ground
+   (App-wide Operate theme mirrors these tokens in styles/themes/vercel.css) */
 
 html:has(.lp),
 html:has(.lp) body {
-  background: #f7f7f2 !important;
+  background: #ffffff !important;
 }
 
 html.dark:has(.lp),
 html.dark:has(.lp) body {
-  background: #0d0e0b !important;
+  background: #0a1419 !important;
 }
 
 .lp {
-  --background: #f7f7f2;
-  --foreground: #111210;
-  --card: #fff;
-  --card-foreground: #111210;
-  --popover: #fff;
-  --popover-foreground: #111210;
-  --primary: #111210;
-  --primary-foreground: #fbfbf7;
-  --secondary: #efefe8;
-  --secondary-foreground: #111210;
-  --muted: #f1f1eb;
-  --muted-foreground: #62655e;
-  --accent: #f1f1eb;
-  --accent-foreground: #111210;
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #103344;
+  --primary-foreground: #ffffff;
+  --secondary: #eef3f5;
+  --secondary-foreground: #000000;
+  --muted: #f3f6f7;
+  --muted-foreground: #4a5c66;
+  --accent: #eef3f5;
+  --accent-foreground: #000000;
   --destructive: #ef4444;
-  --border: #e6e6de;
-  --input: #e6e6de;
-  --ring: #111210;
-  --brand: #d97757;
-  --brand-foreground: #fffaf7;
-  --brand-strong: #9a4b2e;
-  --brand-soft: #fceedf;
-  --gold: #f5b300;
+  --border: #d7e0e4;
+  --input: #d7e0e4;
+  --ring: #103344;
+  /* Teal stays primary; green fills bold cards / brand surfaces */
+  --brand: #22f187;
+  --brand-foreground: #103344;
+  --brand-strong: #12c46a;
+  --brand-soft: #e8fcf2;
+  --gold: #22f187;
   --radius: 0.875rem;
   --shadow-sm: 0 1px 3px 0 #0000001a, 0 1px 2px -1px #0000001a;
   --font-display: var(--font-bricolage), 'Bricolage Grotesque', var(--font-sans);
@@ -44,29 +47,29 @@ html.dark:has(.lp) body {
 
 .dark .lp,
 .lp.dark {
-  --background: #0d0e0b;
-  --foreground: #f4f5ef;
-  --card: #171814;
-  --card-foreground: #f4f5ef;
-  --popover: #171814;
-  --popover-foreground: #f4f5ef;
-  --primary: #f4f5ef;
-  --primary-foreground: #0d0e0b;
-  --secondary: #24261f;
-  --secondary-foreground: #f4f5ef;
-  --muted: #1c1d18;
-  --muted-foreground: #a3a69b;
-  --accent: #202119;
-  --accent-foreground: #f4f5ef;
+  --background: #0a1419;
+  --foreground: #f4f8fa;
+  --card: #102029;
+  --card-foreground: #f4f8fa;
+  --popover: #102029;
+  --popover-foreground: #f4f8fa;
+  --primary: #22f187;
+  --primary-foreground: #0a1419;
+  --secondary: #152833;
+  --secondary-foreground: #f4f8fa;
+  --muted: #12222b;
+  --muted-foreground: #9bb0ba;
+  --accent: #152833;
+  --accent-foreground: #f4f8fa;
   --destructive: #f87171;
-  --border: #2a2c24;
-  --input: #2a2c24;
-  --ring: #f4f5ef;
-  --brand: #d97757;
-  --brand-foreground: #fffaf7;
-  --brand-strong: #e89272;
-  --brand-soft: #2a1a14;
-  --gold: #ffc53d;
+  --border: #1e3540;
+  --input: #1e3540;
+  --ring: #22f187;
+  --brand: #22f187;
+  --brand-foreground: #0a1419;
+  --brand-strong: #4dffab;
+  --brand-soft: #123028;
+  --gold: #22f187;
 }
 
 .lp .font-display {
@@ -91,6 +94,7 @@ html.dark:has(.lp) body {
 }
 .lp .bg-brand {
   background-color: var(--brand);
+  color: var(--brand-foreground);
 }
 .lp .bg-brand-strong {
   background-color: var(--brand-strong);
@@ -125,6 +129,17 @@ html.dark:has(.lp) body {
 }
 .lp .text-muted-foreground {
   color: var(--muted-foreground);
+}
+
+/* Beat .lp text-* overrides so principle hover contrast works */
+.lp #principles .principle-row:hover .principle-num {
+  color: var(--gold);
+}
+.lp #principles .principle-row:hover h3 {
+  color: #fff;
+}
+.lp #principles .principle-row:hover p {
+  color: color-mix(in srgb, var(--gold) 50%, white);
 }
 .lp .text-background {
   color: var(--background);
@@ -179,8 +194,10 @@ html.dark:has(.lp) body {
 }
 
 .lp .btn-back:hover {
-  filter: brightness(1.04) saturate(1.1);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 35%, transparent);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 28%, transparent);
 }
 
 .lp .btn-back:active {
@@ -223,18 +240,18 @@ html.dark:has(.lp) body {
   width: 7px;
   height: 7px;
   border-radius: 9999px;
-  background: var(--brand-strong);
+  background: var(--gold);
   animation: lp-live-pulse 2.2s ease-out infinite;
 }
 
 .dark .lp .live-dot,
 .lp.dark .live-dot {
-  background: var(--brand);
+  background: var(--gold);
 }
 
 @keyframes lp-live-pulse {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 70%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 70%, transparent);
   }
   70% {
     box-shadow: 0 0 0 7px transparent;
@@ -247,8 +264,8 @@ html.dark:has(.lp) body {
 .lp .hl {
   background: linear-gradient(
     transparent 58%,
-    var(--brand) 58%,
-    var(--brand) 92%,
+    color-mix(in srgb, var(--gold) 72%, white) 58%,
+    color-mix(in srgb, var(--gold) 72%, white) 92%,
     transparent 92%
   );
   padding: 0 0.08em;
@@ -256,7 +273,7 @@ html.dark:has(.lp) body {
 
 .dark .lp .hl,
 .lp.dark .hl {
-  color: var(--brand);
+  color: var(--gold);
   background: none;
 }
 
@@ -287,9 +304,10 @@ html.dark:has(.lp) body {
 }
 
 .lp .landing-shell-brand {
-  border: 1px solid color-mix(in srgb, var(--brand) 70%, var(--foreground));
+  border: 1px solid color-mix(in srgb, var(--brand) 55%, var(--primary));
   background: var(--brand);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 18%, transparent);
+  color: var(--brand-foreground);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 10%, transparent);
 }
 
 .lp .landing-grid-wash {

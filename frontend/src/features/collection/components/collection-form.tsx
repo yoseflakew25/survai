@@ -10,7 +10,6 @@ import type {
   PublicSection,
   AnswerValue
 } from '../api/types';
-import { CollectionProgress } from './collection-progress';
 import { PublicQuestionInput } from './public-question-input';
 import { CollectionComplete } from './collection-complete';
 import { submitSurvey } from '../api/service';
@@ -19,6 +18,11 @@ import {
   displaySurveyTitle
 } from '@/lib/survey-display';
 import { conditionIsActive } from '@/lib/conditional-logic';
+import {
+  primaryMetaChipClass,
+  softSectionHeaderClass
+} from '@/components/survai-panel';
+import { cn } from '@/lib/utils';
 
 interface CollectionFormProps {
   survey: PublicSurvey;
@@ -48,7 +52,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
   // ----- Derived -----
-  const { answeredCounts, requiredCounts, totalRequired, totalAnsweredRequired } =
+  const { answeredCounts, totalRequired, totalAnsweredRequired } =
     useMemo(() => {
       const answered = sections.map(
         (section) =>
@@ -70,7 +74,6 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       );
       return {
         answeredCounts: answered,
-        requiredCounts: required,
         totalRequired: required.reduce((a, b) => a + b, 0),
         totalAnsweredRequired: answeredRequired
       };
@@ -138,15 +141,6 @@ export function CollectionForm({ survey }: CollectionFormProps) {
     setCurrentSectionIndex((i) => Math.max(0, i - 1));
     scrollSectionIntoView();
   }, [scrollSectionIntoView]);
-
-  const handleJumpToSection = useCallback(
-    (index: number) => {
-      setErrors({});
-      setCurrentSectionIndex(index);
-      scrollSectionIntoView();
-    },
-    [scrollSectionIntoView]
-  );
 
   const handleSubmit = useCallback(async () => {
     // Validate every required question across the whole survey.
@@ -261,13 +255,13 @@ export function CollectionForm({ survey }: CollectionFormProps) {
     <div className='flex min-h-dvh flex-col bg-white'>
       <main className='mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8'>
         {/* Hero — Survai brand outline (matches SurvaiBrandCard) */}
-        <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
+        <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
           <div
-            className='pointer-events-none absolute inset-0 opacity-40'
+            className='pointer-events-none absolute inset-0 opacity-50'
             aria-hidden
             style={{
               backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
+                'linear-gradient(to right, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px)',
               backgroundSize: '20px 20px',
               maskImage:
                 'linear-gradient(to right, transparent, black 25%, black 75%, transparent)',
@@ -277,11 +271,11 @@ export function CollectionForm({ survey }: CollectionFormProps) {
           />
           <div className='relative space-y-5 px-5 py-6 sm:px-7 sm:py-7'>
             <div className='space-y-2'>
-              <h1 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-[1.75rem] sm:leading-snug'>
+              <h1 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-[1.75rem] sm:leading-snug'>
                 {displaySurveyTitle(survey.title)}
               </h1>
               {displaySurveyDescription(survey.title, survey.description) ? (
-                <p className='max-w-2xl text-sm leading-relaxed text-brand-foreground/80'>
+                <p className='max-w-2xl text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_50%,white)]'>
                   {displaySurveyDescription(survey.title, survey.description)}
                 </p>
               ) : null}
@@ -298,15 +292,15 @@ export function CollectionForm({ survey }: CollectionFormProps) {
               ].map((chip) => (
                 <span
                   key={chip.label}
-                  className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] px-2.5 py-1 text-[11px] font-medium text-brand-foreground'
+                  className={cn(primaryMetaChipClass, 'rounded-full px-2.5 font-medium')}
                 >
-                  <chip.icon className='size-3 opacity-80' />
+                  <chip.icon className='size-3 opacity-90' />
                   {chip.label}
                 </span>
               ))}
               {totalRequired > 0 ? (
-                <span className='ml-auto text-[11px] text-brand-foreground/75'>
-                  <span className='font-semibold text-brand-foreground'>*</span>{' '}
+                <span className='ml-auto text-[11px] text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                  <span className='font-semibold text-[var(--gold)]'>*</span>{' '}
                   required
                 </span>
               ) : null}
@@ -314,37 +308,28 @@ export function CollectionForm({ survey }: CollectionFormProps) {
           </div>
         </header>
 
-        {/* Progress rail */}
-        <div ref={scrollAnchorRef} className='scroll-mt-6'>
-          <CollectionProgress
-            sections={sections}
-            currentSectionIndex={currentSectionIndex}
-            answeredCounts={answeredCounts}
-            requiredCounts={requiredCounts}
-            onSelectSection={handleJumpToSection}
-            className='mt-4'
-          />
-        </div>
-
         {/* Section card */}
-        <div className='mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm'>
+        <div
+          ref={scrollAnchorRef}
+          className='mt-4 scroll-mt-6 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_18%,var(--border))] bg-white shadow-sm'
+        >
           {/* Section header */}
-          <div className='border-b border-border bg-white px-5 py-4 sm:px-6'>
+          <div className={cn(softSectionHeaderClass, 'px-5 py-4 sm:px-6')}>
             <div className='flex items-start gap-3'>
-              <span className='bg-primary text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold'>
+              <span className='flex size-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'>
                 {currentSectionIndex + 1}
               </span>
               <div className='min-w-0 flex-1'>
-                <h2 className='text-base font-semibold tracking-tight'>
+                <h2 className='text-base font-semibold tracking-tight text-foreground'>
                   {currentSection.title}
                 </h2>
                 {currentSection.description && (
-                  <p className='text-muted-foreground  text-xs leading-relaxed'>
+                  <p className='text-xs leading-relaxed text-muted-foreground'>
                     {currentSection.description}
                   </p>
                 )}
               </div>
-              <Badge variant='secondary' className='shrink-0 text-[10px]'>
+              <Badge className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-white/70 text-[10px] font-semibold text-primary'>
                 {answeredInSection} of {totalInSection} answered
               </Badge>
             </div>

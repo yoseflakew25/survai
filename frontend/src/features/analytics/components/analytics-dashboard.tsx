@@ -38,6 +38,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
 import { canEditOrg, useAuth } from '@/lib/auth-context';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 
 const CROSSTAB_TYPES = new Set([
   'single_choice',
@@ -50,26 +52,37 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ surveyId }: AnalyticsDashboardProps) {
-  return <AnalyticsContent surveyId={surveyId} />;
+  return (
+    <AuthQueryBoundary
+      fallback={<SurveyActivityFallback activity='fetch-analytics' />}
+    >
+      <AnalyticsContent surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
 }
 
 /** Shared section chrome used across the page's main column. */
 function AnalyticsSection({
-  icon,
   title,
   subtitle,
   badge,
-  children
+  children,
+  tone = 'soft'
 }: {
-  icon: ReactNode;
   title: string;
   subtitle: string;
   badge?: ReactNode;
   children: ReactNode;
+  tone?: 'brand' | 'primary' | 'soft';
 }) {
   return (
     <SurvaiPanel>
-      <SurvaiPanelHeader icon={icon} title={title} subtitle={subtitle} badge={badge} />
+      <SurvaiPanelHeader
+        tone={tone}
+        title={title}
+        subtitle={subtitle}
+        badge={badge}
+      />
       <SurvaiPanelBody>{children}</SurvaiPanelBody>
     </SurvaiPanel>
   );
@@ -219,12 +232,12 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
         <div className='space-y-6 lg:col-span-2'>
           {/* Summary Stats */}
           <AnalyticsSection
-            icon={<Icons.activity className='h-3.5 w-3.5' />}
+            tone='primary'
             title='Response Summary'
             subtitle='Overview of collected survey responses'
             badge={
               summary.surveyVersionId ? (
-                <Badge variant='secondary' className='font-mono text-[10px]'>
+                <Badge className='rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] font-mono text-[10px] text-[var(--gold)]'>
                   ver {summary.surveyVersionId.slice(0, 8)}
                 </Badge>
               ) : undefined
@@ -235,7 +248,6 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
           {/* Distribution Charts */}
           <AnalyticsSection
-            icon={<Icons.analytics className='h-3.5 w-3.5' />}
             title='Question Distributions'
             subtitle={
               activeFilters.length > 0
@@ -271,7 +283,6 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
           {/* Cross-Tab */}
           <AnalyticsSection
-            icon={<Icons.kanban className='h-3.5 w-3.5' />}
             title='Cross-Tabulation'
             subtitle={
               crossTab

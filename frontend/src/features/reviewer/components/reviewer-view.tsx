@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { surveyByIdOptions, surveyKeys } from '@/features/builder/api/queries';
 import { surveyListKeys } from '@/features/surveys/api/queries';
 import { latestReviewOptions, reviewerKeys } from '../api/queries';
@@ -52,15 +52,18 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelHeader,
-  brandCtaClass
+  brandCtaClass,
+  dialogHeaderSoftClass,
+  panelHeaderToneClass,
+  primaryCtaClass,
+  sectionIndexClass
 } from '@/components/survai-panel';
 import {
   displaySurveyDescription,
   displaySurveyTitle
 } from '@/lib/survey-display';
-
-const blackCtaClass =
-  'h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-4 text-sm font-semibold text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:bg-foreground/90';
+import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
+import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 
 function isOptionsType(type: QuestionType) {
   return (
@@ -105,15 +108,23 @@ interface ReviewerViewProps {
 }
 
 export function ReviewerView({ surveyId }: ReviewerViewProps) {
-  return <ReviewerContent surveyId={surveyId} />;
+  return (
+    <AuthQueryBoundary
+      fallback={<SurveyActivityFallback activity='fetch-review' />}
+    >
+      <ReviewerContent surveyId={surveyId} />
+    </AuthQueryBoundary>
+  );
 }
 
 function ReviewerContent({ surveyId }: { surveyId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { run, activeId } = useSurveyActivity();
-  const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
-  const { data: report } = useSuspenseQuery(latestReviewOptions(surveyId));
+  const surveyQuery = useQuery(surveyByIdOptions(surveyId));
+  const reportQuery = useQuery(latestReviewOptions(surveyId));
+  const survey = surveyQuery.data;
+  const report = reportQuery.data ?? null;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
@@ -270,6 +281,34 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     run
   ]);
 
+  if (surveyQuery.isLoading || reportQuery.isLoading) {
+    return <SurveyActivityFallback activity='fetch-review' />;
+  }
+
+  if (surveyQuery.isError) {
+    return (
+      <div className='flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center'>
+        <p className='text-sm font-medium text-foreground'>
+          {surveyQuery.error instanceof Error
+            ? surveyQuery.error.message
+            : 'Could not load this survey'}
+        </p>
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          className='rounded-xl'
+          onClick={() => {
+            void surveyQuery.refetch();
+            void reportQuery.refetch();
+          }}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
   if (!survey) {
     return (
       <div className='mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16 text-center'>
@@ -327,7 +366,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     />
     <Dialog open={confirmRegenOpen} onOpenChange={setConfirmRegenOpen}>
       <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
-        <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
+        <DialogHeader className={dialogHeaderSoftClass}>
           <DialogTitle>Regenerate survey questions?</DialogTitle>
         </DialogHeader>
         <div className='px-4 pt-4 pb-2'>
@@ -360,7 +399,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
       </DialogContent>
     </Dialog>
-    <div className='grid gap-6 lg:grid-cols-[1fr_340px]'>
+    <div className='grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(22rem,28rem)]'>
       <div
         className={cn(
           'space-y-5 transition-opacity',
@@ -370,30 +409,30 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       >
         <SurvaiPanel>
           <SurvaiPanelHeader
-            className='border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary'
+            tone='primary'
             title={
               <div className='min-w-0'>
-                <div className='mb-1 flex flex-wrap items-center gap-2'>
-                  <span className='rounded-full border border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-primary-foreground/12 px-2 py-0.5 text-[10px] font-semibold capitalize text-primary-foreground'>
-                    {statusLabel}
-                    {questionsLocked ? ' · locked' : ''}
-                  </span>
-                </div>
-                <h1 className='font-display line-clamp-2 text-xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl'>
+                <h1 className='font-display line-clamp-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
                   {title}
                 </h1>
                 {description ? (
-                  <p className='mt-1 line-clamp-2 text-sm leading-snug text-primary-foreground/80'>
+                  <p className='mt-1 line-clamp-2 text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
                     {description}
                   </p>
                 ) : (
-                  <p className='mt-1 text-sm leading-snug text-primary-foreground/80'>
+                  <p className='mt-1 text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
                     {questionsLocked
                       ? 'Questions are locked — review the draft structure below.'
                       : 'Edit questions, run AI review, then continue to Collect.'}
                   </p>
                 )}
               </div>
+            }
+            badge={
+              <span className='rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold capitalize text-[var(--gold)]'>
+                {statusLabel}
+                {questionsLocked ? ' · locked' : ''}
+              </span>
             }
           />
         </SurvaiPanel>
@@ -416,7 +455,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 {!questionsLocked ? (
                   <Button
                     type='button'
-                    className={cn(blackCtaClass, 'mt-1 h-10 w-auto px-4')}
+                    className={cn(primaryCtaClass, 'mt-1 h-10 w-auto px-4')}
                     onClick={() => setConfirmRegenOpen(true)}
                     disabled={!survey.planId || isRegenerating}
                   >
@@ -449,19 +488,19 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
 
         <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft p-4 sm:p-5'>
+          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] sm:p-5'>
             <div>
-              <p className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+              <p className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
                 {questionsLocked ? 'Collecting responses' : 'Ready to collect?'}
               </p>
-              <p className='text-muted-foreground mt-1 text-sm leading-relaxed'>
+              <p className='mt-1 text-sm leading-relaxed text-brand-foreground/75'>
                 {questionsLocked
                   ? 'Questions are locked while this survey is live. Share and monitor from Collect.'
                   : 'Finish reviewing findings, then publish and share with respondents.'}
               </p>
             </div>
             <ul className='space-y-1.5'>
-              <li className='flex items-center gap-2.5 rounded-xl bg-card/70 px-2.5 py-2 ring-1 ring-border/70'>
+              <li className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'>
                 <span className='flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
                   <Icons.forms className='size-3.5' />
                 </span>
@@ -469,7 +508,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   {questionCount} questions across {sectionCount} sections
                 </span>
               </li>
-              <li className='flex items-center gap-2.5 rounded-xl bg-card/70 px-2.5 py-2 ring-1 ring-border/70'>
+              <li className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'>
                 <span
                   className={cn(
                     'flex size-6 shrink-0 items-center justify-center rounded-lg',
@@ -504,10 +543,10 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 render={
                   <Link href={`/dashboard/surveys/${surveyId}/collect`} />
                 }
-                className={blackCtaClass}
+                className={cn(primaryCtaClass, 'w-full justify-between')}
               >
                 {questionsLocked ? 'Open Collect' : 'Go to Collect'}
-                <Icons.arrowRight className='ml-auto size-4' />
+                <Icons.arrowRight className='size-4' />
               </Button>
               {!questionsLocked ? (
                 <Button
@@ -528,7 +567,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               <Button
                 type='button'
                 variant='outline'
-                className='h-10 w-full rounded-xl border-destructive/30 bg-card text-sm font-medium text-destructive hover:bg-destructive/10'
+                className='h-10 w-full gap-2 rounded-xl border border-destructive/45 bg-[color-mix(in_srgb,var(--destructive)_8%,white)] text-sm font-semibold text-destructive shadow-[0_1px_0_color-mix(in_srgb,var(--destructive)_12%,transparent)] hover:border-destructive/70 hover:bg-destructive hover:text-white'
                 onClick={() => setDeleteOpen(true)}
                 disabled={isRegenerating || isReviewing || isDeleting}
               >
@@ -562,7 +601,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 </p>
                 <Button
                   type='button'
-                  className={cn(blackCtaClass, 'h-10')}
+                  className={cn(primaryCtaClass, 'h-10')}
                   onClick={() => void handleReview()}
                   disabled={isRegenerating || isReviewing}
                 >
@@ -596,9 +635,9 @@ function SectionReviewCard({
 
   return (
     <SurvaiPanel>
-      <div className='flex items-center gap-3 border-b border-border bg-brand-soft px-4 py-3.5 sm:px-5'>
+      <div className={cn(panelHeaderToneClass.soft, 'flex items-center gap-3 px-4 py-3.5 sm:px-5')}>
         <span
-          className='grid size-8 shrink-0 place-items-center rounded-xl border border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary font-display text-sm font-extrabold tabular-nums text-primary-foreground shadow-sm'
+          className={cn(sectionIndexClass, 'size-8 place-items-center rounded-xl font-display text-sm')}
           aria-label={`Section ${index + 1}`}
         >
           {index + 1}
@@ -607,14 +646,14 @@ function SectionReviewCard({
           <h2 className='font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
             {section.title}
           </h2>
-          <p className='text-muted-foreground  text-xs leading-snug'>
+          <p className='text-xs leading-snug text-muted-foreground'>
             {section.description?.trim() ||
               `${questionCount} question${questionCount === 1 ? '' : 's'}${
                 requiredCount > 0 ? ` · ${requiredCount} required` : ''
               }`}
           </p>
         </div>
-        <span className='inline-flex min-w-6 items-center justify-center rounded-full bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
+        <span className='inline-flex min-w-6 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
           {questionCount}
         </span>
       </div>

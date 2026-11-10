@@ -75,7 +75,7 @@ export function createColumns(
             aria-label='Search respondents'
             value={(column.getFilterValue() as string) ?? ''}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => column.setFilterValue(event.target.value)}
-            className='h-7 w-48 lg:w-60 text-xs'
+            className='h-8 w-48 border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] text-sm text-white placeholder:text-[color-mix(in_srgb,var(--gold)_55%,white)] lg:w-60'
           />
         </div>
       ),
@@ -122,7 +122,11 @@ export function createColumns(
                     {...props}
                     variant={active ? 'default' : 'outline'}
                     size='sm'
-                    className='h-7 text-[11px]'
+                    className={
+                      active
+                        ? 'h-8 text-xs'
+                        : 'h-8 border-[color-mix(in_srgb,var(--gold)_40%,transparent)] bg-[color-mix(in_srgb,var(--gold)_14%,transparent)] text-xs text-[var(--gold)] hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                    }
                   >
                     {activeOption?.icon && (
                       <activeOption.icon className='mr-1 h-3.5 w-3.5 shrink-0' />

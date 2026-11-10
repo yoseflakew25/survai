@@ -23,16 +23,23 @@ export function LandingTrust() {
       className='landing-section scroll-mt-24 pt-16 sm:pt-24'
     >
       <div className='landing-shell overflow-hidden'>
-        <div className='relative border-b border-border bg-brand-soft/60 px-5 py-8 sm:px-8 sm:py-10'>
+        <div className='relative border-b border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[var(--primary)] px-5 py-8 sm:px-8 '>
           <div
-            className='dot-grid absolute inset-0 opacity-50'
+            className='dot-grid absolute inset-0 opacity-40'
             aria-hidden='true'
+            style={{
+              backgroundImage:
+                'radial-gradient(color-mix(in srgb, var(--gold) 28%, transparent) 1px, transparent 1px)'
+            }}
           />
           <div className='relative max-w-xl'>
-            <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-              Evidence you can <span className='hl'>act on</span>
+            <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]'>
+              Evidence you can{' '}
+              <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
+                act on
+              </span>
             </h2>
-            <p className='mt-2.5 text-sm leading-relaxed text-muted-foreground'>
+            <p className='text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
               Built for program, research, and policy teams who need answers —
               not another pile of responses with no clear next step.
             </p>

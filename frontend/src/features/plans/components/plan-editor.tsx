@@ -34,7 +34,10 @@ import {
 import {
   SurvaiPanel,
   SurvaiPanelBody,
-  SurvaiPanelHeader
+  SurvaiPanelHeader,
+  dialogHeaderPrimaryClass,
+  dialogHeaderSoftClass,
+  primaryCtaClass
 } from '@/components/survai-panel';
 import { displaySurveyTitle } from '@/lib/survey-display';
 import { cn } from '@/lib/utils';
@@ -52,9 +55,6 @@ function surveyHasQuestions(
   if (!sections?.length) return false;
   return sections.some((s) => (s.questions?.length ?? 0) > 0);
 }
-
-const blackCtaClass =
-  'h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-4 text-sm font-semibold text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:bg-foreground/90 disabled:opacity-60';
 
 function CountBadge({ count }: { count: number }) {
   return (
@@ -81,7 +81,7 @@ function ResearchGoalDisplay({ text }: { text: string }) {
 
   return (
     <>
-      <span className='text-primary'>{match[1]}</span>
+      <span className='font-extrabold text-primary'>{match[1]}</span>
       {match[2] ? <> {match[2]}</> : null}
     </>
   );
@@ -436,27 +436,26 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         <div className='space-y-4 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              // icon={<Icons.plan className='size-3.5' />}
-              className='border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary [&_[data-slot=panel-icon]]:border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] [&_[data-slot=panel-icon]]:bg-primary-foreground/12 [&_[data-slot=panel-icon]]:text-primary-foreground [&_[data-slot=panel-icon]]:shadow-none'
+              tone='primary'
               title={
                 <div className='min-w-0'>
-                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground sm:text-2xl'>
+                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-2xl'>
                     Research plan
                   </h3>
-                  <p className=' text-sm leading-snug text-primary-foreground/80'>
+                  <p className='text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
                     What this survey is trying to learn
                   </p>
                 </div>
               }
               badge={
-                <span className='font-mono text-[11px] tabular-nums text-primary-foreground/80'>
+                <span className='font-mono text-[11px] tabular-nums text-[var(--gold)]'>
                   {researchGoal.trim().length.toLocaleString()} chars
                 </span>
               }
             />
             <SurvaiPanelBody>
               {isLocked ? (
-                <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft/50 px-4 py-4 text-base font-semibold leading-relaxed text-foreground sm:text-lg'>
+                <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-4 text-sm font-medium leading-relaxed text-foreground sm:text-[0.9375rem]'>
                   <ResearchGoalDisplay text={researchGoal} />
                 </p>
               ) : (
@@ -483,7 +482,6 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              icon={<Icons.checks className='size-3.5' />}
               title='Objectives'
               subtitle='Outcomes this survey should achieve'
               badge={<CountBadge count={objectives.length} />}
@@ -507,7 +505,6 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              icon={<Icons.forms className='size-3.5' />}
               title='Research questions'
               subtitle='Questions the survey should answer'
               badge={<CountBadge count={researchQuestions.length} />}
@@ -531,7 +528,6 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              icon={<Icons.teams className='size-3.5' />}
               title='Target respondents'
               subtitle='Who should take this survey'
               badge={<CountBadge count={targetRespondents.length} />}
@@ -555,7 +551,6 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              icon={<Icons.kanban className='size-3.5' />}
               title='Proposed sections'
               subtitle='How questions will be grouped in the survey'
               badge={<CountBadge count={proposedSections.length} />}
@@ -576,12 +571,12 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         </div>
 
         <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft p-4 sm:p-5'>
+          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] sm:p-5'>
             <div>
-              <p className='font-display text-lg font-extrabold tracking-tight text-foreground'>
+              <p className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
                 {isLocked ? 'Plan locked' : canGenerateSurvey ? 'Ready when you are' : 'Finish the brief'}
               </p>
-              <p className='text-muted-foreground mt-1 text-sm leading-relaxed'>
+              <p className='mt-1 text-sm leading-relaxed text-brand-foreground/75'>
                 {isLocked
                   ? 'Questions already exist for this plan. Continue on Review to edit them.'
                   : canGenerateSurvey
@@ -594,7 +589,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               {readiness.map((item) => (
                 <li
                   key={item.id}
-                  className='flex items-center gap-2.5 rounded-xl bg-card/70 px-2.5 py-2 ring-1 ring-border/70'
+                  className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'
                 >
                   <span
                     className={cn(
@@ -631,7 +626,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
             <Button
               type='button'
-              className={blackCtaClass}
+              className={primaryCtaClass}
               onClick={handleProceedToBuilder}
               disabled={isCreatingSurvey || (!isLocked && !canGenerateSurvey)}
             >
@@ -702,7 +697,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           className='sm:max-w-md gap-0 overflow-hidden p-0'
           showCloseButton={false}
         >
-          <DialogHeader className='border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-5 py-4'>
+          <DialogHeader className={dialogHeaderPrimaryClass}>
             <DialogTitle className='text-primary-foreground'>
               Generating survey questions
             </DialogTitle>
@@ -718,7 +713,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
       <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
         <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
-          <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
+          <DialogHeader className={dialogHeaderSoftClass}>
             <DialogTitle>Save your changes?</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>

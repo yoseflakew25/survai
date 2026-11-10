@@ -99,10 +99,10 @@ export function LandingLifecycle() {
       id='lifecycle'
       className='landing-section scroll-mt-24 pt-16 sm:pt-20'
     >
-      <h2 className='font-display text-center text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-3xl'>
-        From “we need to learn” to “here’s what to do”
-      </h2>
-      <p className='mx-auto mt-2 max-w-lg text-center text-sm leading-relaxed text-muted-foreground'>
+        <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
+        From “we need to learn” to <span className='hl'>“here’s what to do”</span>
+        </h2>
+        <p className='mx-auto mt-2 max-w-lg text-center text-sm leading-relaxed text-muted-foreground'>
         One continuous journey — no more jumping between docs, form tools,
         spreadsheets, and Word.
       </p>
@@ -110,7 +110,7 @@ export function LandingLifecycle() {
       <div
         role='tablist'
         aria-label='Survey lifecycle stages'
-        className='mt-7 flex gap-1 overflow-x-auto rounded-full border border-border/60 bg-secondary p-[3px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        className='mt-7 flex gap-1 overflow-x-auto rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-[3px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       >
         {STEPS.map((s, i) => {
           const isActive = i === active;
@@ -127,8 +127,8 @@ export function LandingLifecycle() {
               className={cn(
                 'h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors',
                 isActive
-                  ? 'bg-card text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-[var(--gold)] font-semibold text-[var(--primary)] shadow-sm'
+                  : 'text-white/70 hover:text-[var(--gold)]'
               )}
             >
               {s.label}
@@ -144,14 +144,14 @@ export function LandingLifecycle() {
         aria-labelledby={`lifecycle-tab-${step.id}`}
         className='landing-panel-swap mt-5 grid gap-4 sm:grid-cols-[1fr_1.05fr] sm:items-stretch'
       >
-        <div className='flex flex-col justify-center rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6'>
-          <p className='font-mono text-[11px] font-medium tracking-wide text-muted-foreground uppercase'>
+        <div className='flex flex-col justify-center rounded-2xl border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-5 shadow-sm sm:p-6'>
+          <p className='font-mono text-[11px] font-medium tracking-wide text-[var(--gold)] uppercase'>
             Stage {active + 1} of {STEPS.length}
           </p>
-          <h3 className='font-display .5 text-xl font-extrabold tracking-tight text-foreground'>
+          <h3 className='font-display text-xl font-extrabold tracking-tight text-white'>
             {step.title}
           </h3>
-          <p className='mt-2 text-sm leading-relaxed text-muted-foreground'>
+          <p className='mt-2 text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_50%,white)]'>
             {step.body}
           </p>
         </div>

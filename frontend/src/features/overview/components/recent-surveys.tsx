@@ -21,7 +21,7 @@ const STATUS_CONFIG: Record<
   published: {
     label: 'Published',
     className:
-      'border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary text-primary-foreground'
+      'border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
   },
   draft: {
     label: 'Draft',
@@ -131,6 +131,7 @@ export function RecentSurveys() {
   return (
     <SurvaiPanel className='flex h-full min-h-full flex-col'>
       <SurvaiPanelHeader
+        tone='brand'
         title='Recent Surveys'
         subtitle={subtitle}
         badge={
@@ -143,7 +144,7 @@ export function RecentSurveys() {
         actions={
           <Link
             href='/dashboard/surveys'
-            className='text-muted-foreground hover:text-foreground hidden text-xs font-medium underline-offset-4 hover:underline sm:inline'
+            className='hidden text-xs font-medium text-brand-foreground/75 underline-offset-4 hover:text-brand-foreground hover:underline sm:inline'
           >
             View all
           </Link>
@@ -158,7 +159,7 @@ export function RecentSurveys() {
           </div>
         ) : recentSurveys.length === 0 ? (
           <div className='flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/40 px-4 py-10 text-center'>
-            <span className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm'>
+            <span className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-brand text-brand-foreground shadow-sm'>
               <Icons.survey className='size-5' />
             </span>
             <p className='font-display text-sm font-bold tracking-tight text-foreground'>
@@ -178,10 +179,10 @@ export function RecentSurveys() {
             <div className='mt-auto border-t border-border pt-3'>
               <Link
                 href='/dashboard/surveys'
-                className='inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90'
+                className='inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3 text-xs font-medium text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground'
               >
                 View all surveys
-                <Icons.arrowRight className='size-4' />
+                <Icons.arrowRight className='size-3 shrink-0' />
               </Link>
             </div>
           </>

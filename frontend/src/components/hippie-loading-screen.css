@@ -38,7 +38,7 @@
     stroke: color-mix(in srgb, var(--foreground, #111210) 55%, transparent);
   }
   40% {
-    stroke: color-mix(in srgb, var(--brand-strong, #9a4b2e) 50%, var(--foreground, #111210));
+    stroke: color-mix(in srgb, var(--brand-strong, #12c46a) 50%, var(--foreground, #111210));
   }
 }
 
@@ -50,7 +50,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--background, #f7f7f2);
+  background: var(--background, #ffffff);
   color: var(--foreground, #111210);
 }
 
@@ -60,7 +60,7 @@
   inset: 0;
   background: radial-gradient(
     ellipse 42% 34% at 50% 44%,
-    color-mix(in srgb, var(--brand, #d97757) 18%, transparent),
+    color-mix(in srgb, var(--brand, #22f187) 18%, transparent),
     transparent 72%
   );
   pointer-events: none;
@@ -106,7 +106,7 @@
 
 .hl-check {
   fill: none;
-  stroke: var(--brand-strong, #9a4b2e);
+  stroke: var(--brand-strong, #12c46a);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
