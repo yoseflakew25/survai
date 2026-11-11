@@ -6,7 +6,7 @@ from calendar import month_abbr
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import cache_get_json, cache_set_json
@@ -96,105 +96,121 @@ class OverviewService:
             else:
                 series_start = series_start.replace(month=series_start.month - 1)
 
-        surveys_total = await self._scalar(
-            select(func.count())
-            .select_from(Survey)
-            .where(Survey.organization_id == org_id)
-        )
-        surveys_this = await self._scalar(
-            select(func.count())
-            .select_from(Survey)
-            .where(
-                Survey.organization_id == org_id,
-                Survey.created_at >= this_month_start,
-            )
-        )
-        surveys_prev = await self._scalar(
-            select(func.count())
-            .select_from(Survey)
-            .where(
-                Survey.organization_id == org_id,
-                Survey.created_at >= prev_month_start,
-                Survey.created_at < this_month_start,
-            )
-        )
-
-        reports_total = await self._scalar(
-            select(func.count())
-            .select_from(Report)
-            .join(Survey, Survey.id == Report.survey_id)
-            .where(Survey.organization_id == org_id)
-        )
-        reports_this = await self._scalar(
-            select(func.count())
-            .select_from(Report)
-            .join(Survey, Survey.id == Report.survey_id)
-            .where(
-                Survey.organization_id == org_id,
-                Report.created_at >= this_month_start,
-            )
-        )
-        reports_prev = await self._scalar(
-            select(func.count())
-            .select_from(Report)
-            .join(Survey, Survey.id == Report.survey_id)
-            .where(
-                Survey.organization_id == org_id,
-                Report.created_at >= prev_month_start,
-                Report.created_at < this_month_start,
-            )
-        )
-
-        respondent_rows = (
+        # Collapse many count round-trips into a few filtered aggregates.
+        survey_row = (
             await self.session.execute(
-                select(Respondent.started_at, Respondent.completed_at)
-                .join(Survey, Survey.id == Respondent.survey_id)
-                .where(
-                    Survey.organization_id == org_id,
-                    Respondent.started_at >= series_start,
+                select(
+                    func.count(),
+                    func.count().filter(Survey.created_at >= this_month_start),
+                    func.count().filter(
+                        Survey.created_at >= prev_month_start,
+                        Survey.created_at < this_month_start,
+                    ),
+                    func.count().filter(Survey.status == SurveyStatus.draft.value),
+                    func.count().filter(Survey.status == SurveyStatus.published.value),
                 )
+                .select_from(Survey)
+                .where(Survey.organization_id == org_id)
             )
-        ).all()
+        ).one()
+        surveys_total = int(survey_row[0] or 0)
+        surveys_this = int(survey_row[1] or 0)
+        surveys_prev = int(survey_row[2] or 0)
+        draft_total = int(survey_row[3] or 0)
+        collecting_total = int(survey_row[4] or 0)
 
-        started_by_month: dict[str, int] = {}
-        completed_by_month: dict[str, int] = {}
-        started_this = 0
-        completed_this = 0
-        started_prev = 0
-        completed_prev = 0
-
-        for started_at, completed_at in respondent_rows:
-            sk = _month_key(started_at)
-            started_by_month[sk] = started_by_month.get(sk, 0) + 1
-            if started_at >= this_month_start:
-                started_this += 1
-            elif started_at >= prev_month_start:
-                started_prev += 1
-
-            if completed_at is not None:
-                ck = _month_key(completed_at)
-                completed_by_month[ck] = completed_by_month.get(ck, 0) + 1
-                if completed_at >= this_month_start:
-                    completed_this += 1
-                elif completed_at >= prev_month_start:
-                    completed_prev += 1
-
-        # Lifetime totals (not only last 12 months) for KPI cards.
-        lifetime_started = await self._scalar(
-            select(func.count())
-            .select_from(Respondent)
-            .join(Survey, Survey.id == Respondent.survey_id)
-            .where(Survey.organization_id == org_id)
-        )
-        lifetime_completed = await self._scalar(
-            select(func.count())
-            .select_from(Respondent)
-            .join(Survey, Survey.id == Respondent.survey_id)
-            .where(
-                Survey.organization_id == org_id,
-                Respondent.completed_at.is_not(None),
+        report_row = (
+            await self.session.execute(
+                select(
+                    func.count(),
+                    func.count().filter(Report.created_at >= this_month_start),
+                    func.count().filter(
+                        Report.created_at >= prev_month_start,
+                        Report.created_at < this_month_start,
+                    ),
+                    func.count(func.distinct(Report.survey_id)),
+                )
+                .select_from(Report)
+                .join(Survey, Survey.id == Report.survey_id)
+                .where(Survey.organization_id == org_id)
             )
+        ).one()
+        reports_total = int(report_row[0] or 0)
+        reports_this = int(report_row[1] or 0)
+        reports_prev = int(report_row[2] or 0)
+        with_reports = int(report_row[3] or 0)
+
+        respondent_totals = (
+            await self.session.execute(
+                select(
+                    func.count(),
+                    func.count().filter(Respondent.completed_at.is_not(None)),
+                    func.count(func.distinct(Respondent.survey_id)).filter(
+                        Respondent.completed_at.is_not(None)
+                    ),
+                    func.count().filter(Respondent.completed_at >= this_month_start),
+                    func.count().filter(
+                        Respondent.completed_at >= prev_month_start,
+                        Respondent.completed_at < this_month_start,
+                    ),
+                )
+                .select_from(Respondent)
+                .join(Survey, Survey.id == Respondent.survey_id)
+                .where(Survey.organization_id == org_id)
+            )
+        ).one()
+        lifetime_started = int(respondent_totals[0] or 0)
+        lifetime_completed = int(respondent_totals[1] or 0)
+        with_responses = int(respondent_totals[2] or 0)
+        completed_this = int(respondent_totals[3] or 0)
+        completed_prev = int(respondent_totals[4] or 0)
+
+        plans_total = int(
+            (
+                await self.session.execute(
+                    select(func.count())
+                    .select_from(SurveyPlan)
+                    .where(SurveyPlan.organization_id == org_id)
+                )
+            ).scalar_one()
+            or 0
         )
+
+        # Month buckets in SQL — avoid shipping every respondent row over the wire.
+        # Use a SQL literal for the trunc unit so SELECT/GROUP BY stay identical
+        # under asyncpg (bound params $1 vs $4 are not considered equal by PG).
+        month_unit = literal_column("'month'")
+        started_month = func.date_trunc(month_unit, Respondent.started_at)
+        completed_month = func.date_trunc(month_unit, Respondent.completed_at)
+        started_by_month: dict[str, int] = {
+            _month_key(row[0]): int(row[1])
+            for row in (
+                await self.session.execute(
+                    select(started_month, func.count())
+                    .join(Survey, Survey.id == Respondent.survey_id)
+                    .where(
+                        Survey.organization_id == org_id,
+                        Respondent.started_at >= series_start,
+                    )
+                    .group_by(started_month)
+                )
+            ).all()
+        }
+        completed_by_month: dict[str, int] = {
+            _month_key(row[0]): int(row[1])
+            for row in (
+                await self.session.execute(
+                    select(completed_month, func.count())
+                    .join(Survey, Survey.id == Respondent.survey_id)
+                    .where(
+                        Survey.organization_id == org_id,
+                        Respondent.completed_at.is_not(None),
+                        Respondent.completed_at >= series_start,
+                    )
+                    .group_by(completed_month)
+                )
+            ).all()
+        }
 
         completion_rate = (
             lifetime_completed / lifetime_started if lifetime_started else 0.0
@@ -251,7 +267,18 @@ class OverviewService:
             else:
                 cursor = cursor.replace(month=cursor.month + 1)
 
-        lifecycle, attention = await self._lifecycle_and_attention(org_id=org_id)
+        lifecycle = [
+            OverviewLifecycleStage(key="plan", label="Plan", count=plans_total),
+            OverviewLifecycleStage(key="review", label="Review", count=draft_total),
+            OverviewLifecycleStage(
+                key="collect", label="Collect", count=collecting_total
+            ),
+            OverviewLifecycleStage(
+                key="analytics", label="Analytics", count=with_responses
+            ),
+            OverviewLifecycleStage(key="report", label="Report", count=with_reports),
+        ]
+        attention = await self._attention_items(org_id=org_id)
 
         return OverviewResponse(
             kpis=kpis,
@@ -264,58 +291,9 @@ class OverviewService:
             attention=attention,
         )
 
-    async def _lifecycle_and_attention(
+    async def _attention_items(
         self, *, org_id: UUID
-    ) -> tuple[list[OverviewLifecycleStage], list[OverviewAttentionItem]]:
-        plans_total = await self._scalar(
-            select(func.count())
-            .select_from(SurveyPlan)
-            .where(SurveyPlan.organization_id == org_id)
-        )
-        draft_total = await self._scalar(
-            select(func.count())
-            .select_from(Survey)
-            .where(
-                Survey.organization_id == org_id,
-                Survey.status == SurveyStatus.draft.value,
-            )
-        )
-        collecting_total = await self._scalar(
-            select(func.count())
-            .select_from(Survey)
-            .where(
-                Survey.organization_id == org_id,
-                Survey.status == SurveyStatus.published.value,
-            )
-        )
-        with_responses = await self._scalar(
-            select(func.count(func.distinct(Respondent.survey_id)))
-            .select_from(Respondent)
-            .join(Survey, Survey.id == Respondent.survey_id)
-            .where(
-                Survey.organization_id == org_id,
-                Respondent.completed_at.is_not(None),
-            )
-        )
-        with_reports = await self._scalar(
-            select(func.count(func.distinct(Report.survey_id)))
-            .select_from(Report)
-            .join(Survey, Survey.id == Report.survey_id)
-            .where(Survey.organization_id == org_id)
-        )
-
-        lifecycle = [
-            OverviewLifecycleStage(key="plan", label="Plan", count=plans_total),
-            OverviewLifecycleStage(key="review", label="Review", count=draft_total),
-            OverviewLifecycleStage(
-                key="collect", label="Collect", count=collecting_total
-            ),
-            OverviewLifecycleStage(
-                key="analytics", label="Analytics", count=with_responses
-            ),
-            OverviewLifecycleStage(key="report", label="Report", count=with_reports),
-        ]
-
+    ) -> list[OverviewAttentionItem]:
         completed_by_survey: dict[UUID, int] = {
             row[0]: int(row[1])
             for row in (
@@ -331,6 +309,7 @@ class OverviewService:
             ).all()
         }
 
+        # DISTINCT ON (Postgres) — one latest report per survey.
         report_rows = (
             await self.session.execute(
                 select(
@@ -341,38 +320,34 @@ class OverviewService:
                     Report.created_at,
                     Survey.title,
                 )
+                .distinct(Report.survey_id)
                 .join(Survey, Survey.id == Report.survey_id)
                 .where(Survey.organization_id == org_id)
-                .order_by(Report.created_at.desc())
+                .order_by(Report.survey_id, Report.created_at.desc())
             )
         ).all()
 
-        latest_report_by_survey: dict[UUID, tuple] = {}
-        for row in report_rows:
-            sid = row[1]
-            if sid not in latest_report_by_survey:
-                latest_report_by_survey[sid] = row
+        latest_report_by_survey: dict[UUID, tuple] = {
+            row[1]: row for row in report_rows
+        }
 
+        # Cap attention scan — newest surveys first (enough for the 6-item feed).
         surveys = (
             await self.session.execute(
-                select(Survey.id, Survey.title, Survey.status, Survey.updated_at)
+                select(
+                    Survey.id,
+                    Survey.title,
+                    Survey.status,
+                    Survey.updated_at,
+                    Survey.plan_id,
+                )
                 .where(Survey.organization_id == org_id)
                 .order_by(Survey.updated_at.desc())
+                .limit(40)
             )
         ).all()
 
-        linked_plan_ids = {
-            row[0]
-            for row in (
-                await self.session.execute(
-                    select(Survey.plan_id).where(
-                        Survey.organization_id == org_id,
-                        Survey.plan_id.is_not(None),
-                    )
-                )
-            ).all()
-            if row[0] is not None
-        }
+        linked_plan_ids = {row[4] for row in surveys if row[4] is not None}
 
         unlinked_stmt = (
             select(SurveyPlan.id, SurveyPlan.research_goal, SurveyPlan.updated_at)
@@ -406,7 +381,7 @@ class OverviewService:
                     )
                 )
 
-        for survey_id, title, status, _updated in surveys:
+        for survey_id, title, status, _updated, _plan_id in surveys:
             completed = completed_by_survey.get(survey_id, 0)
             if (
                 status in (SurveyStatus.published.value, SurveyStatus.closed.value)
@@ -424,7 +399,7 @@ class OverviewService:
                     )
                 )
 
-        for survey_id, title, status, _updated in surveys:
+        for survey_id, title, status, _updated, _plan_id in surveys:
             if status != SurveyStatus.published.value:
                 continue
             completed = completed_by_survey.get(survey_id, 0)
@@ -440,7 +415,7 @@ class OverviewService:
                     )
                 )
 
-        for survey_id, title, status, _updated in surveys:
+        for survey_id, title, status, _updated, _plan_id in surveys:
             if status != SurveyStatus.draft.value:
                 continue
             attention.append(
@@ -469,9 +444,4 @@ class OverviewService:
                 )
             )
 
-        # Keep order of priority already appended; cap list.
-        return lifecycle, attention[:6]
-
-    async def _scalar(self, stmt) -> int:  # noqa: ANN001
-        result = await self.session.execute(stmt)
-        return int(result.scalar_one() or 0)
+        return attention[:6]

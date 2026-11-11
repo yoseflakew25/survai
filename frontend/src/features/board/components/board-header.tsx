@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/themes/theme-provider';
 import { useEffect, useState } from 'react';
 
 import { SurvaiLogo } from '@/components/survai-logo';

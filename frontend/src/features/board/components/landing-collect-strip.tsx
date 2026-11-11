@@ -48,7 +48,7 @@ export function LandingCollectStrip() {
               className='group relative flex cursor-default flex-col gap-3 rounded-[1rem] bg-[var(--gold)] p-4 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:brightness-105 sm:p-5'
             >
               <div className='flex items-center justify-between gap-2'>
-                <span className='flex size-9 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] bg-[var(--primary)] font-mono text-xs font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-110'>
+                <span className='flex size-9 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-primary-foreground/12 font-mono text-xs font-bold text-primary-foreground shadow-sm transition-transform duration-200 group-hover:scale-110'>
                   {i + 1}
                 </span>
                 <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[var(--primary)] uppercase'>

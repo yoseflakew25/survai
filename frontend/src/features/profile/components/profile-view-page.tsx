@@ -425,6 +425,7 @@ function ProfileSection({
     <div className='space-y-5'>
       <SurvaiPanel>
         <SurvaiPanelHeader
+          tone='brand'
           icon={<Icons.account className='size-3.5' />}
           title='Organization'
           subtitle='Account identity for your workspace.'
@@ -454,6 +455,7 @@ function ProfileSection({
       <form onSubmit={handleSubmitProfile(onProfileSubmit)}>
         <SurvaiPanel>
           <SurvaiPanelHeader
+            tone='brand'
             icon={<Icons.edit className='size-3.5' />}
             title='Details'
             subtitle='Organization name, website, contact, and about.'
@@ -647,6 +649,7 @@ function SecuritySection({
     <form onSubmit={handleSubmitPassword(onPasswordSubmit)}>
       <SurvaiPanel>
         <SurvaiPanelHeader
+          tone='brand'
           icon={<Icons.lock className='size-3.5' />}
           title='Change Password'
           subtitle='Ensure your organization account stays secure.'
@@ -880,7 +883,7 @@ function DangerSection({
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className='rounded-xl bg-destructive text-white shadow-none hover:bg-destructive/90 disabled:opacity-40'
+                className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90 disabled:opacity-40'
                 disabled={!canDelete || isDeleting}
                 onClick={(e) => {
                   e.preventDefault();

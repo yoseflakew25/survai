@@ -31,23 +31,25 @@ class NotificationRepository(BaseRepository[Notification]):
         return list(result.scalars().all())
 
     async def count_for_user(self, *, user_id: UUID) -> int:
+        total, _unread = await self.counts_for_user(user_id=user_id)
+        return total
+
+    async def unread_count(self, *, user_id: UUID) -> int:
+        _total, unread = await self.counts_for_user(user_id=user_id)
+        return unread
+
+    async def counts_for_user(self, *, user_id: UUID) -> tuple[int, int]:
+        """Return (total, unread) in one round-trip — matters on remote DBs."""
         result = await self.session.execute(
-            select(func.count())
+            select(
+                func.count(),
+                func.count().filter(Notification.read_at.is_(None)),
+            )
             .select_from(Notification)
             .where(Notification.user_id == user_id)
         )
-        return int(result.scalar_one())
-
-    async def unread_count(self, *, user_id: UUID) -> int:
-        result = await self.session.execute(
-            select(func.count())
-            .select_from(Notification)
-            .where(
-                Notification.user_id == user_id,
-                Notification.read_at.is_(None),
-            )
-        )
-        return int(result.scalar_one())
+        total, unread = result.one()
+        return int(total or 0), int(unread or 0)
 
     async def get_for_user(
         self, *, notification_id: UUID, user_id: UUID

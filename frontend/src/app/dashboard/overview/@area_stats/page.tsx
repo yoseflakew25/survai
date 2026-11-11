@@ -1,5 +1,5 @@
-import { AreaGraph } from '@/features/overview/components/area-graph';
+import { AreaGraphLazy } from '@/features/overview/components/area-graph-lazy';
 
 export default function AreaStats() {
-  return <AreaGraph />;
+  return <AreaGraphLazy />;
 }

@@ -62,7 +62,7 @@ export function LandingContrast() {
               focus === side.id
                 ? side.tone === 'brand'
                   ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
-                  : 'bg-[var(--primary)] text-white shadow-sm'
+                  : 'bg-[var(--primary)] text-primary-foreground shadow-sm'
                 : 'text-muted-foreground'
             )}
           >
@@ -99,8 +99,11 @@ export function LandingContrast() {
                     <h3
                       className={cn(
                         'font-display text-xl font-extrabold tracking-tight',
-                        isBrand ? 'text-brand-foreground' : 'text-white',
-                        !isBrand && 'line-through decoration-white/30'
+                        isBrand
+                          ? 'text-brand-foreground'
+                          : 'text-primary-foreground',
+                        !isBrand &&
+                          'line-through decoration-primary-foreground/30'
                       )}
                     >
                       {side.label}
@@ -136,7 +139,7 @@ export function LandingContrast() {
                         'flex gap-3 rounded-xl px-3 py-2.5 text-sm leading-relaxed',
                         isBrand
                           ? 'border border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] bg-card/90 font-medium text-foreground shadow-sm'
-                          : 'bg-[color-mix(in_srgb,white_8%,transparent)] text-[color-mix(in_srgb,var(--gold)_50%,white)]'
+                          : 'bg-primary-foreground/10 text-primary-foreground/75'
                       )}
                     >
                       <span

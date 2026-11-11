@@ -80,60 +80,69 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger render={<button type='button' />}>{children}</SheetTrigger>
-      <SheetContent side='right' className='sm:max-w-lg'>
-        <SheetHeader>
-          <SheetTitle>
-            {isGenerating ? 'Generating Survey plan' : 'New Survey Plan'}
-          </SheetTitle>
-          <SheetDescription>
-            {isGenerating
-              ? 'SurvAI is carefully drafting your research plan. This usually takes 10–20 seconds.'
-              : 'Describe your research goal and the AI will generate a structured plan with objectives, questions, and proposed sections.'}
-          </SheetDescription>
-        </SheetHeader>
-
+      <SheetContent
+        side='right'
+        className={
+          isGenerating
+            ? 'border-0 bg-transparent p-0 shadow-none sm:max-w-md'
+            : 'sm:max-w-lg'
+        }
+      >
         {isGenerating ? (
-          <div className='flex flex-1 flex-col px-4 pb-4'>
+          <div className='flex h-full items-center px-4 py-8'>
             <PlanGenerationProgress
               active={isGenerating}
               goalPreview={getValues('researchGoal')}
+              className='w-full'
             />
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className='flex flex-1 flex-col gap-4 px-4 pb-4'>
-            <Field>
-              <FieldLabel htmlFor='researchGoal'>Research Goal *</FieldLabel>
-              <Textarea
-                id='researchGoal'
-                placeholder='e.g., Assess the health status and healthcare access of residents in target communities to inform program design...'
-                rows={6}
-                className='resize-none'
-                aria-invalid={!!errors.researchGoal}
-                {...register('researchGoal')}
-              />
-              <FieldDescription>
-                {goalLength}/2,000 characters. Be specific about what you want to learn, why it matters,
-                and who will benefit.
-              </FieldDescription>
-              {errors.researchGoal && (
-                <FieldError>{errors.researchGoal.message}</FieldError>
-              )}
-            </Field>
+          <>
+            <SheetHeader>
+              <SheetTitle>New Survey Plan</SheetTitle>
+              <SheetDescription>
+                Describe your research goal and the AI will generate a structured
+                plan with objectives, questions, and proposed sections.
+              </SheetDescription>
+            </SheetHeader>
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className='flex flex-1 flex-col gap-4 px-4 pb-4'
+            >
+              <Field>
+                <FieldLabel htmlFor='researchGoal'>Research Goal *</FieldLabel>
+                <Textarea
+                  id='researchGoal'
+                  placeholder='e.g., Assess the health status and healthcare access of residents in target communities to inform program design...'
+                  rows={6}
+                  className='resize-none'
+                  aria-invalid={!!errors.researchGoal}
+                  {...register('researchGoal')}
+                />
+                <FieldDescription>
+                  {goalLength}/2,000 characters. Be specific about what you want
+                  to learn, why it matters, and who will benefit.
+                </FieldDescription>
+                {errors.researchGoal && (
+                  <FieldError>{errors.researchGoal.message}</FieldError>
+                )}
+              </Field>
 
-            <div className='flex items-center gap-3 pt-2'>
-              <Button type='submit'>
-                <Icons.sparkles className='mr-2 h-4 w-4' />
-                Generate Survey Plan
-              </Button>
-              <Button
-                type='button'
-                variant='ghost'
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+              <div className='flex items-center gap-3 pt-2'>
+                <Button type='submit'>
+                  <Icons.sparkles className='mr-2 h-4 w-4' />
+                  Generate Survey Plan
+                </Button>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </>
         )}
       </SheetContent>
     </Sheet>

@@ -44,13 +44,13 @@ export function LandingFaq() {
           />
           <div className='relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
             <div className='max-w-lg'>
-              <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]'>
+              <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-primary-foreground sm:text-[2.1rem]'>
                 Good questions before you{' '}
                 <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
                   start
                 </span>
               </h2>
-              <p className=' text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+              <p className='text-sm leading-relaxed text-primary-foreground/75'>
                 What Survai is for, how AI fits in, and what respondents
                 experience.
               </p>

@@ -165,8 +165,31 @@ class Settings(BaseSettings):
             raise ValueError("; ".join(errors))
         return self
 
-    # AI — Gemini behind app/ai/client.py (never call the vendor from routes)
-    ai_provider: Literal["gemini"] = "gemini"
+    # AI — behind app/ai/client.py (never call the vendor from routes).
+    # Primary: Code for Africa sandbox (LiteLLM → Bedrock, OpenAI dialect).
+    # Backup: Google Gemini when CFA fails (budget, 5xx, schema, etc.).
+    ai_provider: Literal["cfa", "gemini"] = "cfa"
+    ai_fallback_to_gemini: bool = True
+
+    # CfA AI Sandbox (https://gateway.sandbox.codeforafrica.org)
+    cfa_sandbox_base_url: str = "https://gateway.sandbox.codeforafrica.org"
+    cfa_sandbox_api_key: str = ""
+    cfa_sandbox_kb_private: str = ""
+    cfa_sandbox_kb_shared: str = ""
+    cfa_sandbox_model_planner: str = "bedrock-amazon-nova-lite-v1-0"
+    cfa_sandbox_model_builder: str = "bedrock-amazon-nova-lite-v1-0"
+    cfa_sandbox_model_reviewer: str = "bedrock-amazon-nova-lite-v1-0"
+    cfa_sandbox_model_report: str = "bedrock-amazon-nova-lite-v1-0"
+    cfa_sandbox_model_chat: str = "bedrock-amazon-nova-lite-v1-0"
+    cfa_sandbox_model_assistant: str = "bedrock-amazon-nova-lite-v1-0"
+    # Tried on CFA 429/5xx before falling back to Gemini.
+    cfa_sandbox_model_fallbacks: str = (
+        "bedrock-amazon-nova-micro-v1-0,"
+        "bedrock-amazon-nova-lite-v1-0,"
+        "bedrock-meta-llama3-8b-instruct-v1-0"
+    )
+
+    # Gemini backup
     gemini_api_key: str = ""
     gemini_model_planner: str = "gemini-3.1-flash-lite"
     gemini_model_builder: str = "gemini-3.1-flash-lite"
@@ -182,7 +205,7 @@ class Settings(BaseSettings):
     embedding_cache_dir: str = ""
     # Deprecated alias — ignored; kept so old .env keys don't crash settings.
     gemini_embedding_model: str = ""
-    # Comma-separated fallbacks tried on 429/503 (quota / high demand).
+    # Comma-separated Gemini fallbacks tried on 429/503 (quota / high demand).
     gemini_model_fallbacks: str = (
         "gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.5-flash"
     )

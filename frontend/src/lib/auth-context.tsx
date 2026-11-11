@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Cookie-only fallback: access cookie may still authorize /auth/me even
       // when refresh body/cookie is missing (e.g. pre-sessionStorage sessions).
-      const me = await apiFetch('/auth/me');
+      const me = await apiFetch('/auth/me', {}, 15_000);
       if (me.ok) {
         setUser(mapUser((await me.json()) as ApiUser));
         return;

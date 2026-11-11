@@ -1,7 +1,8 @@
 'use client';
 
-import { SurveyActivityProgress } from '@/features/surveys/components/survey-activity-progress';
+import { SurveyActivityCard } from '@/features/surveys/components/survey-activity-card';
 import {
+  getActivityScript,
   SURVEY_GENERATION_STAGES,
   type ActivityStage
 } from '@/features/surveys/lib/activity-scripts';
@@ -26,9 +27,10 @@ type SurveyGenerationProgressProps = {
   className?: string;
 };
 
+const SCRIPT = getActivityScript('generate-survey');
+
 /**
- * Body-only builder progress — nest in a quiet `DialogHeader` + padded content
- * (same shell as plan generation).
+ * Same instrument loading card as publish / generate plan.
  */
 export function SurveyGenerationProgress({
   active,
@@ -36,12 +38,10 @@ export function SurveyGenerationProgress({
   className
 }: SurveyGenerationProgressProps) {
   return (
-    <SurveyActivityProgress
+    <SurveyActivityCard
+      script={SCRIPT}
       active={active}
-      stages={SURVEY_GENERATION_STAGES}
-      intro='SurvAI is drafting survey sections and questions from your plan. This usually takes 15–30 seconds.'
-      footer='Keep this open. You can edit every question after generation.'
-      previewLabel='Research goal'
+      eyebrow='Survai · Instrument'
       previewText={goalPreview}
       className={className}
     />

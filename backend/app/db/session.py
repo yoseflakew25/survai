@@ -12,7 +12,10 @@ from app.db.ssl_utils import build_database_ssl_context
 def _engine_kwargs() -> dict[str, Any]:
     kwargs: dict[str, Any] = {
         "echo": settings.database_echo,
+        # Recycle before provider idle kills; avoids a SELECT 1 on every checkout
+        # when the pool is warm (remote Aiven RTT makes pre_ping expensive).
         "pool_pre_ping": True,
+        "pool_recycle": 280,
         "pool_size": settings.database_pool_size,
         "max_overflow": settings.database_max_overflow,
     }

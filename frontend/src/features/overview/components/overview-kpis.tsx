@@ -18,14 +18,14 @@ function WelcomeCard() {
   return (
     <article
       className={cn(
-        'flex flex-col justify-center rounded-[1.125rem] border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-4',
-        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'
+        'flex flex-col justify-center rounded-[1.125rem] border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4',
+        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)]'
       )}
     >
-      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-white'>
+      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-primary'>
         Welcome to Survai
       </h1>
-      <p className='text-sm leading-relaxed text-[var(--gold)]'>
+      <p className='text-sm leading-relaxed text-primary/70'>
         Live counts from your surveys and responses.
       </p>
     </article>

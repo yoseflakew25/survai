@@ -106,7 +106,11 @@ export function TeamPanel() {
   if (!owner) {
     return (
       <SurvaiPanel>
-        <SurvaiPanelHeader title='Team' subtitle='Organization seats' />
+        <SurvaiPanelHeader
+          tone='brand'
+          title='Team'
+          subtitle='Organization seats'
+        />
         <SurvaiPanelBody>
           <p className='text-muted-foreground text-sm'>
             Only the organization owner can manage invites. Your role:{' '}
@@ -125,6 +129,7 @@ export function TeamPanel() {
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
+        tone='brand'
         title='Team'
         subtitle='Invite researchers and viewers to your organization'
       />
@@ -258,7 +263,7 @@ export function TeamPanel() {
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className='rounded-xl bg-destructive text-white shadow-none hover:bg-destructive/90'
+                className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
                 disabled={removing}
                 onClick={(e) => {
                   e.preventDefault();
@@ -344,7 +349,7 @@ export function TeamPanel() {
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className='rounded-xl bg-destructive text-white shadow-none hover:bg-destructive/90'
+                className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
                 disabled={revoking}
                 onClick={(e) => {
                   e.preventDefault();

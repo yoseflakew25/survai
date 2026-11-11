@@ -19,7 +19,7 @@ import {
 } from '@/lib/survey-display';
 import { conditionIsActive } from '@/lib/conditional-logic';
 import {
-  primaryMetaChipClass,
+  brandMetaChipClass,
   softSectionHeaderClass
 } from '@/components/survai-panel';
 import { cn } from '@/lib/utils';
@@ -255,27 +255,27 @@ export function CollectionForm({ survey }: CollectionFormProps) {
     <div className='flex min-h-dvh flex-col bg-white'>
       <main className='mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8'>
         {/* Hero — Survai brand outline (matches SurvaiBrandCard) */}
-        <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
+        <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
           <div
-            className='pointer-events-none absolute inset-0 opacity-50'
+            className='pointer-events-none absolute inset-0 opacity-[0.32]'
             aria-hidden
             style={{
               backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px)',
-              backgroundSize: '20px 20px',
+                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
               maskImage:
                 'linear-gradient(to right, transparent, black 25%, black 75%, transparent)',
               WebkitMaskImage:
                 'linear-gradient(to right, transparent, black 25%, black 75%, transparent)'
             }}
           />
-          <div className='relative space-y-5 px-5 py-6 sm:px-7 sm:py-7'>
-            <div className='space-y-2'>
-              <h1 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-[1.75rem] sm:leading-snug'>
+          <div className='relative space-y-5 p-4 sm:p-6'>
+            <div>
+              <h1 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-[1.75rem] sm:leading-snug'>
                 {displaySurveyTitle(survey.title)}
               </h1>
               {displaySurveyDescription(survey.title, survey.description) ? (
-                <p className='max-w-2xl text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_50%,white)]'>
+                <p className='max-w-2xl text-sm leading-relaxed text-brand-foreground/75'>
                   {displaySurveyDescription(survey.title, survey.description)}
                 </p>
               ) : null}
@@ -292,15 +292,15 @@ export function CollectionForm({ survey }: CollectionFormProps) {
               ].map((chip) => (
                 <span
                   key={chip.label}
-                  className={cn(primaryMetaChipClass, 'rounded-full px-2.5 font-medium')}
+                  className={cn(brandMetaChipClass, 'rounded-full px-2.5 font-medium')}
                 >
                   <chip.icon className='size-3 opacity-90' />
                   {chip.label}
                 </span>
               ))}
               {totalRequired > 0 ? (
-                <span className='ml-auto text-[11px] text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
-                  <span className='font-semibold text-[var(--gold)]'>*</span>{' '}
+                <span className='ml-auto text-[11px] text-brand-foreground/70'>
+                  <span className='font-semibold text-brand-foreground'>*</span>{' '}
                   required
                 </span>
               ) : null}

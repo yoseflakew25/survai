@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
@@ -35,11 +36,14 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelHeader,
-  dialogHeaderPrimaryClass,
   dialogHeaderSoftClass,
   primaryCtaClass
 } from '@/components/survai-panel';
-import { displaySurveyTitle } from '@/lib/survey-display';
+import {
+  composeResearchGoal,
+  displaySurveyTitle,
+  parseResearchGoalParts
+} from '@/lib/survey-display';
 import { cn } from '@/lib/utils';
 
 interface PlanEditorProps {
@@ -68,22 +72,6 @@ function CountBadge({ count }: { count: number }) {
     >
       {count}
     </span>
-  );
-}
-
-/** Highlight only the "Survey title:" label in composed research goals. */
-function ResearchGoalDisplay({ text }: { text: string }) {
-  const trimmed = text.trim();
-  if (!trimmed) return <>No research goal recorded.</>;
-
-  const match = trimmed.match(/^(Survey\s*title:)\s*([\s\S]*)$/i);
-  if (!match) return <>{trimmed}</>;
-
-  return (
-    <>
-      <span className='font-extrabold text-primary'>{match[1]}</span>
-      {match[2] ? <> {match[2]}</> : null}
-    </>
   );
 }
 
@@ -429,6 +417,15 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
   const readinessTotal = readiness.length;
   const unsaved = hasUnsavedChanges();
   const canGenerateSurvey = hasContent && researchGoal.trim().length >= 10;
+  const { title: surveyTitle, goal: surveyGoal } =
+    parseResearchGoalParts(researchGoal);
+
+  function updateResearchParts(nextTitle: string, nextGoal: string) {
+    setPlanState((prev) => ({
+      ...prev,
+      researchGoal: composeResearchGoal(nextTitle, nextGoal)
+    }));
+  }
 
   return (
     <div className='space-y-5'>
@@ -436,45 +433,76 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         <div className='space-y-4 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              tone='primary'
+              tone='brand'
               title={
                 <div className='min-w-0'>
-                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-2xl'>
+                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                     Research plan
                   </h3>
-                  <p className='text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                  <p className='text-sm leading-snug text-brand-foreground/70'>
                     What this survey is trying to learn
                   </p>
                 </div>
               }
               badge={
-                <span className='font-mono text-[11px] tabular-nums text-[var(--gold)]'>
-                  {researchGoal.trim().length.toLocaleString()} chars
+                <span className='font-mono text-[11px] tabular-nums text-brand-foreground/75'>
+                  {surveyGoal.trim().length.toLocaleString()} chars
                 </span>
               }
             />
-            <SurvaiPanelBody>
-              {isLocked ? (
-                <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-4 text-sm font-medium leading-relaxed text-foreground sm:text-[0.9375rem]'>
-                  <ResearchGoalDisplay text={researchGoal} />
-                </p>
-              ) : (
-                <Textarea
-                  value={researchGoal}
-                  onChange={(e) =>
-                    setPlanState((prev) => ({
-                      ...prev,
-                      researchGoal: e.target.value
-                    }))
-                  }
-                  rows={4}
-                  className='border-border min-h-[7rem] resize-none rounded-xl border-2 text-base font-semibold leading-relaxed text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))] sm:text-lg'
-                  placeholder='Describe the purpose of your survey…'
-                />
-              )}
-              <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>
-                A clear goal guides objectives, questions, audiences, and
-                sections. Regenerate with AI after edits if you want a fresh
+            <SurvaiPanelBody className='space-y-4'>
+              <div className='space-y-2'>
+                <label
+                  htmlFor='plan-survey-title'
+                  className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'
+                >
+                  Survey title
+                </label>
+                {isLocked ? (
+                  <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-3 text-sm font-semibold text-foreground sm:text-base'>
+                    {surveyTitle.trim() || 'Untitled survey'}
+                  </p>
+                ) : (
+                  <Input
+                    id='plan-survey-title'
+                    value={surveyTitle}
+                    onChange={(e) =>
+                      updateResearchParts(e.target.value, surveyGoal)
+                    }
+                    className='border-border h-11 rounded-xl border-2 text-base font-semibold text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))]'
+                    placeholder='e.g. Urban E-Waste Recycling Awareness Survey'
+                  />
+                )}
+              </div>
+
+              <div className='space-y-2'>
+                <label
+                  htmlFor='plan-research-goal'
+                  className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'
+                >
+                  Research goal
+                </label>
+                {isLocked ? (
+                  <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-4 text-sm font-medium leading-relaxed text-foreground sm:text-[0.9375rem]'>
+                    {surveyGoal.trim() || 'No research goal recorded.'}
+                  </p>
+                ) : (
+                  <Textarea
+                    id='plan-research-goal'
+                    value={surveyGoal}
+                    onChange={(e) =>
+                      updateResearchParts(surveyTitle, e.target.value)
+                    }
+                    rows={5}
+                    className='border-border min-h-[8rem] resize-none rounded-xl border-2 text-base font-medium leading-relaxed text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))] sm:text-[0.975rem]'
+                    placeholder='Describe the purpose of your survey…'
+                  />
+                )}
+              </div>
+
+              <p className='text-muted-foreground text-sm leading-relaxed'>
+                A clear title and goal guide objectives, questions, audiences,
+                and sections. Regenerate with AI after edits if you want a fresh
                 draft.
               </p>
             </SurvaiPanelBody>
@@ -676,7 +704,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         }}
       >
         <DialogContent
-          className='sm:max-w-2xl gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none'
+          className='sm:max-w-md gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0'
           showCloseButton={false}
         >
           <DialogTitle className='sr-only'>Generating survey plan</DialogTitle>
@@ -694,20 +722,16 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
         }}
       >
         <DialogContent
-          className='sm:max-w-md gap-0 overflow-hidden p-0'
+          className='sm:max-w-md gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0'
           showCloseButton={false}
         >
-          <DialogHeader className={dialogHeaderPrimaryClass}>
-            <DialogTitle className='text-primary-foreground'>
-              Generating survey questions
-            </DialogTitle>
-          </DialogHeader>
-          <div className='px-4 pt-4 pb-4'>
-            <SurveyGenerationProgress
-              active={isCreatingSurvey}
-              goalPreview={researchGoal}
-            />
-          </div>
+          <DialogTitle className='sr-only'>
+            Generating survey questions
+          </DialogTitle>
+          <SurveyGenerationProgress
+            active={isCreatingSurvey}
+            goalPreview={researchGoal}
+          />
         </DialogContent>
       </Dialog>
 

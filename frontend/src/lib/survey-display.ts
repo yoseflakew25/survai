@@ -44,6 +44,36 @@ export function displaySurveyTitle(raw: string): string {
   return parseSurveyDisplayLabel(raw).title;
 }
 
+/** Split a composed research_goal into editable title + goal body fields. */
+export function parseResearchGoalParts(raw: string): {
+  title: string;
+  goal: string;
+} {
+  const text = raw.trim();
+  if (!text) return { title: '', goal: '' };
+
+  const prefixed = text.match(
+    /^Survey\s*title:\s*([^\n]+)\s*(?:\n+([\s\S]*))?$/i
+  );
+  if (prefixed) {
+    return {
+      title: prefixed[1].replace(/\s+/g, ' ').trim(),
+      goal: (prefixed[2] ?? '').trim()
+    };
+  }
+
+  return { title: '', goal: text };
+}
+
+/** Recompose title + goal for persistence (matches plan interview handoff). */
+export function composeResearchGoal(title: string, goal: string): string {
+  const t = title.trim();
+  const g = goal.trim();
+  if (t && g) return `Survey title: ${t}\n\n${g}`;
+  if (t) return `Survey title: ${t}`;
+  return g;
+}
+
 export function displaySurveyDescription(
   rawTitle: string,
   description: string | null | undefined

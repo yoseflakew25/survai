@@ -8,20 +8,22 @@ export const notificationKeys = {
   unread: () => [...notificationKeys.all, 'unread'] as const
 };
 
-export const notificationsQueryOptions = () =>
+/** Full list — fetch on demand (sheet open), no background polling. */
+export const notificationsQueryOptions = (enabled = true) =>
   queryOptions({
     queryKey: notificationKeys.list(),
     queryFn: listNotifications,
-    staleTime: 15_000,
-    refetchInterval: 45_000,
-    refetchOnWindowFocus: true
+    enabled,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false
   });
 
+/** Badge only — light poll; avoids pairing with the heavy list query. */
 export const unreadCountQueryOptions = () =>
   queryOptions({
     queryKey: notificationKeys.unread(),
     queryFn: getUnreadCount,
-    staleTime: 15_000,
-    refetchInterval: 45_000,
-    refetchOnWindowFocus: true
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+    refetchOnWindowFocus: false
   });

@@ -58,7 +58,7 @@ export function QualityScore({
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
-        icon={<Icons.analytics className='size-3.5' />}
+        // icon={<Icons.analytics className='size-3.5' />}
         title='Quality assessment'
         subtitle='Advisory score from the latest AI review'
         badge={

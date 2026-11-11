@@ -146,22 +146,31 @@ export function clearApiTokens() {
 let refreshInFlight: Promise<TokenPairResponse | null> | null = null;
 
 /** Rotate access (+ refresh) using body token and/or refresh cookie. */
-export function refreshApiSession(): Promise<TokenPairResponse | null> {
+export function refreshApiSession(
+  timeoutMs = 45_000
+): Promise<TokenPairResponse | null> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       const refresh = getApiRefreshToken();
       const headers = new Headers({ 'Content-Type': 'application/json' });
-      const res = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-        headers,
-        body: JSON.stringify(refresh ? { refresh_token: refresh } : {})
-      });
-      if (!res.ok) return null;
-      const data = (await res.json()) as TokenPairResponse;
-      setApiAccessToken(data.access_token);
-      setApiRefreshToken(data.refresh_token);
-      return data;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+          headers,
+          body: JSON.stringify(refresh ? { refresh_token: refresh } : {}),
+          signal: controller.signal
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as TokenPairResponse;
+        setApiAccessToken(data.access_token);
+        setApiRefreshToken(data.refresh_token);
+        return data;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     })()
       .catch(() => null)
       .finally(() => {

@@ -150,18 +150,16 @@ export function AIGenerationPanel({
         }}
       >
         <DialogContent
-          className='sm:max-w-md gap-0 overflow-hidden p-0'
+          className='sm:max-w-md gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0'
           showCloseButton={false}
         >
-          <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
-            <DialogTitle>Generating survey questions</DialogTitle>
-          </DialogHeader>
-          <div className='px-4 pt-4 pb-4'>
-            <SurveyGenerationProgress
-              active={isGenerating}
-              goalPreview={goalPreview}
-            />
-          </div>
+          <DialogTitle className='sr-only'>
+            Generating survey questions
+          </DialogTitle>
+          <SurveyGenerationProgress
+            active={isGenerating}
+            goalPreview={goalPreview}
+          />
         </DialogContent>
       </Dialog>
     </>

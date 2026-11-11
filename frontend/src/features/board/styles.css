@@ -136,16 +136,38 @@ html.dark:has(.lp) body {
   color: var(--gold);
 }
 .lp #principles .principle-row:hover h3 {
-  color: #fff;
+  color: var(--primary-foreground);
 }
 .lp #principles .principle-row:hover p {
-  color: color-mix(in srgb, var(--gold) 50%, white);
+  color: color-mix(in srgb, var(--primary-foreground) 70%, transparent);
 }
 .lp .text-background {
   color: var(--background);
 }
 .lp .text-brand-foreground {
   color: var(--brand-foreground);
+}
+.lp .text-primary-foreground {
+  color: var(--primary-foreground);
+}
+.lp .text-primary-foreground\/70 {
+  color: color-mix(in srgb, var(--primary-foreground) 70%, transparent);
+}
+.lp .text-primary-foreground\/75 {
+  color: color-mix(in srgb, var(--primary-foreground) 75%, transparent);
+}
+.lp .bg-primary-foreground\/12 {
+  background-color: color-mix(in srgb, var(--primary-foreground) 12%, transparent);
+}
+.lp .bg-primary-foreground\/10 {
+  background-color: color-mix(in srgb, var(--primary-foreground) 10%, transparent);
+}
+.lp .decoration-primary-foreground\/30 {
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--primary-foreground) 30%,
+    transparent
+  );
 }
 
 .lp .border-border {

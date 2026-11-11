@@ -121,6 +121,7 @@ export default function SecurityViewPage() {
       <form onSubmit={handleSubmit(onPasswordSubmit)}>
         <SurvaiPanel>
           <SurvaiPanelHeader
+            tone='brand'
             icon={<Icons.lock className='size-3.5' />}
             title='Change Password'
             subtitle='Keep your seat account secure.'

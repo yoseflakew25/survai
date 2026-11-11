@@ -72,10 +72,6 @@ export function RespondentDetailView({
 
   const answeredCount = detail.answers.filter((a) => a.answered).length;
   const totalQuestions = detail.answers.length;
-  const completionPct =
-    totalQuestions > 0
-      ? Math.round((answeredCount / totalQuestions) * 100)
-      : 0;
   const isComplete = detail.status === 'completed';
   const isDrawer = variant === 'drawer';
   const surveyLabel = displaySurveyTitle(detail.surveyTitle);
@@ -124,14 +120,13 @@ export function RespondentDetailView({
   if (isDrawer) {
     return (
       <div className='flex flex-col'>
-        {/* Brand header strip */}
-        <header className='relative overflow-hidden border-b border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)]'>
+        <header className='relative overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand'>
           <div
-            className='pointer-events-none absolute inset-0 opacity-50'
+            className='pointer-events-none absolute inset-0 opacity-[0.32]'
             aria-hidden
             style={{
               backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px)',
+                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px)',
               backgroundSize: '18px 18px',
               maskImage:
                 'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
@@ -140,18 +135,18 @@ export function RespondentDetailView({
             }}
           />
           <div className='relative px-4 pt-4 pr-12 pb-4 sm:px-5'>
-            <div className='flex items-center justify-between gap-3'>
+            <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
               <div className='min-w-0 flex-1'>
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-                  <h1 className='font-display truncate text-2xl font-extrabold tracking-tight text-white'>
+                  <h1 className='font-display truncate text-2xl font-extrabold tracking-tight text-brand-foreground'>
                     {detail.name}
                   </h1>
                   <Badge
                     className={cn(
                       'rounded-full border-transparent text-[10px] font-semibold',
                       isComplete
-                        ? 'bg-[var(--gold)] text-[var(--primary)]'
-                        : 'border border-[color-mix(in_srgb,var(--gold)_40%,transparent)] bg-[color-mix(in_srgb,var(--gold)_16%,transparent)] text-[var(--gold)]'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-primary'
                     )}
                   >
                     {isComplete ? (
@@ -162,15 +157,15 @@ export function RespondentDetailView({
                     {isComplete ? 'Completed' : 'Partial'}
                   </Badge>
                 </div>
-                <p className='truncate text-xs text-[color-mix(in_srgb,var(--gold)_50%,white)]'>
+                <p className='truncate text-xs text-brand-foreground/70'>
                   {detail.email}
                 </p>
-                <p className='truncate font-mono text-[10px] tracking-wide text-[var(--gold)] uppercase'>
+                <p className='truncate font-mono text-[10px] tracking-wide text-primary uppercase'>
                   {surveyLabel}
                 </p>
               </div>
 
-              <dl className='mt-4 grid grid-cols-3 gap-2'>
+              <dl className='grid grid-cols-2 gap-2 sm:shrink-0'>
                 <MetaStat
                   icon={<Icons.calendar className='size-3' />}
                   label='Submitted'
@@ -185,21 +180,6 @@ export function RespondentDetailView({
               </dl>
             </div>
           </div>
-
-          <div className='relative flex items-center gap-3 border-t border-[color-mix(in_srgb,var(--gold)_25%,transparent)] bg-[color-mix(in_srgb,var(--gold)_10%,transparent)] px-4 py-2.5 sm:px-5'>
-            <span className='shrink-0 text-[11px] font-medium text-[var(--gold)]'>
-              Completion
-            </span>
-            <div className='h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--gold)_22%,transparent)]'>
-              <div
-                className='h-full rounded-full bg-[var(--gold)] transition-[width] duration-500 ease-out'
-                style={{ width: `${completionPct}%` }}
-              />
-            </div>
-            <span className='shrink-0 font-mono text-[11px] font-semibold tabular-nums text-white'>
-              {completionPct}%
-            </span>
-          </div>
         </header>
 
         <div className='space-y-3 bg-background px-4 py-4 sm:px-5'>
@@ -211,13 +191,13 @@ export function RespondentDetailView({
 
   return (
     <div className='flex flex-1 flex-col gap-6 pb-8'>
-      <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] px-5 py-5 shadow-sm'>
+      <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 py-5 shadow-sm'>
         <div
-          className='pointer-events-none absolute inset-0 opacity-50'
+          className='pointer-events-none absolute inset-0 opacity-[0.32]'
           aria-hidden
           style={{
             backgroundImage:
-              'linear-gradient(to right, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--gold) 18%, transparent) 1px, transparent 1px)',
+              'linear-gradient(to right, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px)',
             backgroundSize: '20px 20px',
             maskImage:
               'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
@@ -226,21 +206,21 @@ export function RespondentDetailView({
           }}
         />
         <div className='relative flex items-start gap-3'>
-          <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--gold)_40%,transparent)] bg-[var(--gold)] font-mono text-xs font-bold tracking-wide text-[var(--primary)] uppercase'>
+          <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-primary font-mono text-xs font-bold tracking-wide text-primary-foreground uppercase'>
             {initialsFromName(detail.name)}
           </div>
 
           <div className='min-w-0 flex-1'>
             <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-              <h1 className='font-display text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
+              <h1 className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                 {detail.name}
               </h1>
               <Badge
                 className={cn(
                   'rounded-full border-transparent text-[10px] font-semibold',
                   isComplete
-                    ? 'bg-[var(--gold)] text-[var(--primary)]'
-                    : 'border border-[color-mix(in_srgb,var(--gold)_40%,transparent)] bg-[color-mix(in_srgb,var(--gold)_16%,transparent)] text-[var(--gold)]'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-primary'
                 )}
               >
                 {isComplete ? (
@@ -252,29 +232,29 @@ export function RespondentDetailView({
               </Badge>
             </div>
 
-            <p className='truncate text-sm text-[color-mix(in_srgb,var(--gold)_50%,white)]'>
+            <p className='truncate text-sm text-brand-foreground/70'>
               {detail.email}
               <span className='mx-1.5 opacity-40'>·</span>
-              <span className='text-[var(--gold)]'>{surveyLabel}</span>
+              <span className='text-primary'>{surveyLabel}</span>
             </p>
 
-            <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+            <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-brand-foreground/75'>
               <div className='flex items-center gap-1.5'>
-                <Icons.calendar className='size-3.5 shrink-0 text-[var(--gold)]' />
+                <Icons.calendar className='size-3.5 shrink-0 text-primary' />
                 <dt className='sr-only'>Submitted</dt>
                 <dd>{formatDateTime(detail.submittedAt)}</dd>
               </div>
-              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--gold)_35%,transparent)] sm:block' aria-hidden />
+              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--primary)_28%,transparent)] sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
-                <Icons.clock className='size-3.5 shrink-0 text-[var(--gold)]' />
+                <Icons.clock className='size-3.5 shrink-0 text-primary' />
                 <dt className='sr-only'>Duration</dt>
                 <dd className='font-mono tabular-nums'>
                   {formatDuration(detail.durationSeconds)}
                 </dd>
               </div>
-              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--gold)_35%,transparent)] sm:block' aria-hidden />
+              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--primary)_28%,transparent)] sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
-                <Icons.check className='size-3.5 shrink-0 text-[var(--gold)]' />
+                <Icons.check className='size-3.5 shrink-0 text-primary' />
                 <dt className='sr-only'>Answered</dt>
                 <dd className='font-mono tabular-nums'>
                   {answeredCount}/{totalQuestions} answered
@@ -302,14 +282,14 @@ function MetaStat({
   mono?: boolean;
 }) {
   return (
-    <div className='min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] px-2.5 py-2 backdrop-blur-sm'>
-      <dt className='flex items-center gap-1 text-[10px] font-medium tracking-wide text-[var(--gold)] uppercase'>
+    <div className='min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2.5 py-2 backdrop-blur-sm'>
+      <dt className='flex items-center gap-1 text-[10px] font-medium tracking-wide text-primary uppercase'>
         <span className='shrink-0'>{icon}</span>
         <span className='truncate'>{label}</span>
       </dt>
       <dd
         className={cn(
-          'truncate text-xs font-semibold text-white',
+          'truncate text-xs font-semibold text-brand-foreground',
           mono && 'font-mono tabular-nums'
         )}
       >

@@ -17,6 +17,9 @@ const baseConfig: NextConfig = {
     ]
   },
   transpilePackages: ['geist'],
+  experimental: {
+    optimizePackageImports: ['@tabler/icons-react', 'recharts', 'date-fns', 'kbar']
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production'
   },

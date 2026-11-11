@@ -12,11 +12,16 @@ import { useRouter } from 'next/navigation';
 
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   SurvaiPanel,
-  compactCtaClass,
   panelHeaderToneClass,
+  primaryCtaClass,
   quietActionClass
 } from '@/components/survai-panel';
 import { toast } from '@/lib/toast';
@@ -270,47 +275,48 @@ export function PlanGeneratorWorkspace() {
   return (
     <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
       <SurvaiPanel className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
-        <div className={cn(panelHeaderToneClass.primary, 'relative shrink-0 px-4 py-4 sm:px-6')}>
+        <div className={cn(panelHeaderToneClass.brand, 'relative shrink-0 px-4 py-4 sm:px-6')}>
           <div className='relative flex flex-wrap items-start justify-between gap-3'>
             <div className='min-w-0 flex-1'>
-              <h2 className='font-display text-2xl font-extrabold tracking-tight text-white'>
+              <h2 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
                 {brief.titleHint.trim() || 'New survey plan'}
               </h2>
-              <p className='text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+              <p className='text-sm leading-relaxed text-brand-foreground/70'>
                 Chat to shape the research goal, then generate the plan
               </p>
             </div>
-            <div className='flex shrink-0 items-center gap-2'>
+            <div className='flex shrink-0 items-center gap-2.5'>
               <Link
                 href='/dashboard/surveys'
-                className='inline-flex h-8 items-center gap-1 rounded-xl px-2.5 text-xs font-medium text-primary-foreground/80 transition-colors hover:bg-primary-foreground/12 hover:text-primary-foreground'
+                className='inline-flex h-10 items-center gap-1.5 rounded-xl px-3.5 text-sm font-medium text-brand-foreground/75 transition-colors hover:bg-primary/10 hover:text-brand-foreground'
               >
-                <Icons.chevronLeft className='size-3.5' />
+                <Icons.chevronLeft className='size-4' />
                 Surveys
               </Link>
               {hasProgress ? (
                 <Button
                   type='button'
-                  size='sm'
                   variant='ghost'
                   disabled={sending || isGenerating}
                   onClick={handleStartOver}
-                  className='h-8 rounded-xl px-2.5 text-xs text-primary-foreground/80 hover:bg-primary-foreground/12 hover:text-primary-foreground'
+                  className='h-10 rounded-xl px-3.5 text-sm text-brand-foreground/75 hover:bg-primary/10 hover:text-brand-foreground'
                 >
                   Start over
                 </Button>
               ) : null}
               <Button
                 type='button'
-                size='sm'
                 disabled={!generateEnabled}
                 onClick={() => void handleGenerate()}
-                className={cn(compactCtaClass, 'shrink-0 rounded-xl disabled:opacity-60')}
+                className={cn(
+                  primaryCtaClass,
+                  'h-10 shrink-0 gap-2 rounded-xl px-4 text-sm disabled:opacity-60'
+                )}
               >
                 {isGenerating ? (
-                  <Icons.spinner className='mr-1 size-3.5 animate-spin' />
+                  <Icons.spinner className='size-4 animate-spin' />
                 ) : (
-                  <Icons.sparkles className='mr-1 size-3.5' />
+                  <Icons.sparkles className='size-4' />
                 )}
                 Generate plan
               </Button>
@@ -520,8 +526,8 @@ export function PlanGeneratorWorkspace() {
                     className={cn(
                       'max-w-[min(100%,36rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                       msg.role === 'user'
-                        ? 'rounded-br-md bg-foreground text-background'
-                        : 'rounded-bl-md border border-border bg-muted/70 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                        ? 'rounded-br-md bg-primary text-primary-foreground'
+                        : 'rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
                     )}
                   >
                     <p className='whitespace-pre-wrap break-words'>
@@ -557,7 +563,7 @@ export function PlanGeneratorWorkspace() {
                   }
                 >
                   <AssistantAvatar />
-                  <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-border bg-muted/70 px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
+                  <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
                     {streamDraft ? (
                       <p className='whitespace-pre-wrap break-words'>
                         {streamDraft}
@@ -585,27 +591,20 @@ export function PlanGeneratorWorkspace() {
                 </div>
               ) : null}
 
-              {isGenerating ? (
-                <PlanGenerationProgress
-                  active={isGenerating}
-                  goalPreview={researchGoalDraft}
-                />
-              ) : null}
-
               {readyToGenerate && !isGenerating && !sending ? (
-                <div className='mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-7 sm:py-7'>
+                <div className='mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 py-6 text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_14%,transparent)] sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-7 sm:py-7'>
                   <div className='min-w-0'>
-                    <p className='font-display text-xl font-extrabold tracking-tight text-foreground sm:text-2xl'>
+                    <p className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                       Ready when you are
                     </p>
-                    <p className='text-muted-foreground  max-w-md text-sm leading-relaxed sm:text-[0.95rem]'>
+                    <p className='max-w-md text-sm leading-relaxed text-brand-foreground/75 sm:text-[0.95rem]'>
                       Generate a full plan from this brief, or keep refining in
                       chat.
                     </p>
                   </div>
                   <Button
                     type='button'
-                    className='h-11 shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground px-5 text-sm font-semibold text-background shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] hover:bg-foreground/90'
+                    className='h-11 shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-110'
                     onClick={() => void handleGenerate()}
                   >
                     Generate plan
@@ -659,6 +658,24 @@ export function PlanGeneratorWorkspace() {
           </div>
         </div>
       </SurvaiPanel>
+
+      <Dialog
+        open={isGenerating}
+        onOpenChange={(next) => {
+          if (!next && isGenerating) return;
+        }}
+      >
+        <DialogContent
+          className='sm:max-w-md gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0'
+          showCloseButton={false}
+        >
+          <DialogTitle className='sr-only'>Generating survey plan</DialogTitle>
+          <PlanGenerationProgress
+            active={isGenerating}
+            goalPreview={researchGoalDraft}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -726,11 +743,11 @@ function EditableBriefField({
   return (
     <label
       className={cn(
-        'group block cursor-text rounded-xl border bg-card px-3 py-2.5 transition-[border-color,box-shadow,background-color]',
+        'group block cursor-text rounded-xl border bg-brand-soft px-3 py-2.5 transition-[border-color,box-shadow,background-color]',
         filled
-          ? 'border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'
-          : 'border-dashed border-border',
-        'focus-within:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] focus-within:bg-brand-soft/40 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_18%,transparent)]'
+          ? 'border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'
+          : 'border-dashed border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]',
+        'focus-within:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] focus-within:bg-brand-soft focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_18%,transparent)]'
       )}
     >
       <div className='mb-1.5 flex items-center justify-between gap-2'>
@@ -815,10 +832,10 @@ function EditableChipList({
   return (
     <div
       className={cn(
-        'rounded-xl border bg-card px-3 py-2.5 transition-[border-color,box-shadow]',
+        'rounded-xl border bg-brand-soft px-3 py-2.5 transition-[border-color,box-shadow]',
         filled
-          ? 'border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'
-          : 'border-dashed border-border'
+          ? 'border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'
+          : 'border-dashed border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]'
       )}
     >
       <div className='mb-2 flex items-center justify-between gap-2'>

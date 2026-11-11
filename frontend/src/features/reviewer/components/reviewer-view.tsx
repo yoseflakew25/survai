@@ -1,13 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { surveyByIdOptions, surveyKeys } from '@/features/builder/api/queries';
 import { surveyListKeys } from '@/features/surveys/api/queries';
 import { latestReviewOptions, reviewerKeys } from '../api/queries';
 import { triggerReview } from '../api/service';
 import type { ReviewerFinding, ReviewerReport } from '../api/types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +21,14 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet';
 import { QualityScore } from './quality-score';
 import { FindingsList } from './findings-list';
 import {
@@ -55,8 +62,7 @@ import {
   brandCtaClass,
   dialogHeaderSoftClass,
   panelHeaderToneClass,
-  primaryCtaClass,
-  sectionIndexClass
+  primaryCtaClass
 } from '@/components/survai-panel';
 import {
   displaySurveyDescription,
@@ -128,8 +134,42 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
+  const [collectWarnOpen, setCollectWarnOpen] = useState(false);
+  const [highlightedQuestionId, setHighlightedQuestionId] = useState<
+    string | null
+  >(null);
   const isRegenerating = activeId === 'regenerate-survey';
   const isReviewing = activeId === 'run-review';
+
+  const openFindingsByQuestionId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const finding of report?.findings ?? []) {
+      if (finding.status !== 'open' || !finding.questionId) continue;
+      map.set(
+        finding.questionId,
+        (map.get(finding.questionId) ?? 0) + 1
+      );
+    }
+    return map;
+  }, [report?.findings]);
+
+  const navigateToQuestion = useCallback((questionId: string) => {
+    const el = document.getElementById(`review-question-${questionId}`);
+    if (!el) {
+      toast.error('Question not found in this draft');
+      return;
+    }
+    setHighlightedQuestionId(questionId);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  useEffect(() => {
+    if (!highlightedQuestionId) return;
+    const timeout = window.setTimeout(() => {
+      setHighlightedQuestionId(null);
+    }, 2400);
+    return () => window.clearTimeout(timeout);
+  }, [highlightedQuestionId]);
 
   const handleFindingUpdate = useCallback(
     (finding: ReviewerFinding) => {
@@ -350,6 +390,24 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       ? 'Live'
       : survey.status
     : 'Draft';
+  const openFindingCount =
+    report?.findings.filter((f) => f.status === 'open').length ?? 0;
+  const acceptedFindingCount =
+    report?.findings.filter((f) => f.status === 'accepted').length ?? 0;
+  const collectHref = `/dashboard/surveys/${surveyId}/collect`;
+
+  function goToCollect() {
+    setCollectWarnOpen(false);
+    router.push(collectHref);
+  }
+
+  function handleCollectClick() {
+    if (!questionsLocked && openFindingCount > 0) {
+      setCollectWarnOpen(true);
+      return;
+    }
+    goToCollect();
+  }
 
   return (
     <>
@@ -364,6 +422,33 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       description='This permanently deletes the questionnaire (sections and questions). The linked research plan is kept so you can generate a new survey from it later.'
       confirmLabel='Delete survey'
     />
+    <Dialog open={collectWarnOpen} onOpenChange={setCollectWarnOpen}>
+      <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
+        <DialogHeader className={dialogHeaderSoftClass}>
+          <DialogTitle>Open findings remain</DialogTitle>
+        </DialogHeader>
+        <div className='px-4 pt-4 pb-2'>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            You still have {openFindingCount} open finding
+            {openFindingCount === 1 ? '' : 's'}. You can continue to Collect and
+            publish, or stay here and resolve them first.
+          </p>
+        </div>
+        <Separator />
+        <div className='flex items-center justify-end gap-2 px-4 py-3'>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => setCollectWarnOpen(false)}
+          >
+            Stay on Review
+          </Button>
+          <Button type='button' className={primaryCtaClass} onClick={goToCollect}>
+            Continue to Collect
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={confirmRegenOpen} onOpenChange={setConfirmRegenOpen}>
       <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
         <DialogHeader className={dialogHeaderSoftClass}>
@@ -409,18 +494,18 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       >
         <SurvaiPanel>
           <SurvaiPanelHeader
-            tone='primary'
+            tone='brand'
             title={
               <div className='min-w-0'>
-                <h1 className='font-display line-clamp-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
+                <h1 className='font-display line-clamp-2 text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                   {title}
                 </h1>
                 {description ? (
-                  <p className='mt-1 line-clamp-2 text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                  <p className='mt-1 line-clamp-2 text-sm leading-snug text-brand-foreground/70'>
                     {description}
                   </p>
                 ) : (
-                  <p className='mt-1 text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                  <p className='mt-1 text-sm leading-snug text-brand-foreground/70'>
                     {questionsLocked
                       ? 'Questions are locked — review the draft structure below.'
                       : 'Edit questions, run AI review, then continue to Collect.'}
@@ -429,10 +514,75 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               </div>
             }
             badge={
-              <span className='rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold capitalize text-[var(--gold)]'>
+              <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold capitalize text-brand-foreground'>
                 {statusLabel}
                 {questionsLocked ? ' · locked' : ''}
               </span>
+            }
+            actions={
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      className='h-9 rounded-xl px-2.5 text-brand-foreground hover:bg-primary/10 hover:text-brand-foreground'
+                      aria-label='More actions'
+                    />
+                  }
+                >
+                  <Icons.ellipsis className='size-4' />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-52'>
+                  {!questionsLocked ? (
+                    <>
+                      <DropdownMenuItem
+                        disabled={
+                          isRegenerating ||
+                          isReviewing ||
+                          questionCount === 0
+                        }
+                        onClick={() => void handleReview()}
+                      >
+                        {isReviewing ? (
+                          <Icons.spinner className='size-3.5 animate-spin' />
+                        ) : (
+                          <Icons.review className='size-3.5' />
+                        )}
+                        {isReviewing
+                          ? 'Reviewing…'
+                          : report
+                            ? 'Re-run review'
+                            : 'Review with AI'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={
+                          isRegenerating || isReviewing || !survey.planId
+                        }
+                        onClick={() => setConfirmRegenOpen(true)}
+                      >
+                        {isRegenerating ? (
+                          <Icons.spinner className='size-3.5 animate-spin' />
+                        ) : (
+                          <Icons.sparkles className='size-3.5' />
+                        )}
+                        {questionCount === 0
+                          ? 'Generate questions'
+                          : 'Regenerate'}
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                  <DropdownMenuItem
+                    variant='destructive'
+                    disabled={isRegenerating || isReviewing || isDeleting}
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Icons.trash className='size-3.5' />
+                    Remove survey
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             }
           />
         </SurvaiPanel>
@@ -466,12 +616,13 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               </div>
             </SurvaiPanel>
           ) : (
-            survey.sections.map((section, sIdx) => (
+            survey.sections.map((section) => (
               <SectionReviewCard
                 key={section.id}
                 section={section}
-                index={sIdx}
                 readOnly={questionsLocked}
+                openFindingsByQuestionId={openFindingsByQuestionId}
+                highlightedQuestionId={highlightedQuestionId}
               />
             ))
           )}
@@ -482,6 +633,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               onFindingUpdate={
                 questionsLocked ? undefined : handleFindingUpdate
               }
+              onNavigateToQuestion={navigateToQuestion}
               readOnly={questionsLocked}
             />
           ) : null}
@@ -513,11 +665,13 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   className={cn(
                     'flex size-6 shrink-0 items-center justify-center rounded-lg',
                     report
-                      ? 'bg-primary text-primary-foreground'
+                      ? openFindingCount > 0
+                        ? 'bg-muted text-foreground'
+                        : 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
                   )}
                 >
-                  {report ? (
+                  {report && openFindingCount === 0 ? (
                     <Icons.check className='size-3.5' strokeWidth={2.5} />
                   ) : (
                     <Icons.review className='size-3.5' />
@@ -532,48 +686,32 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   )}
                 >
                   {report
-                    ? `${report.findings.length} finding${report.findings.length === 1 ? '' : 's'} reviewed`
+                    ? `${openFindingCount} open · ${acceptedFindingCount} accepted`
                     : 'AI review not run yet'}
                 </span>
               </li>
             </ul>
             <div className='space-y-2'>
+              {report && !questionsLocked ? (
+                <p className='text-center font-mono text-[11px] font-semibold tracking-wide text-brand-foreground/80 tabular-nums'>
+                  {openFindingCount} open · {acceptedFindingCount} accepted
+                </p>
+              ) : null}
               <Button
-                nativeButton={false}
-                render={
-                  <Link href={`/dashboard/surveys/${surveyId}/collect`} />
-                }
+                type='button'
                 className={cn(primaryCtaClass, 'w-full justify-between')}
+                onClick={handleCollectClick}
               >
                 {questionsLocked ? 'Open Collect' : 'Go to Collect'}
                 <Icons.arrowRight className='size-4' />
               </Button>
-              {!questionsLocked ? (
-                <Button
-                  type='button'
-                  variant='outline'
-                  className='h-10 w-full rounded-xl border-border bg-card text-sm font-medium text-foreground hover:bg-muted/50'
-                  onClick={() => setConfirmRegenOpen(true)}
-                  disabled={isRegenerating || isReviewing || !survey.planId}
-                >
-                  {isRegenerating ? (
-                    <Icons.spinner className='size-3.5 animate-spin' />
-                  ) : (
-                    <Icons.sparkles className='size-3.5' />
-                  )}
-                  Regenerate
-                </Button>
+              {report && !questionsLocked ? (
+                <p className='text-center text-[11px] leading-relaxed text-brand-foreground/70'>
+                  {openFindingCount > 0
+                    ? 'Open findings aren’t a hard block — you’ll get a reminder before leaving.'
+                    : 'No open findings — ready to publish from Collect.'}
+                </p>
               ) : null}
-              <Button
-                type='button'
-                variant='outline'
-                className='h-10 w-full gap-2 rounded-xl border border-destructive/45 bg-[color-mix(in_srgb,var(--destructive)_8%,white)] text-sm font-semibold text-destructive shadow-[0_1px_0_color-mix(in_srgb,var(--destructive)_12%,transparent)] hover:border-destructive/70 hover:bg-destructive hover:text-white'
-                onClick={() => setDeleteOpen(true)}
-                disabled={isRegenerating || isReviewing || isDeleting}
-              >
-                <Icons.trash className='size-3.5' />
-                Remove survey
-              </Button>
             </div>
           </div>
 
@@ -589,29 +727,13 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               <SurvaiPanelHeader
                 icon={<Icons.review className='size-3.5' />}
                 title='Quality assessment'
-                subtitle='Run AI review to score this draft'
+                subtitle='Use Review with AI in the header'
               />
-              <SurvaiPanelBody className='space-y-3'>
+              <SurvaiPanelBody>
                 <p className='text-sm leading-relaxed text-foreground'>
                   Checks leading wording, ambiguity, and alignment with your
-                  research plan.
+                  research plan. Advisory only — not a certification.
                 </p>
-                <p className='text-muted-foreground text-xs leading-relaxed'>
-                  Advisory only — not a certification.
-                </p>
-                <Button
-                  type='button'
-                  className={cn(primaryCtaClass, 'h-10')}
-                  onClick={() => void handleReview()}
-                  disabled={isRegenerating || isReviewing}
-                >
-                  {isReviewing ? (
-                    <Icons.spinner className='size-3.5 animate-spin' />
-                  ) : (
-                    <Icons.review className='size-3.5' />
-                  )}
-                  {isReviewing ? 'Reviewing…' : 'Review with AI'}
-                </Button>
               </SurvaiPanelBody>
             </SurvaiPanel>
           ) : null}
@@ -623,48 +745,46 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
 
 function SectionReviewCard({
   section,
-  index,
-  readOnly = false
+  readOnly = false,
+  openFindingsByQuestionId,
+  highlightedQuestionId
 }: {
   section: Section;
-  index: number;
   readOnly?: boolean;
+  openFindingsByQuestionId: Map<string, number>;
+  highlightedQuestionId: string | null;
 }) {
   const questionCount = section.questions.length;
   const requiredCount = section.questions.filter((q) => q.isRequired).length;
 
   return (
     <SurvaiPanel>
-      <div className={cn(panelHeaderToneClass.soft, 'flex items-center gap-3 px-4 py-3.5 sm:px-5')}>
-        <span
-          className={cn(sectionIndexClass, 'size-8 place-items-center rounded-xl font-display text-sm')}
-          aria-label={`Section ${index + 1}`}
-        >
-          {index + 1}
-        </span>
+      <div
+        className={cn(
+          panelHeaderToneClass.soft,
+          'flex items-center gap-3 px-4 py-3 sm:px-5'
+        )}
+      >
         <div className='min-w-0 flex-1'>
-          <h2 className='font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
+          <h2 className='text-sm font-semibold tracking-tight text-foreground sm:text-[0.95rem]'>
             {section.title}
           </h2>
-          <p className='text-xs leading-snug text-muted-foreground'>
+          <p className='text-[11px] leading-snug text-muted-foreground'>
             {section.description?.trim() ||
               `${questionCount} question${questionCount === 1 ? '' : 's'}${
                 requiredCount > 0 ? ` · ${requiredCount} required` : ''
               }`}
           </p>
         </div>
-        <span className='inline-flex min-w-6 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
+        <span className='text-muted-foreground font-mono text-[10px] tabular-nums'>
           {questionCount}
         </span>
       </div>
 
       <div className='divide-y divide-border'>
         {section.questions.length === 0 ? (
-          <div className='flex flex-col items-center justify-center gap-2 px-5 py-10 text-center'>
-            <div className='flex size-10 items-center justify-center rounded-xl bg-brand-soft text-primary'>
-              <Icons.forms className='size-4' />
-            </div>
-            <p className='text-sm font-semibold text-foreground'>
+          <div className='flex flex-col items-center justify-center gap-2 px-5 py-8 text-center'>
+            <p className='text-sm text-muted-foreground'>
               No questions in this section yet
             </p>
           </div>
@@ -675,6 +795,10 @@ function SectionReviewCard({
               question={question}
               index={qIdx}
               readOnly={readOnly}
+              openFindingCount={
+                openFindingsByQuestionId.get(question.id) ?? 0
+              }
+              highlighted={highlightedQuestionId === question.id}
             />
           ))
         )}
@@ -686,11 +810,15 @@ function SectionReviewCard({
 function QuestionReviewItem({
   question,
   index,
-  readOnly = false
+  readOnly = false,
+  openFindingCount = 0,
+  highlighted = false
 }: {
   question: Question;
   index: number;
   readOnly?: boolean;
+  openFindingCount?: number;
+  highlighted?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editPrompt, setEditPrompt] = useState(question.promptText);
@@ -838,6 +966,15 @@ function QuestionReviewItem({
     setIsEditing(false);
   }, [question]);
 
+  const handleSheetOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) return;
+      if (isSaving) return;
+      handleCancel();
+    },
+    [handleCancel, isSaving]
+  );
+
   const startEditing = useCallback(() => {
     if (readOnly) return;
     setEditPrompt(question.promptText);
@@ -910,83 +1047,205 @@ function QuestionReviewItem({
     setEditOptions((prev) => prev.filter((opt) => opt.id !== optId));
   }, []);
 
-  if (isEditing) {
-    return (
-      <div className='bg-[color-mix(in_srgb,var(--brand-soft)_35%,var(--card))] px-4 py-4 sm:px-5'>
-        <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)] sm:p-5'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <span
-              className='text-muted-foreground  w-6 shrink-0 text-right font-mono text-[11px] font-medium tabular-nums'
-              aria-label={`Question ${index + 1}`}
-            >
-              Q{index + 1}
-            </span>
+  const readTypeMeta = getQuestionTypeMeta(question.type);
+  const ReadTypeIcon = Icons[readTypeMeta.icon as keyof typeof Icons];
 
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='h-8 rounded-xl border-border bg-background px-2.5 text-xs font-medium'
-                  />
-                }
-              >
-                {TypeIcon ? <TypeIcon className='size-3.5' /> : null}
-                {typeMeta.label}
-                <Icons.chevronDown className='size-3.5 opacity-60' />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='start' className='w-52'>
-                {QUESTION_TYPES.map((qt) => {
-                  const Icon = Icons[qt.icon as keyof typeof Icons];
-                  const selected = qt.type === editType;
-                  return (
-                    <DropdownMenuItem
-                      key={qt.type}
-                      onClick={() => handleTypeChange(qt.type)}
-                      className={cn(
-                        'flex items-center gap-2',
-                        selected && 'bg-brand-soft'
-                      )}
-                    >
-                      {Icon ? <Icon className='size-3.5' /> : null}
-                      <span className='flex-1'>{qt.label}</span>
-                      {selected ? (
-                        <Icons.check className='size-3.5 text-foreground' />
-                      ) : null}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+  return (
+    <>
+      <div
+        id={`review-question-${question.id}`}
+        className={cn(
+          'group relative flex scroll-mt-24 items-start gap-3 px-4 py-3.5 transition-[background-color,box-shadow] sm:px-5',
+          !readOnly && 'hover:bg-muted/40',
+          highlighted &&
+            'bg-brand-soft/70 ring-2 ring-inset ring-[color-mix(in_srgb,var(--brand)_55%,transparent)]'
+        )}
+      >
+        <span
+          className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-brand-soft font-mono text-[10px] font-semibold tabular-nums text-primary'
+          aria-label={`Question ${index + 1}`}
+        >
+          {index + 1}
+        </span>
 
-            <label className='border-border bg-muted/40 ml-auto flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 sm:ml-0'>
-              <Switch
-                checked={editIsRequired}
-                onCheckedChange={setEditIsRequired}
-                className='scale-90'
-              />
-              <span className='text-xs font-medium'>
-                {editIsRequired ? 'Required' : 'Optional'}
-              </span>
-            </label>
-
-            <Badge
-              variant='secondary'
-              className={cn(
-                'rounded-full border text-[10px] font-semibold',
-                sourceBadge.className,
-                'ml-0 sm:ml-auto'
-              )}
-            >
-              {question.source !== 'manual' ? (
-                <Icons.sparkles className='mr-1 size-2.5' />
+        <div className='min-w-0 flex-1 space-y-2'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4'>
+            <div className='min-w-0 flex-1'>
+              <p className='text-[0.95rem] font-medium leading-snug text-foreground sm:text-base'>
+                {question.promptText}
+              </p>
+              {question.helpText ? (
+                <p className='mt-1 text-xs leading-relaxed text-muted-foreground'>
+                  {question.helpText}
+                </p>
               ) : null}
-              {sourceBadge.label}
-            </Badge>
+            </div>
+
+            <div className='flex w-full flex-col gap-1.5 sm:w-auto sm:max-w-[14rem] sm:items-end'>
+              <div className='flex flex-wrap items-center gap-1.5 sm:justify-end'>
+                {openFindingCount > 0 ? (
+                  <span className='rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground'>
+                    {openFindingCount} open
+                  </span>
+                ) : null}
+                <span className='inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground'>
+                  {ReadTypeIcon ? <ReadTypeIcon className='size-3' /> : null}
+                  {readTypeMeta.label}
+                </span>
+                <span
+                  className={cn(
+                    'rounded-md px-2 py-0.5 text-[10px] font-medium',
+                    question.isRequired
+                      ? 'bg-brand-soft text-primary'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {question.isRequired ? 'Required' : 'Optional'}
+                </span>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium',
+                    sourceBadge.className
+                  )}
+                >
+                  {question.source !== 'manual' ? (
+                    <Icons.sparkles className='size-2.5' />
+                  ) : null}
+                  {sourceBadge.label}
+                </span>
+              </div>
+              {!readOnly ? (
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  className='h-7 w-fit rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground'
+                  onClick={startEditing}
+                >
+                  <Icons.edit className='size-3.5' />
+                  Edit
+                </Button>
+              ) : null}
+            </div>
           </div>
 
-          <div className='space-y-3'>
+          {question.options && question.options.length > 0 ? (
+            <ul className='flex flex-wrap gap-1.5'>
+              {question.options.map((opt) => (
+                <li
+                  key={opt.id}
+                  className='inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 text-[11px] text-foreground'
+                >
+                  <span
+                    className={cn(
+                      'size-1.5 shrink-0 bg-primary/70',
+                      question.type === 'multiple_choice'
+                        ? 'rounded-[1px]'
+                        : 'rounded-full'
+                    )}
+                    aria-hidden
+                  />
+                  {opt.label}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {question.type === 'rating_scale' && question.validationRules ? (
+            <div className='flex flex-wrap items-center gap-1'>
+              {Array.from(
+                {
+                  length:
+                    Math.min(
+                      7,
+                      (question.validationRules.max ?? 5) -
+                        (question.validationRules.min ?? 1) +
+                        1
+                    ) || 5
+                },
+                (_, i) => (question.validationRules?.min ?? 1) + i
+              ).map((n) => (
+                <span
+                  key={n}
+                  className='flex size-6 items-center justify-center rounded-md border border-border bg-muted/40 font-mono text-[10px] tabular-nums text-muted-foreground'
+                >
+                  {n}
+                </span>
+              ))}
+              {(question.validationRules.max ?? 5) -
+                (question.validationRules.min ?? 1) +
+                1 >
+              7 ? (
+                <span className='text-muted-foreground text-[11px]'>
+                  …{question.validationRules.max}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <Sheet open={isEditing} onOpenChange={handleSheetOpenChange}>
+        <SheetContent side='right' className='gap-0 p-0 sm:max-w-md'>
+          <SheetHeader className='border-b border-border px-4 py-4'>
+            <SheetTitle>Edit question {index + 1}</SheetTitle>
+            <SheetDescription>
+              Change type, options, and required — save when done.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className='flex-1 space-y-4 overflow-y-auto px-4 py-4'>
+            <div className='flex flex-wrap items-center gap-2'>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      className='h-8 rounded-xl border-border bg-background px-2.5 text-xs font-medium'
+                    />
+                  }
+                >
+                  {TypeIcon ? <TypeIcon className='size-3.5' /> : null}
+                  {typeMeta.label}
+                  <Icons.chevronDown className='size-3.5 opacity-60' />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='start' className='w-52'>
+                  {QUESTION_TYPES.map((qt) => {
+                    const Icon = Icons[qt.icon as keyof typeof Icons];
+                    const selected = qt.type === editType;
+                    return (
+                      <DropdownMenuItem
+                        key={qt.type}
+                        onClick={() => handleTypeChange(qt.type)}
+                        className={cn(
+                          'flex items-center gap-2',
+                          selected && 'bg-brand-soft'
+                        )}
+                      >
+                        {Icon ? <Icon className='size-3.5' /> : null}
+                        <span className='flex-1'>{qt.label}</span>
+                        {selected ? (
+                          <Icons.check className='size-3.5 text-foreground' />
+                        ) : null}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <label className='flex cursor-pointer items-center gap-2 rounded-full border border-border bg-muted/40 px-2.5 py-1'>
+                <Switch
+                  checked={editIsRequired}
+                  onCheckedChange={setEditIsRequired}
+                  className='scale-90'
+                />
+                <span className='text-xs font-medium'>
+                  {editIsRequired ? 'Required' : 'Optional'}
+                </span>
+              </label>
+            </div>
+
             <div className='space-y-1.5'>
               <Label
                 htmlFor={`q-prompt-${question.id}`}
@@ -998,13 +1257,10 @@ function QuestionReviewItem({
                 id={`q-prompt-${question.id}`}
                 value={editPrompt}
                 onChange={(e) => setEditPrompt(e.target.value)}
-                rows={2}
+                rows={3}
                 autoFocus
                 placeholder='What do you want to ask?'
-                className='border-border min-h-[4.5rem] resize-none rounded-xl border-2 text-sm font-medium leading-relaxed focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))]'
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') handleCancel();
-                }}
+                className='min-h-[5rem] resize-none rounded-xl border-2 border-border text-sm font-medium leading-relaxed focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))]'
               />
             </div>
 
@@ -1024,273 +1280,122 @@ function QuestionReviewItem({
                 onChange={(e) => setEditHelpText(e.target.value)}
                 placeholder='Clarify how respondents should answer…'
                 className='h-9 rounded-xl text-sm'
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') handleCancel();
-                }}
               />
             </div>
+
+            {showOptionsEditor ? (
+              <div className='space-y-2.5'>
+                <div className='flex items-center justify-between gap-2'>
+                  <p className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
+                    Options
+                  </p>
+                  <span className='font-mono text-[10px] text-muted-foreground tabular-nums'>
+                    {editOptions.length}
+                  </span>
+                </div>
+
+                <ul className='space-y-1.5'>
+                  {editOptions.map((opt, optIdx) => (
+                    <li
+                      key={opt.id}
+                      className='group/opt flex items-center gap-2'
+                    >
+                      <span
+                        className={cn(
+                          'flex size-7 shrink-0 items-center justify-center border text-[10px] font-semibold',
+                          editType === 'multiple_choice'
+                            ? 'rounded-md border-border bg-muted/50 text-muted-foreground'
+                            : 'rounded-full border-border bg-muted/50 text-muted-foreground'
+                        )}
+                        aria-hidden
+                      >
+                        {optIdx + 1}
+                      </span>
+                      <Input
+                        value={opt.label}
+                        onChange={(e) => updateOption(opt.id, e.target.value)}
+                        placeholder={`Option ${optIdx + 1}`}
+                        className='h-9 flex-1 rounded-xl text-sm'
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addOption();
+                          }
+                        }}
+                      />
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon-sm'
+                        className='size-8 shrink-0 rounded-lg text-muted-foreground opacity-70 hover:text-destructive group-hover/opt:opacity-100'
+                        disabled={!canRemoveOption}
+                        aria-label={`Remove option ${optIdx + 1}`}
+                        onClick={() => removeOption(opt.id)}
+                      >
+                        <Icons.close className='size-3.5' />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  className='h-8 w-full rounded-xl border-dashed text-xs font-medium'
+                  onClick={addOption}
+                >
+                  <Icons.add className='size-3.5' />
+                  Add option
+                </Button>
+              </div>
+            ) : null}
+
+            {editType === 'rating_scale' ? (
+              <p className='rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground'>
+                Scale{' '}
+                {question.validationRules?.min ?? 1}–
+                {question.validationRules?.max ?? 5}
+              </p>
+            ) : null}
           </div>
 
-          {showOptionsEditor ? (
-            <div className='space-y-2.5'>
-              <div className='flex items-center justify-between gap-2'>
-                <p className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
-                  Options
-                </p>
-                <span className='text-muted-foreground font-mono text-[10px] tabular-nums'>
-                  {editOptions.length}
-                </span>
-              </div>
-
-              <ul className='space-y-1.5'>
-                {editOptions.map((opt, optIdx) => (
-                  <li
-                    key={opt.id}
-                    className='group/opt flex items-center gap-2'
-                  >
-                    <span
-                      className={cn(
-                        'flex size-7 shrink-0 items-center justify-center rounded-lg border text-[10px] font-semibold',
-                        editType === 'multiple_choice'
-                          ? 'border-border bg-muted/50 text-muted-foreground rounded-md'
-                          : 'border-border bg-muted/50 text-muted-foreground rounded-full'
-                      )}
-                      aria-hidden
-                    >
-                      {optIdx + 1}
-                    </span>
-                    <Input
-                      value={opt.label}
-                      onChange={(e) => updateOption(opt.id, e.target.value)}
-                      placeholder={`Option ${optIdx + 1}`}
-                      className='h-9 flex-1 rounded-xl text-sm'
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') handleCancel();
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addOption();
-                        }
-                      }}
-                    />
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon-sm'
-                      className='text-muted-foreground hover:text-destructive size-8 shrink-0 rounded-lg opacity-70 group-hover/opt:opacity-100'
-                      disabled={!canRemoveOption}
-                      aria-label={`Remove option ${optIdx + 1}`}
-                      onClick={() => removeOption(opt.id)}
-                    >
-                      <Icons.close className='size-3.5' />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-
+          <SheetFooter className='border-t border-border'>
+            <div className='flex w-full flex-wrap items-center gap-2'>
               <Button
                 type='button'
-                variant='outline'
                 size='sm'
-                className='h-8 w-full rounded-xl border-dashed text-xs font-medium'
-                onClick={addOption}
+                className={cn(brandCtaClass, 'h-9 px-4')}
+                onClick={() => void handleSave()}
+                disabled={isSaving || !hasChanges || !editPrompt.trim()}
               >
-                <Icons.add className='size-3.5' />
-                Add option
-              </Button>
-            </div>
-          ) : null}
-
-          {editType === 'rating_scale' && question.validationRules ? (
-            <p className='text-muted-foreground rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs'>
-              Scale {question.validationRules.min}–
-              {question.validationRules.max}
-            </p>
-          ) : null}
-
-          <div className='flex flex-wrap items-center gap-2 border-t border-border pt-3'>
-            <Button
-              type='button'
-              size='sm'
-              className={cn(brandCtaClass, 'h-9 px-4')}
-              onClick={handleSave}
-              disabled={isSaving || !hasChanges || !editPrompt.trim()}
-            >
-              {isSaving ? (
-                <Icons.spinner className='size-3.5 animate-spin' />
-              ) : (
-                <Icons.check className='size-3.5' />
-              )}
-              Save
-            </Button>
-            <Button
-              type='button'
-              size='sm'
-              variant='ghost'
-              className='h-9 rounded-xl'
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            {hasChanges ? (
-              <span className='text-muted-foreground ml-auto text-[11px]'>
-                Unsaved changes
-              </span>
-            ) : (
-              <span className='text-muted-foreground ml-auto hidden text-[11px] sm:inline'>
-                Esc to cancel
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        'group relative flex items-start gap-3 px-3 py-3.5 transition-colors sm:gap-3.5 sm:px-5',
-        !readOnly && 'hover:bg-brand-soft/50'
-      )}
-    >
-      <span
-        className=' flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted font-mono text-[10px] font-bold tabular-nums text-foreground group-hover:bg-primary group-hover:text-primary-foreground'
-        aria-label={`Question ${index + 1}`}
-      >
-        Q{index + 1}
-      </span>
-
-      <div className='min-w-0 flex-1 space-y-2'>
-        <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-          <span className='inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-foreground'>
-            {TypeIcon ? <TypeIcon className='size-3' /> : null}
-            {typeMeta.label}
-          </span>
-          {question.isRequired ? (
-            <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-foreground'>
-              Required
-            </span>
-          ) : (
-            <span className='text-muted-foreground rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium'>
-              Optional
-            </span>
-          )}
-          <Badge
-            variant='secondary'
-            className={cn(
-              'ml-auto rounded-full border text-[10px] font-semibold',
-              sourceBadge.className
-            )}
-          >
-            {question.source !== 'manual' ? (
-              <Icons.sparkles className='mr-1 size-2.5' />
-            ) : null}
-            {sourceBadge.label}
-          </Badge>
-        </div>
-
-        {readOnly ? (
-          <div className='w-full text-left'>
-            <p className='text-[0.95rem] font-semibold leading-snug tracking-tight text-foreground'>
-              {question.promptText}
-            </p>
-            {question.helpText ? (
-              <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
-                {question.helpText}
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <button
-            type='button'
-            onClick={startEditing}
-            className='w-full rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          >
-            <p className='text-[0.95rem] font-semibold leading-snug tracking-tight text-foreground'>
-              {question.promptText}
-            </p>
-            {question.helpText ? (
-              <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
-                {question.helpText}
-              </p>
-            ) : null}
-          </button>
-        )}
-
-        {question.options && question.options.length > 0 ? (
-          <ul className='flex flex-wrap gap-1.5'>
-            {question.options.map((opt) => (
-              <li
-                key={opt.id}
-                className={cn(
-                  'inline-flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/85 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]',
-                  question.type === 'multiple_choice'
-                    ? 'rounded-lg'
-                    : 'rounded-full'
+                {isSaving ? (
+                  <Icons.spinner className='size-3.5 animate-spin' />
+                ) : (
+                  <Icons.check className='size-3.5' />
                 )}
+                Save
+              </Button>
+              <Button
+                type='button'
+                size='sm'
+                variant='ghost'
+                className='h-9 rounded-xl'
+                onClick={handleCancel}
+                disabled={isSaving}
               >
-                <span
-                  className={cn(
-                    'size-1.5 shrink-0 bg-brand',
-                    question.type === 'multiple_choice'
-                      ? 'rounded-[2px]'
-                      : 'rounded-full'
-                  )}
-                  aria-hidden
-                />
-                {opt.label}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {question.type === 'rating_scale' && question.validationRules ? (
-          <div className='flex flex-wrap items-center gap-1'>
-            {Array.from(
-              {
-                length:
-                  Math.min(
-                    7,
-                    (question.validationRules.max ?? 5) -
-                      (question.validationRules.min ?? 1) +
-                      1
-                  ) || 5
-              },
-              (_, i) => (question.validationRules?.min ?? 1) + i
-            ).map((n) => (
-              <span
-                key={n}
-                className='border-border bg-secondary flex size-6 items-center justify-center rounded-lg border font-mono text-[10px] font-semibold tabular-nums'
-              >
-                {n}
-              </span>
-            ))}
-            {(question.validationRules.max ?? 5) -
-              (question.validationRules.min ?? 1) +
-              1 >
-            7 ? (
-              <span className='text-muted-foreground text-[11px]'>
-                …{question.validationRules.max}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
-      {!readOnly ? (
-        <Button
-          type='button'
-          variant='outline'
-          size='sm'
-          className='border-border bg-card  h-8 shrink-0 rounded-xl px-2.5 text-xs opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
-          onClick={startEditing}
-        >
-          <Icons.edit className='size-3.5' />
-          <span className='hidden sm:inline'>Edit</span>
-        </Button>
-      ) : null}
-    </div>
+                Cancel
+              </Button>
+              {hasChanges ? (
+                <span className='ml-auto text-[11px] text-muted-foreground'>
+                  Unsaved changes
+                </span>
+              ) : null}
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

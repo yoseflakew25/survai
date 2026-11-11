@@ -248,13 +248,13 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
         <div className='space-y-6 lg:col-span-2'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              tone='primary'
+              tone='brand'
               title={
                 <div className='min-w-0'>
-                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-2xl'>
+                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                     Collect Responses
                   </h3>
-                  <p className='text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                  <p className='text-sm leading-snug text-brand-foreground/70'>
                     {isLive
                       ? 'Link and QR for respondents'
                       : 'Publish to unlock your collection link'}
@@ -264,9 +264,9 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
               badge={
                 <Badge
                   className={cn(
-                    'rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] text-[10px] font-semibold text-[var(--gold)]',
+                    'rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-[10px] font-semibold text-brand-foreground',
                     isPublished &&
-                      'border-[color-mix(in_srgb,var(--gold)_55%,transparent)] bg-[var(--gold)] text-[var(--primary)]'
+                      'border-transparent bg-primary text-primary-foreground'
                   )}
                 >
                   {isPublished ? 'Live' : isClosed ? 'Closed' : 'Not published'}

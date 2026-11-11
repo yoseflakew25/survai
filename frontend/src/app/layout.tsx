@@ -3,8 +3,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { fontVariables } from '@/components/themes/font.config';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
 import ThemeProvider from '@/components/themes/theme-provider';
+import { THEME_BOOTSTRAP_SCRIPT } from '@/components/themes/theme-bootstrap';
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
+import Script from 'next/script';
 import NextTopLoader from 'nextjs-toploader';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '../styles/globals.css';
@@ -57,15 +59,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={fontVariables}
     >
       <body className='bg-background overflow-x-hidden overscroll-none font-sans antialiased'>
+        <Script
+          id='theme-bootstrap'
+          strategy='beforeInteractive'
+          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
+        />
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
-          <ThemeProvider
-            attribute='class'
-            defaultTheme='light'
-            enableSystem
-            disableTransitionOnChange
-            enableColorScheme
-          >
+          <ThemeProvider defaultTheme='light' enableSystem>
             <Providers activeThemeValue={themeToApply}>
               <Toaster />
               {children}

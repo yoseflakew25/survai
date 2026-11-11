@@ -10,5 +10,6 @@ export const overviewQueryOptions = () =>
   queryOptions({
     queryKey: overviewKeys.detail(),
     queryFn: getOverview,
-    staleTime: 30_000
+    staleTime: 60_000,
+    refetchOnWindowFocus: false
   });

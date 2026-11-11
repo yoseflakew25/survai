@@ -33,13 +33,13 @@ export function LandingTrust() {
             }}
           />
           <div className='relative max-w-xl'>
-            <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-white sm:text-[2.1rem]'>
+            <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-primary-foreground sm:text-[2.1rem]'>
               Evidence you can{' '}
               <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
                 act on
               </span>
             </h2>
-            <p className='text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+            <p className='text-sm leading-relaxed text-primary-foreground/75'>
               Built for program, research, and policy teams who need answers —
               not another pile of responses with no clear next step.
             </p>

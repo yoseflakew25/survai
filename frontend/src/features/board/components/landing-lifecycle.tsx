@@ -128,7 +128,7 @@ export function LandingLifecycle() {
                 'h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors',
                 isActive
                   ? 'bg-[var(--gold)] font-semibold text-[var(--primary)] shadow-sm'
-                  : 'text-white/70 hover:text-[var(--gold)]'
+                  : 'text-primary-foreground/70 hover:text-[var(--gold)]'
               )}
             >
               {s.label}
@@ -148,10 +148,10 @@ export function LandingLifecycle() {
           <p className='font-mono text-[11px] font-medium tracking-wide text-[var(--gold)] uppercase'>
             Stage {active + 1} of {STEPS.length}
           </p>
-          <h3 className='font-display text-xl font-extrabold tracking-tight text-white'>
+          <h3 className='font-display text-xl font-extrabold tracking-tight text-primary-foreground'>
             {step.title}
           </h3>
-          <p className='mt-2 text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_50%,white)]'>
+          <p className='mt-2 text-sm leading-relaxed text-primary-foreground/70'>
             {step.body}
           </p>
         </div>

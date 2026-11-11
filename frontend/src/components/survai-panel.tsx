@@ -27,7 +27,7 @@ const panelTitleToneClass: Record<SurvaiPanelHeaderTone, string> = {
 
 const panelSubtitleToneClass: Record<SurvaiPanelHeaderTone, string> = {
   brand: 'text-brand-foreground/75',
-  primary: 'text-[color-mix(in_srgb,var(--gold)_55%,white)]',
+  primary: 'text-primary-foreground/75',
   soft: 'text-muted-foreground'
 };
 
@@ -37,16 +37,20 @@ const panelIconToneClass: Record<SurvaiPanelHeaderTone, string> = {
   primary:
     'border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-primary-foreground/12 text-primary-foreground shadow-none',
   soft:
-    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-white/70 text-primary shadow-none'
+    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card/80 text-primary shadow-none'
 };
 
-/** Meta chips on primary (teal) surfaces. */
+/** Meta chips on primary surfaces — uses primary-foreground so dark (primary≈brand) stays readable. */
 export const primaryMetaChipClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] px-2 py-1 text-[11px] text-[var(--gold)]';
+  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary-foreground)_12%,transparent)] px-2 py-1 text-[11px] text-primary-foreground';
 
-/** Meta chips on brand (green) surfaces. */
+/** Meta chips on brand (green) surfaces — brand-foreground, not primary (converges in dark). */
 export const brandMetaChipClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2 py-1 text-[11px] text-[var(--primary)]';
+  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2 py-1 text-[11px] text-brand-foreground';
+
+/** Frosted controls (inputs/selects) sitting on brand header bars. */
+export const onBrandControlClass =
+  'border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-background/80 text-brand-foreground placeholder:text-brand-foreground/50';
 
 /** Nested section index badge (primary fill). */
 export const sectionIndexClass =

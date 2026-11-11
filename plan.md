@@ -60,17 +60,18 @@ these two rules.
 
 | Decision | Choice |
 | --- | --- |
-| AI provider | **Gemini** (Google AI) via `google-genai` — OpenAI retired for this repo |
-| Auth (real) | **JWT + httpOnly cookies** — FastAPI issues short-lived access JWT + refresh token in cookies; API validates JWT on every protected route. Users/roles live in Postgres. |
-| Auth (frontend UX) | Custom auth pages + **Google Identity Services (GIS)** against FastAPI — no Better Auth. JWT+cookies remain the security model. |
+| AI provider | **CfA Bedrock sandbox primary** (LiteLLM OpenAI dialect → Amazon Bedrock via `gateway.sandbox.codeforafrica.org`) with **Gemini backup** via `google-genai`. All calls go through `app/ai/client.py`. |
+| Auth (real) | **JWT** — FastAPI issues short-lived access JWT + refresh token; API validates JWT on every protected route (cookie and/or `Authorization: Bearer`). Users/roles live in Postgres. |
+| Auth (frontend UX) | Custom auth pages + **Google Identity Services (GIS)** against FastAPI — no Better Auth. FE keeps access JWT **in memory** + refresh in **sessionStorage** (and still sends cookies where available). |
 | Deployment | Vercel (web) + Render/Railway (API) + managed Postgres |
-| Frontend UI | **shadcn/ui** + Tailwind |
+| Frontend UI | **shadcn/ui** + Tailwind; Operate chrome via `SurvaiPanel` (`tone`: soft \| primary \| brand) |
+| Brand palette | **Primary teal `#103344`** + **secondary/brand green `#22f187`** (`bg-brand`) — see `DESIGN.md` |
 | Frontend server state | **TanStack Query** (`@tanstack/react-query`) |
 | Frontend forms | **React Hook Form + Zod** (`zodResolver`) — every form |
 | Frontend client UI state | **Zustand** |
 | Validation / schemas (FE) | **Zod** |
 
-Frontend library choices above are **non-negotiable for new work**. Auth security model is JWT+cookies (§7); FE auth pages call FastAPI (email/OTP + Google GIS). See §2a.
+Frontend library choices above are **non-negotiable for new work**. Auth security model is JWT (§7); FE auth pages call FastAPI (email/OTP + Google GIS). See §2a.
 
 **Recommended defaults for everything the PRD leaves open** (swappable —
 override before building against them):
@@ -95,8 +96,9 @@ alternate library for any of these concerns, reject it and redirect here.
 | Concern | Required | Forbidden (do not add) |
 | --- | --- | --- |
 | UI primitives | **shadcn/ui** in `frontend/src/components/ui/` | MUI, Chakra, Ant Design, raw Radix-only kits that bypass shadcn |
-| Auth security | **JWT + httpOnly / Secure / SameSite cookies** (API is source of truth) | Access tokens in `localStorage` / `sessionStorage`; trusting client-only role claims |
-| Auth FE UX | Custom auth pages + **Google GIS** calling FastAPI auth routes | Clerk; a second auth backend that bypasses FastAPI JWT; tokens in `localStorage` |
+| Auth security | **JWT validated by FastAPI** (cookie and/or Bearer). Access JWT stays **in memory** only; refresh may use httpOnly cookie **and/or** `sessionStorage` (`survai:refresh_v1`) so SPA refresh survives reloads when third-party cookies are blocked | Access tokens in `localStorage`; trusting client-only role claims; a second identity store the API never sees |
+| Auth FE UX | Custom auth pages + **Google GIS** calling FastAPI auth routes | Clerk; a second auth backend that bypasses FastAPI JWT |
+| Panel chrome | **`SurvaiPanel` / `SurvaiPanelHeader`** tones: `soft` (default wash), `primary` (teal), `brand` (bold secondary green) | One-off header backgrounds that bypass the shared tone map |
 | Server / async data | **TanStack Query** | SWR, ad-hoc `useEffect` + `fetch` for feature data, React Query v3 APIs |
 | Forms | **React Hook Form + Zod** (`useForm` + `FormProvider` + `zodResolver`) | TanStack Form, Formik, uncontrolled `useState` form blobs for validated flows |
 | Client UI state | **Zustand** | Redux, Jotai, Recoil for new global UI state |
@@ -135,40 +137,44 @@ Agent-facing copies of this gate also live in:
 ### Frontend — `frontend/` (Next.js App Router; formerly planned as `apps/web`)
 - **Next.js 16 (App Router), TypeScript (strict mode), React 19**
 - Tailwind CSS v4 + **shadcn/ui**
-- **Auth UX:** Custom sign-in/up + OTP + Google GIS; cookies carry JWT/refresh from the API
+- **Theme:** `data-theme='vercel'` → teal primary `#103344` + brand green `#22f187` (`DESIGN.md`, `styles/themes/vercel.css`)
+- **Auth UX:** Custom sign-in/up + OTP + Google GIS; API client sends `credentials: 'include'` **and** `Authorization: Bearer` from in-memory access JWT; refresh token persisted in `sessionStorage`
 - **TanStack Query v5** (server state) + **Zustand** (local UI / wizard drafts)
 - **React Hook Form + Zod** for all forms (`FormProvider` + field components in `src/components/forms/fields`)
 - **nuqs** for URL search-param state (tables, filters, pagination)
-- API client: generated from the backend's OpenAPI schema via `openapi-typescript` (types) + a thin typed fetch wrapper — regenerate on every backend schema change; send credentials (cookies) on API calls
+- API client: typed fetch wrapper in `frontend/src/lib/api.ts` — cookies + Bearer; 401 → single-flight refresh retry
 - Charts: Recharts (distributions, cross-tabs)
 - Rich text: Tiptap (report section editing) when needed
 - Drag-and-drop: `@dnd-kit/*` (question/section reordering)
 - Icons: `@tabler/icons-react` **only through** `src/components/icons.tsx`
+- Panel chrome: `SurvaiPanel` / `SurvaiPanelHeader` (`tone='soft'|'primary'|'brand'`) + shared CTA classes
 
 ### Backend — `backend/` (Plan→Reports + Overview + Notifications + Org Assistant)
 - **FastAPI, Python 3.12+**
 - Pydantic v2 + pydantic-settings
 - SQLAlchemy 2.0 (async) + Alembic + `asyncpg` (SSL for managed Postgres)
 - **Clean architecture:** routes → services → repositories → models; DI via FastAPI `Depends`
-- Auth: **JWT + httpOnly cookies** — email OTP + **Google OAuth**; bcrypt passwords; refresh tokens in DB
-- Background jobs: **ARQ + Redis** — report generate returns 202 when `REDIS_URL` set; inline fallback otherwise
+- Auth: **JWT** (cookies + Bearer) — email OTP + **Google OAuth**; bcrypt passwords; refresh tokens in DB; **org seats** (Owner / Researcher / Viewer) + accept-invite
+- Background jobs: **ARQ + Redis** — report generate/export return 202 when `JOBS_USE_REDIS=true` + `REDIS_URL`; **inline by default**
 - Analytics: deterministic engine in `app/analytics/engine.py`
-- AI: **Gemini** (`app/ai/client.py`) + **HF FastEmbed** (`app/ai/embeddings.py`) for Org Assistant RAG
-- Report export: **fpdf2 PDF** + **stdlib OOXML DOCX**
-- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient` (incl. `tests/test_assistant.py`)
+- AI: **CfA Bedrock sandbox primary + Gemini backup** (`app/ai/client.py`) + **HF FastEmbed** (`app/ai/embeddings.py`) for Org Assistant RAG
+- Report export: **fpdf2 PDF** + **stdlib OOXML DOCX** + donor ZIP pack
+- Testing: `pytest`, `pytest-asyncio`, `httpx.AsyncClient` (incl. `tests/test_assistant.py`, `test_dicdo_features`, `test_branching_and_reports`)
 - Docker image bakes embedding model; GH Actions backend CI/CD
 
 ### Data & Infra
-- PostgreSQL (Aiven; Docker Compose locally) — Alembic through **`0016_org_assistant`**
-- Redis (Upstash / local) — optional ARQ for long report generation
+- PostgreSQL (Aiven; Docker Compose locally) — Alembic through **`0019_saved_analysis_chart_config`** (seats `0017`, collection/compare `0018`)
+- Redis (Upstash / local) — optional ARQ + short overview cache; not required for MVP
 - Object storage: Cloudflare R2 (or AWS S3) — still optional for MVP
 - Hosting: **Vercel** (web) + **Railway/Render** Docker (API); health `GET`/`HEAD` `/api/v1/health`
 - CI/CD: GitHub Actions; see `backend/RAILWAY.md`
 
 ### AI
-- Provider: **Google Gemini** via `google-genai` (structured JSON). Parameterize per feature (`GEMINI_MODEL_PLANNER`, `GEMINI_MODEL_BUILDER`, `GEMINI_MODEL_REVIEWER`, `GEMINI_MODEL_REPORT`, `GEMINI_MODEL_CHAT`, `GEMINI_MODEL_ASSISTANT`). Prefer `gemini-3.1-flash-lite` for structured JSON.
-- **Org RAG embeddings:** local Hugging Face via **FastEmbed** (`EMBEDDING_MODEL=BAAI/bge-small-en-v1.5`) — not Gemini. Pre-baked in Docker (`EMBEDDING_CACHE_DIR`).
-- Every LLM call goes through **`app/ai/client.py`**; embeddings through **`app/ai/embeddings.py`**.
+- **Primary:** Code for Africa LiteLLM gateway (`CFA_SANDBOX_*`) — OpenAI-compatible chat completions → Bedrock (default `bedrock-amazon-nova-lite-v1-0` per feature; CFA model fallbacks on 429/5xx).
+- **Backup:** Google Gemini via `google-genai` when CFA is unset, exhausted, or fails schema (`AI_FALLBACK_TO_GEMINI=true`). Prefer `gemini-3.1-flash-lite` for structured JSON; avoid hanging models on reviewer.
+- Parameterize per feature: `CFA_SANDBOX_MODEL_*` / `GEMINI_MODEL_*` (planner, builder, reviewer, report, chat, assistant).
+- **Org RAG embeddings:** local Hugging Face via **FastEmbed** (`EMBEDDING_MODEL=BAAI/bge-small-en-v1.5`) — not Gemini/CFA. Pre-baked in Docker (`EMBEDDING_CACHE_DIR`).
+- Every LLM call goes through **`app/ai/client.py`**; embeddings through **`app/ai/embeddings.py`**. Routes must never call vendors directly.
 
 ---
 
@@ -188,7 +194,7 @@ survai/
 │   │   ├── analytics/           # deterministic engine
 │   │   ├── jobs/                # ARQ worker
 │   │   └── api/v1/routes/       # health, auth, plans, surveys, reports, assistant, …
-│   ├── alembic/                 # through 0016_org_assistant
+│   ├── alembic/                 # through 0019_saved_analysis_chart_config
 │   ├── tests/
 │   ├── Dockerfile               # bakes HF embedding model
 │   └── README.md · RAILWAY.md
@@ -196,7 +202,8 @@ survai/
 └── .github/workflows/
 ```
 
-Frontend feature modules live under `frontend/src/features/` (incl. `assistant/`).
+Frontend feature modules live under `frontend/src/features/` (incl. `assistant/`,
+`team/`, `plans/` interview workspace, `overview/` lifecycle).
 
 ---
 
@@ -225,7 +232,7 @@ flowchart LR
     end
 
     subgraph AiLayer[AI orchestration — app/ai]
-      Client[Gemini structured client]
+      Client[CfA Bedrock primary / Gemini backup]
       Embed[HF FastEmbed embeddings]
       Validator[Pydantic schema validator]
       Reconciler[Metric reconciliation check]
@@ -291,11 +298,12 @@ CREATE TABLE organizations (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- MVP roles (VARCHAR in Alembic; values below). PRD §5 multi-seat personas
--- (researcher/viewer staff seats) are deferred until multi-user orgs ship.
+-- Live roles (VARCHAR / non-native enum in Alembic). Owner signup uses
+-- organization; staff seats use researcher | viewer (Alembic 0017+).
 -- system_admin = SurvAI platform operators (user management, full access)
--- organization = org workspace accounts (Planner → Report; default for signup)
-CREATE TYPE user_role AS ENUM ('system_admin', 'organization');
+-- organization = org Owner (invite/revoke seats; full mutate; default signup)
+-- researcher / viewer = invited seats inside the org
+CREATE TYPE user_role AS ENUM ('system_admin', 'organization', 'researcher', 'viewer');
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -580,38 +588,41 @@ CREATE TABLE audit_log (
 **Security model: JWT + cookies.** Frontend auth pages (email/OTP + Google GIS)
 call FastAPI only — FastAPI is the issuer/validator of credentials.
 
-### Tenancy language (MVP)
+### Tenancy language (live)
 
-- **Organization** = the account / workspace that owns surveys. Signup creates
-  one org login that does **everything** (no staff seats yet).
-- **User** (DB) = credential row for that org (1:1 for MVP). Not a separate
-  “team member” product concept yet.
+- **Organization** = the account / workspace that owns surveys.
+- **User** (DB) = seat in an org — **Owner** (`organization`), **Researcher**,
+  or **Viewer** (email invite via Account → Team / `org_invites`).
 - **Respondent** = form-filler on public collection links — **no account**,
   never hits `/auth/register`.
 
-### Real auth (API) — **implemented in `backend/`** (org accounts)
+### Real auth (API) — **implemented in `backend/`** (org accounts + seats)
 
-Live routes under `/api/v1`: `POST /auth/register` (organization account →
+Live routes under `/api/v1`: `POST /auth/register` (organization Owner →
 OTP emailed), `POST /auth/verify-email`, `POST /auth/resend-verification`,
 `/auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me`,
 `POST /auth/forgot-password`, `POST /auth/reset-password`,
-`POST /auth/google` (Google Identity credential → same cookies).
+`POST /auth/google` (Google Identity credential → same token pair),
+`POST /auth/accept-invite` (invited Researcher/Viewer seats).
 
-- **Signup flow:** register creates org + user with `email_verified=false` →
+- **Signup flow:** register creates org + Owner user with `email_verified=false` →
   6-digit OTP (hashed in `email_verification_otps`, ~10 min TTL) →
   `verify-email` sets `email_verified=true` and issues tokens. Login is
   rejected until verified.
 - **Login flow:** verify **bcrypt** hash → short-lived JWT access
   token (≈15 min) + opaque refresh token (stored hashed in `refresh_tokens`,
   rotated on use). Access JWT carries `sub` (user id) and `role`.
-- **Transport:** tokens set as **httpOnly** cookies *and* returned in JSON so
-  the Next.js client can use cookies (`credentials: 'include'`) and/or Bearer.
-  Prefer cookies long-term; **do not** persist access tokens in
-  `localStorage` / `sessionStorage`.
+- **Transport:** tokens set as **httpOnly** cookies *and* returned in JSON.
+  The Next.js client uses `credentials: 'include'` **and**
+  `Authorization: Bearer <access>` from an **in-memory** access JWT (required
+  when cookies are blocked across localhost/preview origins). Refresh token is
+  kept in memory **and** `sessionStorage` (`survai:refresh_v1`) so
+  `/auth/refresh` can rotate without relying solely on cookies. **Never** put
+  the access JWT in `localStorage`.
 - **Server-side authorization:** FastAPI deps (`get_current_user`,
-  `require_roles`) check JWT then DB user row.
-- **Refresh:** cookie or `{ refresh_token }` body; rotates refresh + issues new
-  access token.
+  `require_roles`) accept cookie JWT or Bearer, then load the DB user row.
+- **Refresh:** cookie and/or `{ refresh_token }` body; rotates refresh + issues
+  new access token; FE single-flights 401→refresh→retry in `lib/api.ts`.
 - **Password recovery:** `forgot-password` issues a one-time hashed token in
   `password_reset_tokens` (prior unused tokens invalidated); email carries a
   link to `{FRONTEND_URL}{PASSWORD_RESET_PATH}?token=…`. `reset-password`
@@ -625,36 +636,34 @@ OTP emailed), `POST /auth/verify-email`, `POST /auth/resend-verification`,
 ### Frontend UX (auth pages + Google GIS)
 
 - Live pages: `/auth/sign-in`, `/auth/sign-up` (form → OTP step),
-  `/auth/forgot-password`, `/auth/reset-password?token=…` — RHF + Zod;
-  Google button posts ID token to `POST /auth/google`.
-- Prefer cookies (`credentials: 'include'`); **do not** put access tokens in
-  `localStorage`.
-- Next.js layout gates for `/dashboard/*` should read the same cookie session
-  the API trusts.
+  `/auth/forgot-password`, `/auth/reset-password?token=…`,
+  `/auth/accept-invite` — RHF + Zod; Google button posts ID token to
+  `POST /auth/google`.
+- Client stores access JWT in memory + refresh in `sessionStorage`; always
+  send cookies *and* Bearer on API calls (`lib/api.ts` / `auth-context.tsx`).
+- Dashboard gates use the same auth context (Bearer + refresh) the API trusts.
 - **Do not:** reintroduce Clerk or a parallel identity store the API never sees.
 
-### Roles & public routes (MVP RBAC — live)
-
-MVP uses **two roles** (multi-seat PRD personas deferred until staff invites):
+### Roles & public routes (RBAC — live)
 
 | Role | Who | Access |
 | --- | --- | --- |
 | `system_admin` | SurvAI operators (seeded from `FIRST_SUPERUSER_*`) | Full access + `/users` admin routes; `is_superuser=true` |
-| `organization` | Every org signup / non-platform account | Org workspace: Plan→Report + Overview + Assistant |
+| `organization` | **Owner** — org signup | Full mutate + Account → Team invite/revoke; Plan→Report + Overview + Assistant |
+| `researcher` | Invited seat | Edit/publish/build/report; no seat management |
+| `viewer` | Invited seat | Read analytics/reports/assistant; mutate CTAs hidden in UI |
 
-- **Signup** always creates `role=organization` (never `system_admin`).
+- **Signup** always creates `role=organization` (Owner); never `system_admin`.
+- **Invites:** Owner-only `org_invites` → email → `POST /auth/accept-invite`.
 - **Bootstrap:** on API startup, `ensure_first_superuser()` creates/syncs the
-  configured system admin and demotes every other account to `organization`.
+  configured system admin.
 - **Deps:** `require_roles(...)` / `AdminUser` gate admin routes to
-  `system_admin` (superusers always pass).
+  `system_admin` (superusers always pass); org mutate routes reject `viewer`.
 - **Public routes:** only `/api/v1/public/*` collection endpoints (§11) are
   unauthenticated, scoped to one published `survey_version_id`.
 - **Password policy:** bcrypt via passlib, min length enforced client- and
   server-side; no password fields in `ai_generation_logs` or `audit_log`
-  input_meta.
-
-**Later (post-MVP seats):** reintroduce PRD §5 staff roles (`researcher`,
-`viewer`) *inside* an organization without renaming `system_admin`.
+  input_meta. Security page (`/dashboard/security`) is available to all seats.
 
 ---
 
@@ -788,35 +797,25 @@ reconciliation for reports generated under an older version.
 
 ### Call pattern (every service function)
 
-```python
-async def call_structured(feature: str, system: str, user: str,
-                           schema: type[BaseModel], user_id: UUID) -> BaseModel:
-    start = time.monotonic()
-    resp = await openai_client.responses.create(
-        model=MODEL_BY_FEATURE[feature],
-        input=[{"role": "system", "content": system},
-               {"role": "user", "content": user}],
-        response_format={"type": "json_schema",
-                          "json_schema": {"name": schema.__name__,
-                                          "schema": schema.model_json_schema(),
-                                          "strict": True}},
-    )
-    try:
-        result = schema.model_validate_json(resp.output_text)
-    except ValidationError as e:
-        await log_ai_call(feature, user_id, status="schema_validation_failed", error=str(e))
-        raise
-    await log_ai_call(feature, user_id, status="success",
-                       latency_ms=int((time.monotonic() - start) * 1000),
-                       tokens_input=resp.usage.input_tokens,
-                       tokens_output=resp.usage.output_tokens)
-    return result
-```
+All structured calls go through `app/ai/client.py` (`call_structured` /
+streaming helpers). **Do not** call CfA or Gemini from routes/services.
 
-Retry policy: on `schema_validation_failed`, retry once with the validation
-error appended to the user prompt ("your previous response failed schema X
-because Y — fix and resend"); on second failure, surface a clear error to the
-UI rather than silently degrading.
+Conceptual flow (implementation detail lives in the client):
+
+1. Resolve feature model + timeouts (`CFA_SANDBOX_MODEL_*` or `GEMINI_MODEL_*`).
+2. Prefer **CfA** OpenAI-dialect chat completions when `CFA_SANDBOX_API_KEY`
+   is set (`AI_PROVIDER=cfa`); try CFA model fallbacks on 429/5xx.
+3. On CFA failure / unset key (and `AI_FALLBACK_TO_GEMINI`), call **Gemini**
+   structured JSON via `google-genai`.
+4. Validate with the feature Pydantic schema; log to `ai_generation_logs`
+   (provider, model, prompt_version, latency, token usage when available).
+5. On `schema_validation_failed`, retry once with the validation error
+   appended; on second failure, surface a clear error to the UI — never
+   silently degrade.
+
+Streaming (plan interview, assistant messages) uses the same gateway with
+token/delta iterators; numbers still come only from structured tools /
+`AnalyticsSnapshot`, never from free-text invention.
 
 ---
 
@@ -1085,12 +1084,36 @@ EMAILS_FROM_EMAIL=                # typically same as SMTP_USER for Gmail
 EMAILS_FROM_NAME=SurvAI
 # RESEND_API_KEY=                 # optional alternative to SMTP
 
-# Later:
+# AI — CfA Bedrock sandbox primary, Gemini backup (see app/ai/client.py)
+AI_PROVIDER=cfa
+AI_FALLBACK_TO_GEMINI=true
+CFA_SANDBOX_BASE_URL=https://gateway.sandbox.codeforafrica.org
+CFA_SANDBOX_API_KEY=
+# CFA_SANDBOX_KB_PRIVATE=
+# CFA_SANDBOX_KB_SHARED=
+# CFA_SANDBOX_MODEL_PLANNER=bedrock-amazon-nova-lite-v1-0
+# CFA_SANDBOX_MODEL_BUILDER=bedrock-amazon-nova-lite-v1-0
+# CFA_SANDBOX_MODEL_REVIEWER=bedrock-amazon-nova-lite-v1-0
+# CFA_SANDBOX_MODEL_REPORT=bedrock-amazon-nova-lite-v1-0
+# CFA_SANDBOX_MODEL_CHAT=bedrock-amazon-nova-lite-v1-0
+# CFA_SANDBOX_MODEL_ASSISTANT=bedrock-amazon-nova-lite-v1-0
+# CFA_SANDBOX_MODEL_FALLBACKS=bedrock-amazon-nova-micro-v1-0,bedrock-amazon-nova-lite-v1-0,...
+
+GEMINI_API_KEY=
+# GEMINI_MODEL_PLANNER=gemini-3.1-flash-lite
+# GEMINI_MODEL_BUILDER=gemini-3.1-flash-lite
+# GEMINI_MODEL_REVIEWER=gemini-3.1-flash-lite
+# GEMINI_MODEL_REPORT=gemini-3.1-flash-lite
+# GEMINI_MODEL_CHAT=gemini-3.1-flash-lite
+# GEMINI_MODEL_ASSISTANT=gemini-3.1-flash-lite
+
+EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+# EMBEDDING_CACHE_DIR=   # set in Docker to pre-baked FastEmbed cache
+
+# Jobs — inline by default; Redis opt-in only
+JOBS_USE_REDIS=false
 # REDIS_URL=
-# GEMINI_API_KEY=
-# GEMINI_MODEL_*=
-# EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
-# EMBEDDING_CACHE_DIR=
+# OVERVIEW_CACHE_TTL_SECONDS=30
 
 # --- frontend/.env ---
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -1107,14 +1130,14 @@ Mapping PRD §15 onto concrete deliverables:
 
 | Week | PRD focus | Technical milestones |
 | --- | --- | --- |
-| 1 | Discovery + architecture | ✅ Repo + auth scaffold; JWT+cookies; Aiven Postgres; MVP RBAC; email OTP verify + forgot/reset password UI; branded SMTP/Resend mail; backend CI/CD. Next: full §6 domain Alembic; FE↔API auth without mock/sessionStorage; AI client skeleton (§8) |
-| 2 | Planner + survey model | PLN-01–05 fully working; `surveys`/`sections`/`questions` CRUD; plan→survey handoff |
-| 3 | Builder | BLD-01–08; drag-and-drop reorder; live preview; conditional logic DSL (draft, unconfirmed) |
-| 4 | Reviewer + collection | REV-01–06; `survey_versions` publish flow; public collection routes COL-01–05 |
-| 5 | Analytics engine | §10 engine + fixture-based reconciliation tests; ANL-01–06 endpoints + dashboard UI |
-| 6 | Report generation | §9 grounding/reconciliation live; RPT-01–03; report workspace UI |
-| 7 | Report chat + hardening | RPT-04; export pipeline (§13); permissions audit; error-state UI for every async job |
-| 8 | Pilot + polish | DICDO user testing against real/representative data; fix list; docs; demo script |
+| 1 | Discovery + architecture | ✅ Done — repo, JWT auth, Aiven Postgres, RBAC, OTP + forgot/reset, SMTP/Resend, CI/CD |
+| 2 | Planner + survey model | ✅ Done — PLN-01–05; plan interview chat; plan→survey handoff |
+| 3 | Builder | ✅ Done — BLD-01–08 incl. skip/branch confirm UX + preview |
+| 4 | Reviewer + collection | ✅ Done — REV-01–06; publish versions; COL-01–05 + quota/share pack |
+| 5 | Analytics engine | ✅ Done — §10 engine; ANL-01–06; saved views; baseline/endline compare |
+| 6 | Report generation | ✅ Done — §9 grounding; RPT-01–03; PDF/DOCX/donor ZIP |
+| 7 | Report chat + hardening | ✅ Done — RPT-04; ARQ opt-in; notifications; multi-seat RBAC |
+| 8 | Pilot + polish | 🔄 In progress — Org Assistant + CfA AI + Operate brand chrome shipped; staging smoke + DICDO pilot polish remain |
 
 ## 18a. Frontend UI implementation notes (update this section as the UI progresses)
 
@@ -1125,23 +1148,34 @@ Current UI reality is tracked in `status.md`. Stack enforcements are in **§2a**
 — follow those for every new frontend change.
 
 - **Stack gate.** New UI must use shadcn + TanStack Query + RHF/Zod + Zustand.
-  Auth security = JWT+cookies (§7). Forms already migrated off TanStack Form;
-  do not reintroduce it. Google OAuth is out of MVP (email/password + OTP only).
-- **Nav and shell.** Sidebar nav is driven by `src/config/nav-config.ts`; every
-  nav icon key must exist in `src/components/icons.tsx` before it lands.
+  Auth = JWT via Bearer (in-memory access) + refresh `sessionStorage` + cookies
+  (§7). Forms already migrated off TanStack Form; do not reintroduce it.
+  Google GIS is **live** alongside email/password + OTP.
+- **Brand chrome.** Primary teal `#103344`, bold secondary/brand green
+  `#22f187`. Use `SurvaiPanelHeader` tones: `brand` for lead section headers
+  (overview, plans, review, collect, analytics, reports, assistant, account,
+  team); `primary` sparingly for dark teal shells; `soft` for quiet washes.
+  Shared CTAs: `brandCtaClass` / `softActionClass` in `survai-panel.tsx`.
+  User chat bubbles → `bg-primary`; do not invent one-off header fills.
+- **Nav and shell.** Sidebar: Dashboard, Surveys, Assistant, Account (Owner),
+  Security (all seats) — `src/config/nav-config.ts`; every nav icon key must
+  exist in `src/components/icons.tsx` before it lands.
 - **Survey module consistency.** Shared **pill nav**: Plan → Review → Collect →
   Respondents → Analytics → Report, plus **All surveys** (outline) on the right.
   There is **no Survey Workspace hub** — `/dashboard/surveys/[id]` redirects to
   `/plan`. Collect CTA → Respondents; Respondents CTA → Analytics; Analytics CTA
   → Reports.
 - **Respondents.** Live API table + detail sheet; brand CTA to analytics.
-- **Live vs mock.** Auth, plans, builder, review, collect, respondents,
-  analytics, and **Reports** (generate/chat/PDF/DOCX) are live. PDF ships via
-  fpdf2; DOCX via stdlib OOXML. Wire new data with
+- **Overview.** KPIs + response activity + **lifecycle funnel**
+  (`lifecycle-funnel.tsx`) — stage counts from overview API.
+- **Live vs mock.** Auth, plans (incl. interview chat at `/surveys/new`),
+  builder (skip/branch), review, collect (quota/share pack), respondents,
+  analytics (compare + saved views), reports (generate/chat/PDF/DOCX/donor ZIP),
+  assistant (SSE), team invites, notifications — all live. Wire new data with
   `api/types → service → queries` + TanStack Query.
-- **Gemini models.** Prefer `gemini-3.1-flash-lite` for structured JSON
-  (planner/builder/reviewer). `gemini-3.8-flash` has been observed to hang on
-  reviewer structured output — keep it out of `GEMINI_MODEL_REVIEWER`.
+- **AI models (FE-facing).** Backend chooses CfA vs Gemini; FE only shows
+  progress/errors. Prefer `gemini-3.1-flash-lite` when Gemini is the active
+  provider. Avoid hanging models on reviewer structured output.
 
 ---
 
@@ -1223,12 +1257,20 @@ will shape config, not architecture, once answered:
 When picking up a UI task, start from these files instead of inferring structure
 from screenshots or older sessions:
 
+- `DESIGN.md` — palette (teal primary + brand green) and type roles
+- `frontend/src/styles/themes/vercel.css` — CSS tokens (`data-theme='vercel'`)
+- `frontend/src/components/survai-panel.tsx` — panel tones, CTAs, brand chrome
 - `frontend/src/config/nav-config.ts` — sidebar/nav items and their icon keys
 - `frontend/src/components/icons.tsx` — icon registry (`Icons` record)
 - `frontend/src/components/layout/app-sidebar.tsx` — sidebar renderer
+- `frontend/src/lib/api.ts` + `frontend/src/lib/auth-context.tsx` — Bearer + refresh session
 - `frontend/src/hooks/use-logo.ts` — logo path/alt logic
 - `frontend/src/app/dashboard/surveys/[surveyId]/page.tsx` — redirects to `/plan` (no hub)
 - `frontend/src/features/surveys/components/survey-pill-nav.tsx` — workflow tabs + All surveys
+- `frontend/src/features/plans/components/plan-generator-workspace.tsx` — new-survey interview chat
+- `frontend/src/features/overview/components/lifecycle-funnel.tsx` — overview lifecycle stages
+- `frontend/src/features/team/components/team-panel.tsx` — Account → Team
+- `frontend/src/features/profile/components/profile-view-page.tsx` — Account sections
 - `frontend/src/app/dashboard/surveys/[surveyId]/respondents/page.tsx` — respondents shell + skeleton
 - `frontend/src/features/respondents/components/respondents-view.tsx` — respondents UI
 - `frontend/src/features/respondents/components/columns.tsx` — respondents table columns + header filters
@@ -1237,72 +1279,76 @@ from screenshots or older sessions:
 - `frontend/.cursor/rules/frontend-stack.mdc` — stack enforcement rule (§2a)
 
 `plan.md` is the architectural source of truth; `status.md` is the current
-implementation snapshot (frontend + backend). If they disagree, status.md is
-usually the more recent picture of what is running. For library choice
-conflicts, **§2a wins**.
+implementation snapshot (frontend + backend). Keep both dates in sync when
+shipping milestones. For library choice conflicts, **§2a wins**.
 
 ---
 
-## 23. Implementation Status (as of 6 November 2026)
+## 23. Implementation Status (as of 11 November 2026)
 
 > Tracks frontend + backend. **Plan → Reports is live end-to-end.** **Org
-> Assistant (RAG + structured tools)** is live. **DICDO high-value pack
+> Assistant (RAG + structured tools + SSE)** is live. **DICDO high-value pack
 > live:** multi-seat (Owner/Researcher/Viewer), collection quota + share pack,
-> donor ZIP export, baseline/endline compare. Notifications + Google OAuth.
-> HF FastEmbed (Docker-baked). Deploy: Vercel FE + Railway/Render API. See
-> `status.md`.
+> donor ZIP export, baseline/endline compare, skip/branch (BLD-08), saved
+> analysis views, plan interview chat. **AI:** CfA Bedrock sandbox primary +
+> Gemini backup. **Design:** teal primary + bold brand-green panel headers /
+> CTAs. Notifications + Google OAuth. HF FastEmbed (Docker-baked). Deploy:
+> Vercel FE + Railway/Render API. See `status.md`.
 
 ### ✅ Completed — Backend (`backend/`)
 
 | Module | Status | Notes |
 | --- | --- | --- |
 | **Scaffold** | ✅ Done | FastAPI, clean arch, DI, CORS, Docker Compose, `scripts/start.sh` |
-| **Auth API (§7)** | ✅ Done | email OTP + **Google OAuth**; JWT cookies; forgot/reset; `DELETE /users/me`; **accept-invite** |
+| **Auth API (§7)** | ✅ Done | email OTP + **Google OAuth**; JWT cookies + Bearer; forgot/reset; `DELETE /users/me`; **accept-invite** |
 | **Email delivery** | ✅ Done | SMTP and/or Resend; `dev_code` / `dev_invite_url` when mail unconfigured |
-| **AI gateway + Planner** | ✅ Done | Gemini `app/ai/client.py`; plans CRUD + generate (`planner_v1`) |
-| **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate |
-| **Reviewer AI** | ✅ Done | review + findings; prefer `gemini-3.1-flash-lite` |
-| **Collection** | ✅ Done | publish/close; versions; public GET/submit; **quota + closes_at** |
-| **Respondents / Analytics / Reports / Overview** | ✅ Done | deterministic engine; §9 reconciliation; PDF/DOCX; **export-pack ZIP**; KPIs |
+| **AI gateway** | ✅ Done | **CfA LiteLLM/Bedrock primary** + **Gemini backup** in `app/ai/client.py`; per-feature models + fallbacks |
+| **Planner** | ✅ Done | plans CRUD + generate (`planner_v1`); **interview SSE** (`planner_interview_v1`) |
+| **Builder AI** | ✅ Done | surveys/sections/questions; from-plan / generate / section regenerate; **conditional_logic** confirm |
+| **Reviewer AI** | ✅ Done | review + findings; structured schema; Gemini backup prefers `gemini-3.1-flash-lite` |
+| **Collection** | ✅ Done | publish/close; versions; public GET/submit; **quota + closes_at**; skip inactive requireds |
+| **Respondents / Analytics / Reports / Overview** | ✅ Done | deterministic engine; §9 reconciliation; PDF/DOCX; **export-pack ZIP**; KPIs + lifecycle stages |
+| **Saved analyses** | ✅ Done | CRUD + `chart_config`; report create can freeze filtered metrics |
 | **Compare** | ✅ Done | `instrument_family_id` / `wave_label`; duplicate-as-endline; prompt-matched compare |
-| **Notifications** | ✅ Done | in-app feed; lifecycle emitters |
-| **Org Assistant** | ✅ Done | Alembic **`0016`**; RAG (HF embeddings) + tools; `/assistant/*`; reindex |
+| **Notifications** | ✅ Done | in-app feed; lifecycle emitters; deep-links (`?respondent=`, `?reportId=`) |
+| **Org Assistant** | ✅ Done | Alembic **`0016`**; RAG (HF embeddings) + tools; `/assistant/*` + **SSE stream**; reindex |
 | **Org seats** | ✅ Done | Alembic **`0017`**; researcher/viewer; `org_invites`; owner-only invite/revoke |
-| **Embeddings** | ✅ Done | `app/ai/embeddings.py` + FastEmbed; not Gemini |
-| **ARQ + Redis (§14)** | ✅ Done | report 202 + poll when Redis opt-in; inline default (`JOBS_USE_REDIS=false`) |
+| **Embeddings** | ✅ Done | `app/ai/embeddings.py` + FastEmbed; not Gemini/CFA |
+| **ARQ + Redis (§14)** | ✅ Done | report generate/export 202 + poll when Redis opt-in; inline default (`JOBS_USE_REDIS=false`) |
 | **Integrity locks / RBAC** | ✅ Done | plan↔survey; publish locks; owner \| researcher \| viewer |
-| **Postgres** | ✅ Live | Aiven (+ Railway/Render); Alembic through **`0018_collection_compare`** |
-| **Health / Tests / CI** | ✅ Done | health GET+HEAD; pytest incl. `test_dicdo_features` + `test_assistant`; GH Actions |
+| **Postgres** | ✅ Live | Aiven (+ Railway/Render); Alembic through **`0019_saved_analysis_chart_config`** |
+| **Health / Tests / CI** | ✅ Done | health GET+HEAD; pytest incl. `test_dicdo_features`, `test_branching_and_reports`, `test_assistant`; GH Actions |
 
 ### ✅ Completed — Frontend
 
 | Module | Status | Notes |
 | --- | --- | --- |
-| **Auth UI** | ✅ Done | Email/password + OTP + **Google GIS** + **accept-invite** |
+| **Auth UI** | ✅ Done | Email/password + OTP + **Google GIS** + **accept-invite**; Bearer + `sessionStorage` refresh |
 | **Plans → Reports** | ✅ Live | Full lifecycle pill nav + activity modal |
-| **Overview** | ✅ Live | KPIs + response activity |
-| **Assistant** | ✅ Live | `/dashboard/assistant` threads + markdown chat + citations |
-| **Team** | ✅ Live | Account → Team invites; role badge on org switcher |
+| **Plan interview** | ✅ Live | `/dashboard/surveys/new` chat SSE + brief sidebar + localStorage draft |
+| **Overview** | ✅ Live | KPIs + response activity + **lifecycle funnel** |
+| **Assistant** | ✅ Live | `/dashboard/assistant` threads + markdown chat + citations + SSE |
+| **Team / Account** | ✅ Live | Account → Team invites; Security for all seats; **brand** section headers |
 | **Collect** | ✅ Live | Quota/close settings; share pack print; quota progress |
-| **Reports** | ✅ Live | PDF + Word + **donor pack ZIP** |
-| **Analytics compare** | ✅ Live | Duplicate as endline + side-by-side table |
-| **Notifications** | ✅ Live | Header drawer |
-| **Design chrome** | ✅ Live | Launchpot light theme / `SurvaiPanel` / brand CTAs |
-| **Forms / Query** | ✅ Done | RHF+Zod; TanStack Query |
-| **Playwright / smoke** | ✅ Soft | needs staging credentials |
+| **Builder skip/branch** | ✅ Live | Multi-rule AND/OR editor; preview; confirm/clear |
+| **Reports** | ✅ Live | PDF + Word + **donor pack ZIP**; `?reportId=` deep-link |
+| **Analytics** | ✅ Live | Compare table + **saved views** / crosstab `chart_config` |
+| **Notifications** | ✅ Live | Header drawer; clickable deep-links |
+| **Design chrome** | ✅ Live | Teal primary `#103344` + brand green `#22f187`; `SurvaiPanel` tones (`soft`/`primary`/`brand`); brand CTAs; user bubbles `bg-primary` |
+| **Forms / Query** | ✅ Done | RHF+Zod; TanStack Query; AuthQueryBoundary for 401 UX |
+| **Playwright / smoke** | Soft | scripts green locally; needs staging `SMOKE_*` / `E2E_*` |
 
 ### 🔄 Soft / next
 
 | Module | Status | What's Left |
 | --- | --- | --- |
-| **Assistant SSE** | ✅ Done | `POST …/messages/stream` + FE progressive UI |
-| **Export ARQ** | ✅ Done | Report export 202 + poll when Redis set; `/health` jobs probe |
-| **Pilot smoke** | ✅ Soft | Scripts + Playwright cover assistant; need staging `SMOKE_*`/`E2E_*` |
-| **Prod Redis** | Soft | Confirm Upstash `REDIS_URL` where async jobs desired |
+| **Pilot smoke** | Soft | Scripts + Playwright cover assistant; need staging `SMOKE_*`/`E2E_*` |
+| **Prod Redis** | Soft | Confirm Upstash `REDIS_URL` only where async jobs desired |
 | **Multi-org switcher / SSO** | Soft | Still single-org per user; no custom role matrices |
 | **AI compare narratives** | Soft | Out of scope for this pass |
 | **pgvector** | Soft | Only if chunk volume outgrows JSON cosine |
 | **CSRF** | Soft | With `SameSite=None` cross-site cookies |
+| **Plan interview draft** | Soft | Optional server-side persistence (today: localStorage) |
 
 ---
 
@@ -1317,47 +1363,36 @@ frontend/src/
 │   ├── dashboard/
 │   │   ├── layout.tsx                   # sidebar + topbar shell
 │   │   ├── page.tsx                     # overview redirect
-│   │   ├── overview/                    # @pie_stats, @surveys parallel routes
+│   │   ├── overview/                    # KPIs, activity, lifecycle funnel
+│   │   ├── assistant/                   # org assistant chat
 │   │   ├── surveys/
 │   │   │   ├── page.tsx                 # surveys list with data table
+│   │   │   ├── new/page.tsx             # plan interview workspace
 │   │   │   └── [surveyId]/
-│   │   │       ├── review/page.tsx      # survey review + inline editing
-│   │   │       ├── collect/page.tsx     # publish + collection link
-│   │   │       ├── analytics/page.tsx   # charts + cross-tabs
-│   │   │       └── reports/page.tsx     # report editor + chat
+│   │   │       ├── plan/ · review/ · collect/
+│   │   │       ├── respondents/ · analytics/ · reports/
 │   │   ├── plans/
 │   │   │   ├── page.tsx                 # plans list
 │   │   │   └── [planId]/page.tsx        # plan editor (review + edit)
-│   │   ├── settings/page.tsx            # organization settings
+│   │   ├── security/page.tsx            # password change (all seats)
 │   │   ├── notifications/page.tsx       # notifications list
-│   │   └── profile/page.tsx             # user profile
+│   │   └── profile/[[...profile]]/      # Account (Owner): org / team / danger
 │   └── s/[versionId]/                   # public respondent collection
 ├── features/
-│   ├── auth/                            # login/register forms
-│   ├── builder/                         # survey types, mock service, queries
-│   ├── reviewer/                        # findings list, quality score, queries
-│   ├── analytics/                       # summary stats, distributions, cross-tabs
-│   ├── reports/                         # report view + chat
-│   ├── collect/                         # collect view (publish/link)
-│   ├── plans/                           # plan editor, editable list, sections
-│   ├── surveys/                         # survey tables, new survey dialog
-│   ├── overview/                        # live KPIs + response activity chart + recent surveys
-│   ├── settings/                        # settings components
-│   ├── notifications/                   # notification components
-│   └── profile/                         # profile components
+│   ├── auth/ · assistant/ · builder/ · reviewer/
+│   ├── analytics/ · reports/ · collect/ · respondents/
+│   ├── plans/                           # editor + plan-generator-workspace
+│   ├── surveys/ · overview/ · team/
+│   ├── notifications/ · profile/
 ├── components/
 │   ├── ui/                              # shadcn/ui primitives
 │   ├── layout/                          # page-container, app-sidebar
+│   ├── survai-panel.tsx                 # panel tones + brand CTAs
 │   ├── breadcrumbs.tsx
 │   └── icons.tsx                        # tabler icon mappings
-├── hooks/
-│   └── use-undo-redo.ts                 # generic undo/redo hook
-├── styles/
-│   └── themes/                          # CSS custom properties
-├── config/
-│   └── nav-config.ts                    # sidebar navigation items
-└── lib/
-    └── utils.ts                         # cn() helper
+├── styles/themes/vercel.css             # teal + brand green tokens
+├── config/nav-config.ts
+└── lib/api.ts · auth-context.tsx · utils.ts
 ```
 
 ### User Flow — Implemented
@@ -1382,12 +1417,22 @@ frontend/src/
 
 ### Styling System
 
-- **Primary palette:** `ultrasonic-blue` (purple: #6722dd)
-- **Card style:** Outline (border, no shadow unless hover)
-- **Progress indicators:** Rounded step badges with ✓/number
-- **Primary action cards:** `bg-primary` + white grid pattern + secondary button
-- **Dark mode:** Full support via CSS custom properties
-- **Sidebar:** Collapsible with logo variants, primary-colored icons
+- **Primary:** teal `#103344` (`bg-primary` / `--primary`) — dark chrome, user chat bubbles, operate shells
+- **Brand / secondary:** green `#22f187` (`bg-brand` / `--brand`) — bold section headers (`tone='brand'`), CTAs, accents
+- **Soft wash:** `--brand-soft` (`#e8fcf2`) — quiet header default (`tone='soft'`)
+- **Surfaces:** white cards, outline borders, restrained shadow; Launchpot board density motifs kept where useful
+- **Type:** Geist (UI) + Bricolage Grotesque (display) — see `DESIGN.md`
+- **Dark mode:** CSS custom properties under `[data-theme='vercel']`
+- **Sidebar:** Collapsible with logo variants; brand/primary accents via theme tokens
+- **Shared components:** `SurvaiPanel`, `SurvaiPanelHeader`, `brandCtaClass`, `softActionClass` in `components/survai-panel.tsx`
+
+### Auth client (live)
+
+- `lib/api.ts`: in-memory access JWT → `Authorization: Bearer`; refresh in
+  `sessionStorage` (`survai:refresh_v1`); cookie credentials still sent;
+  single-flight 401 → refresh → retry.
+- `lib/auth-context.tsx`: hydrates session via refresh-or-me; proactive refresh
+  while access token is in memory.
 
 ---
 
@@ -1399,19 +1444,21 @@ frontend/src/
 | Done | Report chat (grounded) | RPT-04 |
 | Done | Report PDF export (fpdf2) | RPT-06 (PDF) |
 | Done | Report DOCX export (OOXML) | RPT-06 (DOCX) |
-| Done | Analytics CSV + saved analyses | ANL-05–06 |
-| Done | BLD-04 pending conditional confirm UX | BLD-04 |
-| Done | OAuth remnant cleanup | — |
-| Done | Org overview KPIs + response activity chart | — |
+| Done | Donor pack ZIP + analytics CSV + saved analyses | ANL-05–06, RPT-06 |
+| Done | BLD-04 / BLD-08 conditional confirm + skip on submit | BLD-04, BLD-08 |
+| Done | Org overview KPIs + activity + lifecycle funnel | — |
 | Done | ARQ report jobs (202 + poll; inline fallback) | §14 |
 | Done | Vercel + Render deploy; health HEAD; uptime keep-alive | — |
-| Done | Auth bootstrap: no password reset-on-boot; prod secret checks | §7 |
-| Done | Google OAuth + in-app notifications | §7 |
-| Done | Org Assistant (RAG + structured tools, Alembic 0016) | — |
+| Done | Auth: Google GIS + Bearer/sessionStorage refresh hardening | §7 |
+| Done | Multi-seat org roles (Owner / Researcher / Viewer) | §7 |
+| Done | Org Assistant (RAG + tools + SSE, Alembic 0016) | — |
 | Done | Local HF embeddings (FastEmbed) + Docker bake | — |
-| Done | Assistant SSE streaming + export ARQ wiring | — |
-| Soft | Confirm prod `REDIS_URL` (Upstash `rediss://`) | §14 |
-| Soft | Playwright / API pilot smoke on live creds | §19 |
-| Soft | Multi-seat org roles | — |
+| Done | Plan interview chat SSE (`/surveys/new`) | PLN-* |
+| Done | CfA Bedrock sandbox primary + Gemini backup AI gateway | §3, §8 |
+| Done | Operate UI brand chrome (teal primary + bold green headers/CTAs) | DESIGN.md |
+| Soft | Confirm prod `REDIS_URL` only if async jobs needed | §14 |
+| Soft | Playwright / API pilot smoke on staging creds | §19 |
+| Soft | Optional server-side plan interview draft persistence | — |
 | Soft | pgvector if chunk volume outgrows JSON cosine | — |
 | Soft | CSRF with SameSite=None cookies | §7 |
+| Soft | Multi-org switcher / SSO / custom role matrices | — |

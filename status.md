@@ -1,11 +1,14 @@
 # Codebase Progress — SurvAI / AI Survey Copilot
 
 > Living snapshot of what is implemented vs mock vs next.
-> Last updated: **6 November 2026** — Plan → Reports live; Org Assistant;
+> Last updated: **11 November 2026** — Plan → Reports live; Org Assistant + SSE;
 > **multi-seat orgs** (Owner / Researcher / Viewer); collection quota + share
 > pack; donor ZIP export; baseline/endline compare; **skip/branch logic
 > (BLD-08)**; **saved analysis views** + crosstab `chart_config`; report
-> **`?reportId=`** deep-links; **plan interview chat** at `/surveys/new`.
+> **`?reportId=`** deep-links; **plan interview chat** at `/surveys/new`;
+> **CfA Bedrock primary + Gemini backup** AI gateway; **Operate brand chrome**
+> (teal `#103344` + bold green `#22f187` panel headers / CTAs); Bearer +
+> sessionStorage refresh auth hardening.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -37,11 +40,16 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 | `viewer` | Read analytics/reports/assistant; no mutate CTAs |
 
 - **Sidebar nav:** Dashboard, Surveys, **Assistant**, Account (Owner), **Security** (all seats) (`nav-config.ts`).
-- **Auth:** JWT + httpOnly cookies; email/password + OTP; **Google Identity (GIS)** → same cookies.
+- **Auth:** JWT (cookies + `Authorization: Bearer`); access JWT in memory;
+  refresh in `sessionStorage` (`survai:refresh_v1`); email/password + OTP;
+  **Google Identity (GIS)** → same token pair.
+- **AI:** CfA sandbox (`CFA_SANDBOX_*`) primary → Bedrock; Gemini backup
+  (`GEMINI_*`) via `app/ai/client.py`. Embeddings stay local HF FastEmbed.
 - **FE env:** `NEXT_PUBLIC_API_BASE_URL` → API `/api/v1` (use `localhost`, not `127.0.0.1`, for cookies).
 - **Prod path:** Vercel FE → Railway/Render API; health `GET`/`HEAD` `/api/v1/health`.
 - **Pill nav (survey):** Plan → Review → Collect → Respondents → Analytics → Report + All surveys.
-- **Theme:** Launchpot-derived light world (warm paper + lime brand); see `DESIGN.md` / `PRODUCT.md`.
+- **Theme:** teal primary `#103344` + brand green `#22f187`; `SurvaiPanel`
+  tones (`soft` / `primary` / `brand`); see `DESIGN.md` / `PRODUCT.md`.
 
 ### Integrity guarantees (live)
 
@@ -56,17 +64,18 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 ## 2. Backend — done
 
 - FastAPI + SQLAlchemy 2 async + Alembic + Pydantic settings; routes → services → repositories.
-- **Auth:** register → OTP → verify; login/refresh/logout/me; forgot/reset; **Google OAuth**; JWT + cookies.
+- **Auth:** register → OTP → verify; login/refresh/logout/me; forgot/reset; **Google OAuth**; JWT cookies + Bearer.
 - **Email:** SMTP and/or Resend; `dev_code` when outbound mail unconfigured.
+- **AI gateway:** CfA LiteLLM/Bedrock primary + Gemini backup (`AI_PROVIDER=cfa`, `AI_FALLBACK_TO_GEMINI`).
 - **Plans / Builder / Reviewer / Collection / Respondents / Analytics / Reports / Overview** — live (see prior milestones).
-- **Plan interview (SSE):** `POST /plans/interview/turn/stream` — Gemini structured stream with true
+- **Plan interview (SSE):** `POST /plans/interview/turn/stream` — structured stream with true
   `assistant_reply` token deltas (`iter_stream_structured`), then brief / research_goal / ready flag.
 - **Notifications:** in-app feed + unread; emitters on publish / response milestones / report ready / review complete;
   `response_received` deep-links `?respondent=`.
 - **Org Assistant (RAG + tools):** Alembic **`0016_org_assistant`**
   - Tables: `assistant_threads`, `assistant_messages`, `org_knowledge_chunks`
   - Index: survey / report / review → chunks with **local HF embeddings** (`fastembed`, `BAAI/bge-small-en-v1.5`)
-  - Chat: retrieve top-k → Gemini plan → structured tools (analytics, **saved views**, reports) → grounded answer + citations
+  - Chat: retrieve top-k → LLM plan (CfA/Gemini) → structured tools (analytics, **saved views**, reports) → grounded answer + citations
   - API: `/assistant/threads`, messages, **`POST …/messages/stream` (SSE)**, `POST /knowledge/reindex`
   - Docker: model pre-baked into image (`EMBEDDING_CACHE_DIR`)
 - **Jobs / ARQ:** **inline by default** (`JOBS_USE_REDIS=false`). Redis is opt-in only; exhausted/missing Redis never blocks the API.
@@ -122,8 +131,10 @@ uvicorn app.main:app --reload --port 8000
 - **Reports:** Save as PDF / Word; **Download donor pack** ZIP; open via `?reportId=`.
 - **Analytics:** Duplicate as endline + compare table; **saved views** (save/apply/delete + crosstab axis `chart_config`).
 - Viewer role: mutate CTAs hidden (publish, generate report, etc.).
-- Notifications drawer (clickable cards → href); response notifications deep-link `?respondent=`; Launchpot light theme chrome (`SurvaiPanel`, brand CTAs).
-- Forms: RHF + Zod; TanStack Query.
+- Notifications drawer (clickable cards → href); response notifications deep-link `?respondent=`.
+- **Design chrome:** `SurvaiPanel` / `SurvaiPanelHeader` with `tone='brand'` on most operate + account section headers; brand CTAs; user chat bubbles `bg-primary`.
+- Forms: RHF + Zod; TanStack Query; AuthQueryBoundary for credentialed queries.
+- Overview lifecycle funnel (`lifecycle-funnel.tsx`).
 
 ---
 
@@ -139,17 +150,22 @@ uvicorn app.main:app --reload --port 8000
 1. Optional Redis for async report jobs on Render only if needed.
 2. Re-run pilots against remote staging with dedicated `SMOKE_*` / `E2E_*` when available (local pilots green).
 3. Optional polish: server-side plan interview draft persistence.
+4. Rotate/secure CFA sandbox keys in prod env; keep Gemini as budget backup.
 
 ---
 
 ## 7. Files that matter
 
-**Backend:** `app/api/v1/routes/{plans,assistant,notifications,reports,...}.py`, `services/{plan,assistant,collection,conditional_logic,knowledge_index,notification,report,...}.py`, `ai/{client,embeddings,prompts/{assistant_v1,planner_interview_v1}.py}`, `models/assistant.py`, `alembic/versions/0016_org_assistant.py` … `0019_saved_analysis_chart_config.py`, `scripts/pilot_{smoke,full_path}.py`, `tests/test_{assistant,branching_and_reports,dicdo_features,plans}.py`
+**Backend:** `app/api/v1/routes/{plans,assistant,notifications,reports,...}.py`, `services/{plan,assistant,collection,conditional_logic,knowledge_index,notification,report,...}.py`, `ai/{client,embeddings,prompts/{assistant_v1,planner_interview_v1}.py}` (CfA+Gemini gateway), `core/config.py` (`CFA_SANDBOX_*` / `GEMINI_*`), `models/assistant.py`, `alembic/versions/0016_org_assistant.py` … `0019_saved_analysis_chart_config.py`, `scripts/pilot_{smoke,full_path}.py`, `tests/test_{assistant,branching_and_reports,dicdo_features,plans}.py`
 
-**Frontend:** `features/plans/components/plan-generator-workspace.tsx`, `features/plans/lib/interview-draft.ts`, `features/assistant/**`, `features/builder/**` (skip preview/editor), `features/analytics/**`, `features/profile/components/security-view-page.tsx`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys,overview}/**`, `e2e/smoke.spec.ts`
+**Frontend:** `components/survai-panel.tsx`, `styles/themes/vercel.css`, `lib/api.ts` / `auth-context.tsx`, `features/plans/components/plan-generator-workspace.tsx`, `features/plans/lib/interview-draft.ts`, `features/assistant/**`, `features/builder/**`, `features/analytics/**`, `features/team/**`, `features/profile/**`, `features/overview/components/lifecycle-funnel.tsx`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys}/**`, `e2e/smoke.spec.ts`
+
+**Do not commit:** `CFA_SANDBOX_API_KEY`, `GEMINI_API_KEY`, DB/SMTP/Resend secrets, `SMOKE_*` / `E2E_*`.
 
 ---
 
 ## 8. Out of this snapshot
 
-- Do not commit secrets (`GEMINI_API_KEY`, `FIRST_SUPERUSER_PASSWORD`, SMTP/Resend, `REDIS_URL`, DB URLs, `SMOKE_*` / `E2E_*`) into git.
+- Do not commit secrets (`CFA_SANDBOX_API_KEY`, `GEMINI_API_KEY`,
+  `FIRST_SUPERUSER_PASSWORD`, SMTP/Resend, `REDIS_URL`, DB URLs,
+  `SMOKE_*` / `E2E_*`) into git.

@@ -102,6 +102,7 @@ export function RecentActivity() {
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
+        tone='brand'
         icon={<Icons.activity className='size-3.5' />}
         title='Recent Activity'
         subtitle='Your recent actions across surveys and reports.'

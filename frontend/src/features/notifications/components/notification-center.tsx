@@ -53,8 +53,9 @@ export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotifTab>('all');
 
-  const listQuery = useQuery(notificationsQueryOptions());
+  // Badge polls a cheap count; the full list only loads while the sheet is open.
   const unreadQuery = useQuery(unreadCountQueryOptions());
+  const listQuery = useQuery(notificationsQueryOptions(open));
 
   const notifications = listQuery.data?.notifications ?? [];
   const count = unreadQuery.data ?? listQuery.data?.unreadCount ?? 0;

@@ -20,7 +20,7 @@ export function ForceLightMode({ children }: { children: ReactNode }) {
 
     applyLight();
 
-    // next-themes may re-apply `.dark` from system/storage — keep light pinned.
+    // ThemeProvider may re-apply `.dark` from system/storage — keep light pinned.
     const observer = new MutationObserver(() => {
       if (root.classList.contains('dark')) {
         applyLight();

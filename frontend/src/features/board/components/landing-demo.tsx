@@ -51,7 +51,7 @@ export function LandingDemo() {
                   'h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors',
                   isActive
                     ? 'bg-[var(--gold)] font-semibold text-[var(--primary)] shadow-sm'
-                    : 'text-white/70 hover:text-[var(--gold)]'
+                    : 'text-primary-foreground/70 hover:text-[var(--gold)]'
                 )}
               >
                 {t.label}

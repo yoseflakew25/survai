@@ -68,8 +68,7 @@ class NotificationService:
         rows = await self.notifications.list_for_user(
             user_id=user.id, limit=limit, offset=offset
         )
-        total = await self.notifications.count_for_user(user_id=user.id)
-        unread = await self.notifications.unread_count(user_id=user.id)
+        total, unread = await self.notifications.counts_for_user(user_id=user.id)
         return NotificationListResponse(
             notifications=[_to_public(r) for r in rows],
             total=total,

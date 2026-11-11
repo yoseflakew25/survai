@@ -100,9 +100,9 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
           href='/dashboard/surveys'
           aria-label='Back to all surveys'
           className={cn(
-            'ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-black bg-black px-3 py-2',
-            'text-sm font-medium whitespace-nowrap text-white transition-colors',
-            'hover:bg-black/90 hover:text-white'
+            'ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-foreground bg-foreground px-3 py-2',
+            'text-sm font-medium whitespace-nowrap text-background transition-colors',
+            'hover:bg-foreground/90 hover:text-background'
           )}
         >
           <Icons.forms className='size-3.5 shrink-0' />

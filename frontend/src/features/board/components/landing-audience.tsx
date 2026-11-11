@@ -57,14 +57,14 @@ export function LandingAudience() {
             </span>
             <div className='min-w-0'>
               <div className='flex flex-wrap items-baseline gap-x-2.5 gap-y-1'>
-                <h3 className='font-display text-2xl font-extrabold tracking-tight text-white sm:text-xl'>
+                <h3 className='font-display text-2xl font-extrabold tracking-tight text-primary-foreground sm:text-xl'>
                   {item.title}
                 </h3>
                 <span className='font-mono text-[10px] font-semibold tracking-[0.08em] text-[var(--gold)] uppercase'>
                   {item.tag}
                 </span>
               </div>
-              <p className='mt-1.5 max-w-2xl text-sm leading-relaxed text-[color-mix(in_srgb,var(--gold)_45%,white)]'>
+              <p className='mt-1.5 max-w-2xl text-sm leading-relaxed text-primary-foreground/70'>
                 {item.body}
               </p>
             </div>

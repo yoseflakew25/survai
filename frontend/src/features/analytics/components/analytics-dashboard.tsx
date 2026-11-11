@@ -232,12 +232,12 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
         <div className='space-y-6 lg:col-span-2'>
           {/* Summary Stats */}
           <AnalyticsSection
-            tone='primary'
+            tone='brand'
             title='Response Summary'
             subtitle='Overview of collected survey responses'
             badge={
               summary.surveyVersionId ? (
-                <Badge className='rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] font-mono text-[10px] text-[var(--gold)]'>
+                <Badge className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] font-mono text-[10px] text-brand-foreground'>
                   ver {summary.surveyVersionId.slice(0, 8)}
                 </Badge>
               ) : undefined

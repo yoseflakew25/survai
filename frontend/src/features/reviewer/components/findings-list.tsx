@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
@@ -19,12 +17,14 @@ import {
 interface FindingsListProps {
   findings: ReviewerFinding[];
   onFindingUpdate?: (finding: ReviewerFinding) => void;
+  onNavigateToQuestion?: (questionId: string) => void;
   readOnly?: boolean;
 }
 
 export function FindingsList({
   findings,
   onFindingUpdate,
+  onNavigateToQuestion,
   readOnly = false
 }: FindingsListProps) {
   const [filter, setFilter] = useState<FindingStatus | 'all'>('all');
@@ -43,24 +43,22 @@ export function FindingsList({
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
-        icon={<Icons.review className='size-3.5' />}
+        tone='brand'
+        // icon={<Icons.review className='size-3.5' />}
         title='Findings'
         subtitle={`${counts.open} open · ${counts.accepted} accepted · ${counts.dismissed} dismissed`}
         badge={
-          <Badge
-            variant='secondary'
-            className='rounded-full border-transparent bg-primary font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'
-          >
+          <span className='inline-flex min-w-6 items-center justify-center rounded-lg bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
             {counts.all}
-          </Badge>
+          </span>
         }
       />
 
-      <SurvaiPanelBody className='space-y-4'>
+      <SurvaiPanelBody className='space-y-3'>
         <div
           role='tablist'
           aria-label='Filter findings'
-          className='bg-secondary/80 flex flex-wrap gap-1 rounded-2xl border border-border p-1'
+          className='flex flex-wrap gap-1'
         >
           {(['all', 'open', 'accepted', 'dismissed'] as const).map((status) => {
             const active = filter === status;
@@ -72,15 +70,15 @@ export function FindingsList({
                 aria-selected={active}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  'rounded-xl px-3 py-1.5 text-xs font-medium capitalize transition-colors',
+                  'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium capitalize transition-colors',
                   active
-                    ? 'border border-transparent bg-primary text-primary-foreground shadow-sm'
-                    : 'border border-transparent text-muted-foreground hover:bg-card/80 hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 {status}
                 {status !== 'all' ? (
-                  <span className='ml-1 font-mono text-[10px] tabular-nums opacity-70'>
+                  <span className='font-mono text-[10px] tabular-nums opacity-70'>
                     {counts[status]}
                   </span>
                 ) : null}
@@ -90,30 +88,29 @@ export function FindingsList({
         </div>
 
         {filtered.length === 0 ? (
-          <div className='flex flex-col items-center py-10 text-center'>
-            <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft'>
-              <Icons.circleCheck className='size-5 text-foreground' />
-            </div>
-            <p className='font-display text-sm font-bold tracking-tight'>
+          <div className='flex flex-col items-center py-8 text-center'>
+            <p className='text-sm font-medium text-foreground'>
               {filter === 'all' ? 'No findings detected' : `No ${filter} findings`}
             </p>
-            <p className='text-muted-foreground  max-w-xs text-xs leading-relaxed'>
+            <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
               {filter === 'all'
                 ? 'AI did not flag wording or alignment issues on this draft.'
                 : 'Try another filter to see more findings.'}
             </p>
           </div>
         ) : (
-          <div className='space-y-3'>
+          <ul className='divide-y divide-border overflow-hidden rounded-xl border border-border'>
             {filtered.map((finding) => (
-              <FindingCard
-                key={finding.id}
-                finding={finding}
-                onUpdate={onFindingUpdate}
-                readOnly={readOnly}
-              />
+              <li key={finding.id}>
+                <FindingCard
+                  finding={finding}
+                  onUpdate={onFindingUpdate}
+                  onNavigateToQuestion={onNavigateToQuestion}
+                  readOnly={readOnly}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </SurvaiPanelBody>
     </SurvaiPanel>
@@ -123,15 +120,18 @@ export function FindingsList({
 function FindingCard({
   finding,
   onUpdate,
+  onNavigateToQuestion,
   readOnly = false
 }: {
   finding: ReviewerFinding;
   onUpdate?: (finding: ReviewerFinding) => void;
+  onNavigateToQuestion?: (questionId: string) => void;
   readOnly?: boolean;
 }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const issueMeta = getIssueTypeMeta(finding.issueType);
+  const canJump = Boolean(finding.questionId && onNavigateToQuestion);
 
   const handleStatusChange = useCallback(
     async (status: FindingStatus) => {
@@ -161,108 +161,107 @@ function FindingCard({
   return (
     <div
       className={cn(
-        'space-y-2.5 rounded-xl border border-border bg-card px-3.5 py-3 transition-colors',
-        finding.status === 'accepted' &&
-          'border-[color-mix(in_srgb,var(--brand)_50%,var(--border))] bg-brand-soft/45',
-        finding.status === 'dismissed' && 'opacity-55'
+        'space-y-2.5 bg-card px-3.5 py-3.5 transition-colors',
+        finding.status === 'accepted' && 'bg-brand-soft/40',
+        finding.status === 'dismissed' && 'opacity-60'
       )}
     >
-      <div className='flex items-start justify-between gap-2'>
-        <div className='flex flex-wrap items-center gap-1.5'>
+      <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+        <span className='text-[11px] font-semibold text-foreground'>
+          {issueMeta.label}
+        </span>
+        {finding.sectionTitle ? (
+          <>
+            <span className='text-border' aria-hidden>
+              ·
+            </span>
+            <span className='text-[11px] text-muted-foreground'>
+              {finding.sectionTitle}
+            </span>
+          </>
+        ) : null}
+        {finding.status !== 'open' ? (
           <span
             className={cn(
-              'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-              issueMeta.color,
-              'border-current/20 bg-current/5'
-            )}
-          >
-            {issueMeta.label}
-          </span>
-          {finding.sectionTitle ? (
-            <Badge
-              variant='outline'
-              className='rounded-full border-border text-[10px]'
-            >
-              {finding.sectionTitle}
-            </Badge>
-          ) : null}
-        </div>
-        {finding.status !== 'open' ? (
-          <Badge
-            variant='secondary'
-            className={cn(
-              'rounded-full text-[10px] font-semibold capitalize',
-              finding.status === 'accepted' &&
-                'border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft text-foreground'
+              'ml-auto rounded-md px-1.5 py-0.5 text-[10px] font-medium capitalize',
+              finding.status === 'accepted'
+                ? 'bg-brand-soft text-primary'
+                : 'bg-muted text-muted-foreground'
             )}
           >
             {finding.status}
-          </Badge>
+          </span>
         ) : null}
       </div>
-
-      {finding.questionText ? (
-        <p className='text-muted-foreground rounded-lg bg-secondary/60 px-2.5 py-1.5 text-xs leading-relaxed italic'>
-          &ldquo;{finding.questionText}&rdquo;
-        </p>
-      ) : null}
 
       <p className='text-sm leading-relaxed text-foreground'>
         {finding.explanation}
       </p>
 
-      {finding.suggestedRewrite ? (
-        <button
-          type='button'
-          onClick={() => setIsExpanded(!isExpanded)}
-          className='text-foreground inline-flex items-center gap-1 text-xs font-semibold hover:underline'
-        >
-          {isExpanded ? (
-            <Icons.chevronUp className='size-3' />
-          ) : (
-            <Icons.chevronDown className='size-3' />
-          )}
-          Suggested improvement
-        </button>
+      {finding.questionText || canJump ? (
+        <div className='flex flex-wrap items-center gap-2'>
+          {finding.questionText ? (
+            <p className='min-w-0 flex-1 truncate text-xs italic text-muted-foreground'>
+              &ldquo;{finding.questionText}&rdquo;
+            </p>
+          ) : null}
+          {canJump ? (
+            <button
+              type='button'
+              onClick={() => onNavigateToQuestion?.(finding.questionId!)}
+              className='inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-primary hover:underline'
+            >
+              View question
+              <Icons.arrowRight className='size-3' />
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
-      {isExpanded && finding.suggestedRewrite ? (
-        <div className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/60 p-3 text-xs leading-relaxed'>
-          <p className='text-muted-foreground mb-1 text-[10px] font-semibold tracking-wide uppercase'>
+      {finding.suggestedRewrite ? (
+        <div className='space-y-1.5'>
+          <button
+            type='button'
+            onClick={() => setIsExpanded(!isExpanded)}
+            className='inline-flex items-center gap-1 text-[11px] font-semibold text-foreground hover:underline'
+          >
+            {isExpanded ? (
+              <Icons.chevronUp className='size-3' />
+            ) : (
+              <Icons.chevronDown className='size-3' />
+            )}
             Suggested rewrite
-          </p>
-          <p className='font-medium text-foreground'>
-            {finding.suggestedRewrite}
-          </p>
+          </button>
+          {isExpanded ? (
+            <p className='rounded-lg border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/50 px-3 py-2 text-xs leading-relaxed text-foreground'>
+              {finding.suggestedRewrite}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
       {!readOnly && finding.status === 'open' ? (
-        <>
-          <Separator />
-          <div className='bg-secondary/70 flex items-center gap-1 rounded-xl border border-border p-1'>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => handleStatusChange('accepted')}
-              disabled={isUpdating}
-              className='h-7 flex-1 rounded-lg text-xs hover:bg-brand-soft'
-            >
-              <Icons.check className='size-3' />
-              Accept
-            </Button>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => handleStatusChange('dismissed')}
-              disabled={isUpdating}
-              className='h-7 flex-1 rounded-lg text-xs hover:bg-card'
-            >
-              <Icons.close className='size-3' />
-              Dismiss
-            </Button>
-          </div>
-        </>
+        <div className='flex items-center gap-1.5 pt-0.5'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => handleStatusChange('accepted')}
+            disabled={isUpdating}
+            className='h-7 rounded-lg px-2.5 text-xs'
+          >
+            <Icons.check className='size-3' />
+            Accept
+          </Button>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => handleStatusChange('dismissed')}
+            disabled={isUpdating}
+            className='h-7 rounded-lg px-2.5 text-xs text-muted-foreground'
+          >
+            Dismiss
+          </Button>
+        </div>
       ) : null}
       {!readOnly && finding.status !== 'open' ? (
         <Button
@@ -270,7 +269,7 @@ function FindingCard({
           size='sm'
           onClick={() => handleStatusChange('open')}
           disabled={isUpdating}
-          className='h-7 rounded-lg px-2 text-xs'
+          className='h-7 rounded-lg px-2 text-xs text-muted-foreground'
         >
           Reopen
         </Button>

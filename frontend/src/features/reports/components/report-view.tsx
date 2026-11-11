@@ -14,7 +14,8 @@ import {
   compactCtaClass,
   panelHeaderToneClass,
   primaryCtaClass,
-  primaryMetaChipClass,
+  brandMetaChipClass,
+  onBrandControlClass,
   quietActionClass,
   sectionIndexClass,
   softActionClass
@@ -437,13 +438,13 @@ export function ReportView({ surveyId }: ReportViewProps) {
       <div className='mx-auto max-w-xl'>
         <SurvaiPanel>
           <SurvaiPanelHeader
-            tone='primary'
+            tone='brand'
             title={
               <div className='min-w-0'>
-                <h1 className='font-display text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
+                <h1 className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                   Generate report
                 </h1>
-                <p className='mt-1 text-sm leading-snug text-[color-mix(in_srgb,var(--gold)_55%,white)]'>
+                <p className='mt-1 text-sm leading-snug text-brand-foreground/70'>
                   Create a grounded narrative from your analytics snapshot
                 </p>
               </div>
@@ -535,7 +536,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
         ) : null}
           <SurvaiPanel>
             <SurvaiPanelHeader
-              tone='primary'
+              tone='brand'
               title={
                 <div className='min-w-0'>
                   {editingTitle ? (
@@ -555,7 +556,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           }
                         }}
                         disabled={saving}
-                        className='font-display h-10 max-w-xl border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-primary-foreground/10 text-base font-extrabold text-white placeholder:text-white/50'
+                        className={cn(
+                          onBrandControlClass,
+                          'font-display h-10 max-w-xl text-base font-extrabold placeholder:text-brand-foreground/45'
+                        )}
                         aria-label='Report title'
                       />
                       <Button
@@ -574,7 +578,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                       <Button
                         size='sm'
                         variant='ghost'
-                        className='h-8 rounded-xl text-xs text-white/80 hover:bg-primary-foreground/12 hover:text-white'
+                        className='h-8 rounded-xl text-xs text-brand-foreground/75 hover:bg-primary/10 hover:text-brand-foreground'
                         disabled={saving}
                         onClick={() => {
                           setEditingTitle(false);
@@ -586,7 +590,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     </div>
                   ) : (
                     <div className='flex items-start gap-2'>
-                      <h1 className='font-display min-w-0 flex-1 text-xl font-extrabold tracking-tight text-white sm:text-2xl'>
+                      <h1 className='font-display min-w-0 flex-1 text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
                         {reportTitle || 'AI-generated report'}
                       </h1>
                       {canEdit ? (
@@ -606,29 +610,29 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     </div>
                   )}
                   <div className='mt-2.5 flex flex-wrap items-center gap-1.5 leading-none'>
-                    <span className={primaryMetaChipClass}>
+                    <span className={brandMetaChipClass}>
                       <Icons.calendar className='size-3 shrink-0 opacity-80' />
                       {formatDate(report.createdAt)}
                     </span>
-                    <span className={primaryMetaChipClass}>
+                    <span className={brandMetaChipClass}>
                       <Icons.sparkles className='size-3 shrink-0 opacity-80' />
                       {report.model ?? 'gemini'}
                     </span>
                     <span
-                      className={cn(primaryMetaChipClass, 'font-mono tabular-nums')}
+                      className={cn(brandMetaChipClass, 'font-mono tabular-nums')}
                     >
                       ver {report.surveyVersionId.slice(0, 8)}
                     </span>
-                    <span className={primaryMetaChipClass}>
+                    <span className={brandMetaChipClass}>
                       <Icons.page className='size-3 shrink-0 opacity-80' />
                       {totalWords.toLocaleString()} words · {sections.length}{' '}
                       sections
                     </span>
                     <span
                       className={cn(
-                        primaryMetaChipClass,
+                        brandMetaChipClass,
                         isStale &&
-                          'border-amber-400/40 bg-amber-500/15 text-amber-200'
+                          'border-amber-500/50 bg-amber-500/15 text-amber-900'
                       )}
                     >
                       {isStale ? (
@@ -911,7 +915,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                       className={cn(
                         'max-w-[min(100%,26rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                         msg.role === 'user'
-                          ? 'rounded-br-md bg-foreground text-background'
+                          ? 'rounded-br-md bg-primary text-primary-foreground'
                           : 'rounded-bl-md border border-border bg-muted/70 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
                       )}
                     >

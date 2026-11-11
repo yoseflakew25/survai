@@ -399,9 +399,9 @@ export const SURVEY_ACTIVITY_SCRIPTS: Record<
     ]
   },
   'generate-plan': {
-    title: 'Generating Survey plan',
+    title: 'Generating survey plan',
     intro:
-      'SurvAI is drafting objectives, research questions, audiences, and sections from your goal. This usually takes 10–20 seconds.',
+      'Drafting objectives, research questions, audiences, and sections from your goal.',
     footer: 'Keep this open. You can edit every field after generation.',
     previewLabel: 'Research goal',
     stages: PLAN_GENERATION_STAGES
@@ -409,7 +409,7 @@ export const SURVEY_ACTIVITY_SCRIPTS: Record<
   'generate-survey': {
     title: 'Generating survey questions',
     intro:
-      'SurvAI is drafting survey sections and questions from your plan. This usually takes 15–30 seconds.',
+      'Drafting survey sections and questions from your research plan.',
     footer: 'Keep this open. You can edit every question after generation.',
     previewLabel: 'Research goal',
     stages: SURVEY_GENERATION_STAGES

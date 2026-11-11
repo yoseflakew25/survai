@@ -34,7 +34,7 @@ export function LifecycleFunnel() {
     return (
       <SurvaiPanel className='flex h-full flex-col'>
         <SurvaiPanelHeader
-          icon={<Icons.forms className='size-3.5' />}
+          // icon={<Icons.forms className='size-3.5' />}
           title='Lifecycle'
           subtitle='Loading pipeline…'
         />
@@ -51,7 +51,7 @@ export function LifecycleFunnel() {
     return (
       <SurvaiPanel className='flex h-full flex-col'>
         <SurvaiPanelHeader
-          icon={<Icons.forms className='size-3.5' />}
+          // icon={<Icons.forms className='size-3.5' />}
           title='Lifecycle'
           subtitle='Could not load pipeline'
         />
@@ -69,7 +69,7 @@ export function LifecycleFunnel() {
   return (
     <SurvaiPanel className='flex h-full flex-col'>
       <SurvaiPanelHeader
-        icon={<Icons.forms className='size-3.5' />}
+        // icon={<Icons.forms className='size-3.5' />}
         title='Lifecycle'
         subtitle={
           total === 0

@@ -27,7 +27,7 @@ export function DataTableColumnHeader<TData, TValue>({
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort() && !column.getCanHide()) {
     return (
-      <div className={cn('text-[15px] font-semibold text-white', className)}>
+      <div className={cn('text-[15px] font-semibold text-brand-foreground', className)}>
         {title}
       </div>
     );
@@ -39,10 +39,10 @@ export function DataTableColumnHeader<TData, TValue>({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          '-ml-1.5 flex h-9 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[15px] font-semibold focus:ring-1 focus:ring-[var(--gold)] focus:outline-none [&_svg]:size-3.5 [&_svg]:shrink-0',
+          '-ml-1.5 flex h-9 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[15px] font-semibold text-brand-foreground focus:ring-1 focus:ring-primary focus:outline-none [&_svg]:size-3.5 [&_svg]:shrink-0',
           isSorted
-            ? 'bg-[color-mix(in_srgb,var(--gold)_18%,transparent)] text-white'
-            : 'text-white hover:bg-[color-mix(in_srgb,var(--gold)_14%,transparent)] hover:text-[var(--gold)] data-popup-open:bg-[color-mix(in_srgb,var(--gold)_14%,transparent)]',
+            ? 'bg-[color-mix(in_srgb,var(--primary)_14%,transparent)]'
+            : 'hover:bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] data-popup-open:bg-[color-mix(in_srgb,var(--primary)_10%,transparent)]',
           className
         )}
         {...props}
@@ -50,11 +50,11 @@ export function DataTableColumnHeader<TData, TValue>({
         {title}
         {column.getCanSort() &&
           (column.getIsSorted() === 'desc' ? (
-            <Icons.chevronDown className='text-[var(--gold)]' />
+            <Icons.chevronDown className='text-brand-foreground' />
           ) : column.getIsSorted() === 'asc' ? (
-            <Icons.chevronUp className='text-[var(--gold)]' />
+            <Icons.chevronUp className='text-brand-foreground' />
           ) : (
-            <Icons.chevronsUpDown className='text-[var(--gold)] opacity-70' />
+            <Icons.chevronsUpDown className='text-brand-foreground/70' />
           ))}
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' className='w-28 rounded-xl'>

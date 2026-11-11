@@ -12,6 +12,8 @@ import {
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import { Input } from '@/components/ui/input';
 import { Icons } from '@/components/icons';
+import { onBrandControlClass } from '@/components/survai-panel';
+import { cn } from '@/lib/utils';
 import type { Option } from '@/types/data-table';
 import type { Respondent, RespondentStatus } from '../api/types';
 import * as React from 'react';
@@ -75,7 +77,10 @@ export function createColumns(
             aria-label='Search respondents'
             value={(column.getFilterValue() as string) ?? ''}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => column.setFilterValue(event.target.value)}
-            className='h-8 w-48 border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] text-sm text-white placeholder:text-[color-mix(in_srgb,var(--gold)_55%,white)] lg:w-60'
+            className={cn(
+              onBrandControlClass,
+              'h-8 w-48 text-sm lg:w-60'
+            )}
           />
         </div>
       ),
@@ -125,7 +130,10 @@ export function createColumns(
                     className={
                       active
                         ? 'h-8 text-xs'
-                        : 'h-8 border-[color-mix(in_srgb,var(--gold)_40%,transparent)] bg-[color-mix(in_srgb,var(--gold)_14%,transparent)] text-xs text-[var(--gold)] hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                        : cn(
+                            onBrandControlClass,
+                            'h-8 text-xs hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                          )
                     }
                   >
                     {activeOption?.icon && (

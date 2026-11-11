@@ -41,7 +41,7 @@ export function InteractiveGridPattern({
     <svg
       width={width * horizontal}
       height={height * vertical}
-      className={cn('absolute inset-0 h-full w-full border border-gray-400/30', className)}
+      className={cn('absolute inset-0 h-full w-full border border-border/40', className)}
       {...props}
     >
       {Array.from({ length: horizontal * vertical }).map((_, index) => {
@@ -55,8 +55,8 @@ export function InteractiveGridPattern({
             width={width}
             height={height}
             className={cn(
-              'stroke-gray-400/30 transition-all duration-100 ease-in-out [&:not(:hover)]:duration-1000',
-              hoveredSquare === index ? 'fill-gray-300/30' : 'fill-transparent',
+              'stroke-border/40 transition-all duration-100 ease-in-out [&:not(:hover)]:duration-1000',
+              hoveredSquare === index ? 'fill-muted/40' : 'fill-transparent',
               squaresClassName
             )}
             onMouseEnter={() => setHoveredSquare(index)}
