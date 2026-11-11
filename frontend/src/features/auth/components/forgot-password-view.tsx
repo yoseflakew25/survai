@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -48,6 +48,8 @@ export default function ForgotPasswordViewPage() {
   const { requestPasswordReset, confirmPasswordReset, isSignedIn, isLoading } =
     useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkHandled = useRef(false);
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [pendingEmail, setPendingEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -71,6 +73,19 @@ export default function ForgotPasswordViewPage() {
       router.replace('/dashboard/overview');
     }
   }, [isLoading, isSignedIn, router]);
+
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const email = (searchParams.get('email') || '').trim();
+    const mode = (searchParams.get('mode') || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) return;
+    deepLinkHandled.current = true;
+    emailForm.setValue('email', email);
+    if (mode === 'otp') {
+      setPendingEmail(email);
+      setStep('otp');
+    }
+  }, [searchParams, emailForm]);
 
   async function onEmailSubmit(values: EmailValues) {
     setServerError(null);

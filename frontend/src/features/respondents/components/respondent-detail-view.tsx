@@ -145,8 +145,8 @@ export function RespondentDetailView({
                     className={cn(
                       'rounded-full border-transparent text-[10px] font-semibold',
                       isComplete
-                        ? 'bg-primary text-primary-foreground'
-                        : 'border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-primary'
+                        ? 'bg-brand-foreground text-brand'
+                        : 'border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground'
                     )}
                   >
                     {isComplete ? (
@@ -160,7 +160,7 @@ export function RespondentDetailView({
                 <p className='truncate text-xs text-brand-foreground/70'>
                   {detail.email}
                 </p>
-                <p className='truncate font-mono text-[10px] tracking-wide text-primary uppercase'>
+                <p className='truncate font-mono text-[10px] tracking-wide text-brand-foreground/70 uppercase'>
                   {surveyLabel}
                 </p>
               </div>
@@ -206,7 +206,7 @@ export function RespondentDetailView({
           }}
         />
         <div className='relative flex items-start gap-3'>
-          <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-primary font-mono text-xs font-bold tracking-wide text-primary-foreground uppercase'>
+          <div className='flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground font-mono text-xs font-bold tracking-wide text-brand uppercase'>
             {initialsFromName(detail.name)}
           </div>
 
@@ -219,8 +219,8 @@ export function RespondentDetailView({
                 className={cn(
                   'rounded-full border-transparent text-[10px] font-semibold',
                   isComplete
-                    ? 'bg-primary text-primary-foreground'
-                    : 'border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-primary'
+                    ? 'bg-brand-foreground text-brand'
+                    : 'border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground'
                 )}
               >
                 {isComplete ? (
@@ -235,26 +235,26 @@ export function RespondentDetailView({
             <p className='truncate text-sm text-brand-foreground/70'>
               {detail.email}
               <span className='mx-1.5 opacity-40'>·</span>
-              <span className='text-primary'>{surveyLabel}</span>
+              <span className='text-brand-foreground'>{surveyLabel}</span>
             </p>
 
             <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-brand-foreground/75'>
               <div className='flex items-center gap-1.5'>
-                <Icons.calendar className='size-3.5 shrink-0 text-primary' />
+                <Icons.calendar className='size-3.5 shrink-0 text-brand-foreground' />
                 <dt className='sr-only'>Submitted</dt>
                 <dd>{formatDateTime(detail.submittedAt)}</dd>
               </div>
-              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--primary)_28%,transparent)] sm:block' aria-hidden />
+              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
-                <Icons.clock className='size-3.5 shrink-0 text-primary' />
+                <Icons.clock className='size-3.5 shrink-0 text-brand-foreground' />
                 <dt className='sr-only'>Duration</dt>
                 <dd className='font-mono tabular-nums'>
                   {formatDuration(detail.durationSeconds)}
                 </dd>
               </div>
-              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--primary)_28%,transparent)] sm:block' aria-hidden />
+              <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
-                <Icons.check className='size-3.5 shrink-0 text-primary' />
+                <Icons.check className='size-3.5 shrink-0 text-brand-foreground' />
                 <dt className='sr-only'>Answered</dt>
                 <dd className='font-mono tabular-nums'>
                   {answeredCount}/{totalQuestions} answered
@@ -282,8 +282,8 @@ function MetaStat({
   mono?: boolean;
 }) {
   return (
-    <div className='min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2.5 py-2 backdrop-blur-sm'>
-      <dt className='flex items-center gap-1 text-[10px] font-medium tracking-wide text-primary uppercase'>
+    <div className='min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-2 backdrop-blur-sm'>
+      <dt className='flex items-center gap-1 text-[10px] font-medium tracking-wide text-brand-foreground/70 uppercase'>
         <span className='shrink-0'>{icon}</span>
         <span className='truncate'>{label}</span>
       </dt>

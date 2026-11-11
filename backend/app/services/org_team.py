@@ -112,8 +112,8 @@ class OrgTeamService:
 
         org = await self.session.get(Organization, org_id)
         org_name = org.name if org is not None else "your organization"
-        invite_url = (
-            f"{settings.frontend_url.rstrip('/')}/auth/accept-invite?token={raw}"
+        invite_url = settings.frontend_absolute_url(
+            settings.org_invite_path, query={"token": raw}
         )
         # Keep the invite even if outbound mail fails — return the accept
         # link so the owner can share it manually (Team UI toast).

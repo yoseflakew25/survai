@@ -22,10 +22,10 @@ function WelcomeCard() {
         'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)]'
       )}
     >
-      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-primary'>
+      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground'>
         Welcome to Survai
       </h1>
-      <p className='text-sm leading-relaxed text-primary/70'>
+      <p className='text-sm leading-relaxed text-brand-foreground/75'>
         Live counts from your surveys and responses.
       </p>
     </article>

@@ -57,8 +57,36 @@ def test_production_accepts_strong_secrets(monkeypatch: pytest.MonkeyPatch) -> N
         "JWT_SECRET_KEY", "0123456789abcdef0123456789abcdef0123456789abcdef"
     )
     monkeypatch.setenv("FIRST_SUPERUSER_PASSWORD", "a-strong-bootstrap-pw")
+    monkeypatch.setenv("FRONTEND_URL", "https://survai.example.com")
+    monkeypatch.setenv("CORS_ORIGINS", "https://survai.example.com")
     cfg = Settings(_env_file=None)
     assert cfg.environment == "production"
+
+
+def test_production_rejects_localhost_frontend_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv(
+        "JWT_SECRET_KEY", "0123456789abcdef0123456789abcdef0123456789abcdef"
+    )
+    monkeypatch.setenv("FIRST_SUPERUSER_PASSWORD", "a-strong-bootstrap-pw")
+    monkeypatch.setenv("FRONTEND_URL", "http://localhost:3000")
+    monkeypatch.setenv("CORS_ORIGINS", "https://survai.example.com")
+    with pytest.raises(ValidationError, match="FRONTEND_URL"):
+        Settings(_env_file=None)
+
+
+def test_frontend_absolute_url_builds_email_links(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setenv("FRONTEND_URL", "https://app.survai.example")
+    cfg = Settings(_env_file=None)
+    assert (
+        cfg.frontend_absolute_url("/auth/forgot-password", query={"email": "a@b.co"})
+        == "https://app.survai.example/auth/forgot-password?email=a%40b.co"
+    )
 
 
 def test_development_allows_default_secrets(monkeypatch: pytest.MonkeyPatch) -> None:

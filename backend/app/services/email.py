@@ -215,6 +215,9 @@ async def _send_via_smtp(message: EmailMessage, *, settings) -> None:
 
 def _email_shell(*, preheader: str, title: str, body_html: str, footnote: str) -> str:
     """Branded transactional email layout (table + inline CSS for clients)."""
+    settings = get_settings()
+    home_url = settings.frontend_absolute_url("/")
+    safe_home = html.escape(home_url, quote=True)
     safe_pre = html.escape(preheader)
     safe_title = html.escape(title)
     safe_note = html.escape(footnote)
@@ -239,6 +242,7 @@ def _email_shell(*, preheader: str, title: str, body_html: str, footnote: str) -
           style="max-width:520px;width:100%;">
           <tr>
             <td style="padding:0 4px 20px 4px;">
+              <a href="{safe_home}" style="text-decoration:none;color:{_FG};">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="vertical-align:middle;line-height:0;">
@@ -250,6 +254,7 @@ def _email_shell(*, preheader: str, title: str, body_html: str, footnote: str) -
                     font-weight:800;letter-spacing:-0.045em;color:{_FG};">survai</td>
                 </tr>
               </table>
+              </a>
             </td>
           </tr>
           <tr>
@@ -336,10 +341,15 @@ async def send_password_reset_otp(*, to_email: str, code: str) -> None:
     """6-digit OTP to reset password (same delivery path as signup verification)."""
     settings = get_settings()
     minutes = settings.email_verification_otp_expire_minutes
+    action_url = settings.frontend_absolute_url(
+        settings.password_reset_path,
+        query={"email": to_email, "mode": "otp"},
+    )
     safe_code = html.escape(code)
     subject = "Your SurvAI password reset code"
     text_body = (
         f"Your SurvAI password reset code is: {code}\n\n"
+        f"Enter it here: {action_url}\n\n"
         f"It expires in {minutes} minutes. If you did not request a reset, ignore this email.\n"
     )
     body = f"""\
@@ -359,6 +369,7 @@ async def send_password_reset_otp(*, to_email: str, code: str) -> None:
     </td>
   </tr>
 </table>
+{_cta_button(href=action_url, label="Enter code on SurvAI")}
 <p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:{_MUTED};">
   This code expires in <strong style="color:{_FG};">{minutes} minutes</strong>.
@@ -377,10 +388,15 @@ async def send_password_reset_otp(*, to_email: str, code: str) -> None:
 async def send_email_verification_otp(*, to_email: str, code: str) -> None:
     settings = get_settings()
     minutes = settings.email_verification_otp_expire_minutes
+    action_url = settings.frontend_absolute_url(
+        settings.email_verify_path,
+        query={"email": to_email, "mode": "verify"},
+    )
     safe_code = html.escape(code)
     subject = "Your SurvAI verification code"
     text_body = (
         f"Your SurvAI verification code is: {code}\n\n"
+        f"Enter it here: {action_url}\n\n"
         f"It expires in {minutes} minutes. If you did not create an account, ignore this email.\n"
     )
     body = f"""\
@@ -400,6 +416,7 @@ async def send_email_verification_otp(*, to_email: str, code: str) -> None:
     </td>
   </tr>
 </table>
+{_cta_button(href=action_url, label="Enter code on SurvAI")}
 <p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:{_MUTED};">
   This code expires in <strong style="color:{_FG};">{minutes} minutes</strong>.

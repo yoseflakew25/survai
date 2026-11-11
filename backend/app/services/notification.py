@@ -51,9 +51,7 @@ def _abs_url(href: str | None) -> str | None:
         return None
     if href.startswith("http://") or href.startswith("https://"):
         return href
-    base = settings.frontend_url.rstrip("/")
-    path = href if href.startswith("/") else f"/{href}"
-    return f"{base}{path}"
+    return settings.frontend_absolute_url(href)
 
 
 class NotificationService:

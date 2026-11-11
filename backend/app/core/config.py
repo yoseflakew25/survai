@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
+from urllib.parse import urlencode
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -41,6 +42,17 @@ _INSECURE_BOOTSTRAP_PASSWORDS = frozenset(
 )
 _MIN_PROD_JWT_SECRET_LEN = 32
 _MIN_PROD_BOOTSTRAP_PASSWORD_LEN = 12
+
+
+def _is_local_origin(url: str) -> bool:
+    lowered = url.strip().lower()
+    return (
+        "://localhost" in lowered
+        or "://127.0.0.1" in lowered
+        or "://[::1]" in lowered
+        or lowered.startswith("localhost")
+        or lowered.startswith("127.0.0.1")
+    )
 
 
 class Settings(BaseSettings):
@@ -103,10 +115,13 @@ class Settings(BaseSettings):
     access_cookie_name: str = "access_token"
     refresh_cookie_name: str = "refresh_token"
 
-    # Password reset
+    # Password reset / email deep links — must be the public frontend origin in
+    # production (Vercel URL). Invite + notification + OTP CTAs all use this.
     password_reset_token_expire_minutes: int = 60
     frontend_url: str = "http://localhost:3000"
-    password_reset_path: str = "/auth/reset-password"
+    password_reset_path: str = "/auth/forgot-password"
+    email_verify_path: str = "/auth/sign-up"
+    org_invite_path: str = "/auth/accept-invite"
 
     # Email verification OTP (registration)
     email_verification_otp_expire_minutes: int = 10
@@ -137,7 +152,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def enforce_production_secrets(self) -> Self:
-        """Fail fast in production when JWT / bootstrap password are weak."""
+        """Fail fast in production when JWT / bootstrap / public URLs are wrong."""
         if self.environment != "production":
             return self
 
@@ -160,6 +175,25 @@ class Settings(BaseSettings):
                 f"(≥{_MIN_PROD_BOOTSTRAP_PASSWORD_LEN} chars) and not a "
                 "default/placeholder value"
             )
+
+        frontend = self.frontend_url.strip().rstrip("/")
+        if not frontend.startswith("https://"):
+            errors.append(
+                "FRONTEND_URL must be an https:// public frontend origin in production "
+                "(email invite/OTP links use it)"
+            )
+        elif _is_local_origin(frontend):
+            errors.append(
+                "FRONTEND_URL must not be localhost/127.0.0.1 in production "
+                "(set it to your Vercel URL)"
+            )
+
+        for origin in self.cors_origin_list:
+            if _is_local_origin(origin):
+                errors.append(
+                    "CORS_ORIGINS must not include localhost/127.0.0.1 in production"
+                )
+                break
 
         if errors:
             raise ValueError("; ".join(errors))
@@ -231,9 +265,22 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment == "production"
 
+    def frontend_absolute_url(
+        self, path: str, *, query: dict[str, str] | None = None
+    ) -> str:
+        """Build an absolute frontend URL for emails and redirects."""
+        base = self.frontend_url.strip().rstrip("/")
+        normalized = path if path.startswith("/") else f"/{path}"
+        url = f"{base}{normalized}"
+        if query:
+            cleaned = {k: v for k, v in query.items() if v}
+            if cleaned:
+                url = f"{url}?{urlencode(cleaned)}"
+        return url
+
     @property
     def password_reset_url_base(self) -> str:
-        return f"{self.frontend_url.rstrip('/')}{self.password_reset_path}"
+        return self.frontend_absolute_url(self.password_reset_path)
 
 
 @lru_cache
