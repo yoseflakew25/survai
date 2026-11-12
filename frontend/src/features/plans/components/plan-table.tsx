@@ -70,7 +70,11 @@ function PlanTableContent() {
       ) : (
         <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
           {plans.map((plan) => (
-            <Link key={plan.id} href={`/dashboard/plans/${plan.id}`}>
+            <Link
+              key={plan.id}
+              href={`/dashboard/plans/${plan.id}`}
+              aria-label={`Open plan: ${plan.researchGoal.slice(0, 80)}`}
+            >
               <Card className='transition-shadow hover:shadow-md'>
                 <CardHeader className='pb-3'>
                   <div className='flex items-start justify-between gap-2'>

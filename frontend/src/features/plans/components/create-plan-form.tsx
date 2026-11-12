@@ -79,7 +79,11 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger render={<button type='button' />}>{children}</SheetTrigger>
+      <SheetTrigger
+        render={<button type='button' aria-label='Create research plan' />}
+      >
+        {children}
+      </SheetTrigger>
       <SheetContent
         side='right'
         className={

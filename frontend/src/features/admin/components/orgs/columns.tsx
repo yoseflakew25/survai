@@ -159,7 +159,12 @@ export function createAdminOrgColumns(
               variant='ghost'
               size='sm'
               className='hidden h-8 rounded-lg px-2 text-xs font-medium sm:inline-flex'
-              render={<Link href={`/admin/orgs/${org.id}`} />}
+              render={
+                <Link
+                  href={`/admin/orgs/${org.id}`}
+                  aria-label={`Inspect workspace ${org.name}`}
+                />
+              }
             >
               Inspect
             </Button>
@@ -183,7 +188,13 @@ export function createAdminOrgColumns(
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end' className='w-44'>
                 <DropdownMenuItem
-                  render={<Link href={`/admin/orgs/${org.id}`} />}
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href={`/admin/orgs/${org.id}`}
+                      aria-label={`Inspect workspace ${org.name}`}
+                    />
+                  }
                 >
                   <Icons.eye className='size-3.5' />
                   Inspect workspace

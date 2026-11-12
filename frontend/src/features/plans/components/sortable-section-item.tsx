@@ -133,7 +133,10 @@ export function SortableSectionItem({
 
       {isExpanded ? (
         <div className='border-border animate-in fade-in slide-in-from-top-1 space-y-2 border-t bg-muted/20 px-3 py-3 duration-150 sm:px-4'>
-          <label className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
+          <label
+            htmlFor={`section-rationale-${id}`}
+            className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'
+          >
             Rationale
           </label>
           {disabled ? (
@@ -143,6 +146,7 @@ export function SortableSectionItem({
             </p>
           ) : (
             <Textarea
+              id={`section-rationale-${id}`}
               value={section.rationale}
               onChange={(e) => onUpdate('rationale', e.target.value)}
               placeholder='Why this section exists — what it helps measure…'

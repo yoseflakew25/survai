@@ -285,12 +285,17 @@ export default function ForgotPasswordViewPage() {
             ) : null}
 
             <div className='space-y-2'>
-              <label className='text-foreground/80 text-[13px] font-medium'>
+              <p
+                id='reset-code-label'
+                className='text-foreground/80 text-[13px] font-medium'
+              >
                 Reset code
-              </label>
+              </p>
               <InputOTP
                 maxLength={6}
                 value={otp}
+                aria-label='Reset code'
+                aria-labelledby='reset-code-label'
                 onChange={(value) => {
                   setOtp(value);
                   if (serverError) setServerError(null);

@@ -101,35 +101,11 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
 
   useEffect(() => {
     lastSavedRef.current = JSON.stringify(initialState);
-  }, []);
+  }, [initialState]);
 
   const hasUnsavedChanges = useCallback(() => {
     return JSON.stringify(surveyState) !== lastSavedRef.current;
   }, [surveyState]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      }
-      if (
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'y')
-      ) {
-        e.preventDefault();
-        redo();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -147,6 +123,30 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
       setIsSaving(false);
     }
   }, [surveyId, title, surveyState]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        void handleSave();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if (
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'y')
+      ) {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave, undo, redo]);
 
   // Section handlers
   const handleAddSection = useCallback(async () => {

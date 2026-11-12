@@ -142,35 +142,6 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
     return currentState !== lastSavedRef.current;
   }, [researchGoal, objectives, researchQuestions, targetRespondents, proposedSections]);
 
-  // Keyboard shortcuts (disabled once the plan is locked)
-  useEffect(() => {
-    if (isLocked) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S = Save
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-      // Ctrl/Cmd + Z = Undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      }
-      // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y = Redo
-      if (
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'y')
-      ) {
-        e.preventDefault();
-        redo();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, isLocked]);
-
   const handleSave = useCallback(async () => {
     if (isLocked) return;
     setIsSaving(true);
@@ -214,6 +185,31 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
     proposedSections,
     onPlanUpdate
   ]);
+
+  useEffect(() => {
+    if (isLocked) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        void handleSave();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if (
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'y')
+      ) {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave, undo, redo, isLocked]);
 
   const handleAIGenerate = useCallback(async () => {
     if (isLocked) {

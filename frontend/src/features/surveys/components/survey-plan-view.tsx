@@ -43,7 +43,7 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
         </div>
         <Button
           nativeButton={false}
-          render={<Link href='/dashboard/surveys' />}
+          render={<Link href='/dashboard/surveys' aria-label='Back to surveys' />}
           className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
           Back to Surveys
@@ -70,7 +70,12 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
         </div>
         <Button
           nativeButton={false}
-          render={<Link href={`/dashboard/surveys/${surveyId}/review`} />}
+          render={
+            <Link
+              href={`/dashboard/surveys/${surveyId}/review`}
+              aria-label='Go to survey review'
+            />
+          }
           className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
           Go to Review

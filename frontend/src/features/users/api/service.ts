@@ -23,18 +23,28 @@ export async function getUsers(filters: UserFilters): Promise<UsersResponse> {
   });
   return {
     success: true,
+    time: new Date().toISOString(),
+    message: 'ok',
     total_users: data.total,
-    users: data.users.map((u, index) => ({
-      id: index + 1,
-      uuid: u.id,
-      name: u.full_name,
-      email: u.email,
-      role: u.role,
-      status: u.is_active ? 'active' : 'inactive',
-      created_at: u.created_at,
-      updated_at: u.updated_at
-    }))
-  } as UsersResponse;
+    offset: skip,
+    limit,
+    users: data.users.map((u, index) => {
+      const parts = u.full_name.trim().split(/\s+/);
+      const first_name = parts[0] ?? '';
+      const last_name = parts.slice(1).join(' ') || first_name;
+      return {
+        id: index + 1,
+        first_name,
+        last_name,
+        email: u.email,
+        phone: '',
+        role: u.role,
+        status: u.is_active ? 'active' : 'inactive',
+        created_at: u.created_at,
+        updated_at: u.updated_at
+      };
+    })
+  };
 }
 
 export async function createUser(data: UserMutationPayload) {

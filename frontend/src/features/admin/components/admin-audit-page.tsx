@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 import { Icons } from '@/components/icons';
 import PageContainer from '@/components/layout/page-container';
@@ -461,13 +461,19 @@ export default function AdminAuditPage() {
     void setParams({ org: value.trim() || null, page: 1 });
   }, 350);
 
-  useEffect(() => {
-    setActionDraft(params.action ?? '');
-  }, [params.action]);
+  const urlAction = params.action ?? '';
+  const [prevUrlAction, setPrevUrlAction] = useState(urlAction);
+  if (urlAction !== prevUrlAction) {
+    setPrevUrlAction(urlAction);
+    setActionDraft(urlAction);
+  }
 
-  useEffect(() => {
-    setOrgDraft(params.org ?? '');
-  }, [params.org]);
+  const urlOrg = params.org ?? '';
+  const [prevUrlOrg, setPrevUrlOrg] = useState(urlOrg);
+  if (urlOrg !== prevUrlOrg) {
+    setPrevUrlOrg(urlOrg);
+    setOrgDraft(urlOrg);
+  }
 
   const effectiveAction = useMemo(() => {
     const typed = params.action?.trim();
