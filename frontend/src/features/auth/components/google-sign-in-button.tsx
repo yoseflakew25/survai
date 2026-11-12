@@ -41,6 +41,12 @@ declare global {
   }
 }
 
+/** GIS only allows one initialize() per page load — keep a shared callback. */
+let gisClientIdInitialized: string | null = null;
+let activeCredentialHandler:
+  | ((response: GoogleCredentialResponse) => void)
+  | null = null;
+
 function loadGisScript(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
   if (window.google?.accounts?.id) return Promise.resolve();
@@ -50,6 +56,10 @@ function loadGisScript(): Promise<void> {
   );
   if (existing) {
     return new Promise((resolve, reject) => {
+      if (window.google?.accounts?.id) {
+        resolve();
+        return;
+      }
       existing.addEventListener('load', () => resolve(), { once: true });
       existing.addEventListener(
         'error',
@@ -68,6 +78,23 @@ function loadGisScript(): Promise<void> {
     script.onerror = () => reject(new Error('Could not load Google Identity'));
     document.head.appendChild(script);
   });
+}
+
+function ensureGisInitialized(mode: 'signin' | 'signup') {
+  if (!window.google?.accounts?.id || !CLIENT_ID) return;
+
+  if (gisClientIdInitialized === CLIENT_ID) return;
+
+  window.google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: (response) => {
+      activeCredentialHandler?.(response);
+    },
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    context: mode === 'signup' ? 'signup' : 'signin'
+  });
+  gisClientIdInitialized = CLIENT_ID;
 }
 
 type GoogleSignInButtonProps = {
@@ -112,6 +139,10 @@ export function GoogleSignInButton({
     }
   );
 
+  const reportUnavailable = useEffectEvent(() => {
+    onError?.('Google sign-in is unavailable right now.');
+  });
+
   useEffect(() => {
     if (!CLIENT_ID || !hostRef.current) {
       setUnavailable(true);
@@ -119,6 +150,9 @@ export function GoogleSignInButton({
     }
 
     let cancelled = false;
+    activeCredentialHandler = (response) => {
+      void handleCredential(response);
+    };
 
     void (async () => {
       try {
@@ -127,15 +161,7 @@ export function GoogleSignInButton({
           return;
         }
 
-        window.google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: (response) => {
-            void handleCredential(response);
-          },
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          context: mode === 'signup' ? 'signup' : 'signin'
-        });
+        ensureGisInitialized(mode);
 
         hostRef.current.innerHTML = '';
         const width = Math.min(
@@ -154,15 +180,17 @@ export function GoogleSignInButton({
       } catch {
         if (!cancelled) {
           setUnavailable(true);
-          onError?.('Google sign-in is unavailable right now.');
+          reportUnavailable();
         }
       }
     })();
 
     return () => {
       cancelled = true;
+      // Drop this instance's handler on unmount; a remount will reassign.
+      activeCredentialHandler = null;
     };
-  }, [mode, onError]);
+  }, [mode]);
 
   if (unavailable) {
     return null;

@@ -239,6 +239,11 @@ class CollectionService:
     async def publish(self, *, user: User, survey_id: UUID) -> PublishResponse:
         require_org_editor(user)
         org_id = _require_org(user)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session, organization_id=org_id, key="publish_survey"
+        )
         survey = await self.surveys.get_for_org(
             survey_id=survey_id, organization_id=org_id
         )
@@ -459,7 +464,14 @@ class CollectionService:
         persist a finished response in one shot.
         """
         del ip, user_agent  # reserved for submit_public_survey
-        version, _survey = await self._require_published_version(version_id)
+        version, survey = await self._require_published_version(version_id)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session,
+            organization_id=survey.organization_id,
+            key="collect_responses",
+        )
         return {
             "status": "open",
             "survey_version_id": str(version.id),
@@ -475,6 +487,13 @@ class CollectionService:
     ) -> RespondentPublic:
         """Persist a respondent only when the full response is valid + complete."""
         version, survey = await self._require_published_version(version_id)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session,
+            organization_id=survey.organization_id,
+            key="collect_responses",
+        )
         await _enforce_collection_window(
             session=self.session, survey=survey, respondents=self.respondents
         )

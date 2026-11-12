@@ -67,7 +67,7 @@ export function DataTable<TData>({
       <div className='overflow-hidden rounded-[1.125rem] border border-border bg-card shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
         <ScrollArea className='w-full'>
           <Table>
-            <TableHeader className='border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand'>
+            <TableHeader className='border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                   key={headerGroup.id}

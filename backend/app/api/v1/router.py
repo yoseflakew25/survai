@@ -15,12 +15,14 @@ from app.api.v1.routes import (
     surveys,
     users,
 )
+from app.api.v1.routes.admin import router as admin_router
 
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(org.router)
 api_router.include_router(users.router)
+api_router.include_router(admin_router)
 api_router.include_router(notifications.router)
 api_router.include_router(assistant.router)
 api_router.include_router(overview.router)

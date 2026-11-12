@@ -28,9 +28,11 @@ from app.services.report import ReportService
 from app.services.respondents import RespondentsService
 from app.services.reviewer import ReviewerService
 from app.services.survey import SurveyService
+from app.services.admin import AdminService
 from app.services.user import UserService
 from app.core.rbac import is_org_editor, is_org_owner
 from app.core.exceptions import ForbiddenError
+from app.repositories.organization import OrganizationRepository
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -91,8 +93,13 @@ def get_compare_service(session: DbSession) -> CompareService:
     return CompareService(session)
 
 
+def get_admin_service(session: DbSession) -> AdminService:
+    return AdminService(session)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+AdminServiceDep = Annotated[AdminService, Depends(get_admin_service)]
 PlanServiceDep = Annotated[PlanService, Depends(get_plan_service)]
 SurveyServiceDep = Annotated[SurveyService, Depends(get_survey_service)]
 ReviewerServiceDep = Annotated[ReviewerService, Depends(get_reviewer_service)]
@@ -138,6 +145,18 @@ async def get_current_user(
     user = await UserRepository(session).get_by_id(user_id)
     if user is None or not user.is_active or not user.email_verified:
         raise UnauthorizedError()
+    # Suspended orgs cannot use the product (platform admins still can).
+    if (
+        user.organization_id is not None
+        and user.role != UserRole.system_admin
+        and not user.is_superuser
+    ):
+        org = await OrganizationRepository(session).get_by_id(user.organization_id)
+        if org is not None and not org.is_active:
+            raise UnauthorizedError("Organization suspended")
+    # Stash impersonation claims for /auth/me consumers.
+    user._impersonation = bool(payload.get("impersonation"))  # type: ignore[attr-defined]
+    user._impersonator_id = payload.get("impersonator_id")  # type: ignore[attr-defined]
     return user
 
 

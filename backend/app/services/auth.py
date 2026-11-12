@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import BadRequestError, UnauthorizedError
+from app.core.geo import normalize_country_code
 from app.core.security import (
     create_access_token,
     create_refresh_token_value,
@@ -181,7 +182,15 @@ class AuthService:
             dev_code=None if delivered else code,
         )
 
-    async def login(self, *, email: str, password: str) -> TokenPairResponse:
+    def _touch_presence(self, user: User, *, country_code: str | None) -> None:
+        user.last_seen_at = datetime.now(UTC)
+        code = normalize_country_code(country_code)
+        if code:
+            user.last_country = code
+
+    async def login(
+        self, *, email: str, password: str, country_code: str | None = None
+    ) -> TokenPairResponse:
         user = await self.users.get_by_email(email)
         if user is None:
             raise UnauthorizedError("Incorrect email or password")
@@ -197,11 +206,15 @@ class AuthService:
             raise UnauthorizedError(
                 "Email not verified. Check your inbox for a verification code."
             )
+        await self._assert_org_active(user)
+        self._touch_presence(user, country_code=country_code)
         tokens = await self._issue_token_pair(user)
         await self.session.commit()
         return tokens
 
-    async def login_with_google(self, *, credential: str) -> TokenPairResponse:
+    async def login_with_google(
+        self, *, credential: str, country_code: str | None = None
+    ) -> TokenPairResponse:
         """Verify GIS ID token, find/create org user, issue the same JWT cookies."""
         profile = verify_google_id_token(credential)
 
@@ -254,6 +267,8 @@ class AuthService:
                 user.organization_id = org.id
                 user.organization = org
 
+        await self._assert_org_active(user)
+        self._touch_presence(user, country_code=country_code)
         tokens = await self._issue_token_pair(user)
         await self.session.commit()
         return tokens
@@ -272,9 +287,19 @@ class AuthService:
         user = await self.users.get_by_id(stored.user_id)
         if user is None:
             raise UnauthorizedError("Invalid refresh token")
+        await self._assert_org_active(user)
         tokens = await self._issue_token_pair(user)
         await self.session.commit()
         return tokens
+
+    async def _assert_org_active(self, user: User) -> None:
+        if user.role == UserRole.system_admin or user.is_superuser:
+            return
+        if user.organization_id is None:
+            return
+        org = await self.organizations.get_by_id(user.organization_id)
+        if org is not None and not org.is_active:
+            raise UnauthorizedError("Organization suspended")
 
     async def logout(self, *, raw_refresh_token: str | None) -> None:
         if not raw_refresh_token:

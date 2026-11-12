@@ -171,6 +171,11 @@ class PlanService:
         """Hard-replace AI fields on the plan — never merge with prior content."""
         plan = await self._get_owned(user, plan_id)
         await self._ensure_unlocked(user=user, plan=plan)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session, organization_id=user.organization_id, key="ai_planner"
+        )
         if research_goal is not None:
             plan.research_goal = research_goal.strip()
 

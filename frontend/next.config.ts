@@ -1,11 +1,18 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Define the base Next.js configuration
 const baseConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
   turbopack: {
-    root: process.cwd()
+    // Pin to this package root so Turbopack never walks up to the monorepo
+    // and loses `next` after dependency/install churn.
+    root: configDir
   },
   images: {
     remotePatterns: [

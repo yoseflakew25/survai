@@ -59,6 +59,8 @@ export interface AuthUser {
   jobTitle: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  impersonation: boolean;
+  impersonatorId: string | null;
 }
 
 interface AuthContextValue {
@@ -66,12 +68,14 @@ interface AuthContextValue {
   isLoading: boolean;
   /** True while logout request + session clear are in flight. */
   isLoggingOut: boolean;
+  /** True when the session is an admin impersonating an org owner. */
+  isImpersonating: boolean;
   user: AuthUser | null;
   /** In-memory only — never persisted. Prefer httpOnly cookies for auth. */
   accessToken: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<TokenPairResponse>;
   /** Exchange a Google Identity Services ID token for SurvAI session cookies. */
-  loginWithGoogle: (credential: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<TokenPairResponse>;
   /**
    * Creates an Organization account and emails a verification OTP.
    * Does not sign in — call `verifyEmail` next.
@@ -114,7 +118,9 @@ function mapUser(u: ApiUser): AuthUser {
     phone: u.phone ?? null,
     jobTitle: u.job_title ?? null,
     bio: u.bio ?? null,
-    avatarUrl: u.avatar_url ?? null
+    avatarUrl: u.avatar_url ?? null,
+    impersonation: Boolean(u.impersonation),
+    impersonatorId: u.impersonator_id ?? null
   };
 }
 
@@ -161,10 +167,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hydrate = useEffectEvent(async () => {
+    // Hard ceiling so the sign-in gate can never sit on "Checking session"
+    // forever. Aiven refresh can be ~10–15s when warm; keep headroom.
+    const hardStop = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 18_000);
+
     try {
-      // Prefer refresh so we get a fresh access JWT into memory (+ body token
-      // when cross-origin cookies are not sent).
-      const pair = await refreshApiSession();
+      const pair = await refreshApiSession(15_000);
       if (pair) {
         applyTokenPair(pair);
         return;
@@ -172,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Cookie-only fallback: access cookie may still authorize /auth/me even
       // when refresh body/cookie is missing (e.g. pre-sessionStorage sessions).
-      const me = await apiFetch('/auth/me', {}, 15_000);
+      const me = await apiFetch('/auth/me', {}, 12_000);
       if (me.ok) {
         setUser(mapUser((await me.json()) as ApiUser));
         return;
@@ -182,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       clearSession();
     } finally {
+      window.clearTimeout(hardStop);
       setIsLoading(false);
     }
   });
@@ -231,7 +242,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             )
           );
         }
-        applyTokenPair(data as TokenPairResponse);
+        const pair = data as TokenPairResponse;
+        applyTokenPair(pair);
+        return pair;
       } catch (err) {
         throw new Error(toUserFacingError(err, 'Could not sign in. Please try again.'));
       }
@@ -255,7 +268,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             )
           );
         }
-        applyTokenPair(data as TokenPairResponse);
+        const pair = data as TokenPairResponse;
+        applyTokenPair(pair);
+        return pair;
       } catch (err) {
         throw new Error(
           toUserFacingError(err, 'Google sign-in failed. Please try again.')
@@ -431,6 +446,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSignedIn: !!user,
       isLoading,
       isLoggingOut,
+      isImpersonating: Boolean(user?.impersonation),
       user,
       accessToken,
       login,

@@ -1,6 +1,7 @@
 import KBar from '@/components/kbar';
 import AppSidebar from '@/components/layout/app-sidebar';
 import Header from '@/components/layout/header';
+import { ImpersonationBanner } from '@/components/layout/impersonation-banner';
 import { InfoSidebar } from '@/components/layout/info-sidebar';
 import { RequireAuth } from '@/components/layout/require-auth';
 import { InfobarProvider } from '@/components/ui/infobar';
@@ -43,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             tabIndex={-1}
             className='scroll-6 bg-card'
           >
+            <ImpersonationBanner />
             <Header />
             <InfobarProvider defaultOpen={false}>
               {children}

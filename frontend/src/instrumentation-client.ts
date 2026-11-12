@@ -3,10 +3,16 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 import * as Sentry from '@sentry/nextjs';
 
+// Prefer NEXT_PUBLIC_* so Turbopack can inline env without pulling the Node
+// `process` polyfill into the client instrumentation graph (that polyfill is a
+// common source of "module factory is not available" HMR crashes).
+const sentryDisabled = process.env.NEXT_PUBLIC_SENTRY_DISABLED;
+const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+
 // Next.js/React Turbopack can call performance.measure with a negative end time
 // when parallel-route defaults / redirects abort before children finish timing
-// (dev-only overlay crash: ParallelRouteDefault negative time stamp).
-if (process.env.NODE_ENV === 'development') {
+// (dev overlay crash: ParallelRouteDefault negative time stamp). Safe in prod too.
+if (typeof performance !== 'undefined' && typeof performance.measure === 'function') {
   const originalMeasure = performance.measure.bind(performance);
   performance.measure = ((...args: Parameters<typeof originalMeasure>) => {
     try {
@@ -23,9 +29,9 @@ if (process.env.NODE_ENV === 'development') {
   }) as typeof performance.measure;
 }
 
-if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
+if (!sentryDisabled) {
   Sentry.init({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    dsn: sentryDsn,
 
     // Adds request headers and IP for users, for more info visit
     sendDefaultPii: true,

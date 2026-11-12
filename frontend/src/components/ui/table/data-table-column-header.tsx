@@ -27,7 +27,7 @@ export function DataTableColumnHeader<TData, TValue>({
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort() && !column.getCanHide()) {
     return (
-      <div className={cn('text-[15px] font-semibold text-brand-foreground', className)}>
+      <div className={cn('text-[15px] font-semibold text-foreground', className)}>
         {title}
       </div>
     );
@@ -39,7 +39,7 @@ export function DataTableColumnHeader<TData, TValue>({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          '-ml-1.5 flex h-9 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[15px] font-semibold text-brand-foreground focus:ring-1 focus:ring-primary focus:outline-none [&_svg]:size-3.5 [&_svg]:shrink-0',
+          '-ml-1.5 flex h-9 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[15px] font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none [&_svg]:size-3.5 [&_svg]:shrink-0',
           isSorted
             ? 'bg-[color-mix(in_srgb,var(--primary)_14%,transparent)]'
             : 'hover:bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] data-popup-open:bg-[color-mix(in_srgb,var(--primary)_10%,transparent)]',
@@ -50,11 +50,11 @@ export function DataTableColumnHeader<TData, TValue>({
         {title}
         {column.getCanSort() &&
           (column.getIsSorted() === 'desc' ? (
-            <Icons.chevronDown className='text-brand-foreground' />
+            <Icons.chevronDown className='text-muted-foreground' />
           ) : column.getIsSorted() === 'asc' ? (
-            <Icons.chevronUp className='text-brand-foreground' />
+            <Icons.chevronUp className='text-muted-foreground' />
           ) : (
-            <Icons.chevronsUpDown className='text-brand-foreground/70' />
+            <Icons.chevronsUpDown className='text-muted-foreground' />
           ))}
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' className='w-28 rounded-xl'>

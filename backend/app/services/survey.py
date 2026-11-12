@@ -502,6 +502,12 @@ class SurveyService:
         if survey.plan_id is None:
             raise BadRequestError("Survey has no linked plan to generate from.")
 
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session, organization_id=user.organization_id, key="ai_builder"
+        )
+
         plan = await self._get_owned_plan(user, survey.plan_id)
         self._assert_plan_ready(plan)
 

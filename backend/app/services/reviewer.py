@@ -59,6 +59,12 @@ class ReviewerService:
                 "Survey has no questions to review. Generate or add questions first."
             )
 
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session, organization_id=user.organization_id, key="ai_reviewer"
+        )
+
         plan: SurveyPlan | None = None
         if survey.plan_id is not None:
             plan = await self.plans.get_for_org(

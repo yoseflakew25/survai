@@ -70,6 +70,9 @@ class UserPublic(BaseModel):
     avatar_url: str | None = None
     created_at: datetime
     updated_at: datetime
+    # Present when the access token is an admin impersonation session.
+    impersonation: bool = False
+    impersonator_id: UUID | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -95,5 +98,7 @@ class UserPublic(BaseModel):
                 "avatar_url": data.avatar_url,
                 "created_at": data.created_at,
                 "updated_at": data.updated_at,
+                "impersonation": bool(getattr(data, "_impersonation", False)),
+                "impersonator_id": getattr(data, "_impersonator_id", None),
             }
         return data

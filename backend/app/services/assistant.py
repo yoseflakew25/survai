@@ -190,6 +190,11 @@ class AssistantService:
         Structured Gemini calls stay non-streaming; deltas are progressive UI only.
         """
         org_id = _require_org(user)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session, organization_id=org_id, key="ai_assistant"
+        )
         question = content.strip()
         if not question:
             raise BadRequestError("Message cannot be empty")

@@ -38,7 +38,7 @@ const inputClass =
   'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function SignInViewPage() {
-  const { login, isSignedIn, isLoading } = useAuth();
+  const { login, isSignedIn, isLoading, user } = useAuth();
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const redirectedRef = useRef(false);
@@ -52,28 +52,32 @@ export default function SignInViewPage() {
 
   const { isSubmitting } = form.formState;
 
-  const goDashboard = useEffectEvent(() => {
+  const goHome = useEffectEvent((role?: string | null) => {
     if (redirectedRef.current) return;
     redirectedRef.current = true;
+    const dest =
+      (role ?? user?.role) === 'system_admin'
+        ? '/admin/overview'
+        : '/dashboard/overview';
     startTransition(() => {
-      router.replace('/dashboard/overview');
+      router.replace(dest);
     });
   });
 
   useEffect(() => {
     if (!isLoading && isSignedIn) {
-      goDashboard();
+      goHome(user?.role);
     }
-  }, [isLoading, isSignedIn]);
+  }, [isLoading, isSignedIn, user?.role]);
 
   async function onSubmit(values: PasswordValues) {
     setServerError(null);
     try {
-      await login(values.email.trim(), values.password);
+      const pair = await login(values.email.trim(), values.password);
       toast.success('Welcome back', {
         description: 'Signed in successfully.'
       });
-      goDashboard();
+      goHome(pair.user.role);
     } catch (err) {
       redirectedRef.current = false;
       const message =
@@ -95,7 +99,7 @@ export default function SignInViewPage() {
           aria-busy='true'
         >
           <Icons.spinner className='text-muted-foreground size-5 animate-spin' />
-          <p className='text-muted-foreground text-sm'>
+          <p className='text-muted-foreground text-sm' suppressHydrationWarning>
             {isSignedIn ? 'Taking you to your workspace…' : 'Checking your session…'}
           </p>
         </div>

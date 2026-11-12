@@ -22,6 +22,8 @@ export type ApiUser = {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  impersonation?: boolean;
+  impersonator_id?: string | null;
 };
 
 export type TokenPairResponse = {

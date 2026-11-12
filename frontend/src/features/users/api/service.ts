@@ -1,47 +1,69 @@
-// ============================================================
-// User Service — Data Access Layer
-// ============================================================
-// This is the ONLY file you modify when connecting to your backend.
-// Queries (queries.ts) and components import from here — they never change.
-//
-// Pick your pattern and replace the function bodies below:
-//
-// 1. Server Actions + ORM (Prisma / Drizzle / Supabase)
-//    → Add 'use server' at the top of this file
-//    → Call your ORM directly in each function
-//
-// 2. Route Handlers + ORM
-//    → import { apiClient } from '@/lib/api-client'
-//    → return apiClient<UsersResponse>('/users?...')
-//    → Replace mock calls in route handlers (src/app/api/users/) with ORM
-//
-// 3. BFF — Route Handlers proxy to external backend (Laravel, Go, etc.)
-//    → import { apiClient } from '@/lib/api-client'
-//    → return apiClient<UsersResponse>('/users?...')
-//    → Route handlers proxy requests to your external backend service
-//
-// 4. Direct external API (frontend-only, no Next.js backend)
-//    → const res = await fetch('https://your-api.com/users?...')
-//    → return res.json()
-//
-// Current: Mock (in-memory fake data for demo/prototyping)
-// ============================================================
+/**
+ * User data access — platform admin endpoints under /admin/users.
+ * Prefer the admin users UI at /admin/users; this module remains for any
+ * leftover imports from the old dashboard users table.
+ */
 
-import { fakeUsers } from '@/constants/mock-api-users';
+import {
+  createAdminUser,
+  fetchAdminUsers,
+  patchAdminUser
+} from '@/features/admin/api/service';
 import type { UserFilters, UsersResponse, UserMutationPayload } from './types';
 
 export async function getUsers(filters: UserFilters): Promise<UsersResponse> {
-  return fakeUsers.getUsers(filters);
+  const page = filters.page ?? 1;
+  const limit = filters.limit ?? 10;
+  const skip = Math.max(0, (page - 1) * limit);
+  const data = await fetchAdminUsers({
+    search: filters.search,
+    role: Array.isArray(filters.roles) ? filters.roles[0] : filters.roles,
+    skip,
+    limit
+  });
+  return {
+    success: true,
+    total_users: data.total,
+    users: data.users.map((u, index) => ({
+      id: index + 1,
+      uuid: u.id,
+      name: u.full_name,
+      email: u.email,
+      role: u.role,
+      status: u.is_active ? 'active' : 'inactive',
+      created_at: u.created_at,
+      updated_at: u.updated_at
+    }))
+  } as UsersResponse;
 }
 
 export async function createUser(data: UserMutationPayload) {
-  return fakeUsers.createUser(data);
+  const fullName =
+    `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email;
+  const created = await createAdminUser({
+    email: data.email,
+    full_name: fullName,
+    password: 'ChangeMe123',
+    role: data.role,
+    email_verified: true
+  });
+  return { success: true, user: created };
 }
 
-export async function updateUser(id: number, data: UserMutationPayload) {
-  return fakeUsers.updateUser(id, data);
+export async function updateUser(id: number | string, data: UserMutationPayload) {
+  // Legacy table used numeric ids; admin UI uses UUID strings via /admin/users.
+  if (typeof id === 'string' && id.includes('-')) {
+    const fullName =
+      `${data.first_name || ''} ${data.last_name || ''}`.trim() || undefined;
+    return patchAdminUser(id, {
+      full_name: fullName,
+      role: data.role,
+      is_active: data.status !== 'inactive'
+    });
+  }
+  throw new Error('Use /admin/users to manage accounts');
 }
 
-export async function deleteUser(id: number) {
-  return fakeUsers.deleteUser(id);
+export async function deleteUser(_id: number) {
+  throw new Error('Deactivate users from /admin/users instead of deleting');
 }

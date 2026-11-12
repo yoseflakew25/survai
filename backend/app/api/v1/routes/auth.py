@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Response, status
+from fastapi import APIRouter, Cookie, Request, Response, status
 
 from app.api.cookies import clear_auth_cookies, set_auth_cookies
 from app.api.deps import AuthServiceDep, CurrentUser
@@ -74,9 +74,15 @@ async def resend_verification(
 async def login(
     body: LoginRequest,
     response: Response,
+    request: Request,
     auth: AuthServiceDep,
 ) -> TokenPairResponse:
-    tokens = await auth.login(email=body.email, password=body.password)
+    from app.core.geo import extract_country_from_headers
+
+    country = extract_country_from_headers(dict(request.headers))
+    tokens = await auth.login(
+        email=body.email, password=body.password, country_code=country
+    )
     set_auth_cookies(
         response, access_token=tokens.access_token, refresh_token=tokens.refresh_token
     )
@@ -87,10 +93,16 @@ async def login(
 async def google_sign_in(
     body: GoogleAuthRequest,
     response: Response,
+    request: Request,
     auth: AuthServiceDep,
 ) -> TokenPairResponse:
     """Exchange a Google Identity Services ID token for SurvAI session cookies."""
-    tokens = await auth.login_with_google(credential=body.credential)
+    from app.core.geo import extract_country_from_headers
+
+    country = extract_country_from_headers(dict(request.headers))
+    tokens = await auth.login_with_google(
+        credential=body.credential, country_code=country
+    )
     set_auth_cookies(
         response, access_token=tokens.access_token, refresh_token=tokens.refresh_token
     )

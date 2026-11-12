@@ -162,6 +162,11 @@ class ReportService:
         self, *, user: User, survey_id: UUID, body: ReportCreateRequest
     ) -> ReportPublic:
         require_org_editor(user)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(
+            self.session, organization_id=user.organization_id, key="ai_report"
+        )
         survey = await self._owned_survey(user, survey_id)
         if survey.current_version_id is None:
             raise BadRequestError("Publish the survey and collect responses first.")
@@ -453,6 +458,9 @@ class ReportService:
     ) -> ExportPublic:
         require_org_editor(user)
         org_id = _require_org(user)
+        from app.core.feature_flags import assert_org_flag
+
+        await assert_org_flag(self.session, organization_id=org_id, key="exports")
         report = await self.reports.get_for_org(
             report_id=report_id, organization_id=org_id
         )

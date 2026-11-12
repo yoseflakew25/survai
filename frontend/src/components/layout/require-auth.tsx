@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, startTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -11,6 +11,7 @@ import { overviewQueryOptions } from '@/features/overview/api/queries';
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoading, isLoggingOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
 
   const redirectToSignIn = useEffectEvent(() => {
@@ -25,12 +26,13 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, isLoggingOut, isSignedIn]);
 
-  // Warm overview as soon as the session is ready so KPIs aren't blocked on
-  // chart/sidebar mount order.
+  // Warm org overview for dashboard routes only — admin has its own API and
+  // this prefetch was burning a second ~15s Aiven round-trip on /admin/*.
   useEffect(() => {
     if (!isSignedIn || isLoading) return;
+    if (pathname?.startsWith('/admin')) return;
     void queryClient.prefetchQuery(overviewQueryOptions());
-  }, [isSignedIn, isLoading, queryClient]);
+  }, [isSignedIn, isLoading, pathname, queryClient]);
 
   if (isLoggingOut) {
     return <HippieLoadingScreen message='Signing out' />;

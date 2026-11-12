@@ -1,4 +1,5 @@
 from app.models.ai_generation_log import AiGenerationLog
+from app.models.audit_log import AuditLog
 from app.models.assistant import (
     AssistantMessage,
     AssistantMessageRole,
@@ -40,6 +41,7 @@ from app.models.user import User, UserRole
 
 __all__ = [
     "AiGenerationLog",
+    "AuditLog",
     "AssistantMessage",
     "AssistantMessageRole",
     "AssistantThread",
