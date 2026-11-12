@@ -182,7 +182,13 @@ export function createAdminUserColumns(
             <DropdownMenuContent align='end' className='w-44'>
               {u.organization_id ? (
                 <DropdownMenuItem
-                  render={<Link href={`/admin/orgs/${u.organization_id}`} />}
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href={`/admin/orgs/${u.organization_id}`}
+                      aria-label={`View organization for ${u.full_name || u.email}`}
+                    />
+                  }
                 >
                   <Icons.workspace className='size-3.5' />
                   View organization

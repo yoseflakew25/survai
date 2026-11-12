@@ -55,7 +55,7 @@ export function UserPresenceMap({ geo }: UserPresenceMapProps) {
           role='img'
           aria-label='Countries with active Survai users'
         >
-        {world.locations.map((loc) => {
+        {world.locations.map((loc: (typeof world.locations)[number]) => {
           const hit = byCode.get(loc.id);
           const isActive = activeId === loc.id;
           const intensity = hit ? 0.55 + (hit.count / max) * 0.45 : 0;

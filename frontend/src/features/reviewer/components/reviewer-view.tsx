@@ -365,7 +365,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
         <Button
           nativeButton={false}
-          render={<Link href='/dashboard/surveys' />}
+          render={<Link href='/dashboard/surveys' aria-label='Back to surveys' />}
           className={brandCtaClass}
         >
           Back to Surveys

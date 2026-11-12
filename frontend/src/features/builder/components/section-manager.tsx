@@ -92,6 +92,15 @@ function SortableSection({
     transition
   };
 
+  const questionSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  );
+
   function handleSaveEdit() {
     onEdit(section.id, title, description);
     setIsEditing(false);
@@ -210,14 +219,7 @@ function SortableSection({
                 </p>
               ) : (
                 <DndContext
-                  sensors={useSensors(
-                    useSensor(PointerSensor, {
-                      activationConstraint: { distance: 5 }
-                    }),
-                    useSensor(KeyboardSensor, {
-                      coordinateGetter: sortableKeyboardCoordinates
-                    })
-                  )}
+                  sensors={questionSensors}
                   collisionDetection={closestCenter}
                   onDragEnd={(event: DragEndEvent) => {
                     const { active, over } = event;

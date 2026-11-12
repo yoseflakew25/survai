@@ -88,29 +88,15 @@ export const NotificationCard: FC<NotificationCardProps> = ({
 }) => {
   const isUnread = status === 'unread';
 
-  return (
-    <div
-      className={cn(
-        'group relative transition-colors',
-        compact ? 'px-3.5 py-3' : 'px-5 py-3.5',
-        isUnread ? 'bg-muted/35' : 'hover:bg-muted/25',
-        onOpen && 'cursor-pointer',
-        className
-      )}
-      role={onOpen ? 'button' : undefined}
-      tabIndex={onOpen ? 0 : undefined}
-      onClick={onOpen ? () => onOpen(id) : undefined}
-      onKeyDown={
-        onOpen
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onOpen(id);
-              }
-            }
-          : undefined
-      }
-    >
+  const cardClass = cn(
+    'group relative transition-colors',
+    compact ? 'px-3.5 py-3' : 'px-5 py-3.5',
+    isUnread ? 'bg-muted/35' : 'hover:bg-muted/25',
+    onOpen && 'cursor-pointer',
+    className
+  );
+
+  const inner = (
       <div className='flex gap-2.5'>
         <div className='.5 w-2 shrink-0'>
           {isUnread ? (
@@ -214,6 +200,26 @@ export const NotificationCard: FC<NotificationCardProps> = ({
           ) : null}
         </div>
       </div>
-    </div>
   );
+
+  if (onOpen) {
+    return (
+      <div
+        role='button'
+        tabIndex={0}
+        className={cardClass}
+        onClick={() => onOpen(id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onOpen(id);
+          }
+        }}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return <div className={cardClass}>{inner}</div>;
 };

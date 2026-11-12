@@ -58,6 +58,7 @@ function ActionTile({
       type='button'
       onClick={onClick}
       disabled={disabled}
+      aria-label={`${label} — ${hint}`}
       className={cn(
         'group relative flex flex-col items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition-all',
         'focus-visible:ring-ring outline-none focus-visible:ring-2 focus-visible:ring-offset-2',

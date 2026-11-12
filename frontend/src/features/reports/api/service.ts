@@ -344,7 +344,7 @@ export async function downloadExportPack(
   );
   if (!res.ok) await readError(res, 'Could not build donor pack');
   const exported = mapExport((await res.json()) as ApiExport);
-  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
+  const safe = title.replace(/[^\w-]+/g, '_').slice(0, 60) || 'report';
   if (!exported.contentBase64) {
     throw new Error('Donor pack returned no file data');
   }
@@ -379,7 +379,7 @@ export async function downloadReportPdf(
   title: string
 ): Promise<void> {
   const result = await exportReport(reportId, 'pdf');
-  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
+  const safe = title.replace(/[^\w-]+/g, '_').slice(0, 60) || 'report';
   if (!result.contentBase64) {
     throw new Error('PDF export returned no file data');
   }
@@ -396,7 +396,7 @@ export async function downloadReportDocx(
   title: string
 ): Promise<void> {
   const result = await exportReport(reportId, 'docx');
-  const safe = title.replace(/[^\w\-]+/g, '_').slice(0, 60) || 'report';
+  const safe = title.replace(/[^\w-]+/g, '_').slice(0, 60) || 'report';
   if (!result.contentBase64) {
     throw new Error('Word export returned no file data');
   }

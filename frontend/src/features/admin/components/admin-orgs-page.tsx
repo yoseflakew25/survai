@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Icons } from '@/components/icons';
@@ -163,7 +163,8 @@ export default function AdminOrgsPage() {
     status: parseAsString.withDefault('all')
   });
 
-  const [searchDraft, setSearchDraft] = useState(params.q ?? '');
+  const urlSearch = params.q ?? '';
+  const [searchDraft, setSearchDraft] = useState(urlSearch);
   const [suspendTarget, setSuspendTarget] = useState<AdminOrg | null>(null);
   const [pendingOrgId, setPendingOrgId] = useState<string | null>(null);
 
@@ -171,21 +172,15 @@ export default function AdminOrgsPage() {
     void setParams({ q: value.trim() || null, page: 1 });
   }, 350);
 
-  useEffect(() => {
-    setSearchDraft(params.q ?? '');
-  }, [params.q]);
+  const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearch);
+  if (urlSearch !== prevUrlSearch) {
+    setPrevUrlSearch(urlSearch);
+    setSearchDraft(urlSearch);
+  }
 
   const status = (params.status === 'active' || params.status === 'suspended'
     ? params.status
     : 'all') as StatusFilter;
-
-  const countQueries = useQueries({
-    queries: [
-      adminOrgsQueryOptions({ limit: 1 }),
-      adminOrgsQueryOptions({ active: true, limit: 1 }),
-      adminOrgsQueryOptions({ active: false, limit: 1 })
-    ]
-  });
 
   const overviewQuery = useQuery({
     ...adminOverviewQueryOptions(),
@@ -285,14 +280,13 @@ export default function AdminOrgsPage() {
     [setParams]
   );
 
-  const totalOrgs = countQueries[0].data?.total ?? overviewQuery.data?.orgs_total;
-  const activeOrgs = countQueries[1].data?.total ?? overviewQuery.data?.orgs_active;
-  const suspendedOrgs =
-    countQueries[2].data?.total ?? overviewQuery.data?.orgs_suspended ?? 0;
+  const overview = overviewQuery.data;
+  const totalOrgs = overview?.orgs_total;
+  const activeOrgs = overview?.orgs_active;
+  const suspendedOrgs = overview?.orgs_suspended ?? 0;
 
   const filtered = Boolean(params.q?.trim() || status !== 'all');
   const level = orgLevel(suspendedOrgs ?? 0, filtered);
-  const overview = overviewQuery.data;
 
   const statStrip = [
     {
@@ -384,7 +378,6 @@ export default function AdminOrgsPage() {
       onClick={() => {
         void refetch();
         void overviewQuery.refetch();
-        countQueries.forEach((q) => void q.refetch());
       }}
       disabled={isFetching || overviewQuery.isFetching}
       className={brandToolbarButtonClass}
@@ -400,7 +393,7 @@ export default function AdminOrgsPage() {
   );
 
   const showSkeleton =
-    isLoading && !data && countQueries.some((q) => q.isLoading);
+    isLoading && !data && overviewQuery.isLoading && !overview;
 
   return (
     <PageContainer

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { SurvaiLogo } from '@/components/survai-logo';
+import { SITE_YEAR } from '@/lib/site-year';
 
 type LegalPageShellProps = {
   title: string;
@@ -49,7 +50,7 @@ export function LegalPageShell({ title, updated, children }: LegalPageShellProps
 
       <footer className='border-t border-border'>
         <div className='text-muted-foreground mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-6 text-xs sm:px-6'>
-          <span>© {new Date().getFullYear()} Survai</span>
+          <span>© {SITE_YEAR} Survai</span>
           <Link href='/privacy' className='hover:text-foreground transition-colors'>
             Privacy
           </Link>

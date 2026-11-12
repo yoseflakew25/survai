@@ -32,7 +32,9 @@ def _require_org(user: User) -> UUID:
     return user.organization_id
 
 
-def _month_key(dt: datetime) -> str:
+def _month_key(dt: datetime | str) -> str:
+    if isinstance(dt, str):
+        return dt[:7] if len(dt) >= 7 else dt
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
     return dt.astimezone(UTC).strftime("%Y-%m")
@@ -41,6 +43,18 @@ def _month_key(dt: datetime) -> str:
 def _month_label(key: str) -> str:
     _year, month = key.split("-")
     return month_abbr[int(month)]
+
+
+def _month_bucket(session: AsyncSession, column):  # noqa: ANN001
+    """Month bucket portable across Postgres (date_trunc) and SQLite tests."""
+    bind = session.bind
+    dialect = getattr(getattr(bind, "dialect", None), "name", None)
+    if dialect == "sqlite" or (
+        dialect is None and "sqlite" in settings.database_url.lower()
+    ):
+        return func.strftime("%Y-%m", column)
+    month_unit = literal_column("'month'")
+    return func.date_trunc(month_unit, column)
 
 
 def _fmt_int(n: int) -> str:
@@ -179,9 +193,8 @@ class OverviewService:
         # Month buckets in SQL — avoid shipping every respondent row over the wire.
         # Use a SQL literal for the trunc unit so SELECT/GROUP BY stay identical
         # under asyncpg (bound params $1 vs $4 are not considered equal by PG).
-        month_unit = literal_column("'month'")
-        started_month = func.date_trunc(month_unit, Respondent.started_at)
-        completed_month = func.date_trunc(month_unit, Respondent.completed_at)
+        started_month = _month_bucket(self.session, Respondent.started_at)
+        completed_month = _month_bucket(self.session, Respondent.completed_at)
         started_by_month: dict[str, int] = {
             _month_key(row[0]): int(row[1])
             for row in (

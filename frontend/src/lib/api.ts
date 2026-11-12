@@ -244,11 +244,13 @@ export async function apiFetch(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error(
-        'The API is waking up (free hosting). Wait about a minute, then try again.'
+        'The API is waking up (free hosting). Wait about a minute, then try again.',
+        { cause: err }
       );
     }
     throw new Error(
-      toUserFacingError(err, 'Something went wrong. Please try again.')
+      toUserFacingError(err, 'Something went wrong. Please try again.'),
+      { cause: err }
     );
   } finally {
     clearTimeout(timeoutId);

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  useCallback,
   useEffect,
-  useEffectEvent,
   useRef,
   useState,
   startTransition
@@ -52,23 +52,26 @@ export default function SignInViewPage() {
 
   const { isSubmitting } = form.formState;
 
-  const goHome = useEffectEvent((role?: string | null) => {
-    if (redirectedRef.current) return;
-    redirectedRef.current = true;
-    const dest =
-      (role ?? user?.role) === 'system_admin'
-        ? '/admin/overview'
-        : '/dashboard/overview';
-    startTransition(() => {
-      router.replace(dest);
-    });
-  });
+  const goHome = useCallback(
+    (role?: string | null) => {
+      if (redirectedRef.current) return;
+      redirectedRef.current = true;
+      const dest =
+        (role ?? user?.role) === 'system_admin'
+          ? '/admin/overview'
+          : '/dashboard/overview';
+      startTransition(() => {
+        router.replace(dest);
+      });
+    },
+    [router, user?.role]
+  );
 
   useEffect(() => {
     if (!isLoading && isSignedIn) {
       goHome(user?.role);
     }
-  }, [isLoading, isSignedIn, user?.role]);
+  }, [goHome, isLoading, isSignedIn, user?.role]);
 
   async function onSubmit(values: PasswordValues) {
     setServerError(null);
@@ -135,14 +138,16 @@ export default function SignInViewPage() {
             toast.success('Welcome back', {
               description: 'Signed in with Google.'
             });
-            goDashboard();
+            goHome();
           }}
         />
         <AuthDivider />
 
         <form
           className='space-y-3'
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={(event) => {
+            void form.handleSubmit(onSubmit)(event);
+          }}
           noValidate
         >
           <div className='space-y-1.5'>

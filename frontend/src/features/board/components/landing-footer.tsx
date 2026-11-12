@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { SurvaiLogo } from '@/components/survai-logo';
+import { SITE_YEAR } from '@/lib/site-year';
 
 const PRODUCT = [
   { href: '#lifecycle', label: 'Lifecycle' },
@@ -31,8 +32,6 @@ const STAGES = [
 ] as const;
 
 export function LandingFooter() {
-  const year = new Date().getFullYear();
-
   return (
     <footer className='0 border-t border-border bg-[color-mix(in_srgb,var(--secondary)_55%,var(--background))]'>
       <div className='mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 sm:py-14'>
@@ -135,7 +134,7 @@ export function LandingFooter() {
 
         <div className='2 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between'>
           <p className='font-mono text-[11px] text-muted-foreground'>
-            © {year} Survai. All rights reserved.
+            © {SITE_YEAR} Survai. All rights reserved.
           </p>
           <p className='text-[11px] text-muted-foreground'>
             An AI-assisted survey lifecycle —{' '}

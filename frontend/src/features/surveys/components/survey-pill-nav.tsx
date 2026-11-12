@@ -31,7 +31,6 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
       />
 
       <nav
-        role='tablist'
         aria-label='Survey workflow'
         className={cn(
           'flex items-center gap-1 overflow-x-auto rounded-2xl border border-border',
@@ -49,8 +48,7 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
             <Link
               key={tab.href}
               href={href}
-              role='tab'
-              aria-selected={isActive}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'group relative inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-[color,background-color,box-shadow,border-color] duration-150',
                 isActive

@@ -32,7 +32,7 @@ import { useFilteredNavGroups } from '@/hooks/use-nav';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Icons } from '../icons';
 import { SurvaiLogo, SurvaiMark } from '@/components/survai-logo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -60,16 +60,13 @@ function NavCollapsibleItem({
   IconComponent: ComponentType<React.SVGProps<SVGSVGElement>> | null;
   pathname: string;
 }) {
-  const [open, setOpen] = useState(isActive);
-
-  useEffect(() => {
-    if (isActive) setOpen(true);
-  }, [isActive]);
+  const [userToggled, setUserToggled] = useState<boolean | null>(null);
+  const open = userToggled ?? isActive;
 
   return (
     <Collapsible
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={setUserToggled}
       render={<SidebarMenuItem />}
     >
       <CollapsibleTrigger

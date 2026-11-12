@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 import { Icons } from '@/components/icons';
 import PageContainer from '@/components/layout/page-container';
@@ -178,7 +178,8 @@ export default function AdminUsersPage() {
     role: parseAsString.withDefault('all')
   });
 
-  const [searchDraft, setSearchDraft] = useState(params.q ?? '');
+  const urlSearch = params.q ?? '';
+  const [searchDraft, setSearchDraft] = useState(urlSearch);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
@@ -188,9 +189,11 @@ export default function AdminUsersPage() {
     void setParams({ q: value.trim() || null, page: 1 });
   }, 350);
 
-  useEffect(() => {
-    setSearchDraft(params.q ?? '');
-  }, [params.q]);
+  const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearch);
+  if (urlSearch !== prevUrlSearch) {
+    setPrevUrlSearch(urlSearch);
+    setSearchDraft(urlSearch);
+  }
 
   const roleFilter = (
     ROLE_TABS.some((t) => t.id === params.role) ? params.role : 'all'

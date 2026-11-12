@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
@@ -55,11 +56,12 @@ export function CollectionQr({ url, className }: CollectionQrProps) {
     >
       <div className='mx-auto shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-2.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] sm:mx-0'>
         <div className='overflow-hidden rounded-xl bg-white p-2'>
-          <img
+          <Image
             src={previewSrc}
             alt='QR code for survey collection link'
             width={140}
             height={140}
+            unoptimized
             className='size-[140px]'
           />
         </div>

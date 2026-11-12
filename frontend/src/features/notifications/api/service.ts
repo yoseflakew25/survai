@@ -74,7 +74,9 @@ export async function listNotifications(): Promise<NotificationList> {
       unreadCount: data.unread_count
     };
   } catch (err) {
-    throw new Error(toUserFacingError(err, 'Could not load notifications'));
+    throw new Error(toUserFacingError(err, 'Could not load notifications'), {
+      cause: err
+    });
   }
 }
 
@@ -85,7 +87,9 @@ export async function getUnreadCount(): Promise<number> {
     const data = (await res.json()) as { unread_count: number };
     return data.unread_count;
   } catch (err) {
-    throw new Error(toUserFacingError(err, 'Could not load unread count'));
+    throw new Error(toUserFacingError(err, 'Could not load unread count'), {
+      cause: err
+    });
   }
 }
 

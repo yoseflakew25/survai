@@ -43,9 +43,37 @@
     "jsx-a11y/role-has-required-aria-props": "warn",
     "jsx-a11y/role-supports-aria-props": "warn",
     "jsx-a11y/prefer-tag-over-role": "off",
-    "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }]
+    "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
+
+    "react/set-state-in-effect": "warn",
+    "react/refs": "warn",
+    "react/preserve-manual-memoization": "warn",
+    "react/purity": "warn",
+    "react/immutability": "warn",
+    "react/incompatible-library": "warn",
+    "eslint/preserve-caught-error": "warn"
   },
   "overrides": [
+    {
+      "files": [
+        "src/components/ui/kanban.tsx",
+        "src/components/ui/carousel.tsx"
+      ],
+      "rules": {
+        "react/set-state-in-effect": "off"
+      }
+    },
+    {
+      "files": [
+        "src/hooks/use-data-table.ts",
+        "src/features/plans/components/create-plan-form.tsx",
+        "src/features/profile/components/profile-view-page.tsx",
+        "src/features/profile/components/security-view-page.tsx"
+      ],
+      "rules": {
+        "react/incompatible-library": "off"
+      }
+    },
     {
       "files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
       "rules": {

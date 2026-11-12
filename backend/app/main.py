@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-
-import time
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +16,7 @@ from app import __version__
 from app.api.v1.router import api_router
 from app.core.cache import close_cache
 from app.core.config import settings
+from app.core.rate_limit import RateLimitMiddleware
 from app.db.session import AsyncSessionLocal
 from app.services.user import UserService
 
@@ -72,6 +72,7 @@ app = FastAPI(
 
 # Outermost first in Starlette: GZip wraps responses after CORS/handlers.
 app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SlowRequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,

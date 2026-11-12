@@ -1,4 +1,6 @@
 import Link from 'next/link';
+
+import { SITE_YEAR } from '@/lib/site-year';
 import type { ReactNode } from 'react';
 
 import { SurvaiLogo } from '@/components/survai-logo';
@@ -35,7 +37,7 @@ export function AuthShell({ children }: AuthShellProps) {
 
         <footer className='px-6 py-4 sm:px-8 lg:px-10'>
           <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground/30'>
-            <span suppressHydrationWarning>© {new Date().getFullYear()} Survai</span>
+            <span>© {SITE_YEAR} Survai</span>
             <Link
               href='/privacy'
               className='transition-colors hover:text-muted-foreground/60'

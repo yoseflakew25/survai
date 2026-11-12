@@ -169,18 +169,16 @@ function RecentOrgs({ data }: { data: AdminOverview }) {
             No organizations yet.
           </p>
         ) : (
-          <div
-            className='scrollbar-thin scrollbar-gutter-stable max-h-64 space-y-1.5 overflow-y-auto overscroll-contain pr-0.5 sm:max-h-72'
-            role='list'
+          <ul
+            className='scrollbar-thin scrollbar-gutter-stable max-h-64 list-none space-y-1.5 overflow-y-auto overscroll-contain pr-0.5 sm:max-h-72'
             aria-label='Recent organizations'
           >
             {data.recent_orgs.map((org) => (
-              <Link
-                key={org.id}
-                href={`/admin/orgs/${org.id}`}
-                role='listitem'
-                className='flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/40'
-              >
+              <li key={org.id}>
+                <Link
+                  href={`/admin/orgs/${org.id}`}
+                  className='flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/40'
+                >
                 <div className='min-w-0 flex-1'>
                   <div className='flex items-center gap-2'>
                     <p className='truncate text-sm font-semibold text-foreground'>
@@ -199,8 +197,9 @@ function RecentOrgs({ data }: { data: AdminOverview }) {
                 </div>
                 <Icons.chevronRight className='size-4 text-muted-foreground' />
               </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </SurvaiPanelBody>
       <SurvaiPanelFooter>

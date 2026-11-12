@@ -46,11 +46,13 @@ async function publicFetch(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error(
-        'The server took too long to respond. Try again in a moment.'
+        'The server took too long to respond. Try again in a moment.',
+        { cause: err }
       );
     }
     throw new Error(
-      toUserFacingError(err, 'Something went wrong. Please try again.')
+      toUserFacingError(err, 'Something went wrong. Please try again.'),
+      { cause: err }
     );
   } finally {
     clearTimeout(timeoutId);

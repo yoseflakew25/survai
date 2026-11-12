@@ -1,15 +1,11 @@
 'use client';
 
 import { useTheme } from '@/components/themes/theme-provider';
-import { useEffect, useState } from 'react';
+import { useClientMounted } from '@/hooks/use-client-mounted';
 
 export function useLogo(collapsed: boolean = false) {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useClientMounted();
 
   const isDark = mounted && resolvedTheme === 'dark';
 

@@ -74,6 +74,21 @@ async def cache_delete(key: str) -> None:
         logger.debug("cache_delete failed key=%s", key, exc_info=True)
 
 
+async def rate_limit_incr(key: str, *, ttl_seconds: int) -> int | None:
+    """Fixed-window counter for distributed rate limits; None if Redis unavailable."""
+    client = await _client()
+    if client is None:
+        return None
+    try:
+        count = await client.incr(key)
+        if count == 1:
+            await client.expire(key, ttl_seconds)
+        return int(count)
+    except Exception:
+        logger.debug("rate_limit_incr failed key=%s", key, exc_info=True)
+        return None
+
+
 async def close_cache() -> None:
     global _redis, _redis_failed
     if _redis is not None:

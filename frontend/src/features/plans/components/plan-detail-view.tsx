@@ -52,7 +52,12 @@ function PlanDetailContent({
         </div>
         <Button
           nativeButton={false}
-          render={<Link href={reviewHref} />}
+          render={
+            <Link
+              href={reviewHref}
+              aria-label={surveyId ? 'Go to survey review' : 'Back to surveys'}
+            />
+          }
           className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
           {surveyId ? 'Go to Review' : 'Back to Surveys'}

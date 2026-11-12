@@ -246,7 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         applyTokenPair(pair);
         return pair;
       } catch (err) {
-        throw new Error(toUserFacingError(err, 'Could not sign in. Please try again.'));
+        throw new Error(toUserFacingError(err, 'Could not sign in. Please try again.'), {
+          cause: err
+        });
       }
     },
     [applyTokenPair]
@@ -273,7 +275,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return pair;
       } catch (err) {
         throw new Error(
-          toUserFacingError(err, 'Google sign-in failed. Please try again.')
+          toUserFacingError(err, 'Google sign-in failed. Please try again.'),
+          { cause: err }
         );
       }
     },
@@ -309,7 +312,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return data as RegisterPendingResponse;
       } catch (err) {
         throw new Error(
-          toUserFacingError(err, 'Could not create your organization. Please try again.')
+          toUserFacingError(err, 'Could not create your organization. Please try again.'),
+          { cause: err }
         );
       }
     },
@@ -335,7 +339,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         applyTokenPair(data as TokenPairResponse);
       } catch (err) {
         throw new Error(
-          toUserFacingError(err, 'Could not verify email. Please try again.')
+          toUserFacingError(err, 'Could not verify email. Please try again.'),
+          { cause: err }
         );
       }
     },
@@ -360,7 +365,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data as RegisterPendingResponse;
     } catch (err) {
       throw new Error(
-        toUserFacingError(err, 'Could not resend verification code. Please try again.')
+        toUserFacingError(err, 'Could not resend verification code. Please try again.'),
+        { cause: err }
       );
     }
   }, []);
@@ -384,7 +390,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return data as ForgotPasswordResponse;
       } catch (err) {
         throw new Error(
-          toUserFacingError(err, 'Could not send reset email. Please try again.')
+          toUserFacingError(err, 'Could not send reset email. Please try again.'),
+          { cause: err }
         );
       }
     },
@@ -413,7 +420,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         throw new Error(
-          toUserFacingError(err, 'Could not reset password. Please try again.')
+          toUserFacingError(err, 'Could not reset password. Please try again.'),
+          { cause: err }
         );
       }
     },
