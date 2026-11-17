@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 NotificationTypeLiteral = Literal[
     "survey_published",
     "survey_closed",

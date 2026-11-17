@@ -31,7 +31,7 @@ def normalize_conditional_logic(raw: Any) -> dict[str, Any] | None:
 def _as_number(value: Any) -> float | None:
     if isinstance(value, bool):
         return None
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return float(value)
     if isinstance(value, str) and value.strip():
         try:
@@ -49,7 +49,7 @@ def _equals(a: Any, b: Any) -> bool:
 
 
 def _between_bounds(value: Any) -> tuple[float, float] | None:
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
+    if isinstance(value, list | tuple) and len(value) >= 2:
         lo, hi = _as_number(value[0]), _as_number(value[1])
         if lo is None or hi is None:
             return None

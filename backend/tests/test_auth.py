@@ -141,7 +141,7 @@ async def test_forgot_password_reset_and_login(
 
     captured: dict[str, str] = {}
 
-    async def _capture_reset(*, to_email: str, code: str) -> None:
+    async def _capture_reset(*, to_email: str, code: str, locale: str | None = None) -> None:
         captured["email"] = to_email
         captured["code"] = code
 
@@ -201,7 +201,7 @@ async def test_forgot_password_surfaces_delivery_failure(
         code=fixed_otp,
     )
 
-    async def _boom(*, to_email: str, code: str) -> None:
+    async def _boom(*, to_email: str, code: str, locale: str | None = None) -> None:
         from app.services.email import EmailDeliveryError
 
         raise EmailDeliveryError("SMTP down")

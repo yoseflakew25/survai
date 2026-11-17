@@ -27,7 +27,7 @@ _BODY_MAX = 4000
 
 
 def _hash_text(title: str, body: str) -> str:
-    return hashlib.sha256(f"{title}\n{body}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{title}\n{body}".encode()).hexdigest()
 
 
 def _truncate(text: str, max_len: int = _BODY_MAX) -> str:

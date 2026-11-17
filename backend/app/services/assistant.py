@@ -14,12 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.client import call_structured
 from app.ai.prompts import assistant_v1
-from app.core.i18n import content_language_instruction, normalize_locale
 from app.ai.prompts.assistant_v1 import (
     AssistantAnswerOutput,
     AssistantPlanOutput,
 )
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.i18n import content_language_instruction, normalize_locale
 from app.models.assistant import (
     AssistantMessage,
     AssistantMessageRole,

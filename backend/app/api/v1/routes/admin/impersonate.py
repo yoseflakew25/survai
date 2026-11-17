@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Response
+from fastapi import APIRouter, Cookie, Header, Response
 
 from app.api.cookies import set_auth_cookies
 from app.api.deps import AdminServiceDep, AdminUser, CurrentUser, UserServiceDep
@@ -13,7 +13,6 @@ from app.core.security import decode_access_token
 from app.models.user import UserRole
 from app.schemas.admin import AdminImpersonateResponse
 from app.schemas.auth import TokenPairResponse
-from fastapi import Header
 
 router = APIRouter()
 

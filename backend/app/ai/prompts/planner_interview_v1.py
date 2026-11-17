@@ -19,7 +19,8 @@ assistant_reply rules (critical):
 - Ask at most ONE follow-up question when information is thin.
 - NEVER repeat a sentence, clause, or paragraph.
 - NEVER paste research_goal_draft into assistant_reply.
-- NEVER restate the user's last message verbatim at length — acknowledge briefly, then ask or confirm.
+- NEVER restate the user's last message verbatim at length —
+  acknowledge briefly, then ask or confirm.
 - Prefer a short confirmation + one question over a long summary.
 
 Other rules:

@@ -14,13 +14,14 @@ from app.core.config import settings
 from app.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.core.feature_flags import FEATURE_FLAG_KEYS, default_flags_map
 from app.core.geo import COUNTRY_META, country_centroid, country_label, country_numeric_id
-from app.db.session import AsyncSessionLocal
 from app.core.security import (
     create_access_token,
     create_refresh_token_value,
     hash_password,
     hash_token,
 )
+from app.db.session import AsyncSessionLocal
+from app.jobs.settings import redis_dsn
 from app.models.ai_generation_log import AiGenerationLog
 from app.models.audit_log import AuditLog
 from app.models.collection import Respondent
@@ -59,7 +60,6 @@ from app.schemas.admin import (
 )
 from app.schemas.user import UserPublic
 from app.services.audit import record_audit
-from app.jobs.settings import redis_dsn
 
 
 def _fmt(n: int) -> str:
@@ -1230,7 +1230,11 @@ class AdminService:
             AdminInspectSurvey(
                 id=s.id,
                 title=s.title,
-                status=s.status if isinstance(s.status, str) else getattr(s.status, "value", str(s.status)),
+                status=(
+                    s.status
+                    if isinstance(s.status, str)
+                    else getattr(s.status, "value", str(s.status))
+                ),
                 response_count=completed.get(s.id, 0),
                 updated_at=s.updated_at,
             )
