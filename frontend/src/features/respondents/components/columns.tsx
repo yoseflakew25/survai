@@ -18,25 +18,28 @@ import type { Option } from '@/types/data-table';
 import type { Respondent, RespondentStatus } from '../api/types';
 import * as React from 'react';
 
-export const STATUS_OPTIONS: Option[] = [
-  { label: 'Completed', value: 'completed', icon: Icons.circleCheck },
-  { label: 'Partial', value: 'partial', icon: Icons.clock }
-];
+function statusOptions(t: (key: string) => string): Option[] {
+  return [
+    { label: t('statusCompleted'), value: 'completed', icon: Icons.circleCheck },
+    { label: t('statusPartial'), value: 'partial', icon: Icons.clock }
+  ];
+}
 
-const STATUS_CONFIG: Record<
-  RespondentStatus,
-  { label: string; className: string }
-> = {
-  completed: {
-    label: 'Completed',
-    className:
-      'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
-  },
-  partial: {
-    label: 'Partial',
-    className: 'border-transparent bg-secondary text-secondary-foreground'
-  }
-};
+function statusConfig(
+  t: (key: string) => string
+): Record<RespondentStatus, { label: string; className: string }> {
+  return {
+    completed: {
+      label: t('statusCompleted'),
+      className:
+        'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
+    },
+    partial: {
+      label: t('statusPartial'),
+      className: 'border-transparent bg-secondary text-secondary-foreground'
+    }
+  };
+}
 
 function initialsOf(name: string): string {
   return name
@@ -63,18 +66,23 @@ function formatDuration(totalSeconds: number): string {
 }
 
 export function createColumns(
-  onSelectRespondent: (respondentId: string) => void
+  onSelectRespondent: (respondentId: string) => void,
+  t: (key: string) => string,
+  tCommon: (key: string) => string
 ): ColumnDef<Respondent>[] {
+  const STATUS_OPTIONS = statusOptions(t);
+  const STATUS_CONFIG = statusConfig(t);
+
   return [
     {
       id: 'name',
       accessorFn: (row) => row.name,
       header: ({ column }: { column: Column<Respondent, unknown> }) => (
         <div className='flex items-center gap-2'>
-          <DataTableColumnHeader column={column} title='Respondent' />
+          <DataTableColumnHeader column={column} title={t('colRespondent')} />
           <Input
-            placeholder='Search name or email...'
-            aria-label='Search respondents'
+            placeholder={t('searchNameOrEmail')}
+            aria-label={t('searchRespondentsAria')}
             value={(column.getFilterValue() as string) ?? ''}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => column.setFilterValue(event.target.value)}
             className={cn(
@@ -102,8 +110,8 @@ export function createColumns(
         </button>
       ),
       meta: {
-        label: 'Respondent',
-        placeholder: 'Search name or email...',
+        label: t('colRespondent'),
+        placeholder: t('searchNameOrEmail'),
         variant: 'text',
         icon: Icons.search
       },
@@ -119,7 +127,7 @@ export function createColumns(
 
         return (
           <div className='flex items-center gap-2'>
-            <DataTableColumnHeader column={column} title='Status' />
+            <DataTableColumnHeader column={column} title={t('colStatus')} />
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={(props) => (
@@ -139,13 +147,13 @@ export function createColumns(
                     {activeOption?.icon && (
                       <activeOption.icon className='mr-1 h-3.5 w-3.5 shrink-0' />
                     )}
-                    {activeOption?.label ?? 'All'}
+                    {activeOption?.label ?? tCommon('all')}
                   </Button>
                 )}
               />
               <DropdownMenuContent align='start' className='w-36'>
                 <DropdownMenuItem onClick={() => column.setFilterValue(undefined)}>
-                  All
+                  {tCommon('all')}
                 </DropdownMenuItem>
                 {STATUS_OPTIONS.map((option) => (
                   <DropdownMenuItem
@@ -188,7 +196,7 @@ export function createColumns(
         );
       },
       meta: {
-        label: 'Status',
+        label: t('colStatus'),
         variant: 'select',
         options: STATUS_OPTIONS
       },
@@ -198,7 +206,7 @@ export function createColumns(
       id: 'submittedAt',
       accessorKey: 'submittedAt',
       header: ({ column }: { column: Column<Respondent, unknown> }) => (
-        <DataTableColumnHeader column={column} title='Submitted' />
+        <DataTableColumnHeader column={column} title={t('colSubmitted')} />
       ),
       cell: ({ cell }) => {
         const iso = cell.getValue<string>();
@@ -211,7 +219,7 @@ export function createColumns(
       id: 'durationSeconds',
       accessorKey: 'durationSeconds',
       header: ({ column }: { column: Column<Respondent, unknown> }) => (
-        <DataTableColumnHeader column={column} title='Duration' />
+        <DataTableColumnHeader column={column} title={t('colDuration')} />
       ),
       cell: ({ cell }) => {
         const seconds = cell.getValue<number>();

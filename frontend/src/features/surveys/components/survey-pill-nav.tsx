@@ -2,25 +2,34 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { label: 'Plan', href: 'plan', icon: 'plan' as const },
-  { label: 'Review', href: 'review', icon: 'review' as const },
-  { label: 'Collect', href: 'collect', icon: 'collect' as const },
-  { label: 'Respondents', href: 'respondents', icon: 'users' as const },
-  { label: 'Analytics', href: 'analytics', icon: 'analytics' as const },
-  { label: 'Report', href: 'reports', icon: 'report' as const }
+  { labelKey: 'tabPlan' as const, href: 'plan', icon: 'plan' as const },
+  { labelKey: 'tabReview' as const, href: 'review', icon: 'review' as const },
+  { labelKey: 'tabCollect' as const, href: 'collect', icon: 'collect' as const },
+  {
+    labelKey: 'tabRespondents' as const,
+    href: 'respondents',
+    icon: 'users' as const
+  },
+  {
+    labelKey: 'tabAnalytics' as const,
+    href: 'analytics',
+    icon: 'analytics' as const
+  },
+  { labelKey: 'tabReport' as const, href: 'reports', icon: 'report' as const }
 ] as const;
 
 export function SurveyPillNav({ surveyId }: { surveyId: string }) {
   const pathname = usePathname();
+  const t = useTranslations('surveys');
   const base = `/dashboard/surveys/${surveyId}`;
 
   return (
     <div className='relative'>
-      {/* Soft edge fades when the row scrolls on small screens */}
       <div
         className='pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-card to-transparent md:hidden'
         aria-hidden
@@ -31,7 +40,7 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
       />
 
       <nav
-        aria-label='Survey workflow'
+        aria-label={t('workflowAria')}
         className={cn(
           'flex items-center gap-1 overflow-x-auto rounded-2xl border border-border',
           'bg-card p-1',
@@ -81,7 +90,7 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
                   isActive && 'font-display font-bold tracking-tight'
                 )}
               >
-                {tab.label}
+                {t(tab.labelKey)}
               </span>
 
               {isActive ? (
@@ -96,7 +105,7 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
 
         <Link
           href='/dashboard/surveys'
-          aria-label='Back to all surveys'
+          aria-label={t('backToAllAria')}
           className={cn(
             'ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-foreground bg-foreground px-3 py-2',
             'text-sm font-medium whitespace-nowrap text-background transition-colors',
@@ -104,7 +113,7 @@ export function SurveyPillNav({ surveyId }: { surveyId: string }) {
           )}
         >
           <Icons.forms className='size-3.5 shrink-0' />
-          All surveys
+          {t('allSurveys')}
         </Link>
       </nav>
     </div>

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.client import StructuredCallResult, call_structured
 from app.ai.prompts import reviewer_v1
 from app.ai.schemas import ReviewerOutput
+from app.core.i18n import with_content_language
 
 
 async def review_survey(
@@ -19,9 +20,15 @@ async def review_survey(
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
 ) -> StructuredCallResult:
+    lang = (
+        (survey.get("content_language") if survey else None)
+        or (plan.get("content_language") if plan else None)
+        or "en"
+    )
+    system = with_content_language(reviewer_v1.SYSTEM, lang)
     return await call_structured(
         feature="reviewer",
-        system=reviewer_v1.SYSTEM,
+        system=system,
         user=reviewer_v1.user_prompt_review(plan=plan, survey=survey),
         schema=ReviewerOutput,
         user_id=user_id,
@@ -33,5 +40,6 @@ async def review_survey(
                 len(s.get("questions") or []) for s in (survey.get("sections") or [])
             ),
             "section_count": len(survey.get("sections") or []),
+            "content_language": lang,
         },
     )

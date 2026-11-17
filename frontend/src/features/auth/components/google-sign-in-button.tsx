@@ -2,7 +2,10 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@/components/icons';
+import { useTheme } from '@/components/themes/theme-provider';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
@@ -43,17 +46,13 @@ declare global {
 
 /** GIS only allows one initialize() per page load — keep a shared callback. */
 let gisClientIdInitialized: string | null = null;
-let activeCredentialHandler:
-  | ((response: GoogleCredentialResponse) => void)
-  | null = null;
+let activeCredentialHandler: ((response: GoogleCredentialResponse) => void) | null = null;
 
 function loadGisScript(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
   if (window.google?.accounts?.id) return Promise.resolve();
 
-  const existing = document.querySelector<HTMLScriptElement>(
-    `script[src="${GIS_SCRIPT_SRC}"]`
-  );
+  const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SCRIPT_SRC}"]`);
   if (existing) {
     return new Promise((resolve, reject) => {
       if (window.google?.accounts?.id) {
@@ -111,36 +110,34 @@ export function GoogleSignInButton({
   onSuccess
 }: GoogleSignInButtonProps) {
   const { loginWithGoogle } = useAuth();
+  const t = useTranslations('auth');
+  const { resolvedTheme } = useTheme();
   const hostRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [unavailable, setUnavailable] = useState(!CLIENT_ID);
+  const buttonTheme = resolvedTheme === 'dark' ? 'filled_black' : 'outline';
 
-  const handleCredential = useEffectEvent(
-    async (response: GoogleCredentialResponse) => {
-      const credential = response.credential?.trim();
-      if (!credential) {
-        onError?.('Google did not return a credential. Try again.');
-        return;
-      }
-      setBusy(true);
-      try {
-        await loginWithGoogle(credential);
-        onSuccess?.();
-      } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Google sign-in failed. Please try again.';
-        onError?.(message);
-      } finally {
-        setBusy(false);
-      }
+  const handleCredential = useEffectEvent(async (response: GoogleCredentialResponse) => {
+    const credential = response.credential?.trim();
+    if (!credential) {
+      onError?.(t('googleNoCredential'));
+      return;
     }
-  );
+    setBusy(true);
+    try {
+      await loginWithGoogle(credential);
+      onSuccess?.();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('googleSignInFailed');
+      onError?.(message);
+    } finally {
+      setBusy(false);
+    }
+  });
 
   const reportUnavailable = useEffectEvent(() => {
-    onError?.('Google sign-in is unavailable right now.');
+    onError?.(t('googleUnavailable'));
   });
 
   useEffect(() => {
@@ -164,12 +161,9 @@ export function GoogleSignInButton({
         ensureGisInitialized(mode);
 
         hostRef.current.innerHTML = '';
-        const width = Math.min(
-          400,
-          Math.max(280, Math.floor(hostRef.current.clientWidth || 320))
-        );
+        const width = Math.min(400, Math.max(280, Math.floor(hostRef.current.clientWidth || 320)));
         window.google.accounts.id.renderButton(hostRef.current, {
-          theme: 'outline',
+          theme: buttonTheme,
           size: 'large',
           text: mode === 'signup' ? 'signup_with' : 'signin_with',
           shape: 'rectangular',
@@ -190,7 +184,7 @@ export function GoogleSignInButton({
       // Drop this instance's handler on unmount; a remount will reassign.
       activeCredentialHandler = null;
     };
-  }, [mode]);
+  }, [mode, buttonTheme]);
 
   if (unavailable) {
     return null;
@@ -201,7 +195,7 @@ export function GoogleSignInButton({
       {!ready || busy ? (
         <div className='border-border bg-card text-muted-foreground flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm'>
           <Icons.spinner className='size-4 animate-spin' />
-          {busy ? 'Signing in with Google…' : 'Loading Google…'}
+          {busy ? t('signingInGoogle') : t('loadingGoogle')}
         </div>
       ) : null}
       <div
@@ -216,14 +210,17 @@ export function GoogleSignInButton({
   );
 }
 
-export function AuthDivider({ label = 'or' }: { label?: string }) {
+export function AuthDivider({ label }: { label?: string }) {
+  const t = useTranslations('auth');
+  const text = label ?? t('or');
+
   return (
     <div className='relative py-1'>
       <div className='absolute inset-0 flex items-center' aria-hidden>
-        <div className='border-border w-full border-t' />
+        <div className='w-full border-t border-border' />
       </div>
       <div className='relative flex justify-center text-[12px]'>
-        <span className='text-muted-foreground bg-background px-2'>{label}</span>
+        <span className='bg-background px-2 text-muted-foreground'>{text}</span>
       </div>
     </div>
   );

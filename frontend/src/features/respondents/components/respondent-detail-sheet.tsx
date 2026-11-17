@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ export function RespondentDetailSheet({
   respondentId,
   onClose
 }: RespondentDetailSheetProps) {
+  const t = useTranslations('respondents');
   const open = Boolean(respondentId);
 
   return (
@@ -37,10 +39,8 @@ export function RespondentDetailSheet({
         className='w-full gap-0 overflow-hidden border-l border-border bg-background p-0 sm:!w-1/2 sm:!max-w-[50vw]'
       >
         <SheetHeader className='sr-only'>
-          <SheetTitle>Respondent details</SheetTitle>
-          <SheetDescription>
-            Survey answers and submission details for this respondent.
-          </SheetDescription>
+          <SheetTitle>{t('detailTitle')}</SheetTitle>
+          <SheetDescription>{t('detailDescription')}</SheetDescription>
         </SheetHeader>
 
         <div className='flex h-full min-h-0 flex-col overflow-hidden'>

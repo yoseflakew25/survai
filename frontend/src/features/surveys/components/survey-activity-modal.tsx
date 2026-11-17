@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -10,25 +12,16 @@ import {
   getActivityScript,
   type SurveyActivityId
 } from '@/features/surveys/lib/activity-scripts';
+import {
+  localizeActivityEyebrow,
+  localizeActivityScript
+} from '@/features/surveys/lib/localize-activity';
 
 type SurveyActivityModalProps = {
   activityId: SurveyActivityId | null;
   open: boolean;
   previewText?: string;
 };
-
-export function activityEyebrow(id: SurveyActivityId): string {
-  if (id.startsWith('fetch-')) {
-    const page = id.replace('fetch-', '');
-    return `Survai · ${page}`;
-  }
-  if (id.includes('report')) return 'Survai · Report';
-  if (id.includes('review')) return 'Survai · Review';
-  if (id.includes('publish')) return 'Survai · Collect';
-  if (id.includes('plan')) return 'Survai · Plan';
-  if (id.includes('survey')) return 'Survai · Instrument';
-  return 'Survai · Workspace';
-}
 
 /**
  * Non-dismissible activity modal — research-instrument aesthetic:
@@ -39,9 +32,19 @@ export function SurveyActivityModal({
   open,
   previewText
 }: SurveyActivityModalProps) {
-  const script = activityId ? getActivityScript(activityId) : null;
+  const t = useTranslations('activity');
+  const script = useMemo(() => {
+    if (!activityId) return null;
+    return localizeActivityScript(
+      activityId,
+      getActivityScript(activityId),
+      t
+    );
+  }, [activityId, t]);
   const busy = open && !!script;
-  const eyebrow = activityId ? activityEyebrow(activityId) : 'Survai';
+  const eyebrow = activityId
+    ? localizeActivityEyebrow(activityId, t)
+    : 'Survai';
 
   return (
     <Dialog

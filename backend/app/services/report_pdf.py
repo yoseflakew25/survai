@@ -3,11 +3,37 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from fpdf import FPDF
 
+from app.core.i18n import normalize_locale
+
 _MD_BOLD = re.compile(r"\*\*(.+?)\*\*")
+
+_ETHIOPIC_FONT_CANDIDATES = (
+    Path("/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf"),
+    Path("/usr/share/fonts/truetype/noto/NotoSansEthiopic-Bold.ttf"),
+    Path("/usr/share/fonts/opentype/noto/NotoSansEthiopic-Regular.ttf"),
+)
+
+_EXPORT_LABELS = {
+    "en": {
+        "report": "Survey Report",
+        "survey": "Survey",
+        "section": "Section",
+        "empty": "(Empty section)",
+        "page": "Page",
+    },
+    "am": {
+        "report": "የዳሰሳ ሪፖርት",
+        "survey": "ዳሰሳ",
+        "section": "ክፍል",
+        "empty": "(ባዶ ክፍል)",
+        "page": "ገጽ",
+    },
+}
 
 
 def _plain(text: str) -> str:
@@ -16,12 +42,38 @@ def _plain(text: str) -> str:
     return cleaned.replace("\r\n", "\n").strip()
 
 
+def _labels(content_language: str | None) -> dict[str, str]:
+    return _EXPORT_LABELS[normalize_locale(content_language)]
+
+
+def _find_ethiopic_font() -> Path | None:
+    for path in _ETHIOPIC_FONT_CANDIDATES:
+        if path.is_file():
+            return path
+    return None
+
+
 class ReportPDF(FPDF):
+    def __init__(self, *, page_label: str = "Page", **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._page_label = page_label
+
     def footer(self) -> None:  # noqa: D401 — FPDF hook
         self.set_y(-12)
+        # Page numerals need a Latin core font even when body uses Ethiopic.
         self.set_font("Helvetica", size=8)
         self.set_text_color(120, 120, 120)
-        self.cell(0, 8, f"Page {self.page_no()}/{{nb}}", align="C")
+        label = self._page_label
+        try:
+            label.encode("latin-1")
+        except UnicodeEncodeError:
+            label = "Page"
+        self.cell(
+            0,
+            8,
+            f"{label} {self.page_no()}/{{nb}}",
+            align="C",
+        )
 
 
 def build_report_pdf(
@@ -30,21 +82,51 @@ def build_report_pdf(
     survey_title: str,
     sections: list[dict[str, Any]],
     generated_label: str | None = None,
+    content_language: str | None = None,
 ) -> bytes:
-    """Render report sections to PDF bytes (Helvetica — ASCII-safe with latin-1 fallback)."""
-    pdf = ReportPDF(orientation="P", unit="mm", format="A4")
+    """Render report sections to PDF bytes (Unicode font when Amharic)."""
+    labels = _labels(content_language)
+    locale = normalize_locale(content_language)
+    pdf = ReportPDF(
+        orientation="P",
+        unit="mm",
+        format="A4",
+        page_label=labels["page"],
+    )
     pdf.alias_nb_pages()
     pdf.set_auto_page_break(auto=True, margin=18)
     pdf.add_page()
     pdf.set_margins(18, 18, 18)
 
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.multi_cell(0, 9, _pdf_safe(title or "Survey Report"))
+    font_name = "Helvetica"
+    use_unicode = locale == "am"
+    ethiopic = _find_ethiopic_font() if use_unicode else None
+    if ethiopic is not None:
+        pdf.add_font("NotoEthiopic", "", str(ethiopic))
+        bold_path = ethiopic.with_name("NotoSansEthiopic-Bold.ttf")
+        if bold_path.is_file():
+            pdf.add_font("NotoEthiopic", "B", str(bold_path))
+        font_name = "NotoEthiopic"
+
+    def _set_font(style: str = "", size: float = 10) -> None:
+        try:
+            pdf.set_font(font_name, style=style, size=size)
+        except RuntimeError:
+            # Bold face missing — fall back to regular.
+            pdf.set_font(font_name, style="", size=size)
+
+    def _safe(text: str) -> str:
+        if font_name == "NotoEthiopic":
+            return text or ""
+        return _pdf_safe(text)
+
+    _set_font("B", 18)
+    pdf.multi_cell(0, 9, _safe(title or labels["report"]))
     pdf.ln(2)
 
-    pdf.set_font("Helvetica", size=10)
+    _set_font("", 10)
     pdf.set_text_color(90, 90, 90)
-    meta = f"Survey: {_pdf_safe(survey_title)}"
+    meta = f"{labels['survey']}: {_safe(survey_title)}"
     if generated_label:
         meta += f"  ·  {generated_label}"
     pdf.multi_cell(0, 5, meta)
@@ -55,21 +137,20 @@ def build_report_pdf(
     pdf.ln(6)
 
     for index, sec in enumerate(sections or [], start=1):
-        heading = _pdf_safe(str(sec.get("title") or f"Section {index}"))
+        heading = _safe(str(sec.get("title") or f"{labels['section']} {index}"))
         body = _plain(str(sec.get("content") or ""))
 
-        pdf.set_font("Helvetica", "B", 13)
+        _set_font("B", 13)
         pdf.multi_cell(0, 7, f"{index}. {heading}")
         pdf.ln(1)
 
-        pdf.set_font("Helvetica", size=10)
+        _set_font("", 10)
         paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
         if not paragraphs:
-            paragraphs = [body] if body else ["(Empty section)"]
+            paragraphs = [body] if body else [labels["empty"]]
         for para in paragraphs:
-            # Preserve single newlines inside a paragraph as soft breaks
             for line in para.split("\n"):
-                chunk = _pdf_safe(line.strip())
+                chunk = _safe(line.strip())
                 if not chunk:
                     pdf.ln(2)
                     continue

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface CollectionQrProps {
   url: string;
@@ -17,6 +18,7 @@ function qrImageUrl(url: string, size: number) {
 }
 
 export function CollectionQr({ url, className }: CollectionQrProps) {
+  const t = useTranslations('collect');
   const [isDownloading, setIsDownloading] = useState(false);
   const previewSrc = useMemo(() => qrImageUrl(url, 280), [url]);
 
@@ -35,17 +37,17 @@ export function CollectionQr({ url, className }: CollectionQrProps) {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(objectUrl);
-      toast.success('QR downloaded', {
-        description: 'Print or share the PNG with respondents.'
+      toast.success(t('qrDownloaded'), {
+        description: t('qrDownloadedDesc')
       });
     } catch {
-      toast.error('Download failed', {
-        description: 'Could not download the QR code. Try again.'
+      toast.error(t('downloadFailed'), {
+        description: t('downloadFailedDesc')
       });
     } finally {
       setIsDownloading(false);
     }
-  }, [url, isDownloading]);
+  }, [url, isDownloading, t]);
 
   return (
     <div
@@ -58,7 +60,7 @@ export function CollectionQr({ url, className }: CollectionQrProps) {
         <div className='overflow-hidden rounded-xl bg-white p-2'>
           <Image
             src={previewSrc}
-            alt='QR code for survey collection link'
+            alt={t('qrImageAlt')}
             width={140}
             height={140}
             unoptimized
@@ -70,11 +72,10 @@ export function CollectionQr({ url, className }: CollectionQrProps) {
       <div className='min-w-0 flex-1 space-y-3 text-center sm:text-left'>
         <div className='space-y-1'>
           <p className='text-sm font-semibold tracking-tight text-foreground'>
-            Scan to open the survey
+            {t('scanToOpen')}
           </p>
           <p className='text-muted-foreground text-xs leading-relaxed'>
-            Print on paper forms, posters, or handouts. Opens the same collection
-            link on any phone.
+            {t('scanHint')}
           </p>
         </div>
         <Button
@@ -89,7 +90,7 @@ export function CollectionQr({ url, className }: CollectionQrProps) {
           ) : (
             <Icons.upload className='mr-2 size-4' />
           )}
-          Download QR Code
+          {t('downloadQr')}
         </Button>
       </div>
     </div>

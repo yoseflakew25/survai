@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -67,12 +68,16 @@ export function SurveyActivityProgress({
   stages,
   intro,
   footer,
-  previewLabel = 'Context',
+  previewLabel,
   previewText,
   className,
   hideIntro = false,
   variant = 'embedded'
 }: SurveyActivityProgressProps) {
+  const t = useTranslations('activity');
+  const resolvedPreviewLabel =
+    previewLabel ?? t('shared.previewLabelContext');
+  const workingLabel = t('working');
   const { stageIndex, progress, current } = useActivityStages(active, stages);
 
   if (variant === 'instrument') {
@@ -86,7 +91,7 @@ export function SurveyActivityProgress({
         {previewText?.trim() ? (
           <div className='border-b border-foreground/10 pb-3'>
             <p className='font-mono text-[10px] font-semibold tracking-[0.14em] text-foreground/55 uppercase'>
-              {previewLabel}
+              {resolvedPreviewLabel}
             </p>
             <p className=' line-clamp-2 text-sm leading-relaxed text-foreground/80'>
               {previewText.trim()}
@@ -96,7 +101,7 @@ export function SurveyActivityProgress({
 
         <div className='flex items-baseline justify-between gap-3'>
           <p className='font-display text-[15px] font-bold tracking-tight text-foreground'>
-            {current?.label ?? 'Working…'}
+            {current?.label ?? workingLabel}
           </p>
           <p className='font-mono text-[11px] tabular-nums text-foreground/55'>
             {String(stageIndex + 1).padStart(2, '0')}
@@ -195,7 +200,7 @@ export function SurveyActivityProgress({
       {previewText?.trim() ? (
         <div className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft/50 px-3.5 py-2.5'>
           <p className='text-[11px] font-semibold tracking-wide text-foreground/70 uppercase'>
-            {previewLabel}
+            {resolvedPreviewLabel}
           </p>
           <p className=' line-clamp-3 text-sm leading-relaxed text-foreground'>
             {previewText.trim()}
@@ -206,7 +211,7 @@ export function SurveyActivityProgress({
       <div>
         <div className='mb-2 flex items-center justify-between gap-2'>
           <span className='font-display text-sm font-bold tracking-tight text-foreground'>
-            {current?.label ?? 'Working…'}
+            {current?.label ?? workingLabel}
           </span>
           <span className='font-mono text-[11px] tabular-nums text-muted-foreground'>
             {progress}%

@@ -3,6 +3,7 @@ import {
   apiFetch,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 import type {
   AssistantCitation,
@@ -79,7 +80,7 @@ function mapMessage(m: ApiMessage): AssistantMessage {
 
 export async function listThreads(): Promise<AssistantThreadList> {
   const res = await apiFetch('/assistant/threads');
-  if (!res.ok) await readError(res, 'Could not load threads');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'loadFailed'));
   const data = (await res.json()) as {
     threads: ApiThread[];
     total: number;
@@ -96,7 +97,7 @@ export async function createThread(title?: string): Promise<AssistantThread> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: title ?? null })
   });
-  if (!res.ok) await readError(res, 'Could not create thread');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'couldNotCreateChat'));
   return mapThread((await res.json()) as ApiThread);
 }
 
@@ -109,7 +110,7 @@ export async function updateThread(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title })
   });
-  if (!res.ok) await readError(res, 'Could not rename thread');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'couldNotRenameChat'));
   return mapThread((await res.json()) as ApiThread);
 }
 
@@ -117,14 +118,14 @@ export async function deleteThread(threadId: string): Promise<void> {
   const res = await apiFetch(`/assistant/threads/${threadId}`, {
     method: 'DELETE'
   });
-  if (!res.ok) await readError(res, 'Could not delete thread');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'couldNotDeleteChat'));
 }
 
 export async function listMessages(
   threadId: string
 ): Promise<AssistantMessage[]> {
   const res = await apiFetch(`/assistant/threads/${threadId}/messages`);
-  if (!res.ok) await readError(res, 'Could not load messages');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'couldNotLoadMessages'));
   const data = (await res.json()) as { messages: ApiMessage[] };
   return data.messages.map(mapMessage);
 }
@@ -138,7 +139,7 @@ export async function sendMessage(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content })
   });
-  if (!res.ok) await readError(res, 'Could not send message');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'couldNotSendMessage'));
   const data = (await res.json()) as {
     thread: ApiThread;
     messages: ApiMessage[];
@@ -171,9 +172,9 @@ export async function sendMessageStream(
     },
     STREAM_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'Could not send message');
+  if (!res.ok) await readError(res, serviceMsg('assistant', 'couldNotSendMessage'));
   if (!res.body) {
-    throw new Error('Assistant stream returned an empty body');
+    throw new Error(serviceMsg('assistant', 'streamEmptyBody'));
   }
 
   const reader = res.body.getReader();
@@ -211,7 +212,8 @@ export async function sendMessageStream(
       };
     } else if (event === 'error' && payload && typeof payload === 'object') {
       streamError =
-        (payload as { detail?: string }).detail || 'Assistant stream failed';
+        (payload as { detail?: string }).detail ||
+        serviceMsg('assistant', 'streamFailed');
     }
   };
 
@@ -228,7 +230,7 @@ export async function sendMessageStream(
   if (buffer.trim()) consumeBlock(buffer);
 
   if (streamError) throw new Error(streamError);
-  if (!result) throw new Error('Assistant stream ended without a reply');
+  if (!result) throw new Error(serviceMsg('assistant', 'streamNoReply'));
   return result;
 }
 
@@ -240,7 +242,9 @@ export async function reindexKnowledge(): Promise<{
   const res = await apiFetch('/assistant/knowledge/reindex', {
     method: 'POST'
   });
-  if (!res.ok) await readError(res, 'Could not reindex knowledge');
+  if (!res.ok) {
+    await readError(res, serviceMsg('assistant', 'couldNotReindexKnowledge'));
+  }
   return (await res.json()) as {
     surveys: number;
     reports: number;

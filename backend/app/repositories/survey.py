@@ -133,6 +133,13 @@ class SurveyRepository(BaseRepository[Survey]):
         )
         return result.scalar_one_or_none()
 
+    async def lock_by_id(self, survey_id: UUID) -> Survey | None:
+        """Row-lock a survey for serialized public submit / quota checks."""
+        result = await self.session.execute(
+            select(Survey).where(Survey.id == survey_id).with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def count_for_org(
         self,
         *,

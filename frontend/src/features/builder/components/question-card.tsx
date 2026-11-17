@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,34 @@ import { cn } from '@/lib/utils';
 import type { Question, QuestionType } from '../api/types';
 import { getQuestionTypeMeta } from '../api/types';
 
+const TYPE_LABEL_KEY: Record<
+  QuestionType,
+  | 'shortText'
+  | 'longText'
+  | 'singleChoice'
+  | 'multipleChoice'
+  | 'dropdown'
+  | 'ratingScale'
+  | 'number'
+  | 'date'
+> = {
+  short_text: 'shortText',
+  long_text: 'longText',
+  single_choice: 'singleChoice',
+  multiple_choice: 'multipleChoice',
+  dropdown: 'dropdown',
+  rating_scale: 'ratingScale',
+  number: 'number',
+  date: 'date'
+};
+
 interface QuestionCardProps {
   question: Question;
   index: number;
   readOnly?: boolean;
-  onUpdate: (data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>) => void;
+  onUpdate: (
+    data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>
+  ) => void;
   onDelete: () => void;
 }
 
@@ -27,18 +51,16 @@ export function QuestionCard({
   onUpdate,
   onDelete
 }: QuestionCardProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [isEditing, setIsEditing] = useState(false);
   const [editPrompt, setEditPrompt] = useState(question.promptText);
   const [editHelpText, setEditHelpText] = useState(question.helpText ?? '');
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: question.id, disabled: readOnly });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: question.id,
+    disabled: readOnly
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,10 +81,10 @@ export function QuestionCard({
 
   const sourceBadge =
     question.source === 'ai_generated'
-      ? { label: 'AI', className: 'bg-primary/10 text-primary' }
+      ? { label: t('sourceAi'), className: 'bg-primary/10 text-primary' }
       : question.source === 'ai_edited'
-        ? { label: 'AI+', className: 'bg-primary/10 text-primary' }
-        : { label: 'Manual', className: 'bg-muted text-muted-foreground' };
+        ? { label: t('sourceAiPlus'), className: 'bg-primary/10 text-primary' }
+        : { label: t('manual'), className: 'bg-muted text-muted-foreground' };
 
   return (
     <div
@@ -100,7 +122,7 @@ export function QuestionCard({
                 value={editPrompt}
                 onChange={(e) => setEditPrompt(e.target.value)}
                 className='h-8 text-sm font-medium'
-                placeholder='Question text'
+                placeholder={t('questionText')}
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSave();
@@ -111,7 +133,7 @@ export function QuestionCard({
                 value={editHelpText}
                 onChange={(e) => setEditHelpText(e.target.value)}
                 className='h-7 text-xs'
-                placeholder='Help text (optional)'
+                placeholder={t('helpTextOptional')}
               />
               <div className='flex items-center gap-3'>
                 <div className='flex items-center gap-2'>
@@ -119,14 +141,14 @@ export function QuestionCard({
                     checked={question.isRequired}
                     onCheckedChange={(checked) => onUpdate({ isRequired: checked })}
                   />
-                  <span className='text-xs'>Required</span>
+                  <span className='text-xs'>{t('required')}</span>
                 </div>
                 <div className='flex gap-2'>
                   <Button size='sm' onClick={handleSave}>
-                    Save
+                    {tCommon('save')}
                   </Button>
                   <Button size='sm' variant='ghost' onClick={() => setIsEditing(false)}>
-                    Cancel
+                    {tCommon('cancel')}
                   </Button>
                 </div>
               </div>
@@ -135,13 +157,13 @@ export function QuestionCard({
             <>
               <div className='flex items-center gap-2'>
                 <span className='text-muted-foreground text-xs font-medium'>
-                  Q{index + 1}
+                  {t('questionIndex', { index: index + 1 })}
                 </span>
                 {TypeIcon && <TypeIcon className='text-muted-foreground h-3.5 w-3.5' />}
-                <span className='text-muted-foreground text-xs'>{typeMeta.label}</span>
-                {question.isRequired && (
-                  <span className='text-destructive text-xs'>*</span>
-                )}
+                <span className='text-muted-foreground text-xs'>
+                  {t(TYPE_LABEL_KEY[question.type])}
+                </span>
+                {question.isRequired && <span className='text-destructive text-xs'>*</span>}
                 <Badge
                   variant='secondary'
                   className={cn('ml-auto text-[10px]', sourceBadge.className)}
@@ -149,9 +171,7 @@ export function QuestionCard({
                   {sourceBadge.label}
                 </Badge>
               </div>
-              <p className='text-sm font-medium leading-relaxed'>
-                {question.promptText}
-              </p>
+              <p className='text-sm font-medium leading-relaxed'>{question.promptText}</p>
               {question.helpText && (
                 <p className='text-muted-foreground text-xs'>{question.helpText}</p>
               )}
@@ -167,7 +187,10 @@ export function QuestionCard({
               {question.type === 'rating_scale' && question.validationRules && (
                 <div className='mt-2'>
                   <Badge variant='outline' className='text-[10px]'>
-                    Scale: {question.validationRules.min} - {question.validationRules.max}
+                    {t('scaleRange', {
+                      min: question.validationRules.min ?? 1,
+                      max: question.validationRules.max ?? 5
+                    })}
                   </Badge>
                 </div>
               )}
@@ -181,6 +204,7 @@ export function QuestionCard({
               variant='ghost'
               size='icon-sm'
               onClick={() => setIsEditing(true)}
+              aria-label={t('editQuestion')}
               className='h-6 w-6'
             >
               <Icons.edit className='h-3 w-3' />
@@ -189,6 +213,7 @@ export function QuestionCard({
               variant='ghost'
               size='icon-sm'
               onClick={onDelete}
+              aria-label={t('deleteQuestion')}
               className='h-6 w-6 text-muted-foreground hover:text-destructive'
             >
               <Icons.close className='h-3 w-3' />

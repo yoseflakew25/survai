@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { getSortingStateParser } from '@/lib/parsers';
 import { surveysListQueryOptions } from '../../api/queries';
-import { columns } from './columns';
+import { surveyColumnIds, useSurveyColumns } from './columns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,16 +22,16 @@ import { Icons } from '@/components/icons';
 import { brandCtaClass } from '@/components/survai-panel';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { Skeleton } from '@/components/ui/skeleton';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 
-const columnIds = columns
-  .map((c) => c.id)
-  .filter((id): id is string => Boolean(id) && id !== 'open');
+const columnIds = surveyColumnIds.filter((id) => id !== 'open');
 
 const STATUS_OPTIONS = [
-  { label: 'Published', value: 'published' },
-  { label: 'Draft', value: 'draft' },
-  { label: 'Closed', value: 'closed' },
-  { label: 'Archived', value: 'archived' }
+  { labelKey: 'statusPublished' as const, value: 'published' },
+  { labelKey: 'statusDraft' as const, value: 'draft' },
+  { labelKey: 'statusClosed' as const, value: 'closed' },
+  { labelKey: 'statusArchived' as const, value: 'archived' }
 ];
 
 export function SurveyTable() {
@@ -59,13 +59,18 @@ function SurveyTableSkeleton() {
 
 function SurveyTableContent() {
   const router = useRouter();
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
+  const t = useTranslations('surveys');
+  const tCommon = useTranslations('common');
+  const columns = useSurveyColumns();
 
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
     title: parseAsString,
     status: parseAsString,
-    sort: getSortingStateParser(columnIds).withDefault([])
+    sort: getSortingStateParser([...columnIds]).withDefault([])
   });
 
   const filters = {
@@ -99,10 +104,10 @@ function SurveyTableContent() {
         <div className='flex flex-wrap items-end justify-between gap-3'>
           <div className='mr-auto min-w-0'>
             <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
-              Surveys
+              {t('title')}
             </h1>
             <p className='text-muted-foreground  text-sm'>
-              Build, publish, and collect responses for your surveys
+              {t('subtitle')}
             </p>
           </div>
 
@@ -110,7 +115,7 @@ function SurveyTableContent() {
             <div className='relative'>
               <Icons.search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2' />
               <Input
-                placeholder='Search surveys...'
+                placeholder={t('searchPlaceholder')}
                 value={(table.getColumn('title')?.getFilterValue() as string) ?? ''}
                 onChange={(e) =>
                   table.getColumn('title')?.setFilterValue(e.target.value)
@@ -130,9 +135,11 @@ function SurveyTableContent() {
               >
                 <Icons.adjustments className='size-3.5' />
                 {params.status
-                  ? (STATUS_OPTIONS.find((o) => o.value === params.status)
-                      ?.label ?? 'Status')
-                  : 'Status'}
+                  ? t(
+                      STATUS_OPTIONS.find((o) => o.value === params.status)
+                        ?.labelKey ?? 'filterStatus'
+                    )
+                  : t('filterStatus')}
                 {params.status ? (
                   <span className='rounded-full bg-muted px-1.5 text-[10px] font-bold text-foreground'>
                     1
@@ -156,7 +163,7 @@ function SurveyTableContent() {
                         });
                       }}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuGroup>
@@ -166,20 +173,22 @@ function SurveyTableContent() {
                     <DropdownMenuItem
                       onClick={() => void setParams({ status: null, page: 1 })}
                     >
-                      Clear filter
+                      {t('clearFilter')}
                     </DropdownMenuItem>
                   </>
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              className={brandCtaClass}
-              onClick={() => router.push('/dashboard/surveys/new')}
-            >
-              <Icons.add className='mr-1 h-3.5 w-3.5' />
-              New Survey
-            </Button>
+            {canEdit ? (
+              <Button
+                className={brandCtaClass}
+                onClick={() => router.push('/dashboard/surveys/new')}
+              >
+                <Icons.add className='mr-1 h-3.5 w-3.5' />
+                {t('newSurvey')}
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -188,12 +197,12 @@ function SurveyTableContent() {
         ) : isError ? (
           <div className='flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-4 py-16 text-center'>
             <p className='font-display text-base font-bold tracking-tight'>
-              Could not load surveys
+              {t('loadError')}
             </p>
             <p className='text-muted-foreground max-w-sm text-sm'>
               {error instanceof Error
                 ? error.message
-                : 'Something went wrong. Please try again.'}
+                : tCommon('errorGeneric')}
             </p>
             <Button
               type='button'

@@ -275,7 +275,8 @@ class AuthService:
 
     async def refresh(self, *, raw_refresh_token: str) -> TokenPairResponse:
         token_hash = hash_token(raw_refresh_token)
-        stored = await self.refresh_tokens.get_valid_by_hash(token_hash)
+        # Claim under row lock so concurrent refreshes cannot both mint pairs.
+        stored = await self.refresh_tokens.claim_valid_by_hash(token_hash)
         if stored is None or stored.user is None:
             raise UnauthorizedError("Invalid refresh token")
         if not stored.user.is_active:
@@ -283,7 +284,6 @@ class AuthService:
         if not stored.user.email_verified:
             raise UnauthorizedError("Email not verified")
 
-        await self.refresh_tokens.revoke(stored)
         user = await self.users.get_by_id(stored.user_id)
         if user is None:
             raise UnauthorizedError("Invalid refresh token")
@@ -354,7 +354,11 @@ class AuthService:
             )
 
         try:
-            await send_password_reset_otp(to_email=user.email, code=code)
+            await send_password_reset_otp(
+                to_email=user.email,
+                code=code,
+                locale=getattr(user, "ui_locale", None),
+            )
         except EmailDeliveryError as exc:
             await self.session.rollback()
             detail = str(exc).strip() or "email provider error"
@@ -416,7 +420,11 @@ class AuthService:
         )
         await self.email_otps.add(otp)
         await self.session.flush()
-        await send_email_verification_otp(to_email=user.email, code=code)
+        await send_email_verification_otp(
+            to_email=user.email,
+            code=code,
+            locale=getattr(user, "ui_locale", None),
+        )
         return code
 
     async def _issue_token_pair(self, user: User) -> TokenPairResponse:

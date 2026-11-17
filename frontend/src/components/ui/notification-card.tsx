@@ -3,6 +3,7 @@
 import type { FC } from 'react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
 
 export type NotificationStatus = 'unread' | 'read' | 'archived';
 export type ActionType = 'redirect' | 'api_call' | 'workflow' | 'modal';
@@ -37,7 +38,11 @@ export interface NotificationCardProps {
   className?: string;
 }
 
-const formatDate = (date: string | Date): string => {
+function formatDate(
+  date: string | Date,
+  t: ReturnType<typeof useTranslations>,
+  locale: string
+): string {
   const d = new Date(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -45,16 +50,16 @@ const formatDate = (date: string | Date): string => {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return t('justNow');
+  if (diffMins < 60) return t('minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('hoursAgo', { count: diffHours });
+  if (diffDays < 7) return t('daysAgo', { count: diffDays });
 
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString(locale === 'am' ? 'am-ET' : 'en-US', {
     month: 'short',
     day: 'numeric'
   });
-};
+}
 
 const getActionIcon = (actionType: ActionType) => {
   const iconProps = { className: 'size-3', strokeWidth: 2.5 };
@@ -86,6 +91,9 @@ export const NotificationCard: FC<NotificationCardProps> = ({
   compact = false,
   className
 }) => {
+  const tCommon = useTranslations('common');
+  const tNotifications = useTranslations('notifications');
+  const locale = useLocale();
   const isUnread = status === 'unread';
 
   const cardClass = cn(
@@ -119,7 +127,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
             <div className='flex shrink-0 items-center gap-1'>
               {createdAt ? (
                 <span className='font-mono text-[11px] whitespace-nowrap tabular-nums text-muted-foreground'>
-                  {formatDate(createdAt)}
+                  {formatDate(createdAt, tCommon, locale)}
                 </span>
               ) : null}
               {isUnread && onMarkAsRead ? (
@@ -130,7 +138,7 @@ export const NotificationCard: FC<NotificationCardProps> = ({
                     onMarkAsRead(id);
                   }}
                   className='rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-card hover:text-foreground group-hover:opacity-100'
-                  aria-label='Mark as read'
+                  aria-label={tNotifications('markRead')}
                 >
                   <Icons.check className='size-3.5' />
                 </button>

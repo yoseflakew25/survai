@@ -164,6 +164,7 @@ def _survey_public(
         title=survey.title,
         description=survey.description,
         status=survey.status,  # type: ignore[arg-type]
+        content_language=getattr(survey, "content_language", None) or "en",
         anonymous_collection=survey.anonymous_collection,
         current_version_id=survey.current_version_id,
         response_quota=survey.response_quota,
@@ -183,6 +184,7 @@ def _plan_to_prompt_dict(plan: SurveyPlan) -> dict[str, Any]:
     return {
         "id": str(plan.id),
         "research_goal": plan.research_goal,
+        "content_language": getattr(plan, "content_language", None) or "en",
         "objectives": list(plan.objectives or []),
         "research_questions": list(plan.research_questions or []),
         "target_respondents": list(plan.target_respondents or []),
@@ -339,6 +341,7 @@ class SurveyService:
             plan_id=plan_id,
             title=body.title.strip(),
             description=body.description.strip() if body.description else None,
+            content_language=body.content_language,
             status=SurveyStatus.draft.value,
             anonymous_collection=body.anonymous_collection,
         )
@@ -392,6 +395,8 @@ class SurveyService:
                 existing.description = (
                     body.description.strip() if body.description else None
                 )
+            if body.content_language is not None:
+                existing.content_language = body.content_language
             await self.session.commit()
             survey_id = existing.id
             if not body.generate:
@@ -406,6 +411,7 @@ class SurveyService:
                 )
             return await self.generate(user=user, survey_id=survey_id), False
 
+        lang = body.content_language or getattr(plan, "content_language", None) or "en"
         try:
             created = await self.create_survey(
                 user=user,
@@ -413,6 +419,7 @@ class SurveyService:
                     title=title,
                     description=body.description,
                     plan_id=plan.id,
+                    content_language=lang,  # type: ignore[arg-type]
                 ),
             )
         except BadRequestError:
@@ -471,6 +478,12 @@ class SurveyService:
                     "published, closed, or archived."
                 )
             survey.anonymous_collection = data["anonymous_collection"]
+        if "content_language" in data and data["content_language"] is not None:
+            survey.content_language = data["content_language"]
+            if survey.plan_id is not None:
+                plan = await self.plans.get_by_id(survey.plan_id)
+                if plan is not None:
+                    plan.content_language = data["content_language"]
         if data.get("clear_response_quota"):
             survey.response_quota = None
         elif "response_quota" in data:
@@ -511,8 +524,14 @@ class SurveyService:
         plan = await self._get_owned_plan(user, survey.plan_id)
         self._assert_plan_ready(plan)
 
+        plan_payload = _plan_to_prompt_dict(plan)
+        # Prefer the survey's content language when regenerating questions.
+        survey_lang = getattr(survey, "content_language", None)
+        if survey_lang in {"en", "am"}:
+            plan_payload["content_language"] = survey_lang
+
         call = await generate_survey_draft(
-            plan=_plan_to_prompt_dict(plan),
+            plan=plan_payload,
             user_id=user.id,
             session=self.session,
         )
@@ -606,8 +625,13 @@ class SurveyService:
             if s.id != section.id
         ]
 
+        plan_payload = _plan_to_prompt_dict(plan)
+        survey_lang = getattr(survey, "content_language", None)
+        if survey_lang in {"en", "am"}:
+            plan_payload["content_language"] = survey_lang
+
         call = await regenerate_section(
-            plan=_plan_to_prompt_dict(plan),
+            plan=plan_payload,
             section_title=section.title,
             section_description=section.description,
             other_section_titles=other_titles,

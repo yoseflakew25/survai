@@ -15,6 +15,11 @@ from app.ai.client import (
 )
 from app.ai.prompts import planner_interview_v1, planner_v1
 from app.ai.schemas import PlanInterviewTurnOutput, SurveyPlanOutput
+from app.core.i18n import with_content_language
+
+
+def _with_lang(system: str, content_language: str | None) -> str:
+    return with_content_language(system, content_language)
 
 
 async def generate_survey_plan(
@@ -22,16 +27,20 @@ async def generate_survey_plan(
     research_goal: str,
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
+    content_language: str | None = "en",
 ) -> StructuredCallResult:
     goal = research_goal.strip()
     return await call_structured(
         feature="planner",
-        system=planner_v1.SYSTEM,
+        system=_with_lang(planner_v1.SYSTEM, content_language),
         user=planner_v1.user_prompt(goal),
         schema=SurveyPlanOutput,
         user_id=user_id,
         session=session,
-        input_meta={"research_goal_chars": len(goal)},
+        input_meta={
+            "research_goal_chars": len(goal),
+            "content_language": content_language or "en",
+        },
     )
 
 
@@ -56,12 +65,13 @@ async def interview_plan_turn(
     history: list[dict[str, Any]],
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
+    content_language: str | None = "en",
 ) -> StructuredCallResult:
     """One multi-turn interview reply before full plan generation."""
     cleaned_history = _interview_history(history)
     return await call_structured(
         feature="planner_interview",
-        system=planner_interview_v1.SYSTEM,
+        system=_with_lang(planner_interview_v1.SYSTEM, content_language),
         user=planner_interview_v1.user_prompt(
             content=content, history=cleaned_history
         ),
@@ -71,6 +81,7 @@ async def interview_plan_turn(
         input_meta={
             "history_turns": len(cleaned_history),
             "content_chars": len(content.strip()),
+            "content_language": content_language or "en",
         },
     )
 
@@ -81,12 +92,13 @@ async def iter_interview_plan_turn(
     history: list[dict[str, Any]],
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
+    content_language: str | None = "en",
 ) -> AsyncIterator[tuple[str, Any]]:
     """Stream interview deltas, then the validated structured result."""
     cleaned_history = _interview_history(history)
     async for event in iter_stream_structured(
         feature="planner_interview",
-        system=planner_interview_v1.SYSTEM,
+        system=_with_lang(planner_interview_v1.SYSTEM, content_language),
         user=planner_interview_v1.user_prompt(
             content=content, history=cleaned_history
         ),
@@ -97,6 +109,7 @@ async def iter_interview_plan_turn(
         input_meta={
             "history_turns": len(cleaned_history),
             "content_chars": len(content.strip()),
+            "content_language": content_language or "en",
         },
     ):
         yield event

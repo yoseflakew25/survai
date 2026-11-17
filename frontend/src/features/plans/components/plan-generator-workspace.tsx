@@ -9,7 +9,9 @@ import {
   type ReactNode
 } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 
+import { ContentLanguagePicker } from '@/components/content-language-picker';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +26,8 @@ import {
   primaryCtaClass,
   quietActionClass
 } from '@/components/survai-panel';
+import { isAppLocale } from '@/i18n/config';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +36,7 @@ import {
   sendPlanInterviewTurnStream
 } from '../api/service';
 import type {
+  ContentLanguage,
   PlanInterviewBrief,
   PlanInterviewMessage
 } from '../api/types';
@@ -43,16 +48,11 @@ import {
 import { PlanGenerationProgress } from './plan-generation-progress';
 import { Textarea } from '@/components/ui/textarea';
 
-const STARTERS = [
-  'Assess healthcare access in rural DICDO clinics to inform outreach design',
-  'Baseline digital literacy among women aged 15–45 in our program areas',
-  'Understand household water and sanitation needs before the next funding cycle'
+const STARTER_KEYS = [
+  'starterHealthcare',
+  'starterDigital',
+  'starterWash'
 ] as const;
-
-const STAGE_LABELS: Record<string, string> = {
-  thinking: 'Thinking…',
-  answering: 'Writing reply…'
-};
 
 const EMPTY_BRIEF: PlanInterviewBrief = {
   titleHint: '',
@@ -61,9 +61,6 @@ const EMPTY_BRIEF: PlanInterviewBrief = {
   constraints: [],
   summary: ''
 };
-
-const INTRO =
-  "Let's shape a survey plan together. Tell me what you want to learn — audience, decisions, and any constraints help. I'll ask follow-ups, then we can generate the plan.";
 
 type ChatMessage = PlanInterviewMessage & { id: string };
 
@@ -81,20 +78,32 @@ function briefHasContent(brief: PlanInterviewBrief) {
   );
 }
 
-function introMessages(): ChatMessage[] {
-  return [{ id: uid(), role: 'assistant', content: INTRO }];
+function makeIntro(content: string): ChatMessage[] {
+  return [{ id: uid(), role: 'assistant', content }];
 }
 
 export function PlanGeneratorWorkspace() {
+  const t = useTranslations('plan');
+  const tSurveys = useTranslations('surveys');
+  const uiLocale = useLocale();
+  const defaultContentLanguage: ContentLanguage = isAppLocale(uiLocale)
+    ? uiLocale
+    : 'en';
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const canEdit = canEditOrg(user?.role);
   const [hydrated, setHydrated] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(introMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    makeIntro(t('interviewIntro'))
+  );
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [streamStage, setStreamStage] = useState<string | null>(null);
   const [streamDraft, setStreamDraft] = useState('');
   const [brief, setBrief] = useState<PlanInterviewBrief>(EMPTY_BRIEF);
   const [researchGoalDraft, setResearchGoalDraft] = useState('');
+  const [contentLanguage, setContentLanguage] =
+    useState<ContentLanguage>(defaultContentLanguage);
   const [readyToGenerate, setReadyToGenerate] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -126,6 +135,16 @@ export function PlanGeneratorWorkspace() {
   const briefBusy = sending || isGenerating;
 
   useEffect(() => {
+    if (authLoading) return;
+    if (user && !canEdit) {
+      toast.error(t('viewOnlyToast'), {
+        description: t('viewersCannotCreate')
+      });
+      router.replace('/dashboard/surveys');
+    }
+  }, [authLoading, user, canEdit, router, t]);
+
+  useEffect(() => {
     const draft = loadInterviewDraft();
     if (draft?.messages?.length) {
       setMessages(
@@ -138,6 +157,9 @@ export function PlanGeneratorWorkspace() {
       setBrief(draft.brief ?? EMPTY_BRIEF);
       setResearchGoalDraft(draft.researchGoalDraft ?? '');
       setReadyToGenerate(Boolean(draft.readyToGenerate));
+      if (draft.contentLanguage === 'am' || draft.contentLanguage === 'en') {
+        setContentLanguage(draft.contentLanguage);
+      }
     }
     setHydrated(true);
   }, []);
@@ -152,12 +174,14 @@ export function PlanGeneratorWorkspace() {
       messages: messages.map(({ role, content }) => ({ role, content })),
       brief,
       researchGoalDraft,
-      readyToGenerate
+      readyToGenerate,
+      contentLanguage
     });
   }, [
     hydrated,
     messages,
     brief,
+    contentLanguage,
     researchGoalDraft,
     readyToGenerate,
     sending,
@@ -183,7 +207,7 @@ export function PlanGeneratorWorkspace() {
   const handleStartOver = useCallback(() => {
     if (sending || isGenerating) return;
     clearInterviewDraft();
-    setMessages(introMessages());
+    setMessages(makeIntro(t('interviewIntro')));
     setBrief(EMPTY_BRIEF);
     setResearchGoalDraft('');
     setReadyToGenerate(false);
@@ -191,7 +215,7 @@ export function PlanGeneratorWorkspace() {
     setStreamDraft('');
     setStreamStage(null);
     inputRef.current?.focus();
-  }, [sending, isGenerating]);
+  }, [sending, isGenerating, t]);
 
   const handleSend = useCallback(
     async (raw?: string) => {
@@ -213,10 +237,15 @@ export function PlanGeneratorWorkspace() {
       setStreamDraft('');
 
       try {
-        const result = await sendPlanInterviewTurnStream(history, content, {
-          onStatus: (stage) => setStreamStage(stage),
-          onDelta: (text) => setStreamDraft((curr) => curr + text)
-        });
+        const result = await sendPlanInterviewTurnStream(
+          history,
+          content,
+          {
+            onStatus: (stage) => setStreamStage(stage),
+            onDelta: (text) => setStreamDraft((curr) => curr + text)
+          },
+          contentLanguage
+        );
         setMessages((prev) => [
           ...prev,
           {
@@ -230,7 +259,7 @@ export function PlanGeneratorWorkspace() {
         setReadyToGenerate(result.readyToGenerate);
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Could not continue the interview'
+          err instanceof Error ? err.message : t('interviewFailed')
         );
       } finally {
         setSending(false);
@@ -239,7 +268,7 @@ export function PlanGeneratorWorkspace() {
         inputRef.current?.focus();
       }
     },
-    [input, sending, isGenerating, messages]
+    [input, sending, isGenerating, messages, contentLanguage, t]
   );
 
   const handleGenerate = useCallback(async () => {
@@ -249,77 +278,110 @@ export function PlanGeneratorWorkspace() {
       goal = `Survey title: ${brief.titleHint.trim()}\n\n${goal}`;
     }
     if (goal.length < 10) {
-      toast.error('Need a clearer research goal before generating.');
+      toast.error(t('needClearerGoal'));
       return;
     }
 
     setIsGenerating(true);
     try {
-      const plan = await createPlanWithAI({ researchGoal: goal });
+      const plan = await createPlanWithAI({
+        researchGoal: goal,
+        contentLanguage
+      });
       clearInterviewDraft();
-      toast.success('Plan generated', {
-        description: 'Review and refine your survey plan next.'
+      toast.success(t('planGenerated'), {
+        description: t('planGeneratedDesc')
       });
       router.push(`/dashboard/plans/${plan.id}`);
     } catch (err) {
-      toast.error('Could not generate plan', {
+      toast.error(t('couldNotGenerate'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Please try again.'
+            : t('saveFailedDesc')
       });
       setIsGenerating(false);
     }
-  }, [generateEnabled, researchGoalDraft, brief.titleHint, router]);
+  }, [
+    generateEnabled,
+    researchGoalDraft,
+    brief.titleHint,
+    contentLanguage,
+    router,
+    t
+  ]);
+
+  if (authLoading || (user && !canEdit)) {
+    return (
+      <div className='flex h-full w-full flex-1 items-center justify-center'>
+        <Icons.spinner className='text-muted-foreground size-6 animate-spin' />
+      </div>
+    );
+  }
 
   return (
     <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
       <SurvaiPanel className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
-        <div className={cn(panelHeaderToneClass.brand, 'relative shrink-0 px-4 py-4 sm:px-6')}>
-          <div className='relative flex flex-wrap items-start justify-between gap-3'>
-            <div className='min-w-0 flex-1'>
-              <h2 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {brief.titleHint.trim() || 'New survey plan'}
+        <div
+          className={cn(
+            panelHeaderToneClass.brand,
+            'relative shrink-0 px-4 py-3.5 sm:px-6'
+          )}
+        >
+          <div className='relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3'>
+            <div className='min-w-0 flex-1 basis-[14rem]'>
+              <h2 className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
+                {brief.titleHint.trim() || t('newPlanTitle')}
               </h2>
-              <p className='text-sm leading-relaxed text-brand-foreground/70'>
-                Chat to shape the research goal, then generate the plan
+              <p className='text-sm leading-snug text-brand-foreground/70'>
+                {t('newPlanSubtitle')}
               </p>
             </div>
-            <div className='flex shrink-0 items-center gap-2.5'>
-              <Link
-                href='/dashboard/surveys'
-                className='inline-flex h-10 items-center gap-1.5 rounded-xl px-3.5 text-sm font-medium text-brand-foreground/75 transition-colors hover:bg-primary/10 hover:text-brand-foreground'
-              >
-                <Icons.chevronLeft className='size-4' />
-                Surveys
-              </Link>
-              {hasProgress ? (
+
+            <div className='flex min-w-0 flex-wrap items-center justify-end gap-2'>
+              <ContentLanguagePicker
+                value={contentLanguage}
+                onChange={setContentLanguage}
+                disabled={sending || isGenerating}
+                density='compact'
+                tone='onBrand'
+              />
+              <div className='flex items-center gap-1.5'>
+                <Link
+                  href='/dashboard/surveys'
+                  className='inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-sm font-medium text-brand-foreground/75 transition-colors hover:bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] hover:text-brand-foreground'
+                >
+                  <Icons.chevronLeft className='size-4' />
+                  {tSurveys('title')}
+                </Link>
+                {hasProgress ? (
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    disabled={sending || isGenerating}
+                    onClick={handleStartOver}
+                    className='h-9 rounded-xl px-2.5 text-sm text-brand-foreground/75 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] hover:text-brand-foreground'
+                  >
+                    {t('startOver')}
+                  </Button>
+                ) : null}
                 <Button
                   type='button'
-                  variant='ghost'
-                  disabled={sending || isGenerating}
-                  onClick={handleStartOver}
-                  className='h-10 rounded-xl px-3.5 text-sm text-brand-foreground/75 hover:bg-primary/10 hover:text-brand-foreground'
+                  disabled={!generateEnabled}
+                  onClick={() => void handleGenerate()}
+                  className={cn(
+                    primaryCtaClass,
+                    'h-9 shrink-0 gap-1.5 rounded-xl px-3.5 text-sm disabled:opacity-60'
+                  )}
                 >
-                  Start over
+                  {isGenerating ? (
+                    <Icons.spinner className='size-3.5 animate-spin' />
+                  ) : (
+                    <Icons.sparkles className='size-3.5' />
+                  )}
+                  {t('generatePlan')}
                 </Button>
-              ) : null}
-              <Button
-                type='button'
-                disabled={!generateEnabled}
-                onClick={() => void handleGenerate()}
-                className={cn(
-                  primaryCtaClass,
-                  'h-10 shrink-0 gap-2 rounded-xl px-4 text-sm disabled:opacity-60'
-                )}
-              >
-                {isGenerating ? (
-                  <Icons.spinner className='size-4 animate-spin' />
-                ) : (
-                  <Icons.sparkles className='size-4' />
-                )}
-                Generate plan
-              </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -335,10 +397,10 @@ export function PlanGeneratorWorkspace() {
                     </div>
                     <div className='min-w-0'>
                       <p className='font-display text-sm font-extrabold tracking-tight text-foreground'>
-                        Brief so far
+                        {t('briefSoFar')}
                       </p>
                       <p className='text-muted-foreground text-[11px] leading-snug'>
-                        Edit here or refine in chat
+                        {t('briefHint')}
                       </p>
                     </div>
                   </div>
@@ -356,7 +418,7 @@ export function PlanGeneratorWorkspace() {
                   aria-valuenow={briefFilled}
                   aria-valuemin={0}
                   aria-valuemax={briefTotal}
-                  aria-label='Brief completeness'
+                  aria-label={t('briefCompleteness')}
                 >
                   <div
                     className='h-full rounded-full bg-primary transition-[width] duration-300 ease-out'
@@ -371,10 +433,10 @@ export function PlanGeneratorWorkspace() {
             <div className='min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3'>
               {briefHasContent(brief) || researchGoalDraft.trim() ? (
                 <div className='space-y-4'>
-                  <BriefSection label='Core' hint='What this survey is about'>
+                  <BriefSection label={t('briefCore')} hint={t('briefCoreHint')}>
                     <EditableBriefField
                       icon='page'
-                      label='Working title'
+                      label={t('workingTitle')}
                       value={brief.titleHint}
                       emphasize
                       disabled={briefBusy}
@@ -384,7 +446,7 @@ export function PlanGeneratorWorkspace() {
                     />
                     <EditableBriefField
                       icon='text'
-                      label='Summary'
+                      label={t('summary')}
                       value={brief.summary}
                       multiline
                       disabled={briefBusy}
@@ -394,7 +456,7 @@ export function PlanGeneratorWorkspace() {
                     />
                     <EditableBriefField
                       icon='sparkles'
-                      label='Research goal'
+                      label={t('researchGoal')}
                       value={researchGoalDraft}
                       multiline
                       disabled={briefBusy}
@@ -402,10 +464,10 @@ export function PlanGeneratorWorkspace() {
                     />
                   </BriefSection>
 
-                  <BriefSection label='Scope' hint='Who, why, and limits'>
+                  <BriefSection label={t('briefScope')} hint={t('briefScopeHint')}>
                     <EditableChipList
                       icon='users'
-                      label='Audiences'
+                      label={t('audiences')}
                       items={brief.audiences}
                       tone='brand'
                       disabled={briefBusy}
@@ -415,7 +477,7 @@ export function PlanGeneratorWorkspace() {
                     />
                     <EditableChipList
                       icon='checks'
-                      label='Decisions'
+                      label={t('decisions')}
                       items={brief.decisions}
                       tone='neutral'
                       disabled={briefBusy}
@@ -425,7 +487,7 @@ export function PlanGeneratorWorkspace() {
                     />
                     <EditableChipList
                       icon='adjustments'
-                      label='Constraints'
+                      label={t('constraints')}
                       items={brief.constraints}
                       tone='neutral'
                       disabled={briefBusy}
@@ -442,29 +504,29 @@ export function PlanGeneratorWorkspace() {
                       <Icons.sparkles className='size-4' />
                     </div>
                     <p className='font-display text-sm font-bold tracking-tight text-foreground'>
-                      Nothing captured yet
+                      {t('nothingCaptured')}
                     </p>
                     <p className='text-muted-foreground mx-auto  max-w-[14rem] text-xs leading-relaxed'>
-                      Chat a research idea, or tap a starter to seed the brief.
+                      {t('nothingCapturedHint')}
                     </p>
                   </div>
                   <div className='space-y-1.5'>
                     <p className='text-muted-foreground px-0.5 text-[10px] font-semibold tracking-wide uppercase'>
-                      Starters
+                      {t('starters')}
                     </p>
-                    {STARTERS.map((starter, index) => (
+                    {STARTER_KEYS.map((starterKey, index) => (
                       <button
-                        key={starter}
+                        key={starterKey}
                         type='button'
                         disabled={briefBusy}
-                        onClick={() => void handleSend(starter)}
+                        onClick={() => void handleSend(t(starterKey))}
                         className='group flex w-full items-start gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-left transition-colors hover:border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] hover:bg-brand-soft/60 disabled:opacity-60'
                       >
                         <span className=' flex size-5 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[10px] font-bold text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground'>
                           {index + 1}
                         </span>
                         <span className='text-[11px] font-medium leading-snug text-foreground'>
-                          {starter}
+                          {t(starterKey)}
                         </span>
                       </button>
                     ))}
@@ -483,18 +545,17 @@ export function PlanGeneratorWorkspace() {
                       </div>
                       <div className='min-w-0'>
                         <p className='text-xs font-semibold text-foreground'>
-                          Ready to generate
+                          {t('readyToGenerate')}
                         </p>
                         <p className='text-muted-foreground  text-[11px] leading-relaxed'>
-                          SurvAI can draft objectives, questions, and sections
-                          from this brief.
+                          {t('readyToGenerateHint')}
                         </p>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <p className='text-muted-foreground px-0.5 text-[11px] leading-relaxed'>
-                    Keep chatting to refine audience, decisions, and scope.
+                    {t('keepChatting')}
                   </p>
                 )}
               </div>
@@ -539,15 +600,15 @@ export function PlanGeneratorWorkspace() {
 
               {userTurnCount === 0 && !sending ? (
                 <div className='flex flex-wrap gap-1.5 pl-11 lg:hidden'>
-                  {STARTERS.map((starter) => (
+                  {STARTER_KEYS.map((starterKey) => (
                     <button
-                      key={starter}
+                      key={starterKey}
                       type='button'
                       disabled={sending || isGenerating}
-                      onClick={() => void handleSend(starter)}
+                      onClick={() => void handleSend(t(starterKey))}
                       className='rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50'
                     >
-                      {starter}
+                      {t(starterKey)}
                     </button>
                   ))}
                 </div>
@@ -558,8 +619,12 @@ export function PlanGeneratorWorkspace() {
                   className='flex gap-2.5 animate-in fade-in duration-200'
                   aria-label={
                     streamDraft
-                      ? 'SurvAI is answering'
-                      : STAGE_LABELS[streamStage ?? ''] || 'SurvAI is working'
+                      ? t('answeringAria')
+                      : streamStage === 'thinking'
+                        ? t('stageThinking')
+                        : streamStage === 'answering'
+                          ? t('stageAnswering')
+                          : t('workingAria')
                   }
                 >
                   <AssistantAvatar />
@@ -583,7 +648,11 @@ export function PlanGeneratorWorkspace() {
                           ))}
                         </span>
                         <span>
-                          {STAGE_LABELS[streamStage ?? ''] ?? 'Working…'}
+                          {streamStage === 'thinking'
+                            ? t('stageThinking')
+                            : streamStage === 'answering'
+                              ? t('stageAnswering')
+                              : t('working')}
                         </span>
                       </div>
                     )}
@@ -595,11 +664,10 @@ export function PlanGeneratorWorkspace() {
                 <div className='mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 py-6 text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_14%,transparent)] sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-7 sm:py-7'>
                   <div className='min-w-0'>
                     <p className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                      Ready when you are
+                      {t('readyWhenYouAre')}
                     </p>
                     <p className='max-w-md text-sm leading-relaxed text-brand-foreground/75 sm:text-[0.95rem]'>
-                      Generate a full plan from this brief, or keep refining in
-                      chat.
+                      {t('readyBannerBody')}
                     </p>
                   </div>
                   <Button
@@ -607,7 +675,7 @@ export function PlanGeneratorWorkspace() {
                     className='h-11 shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-110'
                     onClick={() => void handleGenerate()}
                   >
-                    Generate plan
+                    {t('generatePlan')}
                   </Button>
                 </div>
               ) : null}
@@ -618,7 +686,7 @@ export function PlanGeneratorWorkspace() {
             <div className='shrink-0 space-y-3 border-t border-border bg-brand-soft/70 px-4 py-3.5 sm:px-6 md:px-8'>
               {isGenerating ? (
                 <p className='text-muted-foreground text-center text-xs'>
-                  Generating with Gemini — please don&apos;t leave this page.
+                  {t('generatingStay')}
                 </p>
               ) : (
                 <div className='relative'>
@@ -627,9 +695,7 @@ export function PlanGeneratorWorkspace() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={
-                      sending
-                        ? 'SurvAI is typing…'
-                        : 'Describe what you want to learn…'
+                      sending ? t('typing') : t('inputPlaceholder')
                     }
                     disabled={sending || isGenerating}
                     className='h-11 rounded-2xl border border-border bg-card pr-12 text-sm shadow-sm focus-visible:border-ring disabled:opacity-70'
@@ -644,7 +710,7 @@ export function PlanGeneratorWorkspace() {
                     size='icon'
                     onClick={() => void handleSend()}
                     disabled={!input.trim() || sending || isGenerating}
-                    aria-label='Send message'
+                    aria-label={t('sendMessage')}
                     className={cn(
                       quietActionClass,
                       'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'
@@ -669,7 +735,7 @@ export function PlanGeneratorWorkspace() {
           className='sm:max-w-md gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0'
           showCloseButton={false}
         >
-          <DialogTitle className='sr-only'>Generating survey plan</DialogTitle>
+          <DialogTitle className='sr-only'>{t('generatingPlanTitle')}</DialogTitle>
           <PlanGenerationProgress
             active={isGenerating}
             goalPreview={researchGoalDraft}
@@ -730,6 +796,7 @@ function EditableBriefField({
   disabled?: boolean;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslations('plan');
   const Icon = Icons[icon];
   const filled = Boolean(value.trim());
   const sharedClass = cn(
@@ -772,7 +839,7 @@ function EditableBriefField({
           </span>
         ) : (
           <span className='text-muted-foreground/80 text-[9px] font-medium tracking-wide uppercase'>
-            Empty
+            {t('empty')}
           </span>
         )}
       </div>
@@ -781,7 +848,7 @@ function EditableBriefField({
           value={value}
           disabled={disabled}
           rows={emphasize ? 2 : 3}
-          placeholder={`Add ${label.toLowerCase()}…`}
+          placeholder={t('addField', { label: label.toLowerCase() })}
           className={sharedClass}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -789,7 +856,7 @@ function EditableBriefField({
         <Input
           value={value}
           disabled={disabled}
-          placeholder={`Add ${label.toLowerCase()}…`}
+          placeholder={t('addField', { label: label.toLowerCase() })}
           className={cn(sharedClass, 'h-auto')}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -813,6 +880,7 @@ function EditableChipList({
   disabled?: boolean;
   onChange: (items: string[]) => void;
 }) {
+  const t = useTranslations('plan');
   const Icon = Icons[icon];
   const [draft, setDraft] = useState('');
   const filled = items.length > 0;
@@ -875,7 +943,7 @@ function EditableChipList({
               <button
                 type='button'
                 disabled={disabled}
-                aria-label={`Remove ${item}`}
+                aria-label={t('removeItem', { item })}
                 className='text-muted-foreground hover:text-destructive rounded-sm transition-colors disabled:opacity-50'
                 onClick={() =>
                   onChange(items.filter((entry) => entry !== item))
@@ -888,7 +956,7 @@ function EditableChipList({
         </div>
       ) : (
         <p className='text-muted-foreground mb-2 text-[11px] leading-snug'>
-          No {singular}s yet — add one below.
+          {t('noItemsYet', { label: singular })}
         </p>
       )}
 
@@ -896,7 +964,7 @@ function EditableChipList({
         <Input
           value={draft}
           disabled={disabled}
-          placeholder={`Add ${singular}…`}
+          placeholder={t('addField', { label: singular })}
           className='h-8 rounded-lg border-border bg-background pr-9 text-[11px] focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))]'
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -910,7 +978,7 @@ function EditableChipList({
         <button
           type='button'
           disabled={disabled || !draft.trim()}
-          aria-label={`Add ${singular}`}
+          aria-label={t('addItem', { item: singular })}
           onClick={commitDraft}
           className='absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity disabled:opacity-30'
         >

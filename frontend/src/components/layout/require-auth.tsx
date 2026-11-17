@@ -3,12 +3,15 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, startTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/lib/auth-context';
 import { HippieLoadingScreen } from '@/components/hippie-loading-screen';
 import { overviewQueryOptions } from '@/features/overview/api/queries';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
+  const tNav = useTranslations('nav');
+  const tAuth = useTranslations('auth');
   const { isSignedIn, isLoading, isLoggingOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -35,15 +38,15 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }, [isSignedIn, isLoading, pathname, queryClient]);
 
   if (isLoggingOut) {
-    return <HippieLoadingScreen message='Signing out' />;
+    return <HippieLoadingScreen message={tNav('signingOut')} />;
   }
 
   if (isLoading) {
-    return <HippieLoadingScreen message='Checking session' />;
+    return <HippieLoadingScreen message={tAuth('checkingSession')} />;
   }
 
   if (!isSignedIn) {
-    return <HippieLoadingScreen message='Redirecting to sign in' />;
+    return <HippieLoadingScreen message={tAuth('redirectingSignIn')} />;
   }
 
   return <>{children}</>;

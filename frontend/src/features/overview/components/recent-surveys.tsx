@@ -13,40 +13,37 @@ import Link from 'next/link';
 import { surveysListQueryOptions } from '@/features/surveys/api/queries';
 import type { SurveyListItem, SurveyStatus } from '@/features/surveys/api/types';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
-const STATUS_CONFIG: Record<
-  SurveyStatus,
-  { label: string; className: string }
-> = {
-  published: {
-    label: 'Published',
-    className:
-      'border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground'
-  },
-  draft: {
-    label: 'Draft',
-    className: 'border-border bg-muted text-muted-foreground'
-  },
-  closed: {
-    label: 'Closed',
-    className: 'border-border bg-card text-foreground'
-  },
-  archived: {
-    label: 'Archived',
-    className: 'border-border bg-card text-muted-foreground'
-  }
+const STATUS_CLASS: Record<SurveyStatus, string> = {
+  published:
+    'border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand text-brand-foreground',
+  draft: 'border-border bg-muted text-muted-foreground',
+  closed: 'border-border bg-card text-foreground',
+  archived: 'border-border bg-card text-muted-foreground'
 };
 
-function relativeTime(dateStr: string): string {
+const STATUS_KEY = {
+  published: 'statusPublished',
+  draft: 'statusDraft',
+  closed: 'statusClosed',
+  archived: 'statusArchived'
+} as const;
+
+function relativeTime(
+  dateStr: string,
+  t: ReturnType<typeof useTranslations<'overview'>>,
+  tCommon: ReturnType<typeof useTranslations<'common'>>
+): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor(
     (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays === 0) return tCommon('today');
+  if (diffDays === 1) return tCommon('yesterday');
+  if (diffDays < 7) return t('daysAgo', { count: diffDays });
   return date.toLocaleDateString();
 }
 
@@ -61,7 +58,10 @@ function initials(title: string): string {
 }
 
 function SurveyRow({ survey }: { survey: SurveyListItem }) {
-  const status = STATUS_CONFIG[survey.status];
+  const t = useTranslations('overview');
+  const tSurveys = useTranslations('surveys');
+  const tCommon = useTranslations('common');
+  const statusClass = STATUS_CLASS[survey.status];
 
   return (
     <Link
@@ -80,22 +80,21 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
             variant='secondary'
             className={cn(
               'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold',
-              status.className
+              statusClass
             )}
           >
             {survey.status === 'published' ? (
               <Icons.circleCheck className='mr-1 size-3' />
             ) : null}
-            {status.label}
+            {tSurveys(STATUS_KEY[survey.status])}
           </Badge>
         </div>
         <div className='text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] tabular-nums'>
           <span>
-            {survey.responsesCount.toLocaleString()}{' '}
-            {survey.responsesCount === 1 ? 'response' : 'responses'}
+            {t('responseCount', { count: survey.responsesCount })}
           </span>
           <span aria-hidden>·</span>
-          <span>{relativeTime(survey.updatedAt)}</span>
+          <span>{relativeTime(survey.updatedAt, t, tCommon)}</span>
         </div>
       </div>
       <Icons.chevronRight className='text-muted-foreground mt-1 size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100' />
@@ -117,22 +116,24 @@ function SurveyRowSkeleton() {
 }
 
 export function RecentSurveys() {
+  const t = useTranslations('overview');
+  const tSurveys = useTranslations('surveys');
   const { data, isLoading } = useQuery(
     surveysListQueryOptions({ page: 1, limit: 5, sort: 'updatedAt:desc' })
   );
   const recentSurveys = data?.surveys ?? [];
 
   const subtitle = isLoading
-    ? 'Loading surveys…'
+    ? t('loadingSurveys')
     : recentSurveys.length === 0
-      ? 'No activity yet'
-      : `${recentSurveys.length} updated recently`;
+      ? t('noActivity')
+      : t('updatedRecently', { count: recentSurveys.length });
 
   return (
     <SurvaiPanel className='flex h-full min-h-full flex-col'>
       <SurvaiPanelHeader
         tone='brand'
-        title='Recent Surveys'
+        title={t('recentSurveys')}
         subtitle={subtitle}
         badge={
           !isLoading && recentSurveys.length > 0 ? (
@@ -146,7 +147,7 @@ export function RecentSurveys() {
             href='/dashboard/surveys'
             className='hidden text-xs font-medium text-brand-foreground/75 underline-offset-4 hover:text-brand-foreground hover:underline sm:inline'
           >
-            View all
+            {t('viewAll')}
           </Link>
         }
       />
@@ -163,10 +164,10 @@ export function RecentSurveys() {
               <Icons.survey className='size-5' />
             </span>
             <p className='font-display text-sm font-bold tracking-tight text-foreground'>
-              No surveys yet
+              {tSurveys('empty')}
             </p>
             <p className='text-muted-foreground mt-1 max-w-[16rem] text-xs leading-relaxed'>
-              Create your first survey to start collecting grounded responses.
+              {t('emptyRecentHint')}
             </p>
           </div>
         ) : (
@@ -181,7 +182,7 @@ export function RecentSurveys() {
                 href='/dashboard/surveys'
                 className='inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3 text-xs font-medium text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground'
               >
-                View all surveys
+                {t('viewAllSurveys')}
                 <Icons.arrowRight className='size-3 shrink-0' />
               </Link>
             </div>

@@ -112,7 +112,16 @@ class UserService:
             raise BadRequestError("Avatar image is too large (max ~300KB)")
 
         for key, value in payload.items():
-            if key in {"phone", "job_title", "bio", "avatar_url", "full_name", "role", "is_active"}:
+            if key in {
+                "phone",
+                "job_title",
+                "bio",
+                "avatar_url",
+                "full_name",
+                "role",
+                "is_active",
+                "ui_locale",
+            }:
                 if isinstance(value, str):
                     value = value.strip() or None if key != "full_name" else value.strip()
                 setattr(user, key, value)

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import type { ConditionalLogic } from '../api/types';
@@ -18,6 +20,8 @@ export function PendingConditionalBanner({
   onDismiss,
   busy = false
 }: PendingConditionalBannerProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const summary = logic.rules
     .map((r) => `${r.questionId.slice(0, 8)}… ${r.op} ${String(r.value)}`)
     .join(` ${logic.operator} `);
@@ -30,27 +34,19 @@ export function PendingConditionalBanner({
       <div className='flex items-start gap-2'>
         <Icons.sparkles className=' size-3.5 shrink-0 text-foreground' />
         <div className='min-w-0 flex-1'>
-          <p className='text-xs font-semibold tracking-tight'>
-            Pending conditional logic
-          </p>
+          <p className='text-xs font-semibold tracking-tight'>{t('pendingLogicTitle')}</p>
           <p className='text-muted-foreground  text-[11px] leading-relaxed'>
-            Suggested skip rule is not live yet. Confirm to write it to the
-            question, or dismiss to discard.
+            {t('pendingLogicHint')}
           </p>
           <p className=' font-mono text-[10px] break-all text-foreground/80'>
-            Show when {summary || '—'}
+            {t('showWhen', { summary: summary || '—' })}
           </p>
         </div>
       </div>
       <div className='flex gap-2'>
-        <Button
-          size='sm'
-          className='h-8 rounded-lg text-xs'
-          disabled={busy}
-          onClick={onConfirm}
-        >
+        <Button size='sm' className='h-8 rounded-lg text-xs' disabled={busy} onClick={onConfirm}>
           <Icons.check className='mr-1 size-3' />
-          Confirm
+          {tCommon('confirm')}
         </Button>
         <Button
           size='sm'
@@ -59,7 +55,7 @@ export function PendingConditionalBanner({
           disabled={busy}
           onClick={onDismiss}
         >
-          Dismiss
+          {t('dismiss')}
         </Button>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   apiErrorMessage,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 import { normalizeConditionalLogic } from '@/lib/conditional-logic';
 
 import type {
@@ -45,13 +46,10 @@ async function publicFetch(
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error(
-        'The server took too long to respond. Try again in a moment.',
-        { cause: err }
-      );
+      throw new Error(serviceMsg('common', 'serverTimeout'), { cause: err });
     }
     throw new Error(
-      toUserFacingError(err, 'Something went wrong. Please try again.'),
+      toUserFacingError(err, serviceMsg('common', 'errorGeneric')),
       { cause: err }
     );
   } finally {
@@ -66,9 +64,7 @@ async function readError(res: Response, fallback: string): Promise<never> {
     throw new Error(detail);
   }
   if (res.status >= 500) {
-    throw new Error(
-      'Something went wrong on the server. Please try again in a moment.'
-    );
+    throw new Error(serviceMsg('common', 'serverError'));
   }
   throw new Error(fallback);
 }
@@ -164,7 +160,7 @@ export async function getPublicSurvey(
 ): Promise<PublicSurvey | null> {
   const res = await publicFetch(`/public/surveys/${versionId}`);
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not load survey');
+  if (!res.ok) await readError(res, serviceMsg('publicCollect', 'loadSurveyFailed'));
   return mapSurvey((await res.json()) as ApiPublicSurvey);
 }
 
@@ -182,6 +178,6 @@ export async function submitSurvey(
       }))
     })
   });
-  if (!res.ok) await readError(res, 'Could not submit survey');
+  if (!res.ok) await readError(res, serviceMsg('publicCollect', 'submitError'));
   return mapRespondent((await res.json()) as ApiRespondent);
 }

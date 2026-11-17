@@ -23,10 +23,12 @@ class AiGenerationMetaPublic(BaseModel):
 
 class PlanCreate(BaseModel):
     research_goal: str = Field(min_length=10, max_length=5000)
+    content_language: Literal["en", "am"] = "en"
 
 
 class PlanUpdate(BaseModel):
     research_goal: str | None = Field(default=None, min_length=10, max_length=5000)
+    content_language: Literal["en", "am"] | None = None
     objectives: list[str] | None = None
     research_questions: list[str] | None = None
     target_respondents: list[str] | None = None
@@ -39,6 +41,7 @@ class PlanGenerateRequest(BaseModel):
     """Optional body for re-generate — updates the goal then hard-replaces AI fields."""
 
     research_goal: str | None = Field(default=None, min_length=10, max_length=5000)
+    content_language: Literal["en", "am"] | None = None
 
 
 class PlanInterviewMessage(BaseModel):
@@ -51,6 +54,7 @@ class PlanInterviewTurnRequest(BaseModel):
 
     messages: list[PlanInterviewMessage] = Field(default_factory=list, max_length=40)
     content: str = Field(min_length=1, max_length=4000)
+    content_language: Literal["en", "am"] = "en"
 
 
 class PlanInterviewBriefPublic(BaseModel):
@@ -75,6 +79,7 @@ class PlanPublic(BaseModel):
     created_by: UUID
     organization_id: UUID | None
     research_goal: str
+    content_language: str = "en"
     objectives: list[str]
     research_questions: list[str]
     target_respondents: list[str]

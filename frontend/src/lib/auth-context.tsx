@@ -180,14 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Cookie-only fallback: access cookie may still authorize /auth/me even
-      // when refresh body/cookie is missing (e.g. pre-sessionStorage sessions).
-      const me = await apiFetch('/auth/me', {}, 12_000);
-      if (me.ok) {
-        setUser(mapUser((await me.json()) as ApiUser));
-        return;
-      }
-
+      // Do not fall back to cookie-only /auth/me. That leaves isSignedIn true
+      // without an in-memory Bearer token, so cross-origin API calls fail while
+      // the shell looks logged in. Require a refreshable token pair.
       clearSession();
     } catch {
       clearSession();

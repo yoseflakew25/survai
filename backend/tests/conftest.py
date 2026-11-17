@@ -15,9 +15,9 @@ from app.db.session import get_db
 from app.main import app
 from app.models import (  # noqa: F401
     AiGenerationLog,
-    AuditLog,
     AssistantMessage,
     AssistantThread,
+    AuditLog,
     EmailVerificationOtp,
     Notification,
     Organization,
@@ -86,8 +86,28 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
+    bind = session.bind
+    assert bind is not None
+    test_session_local = async_sessionmaker(
+        bind=bind,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+    import app.db.session as db_session
+    import app.services.admin as admin_service
+
+    prior_db_local = db_session.AsyncSessionLocal
+    prior_admin_local = admin_service.AsyncSessionLocal
+    db_session.AsyncSessionLocal = test_session_local
+    admin_service.AsyncSessionLocal = test_session_local
+
     app.dependency_overrides[get_db] = _override_get_db
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
-    app.dependency_overrides.clear()
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        app.dependency_overrides.clear()
+        db_session.AsyncSessionLocal = prior_db_local
+        admin_service.AsyncSessionLocal = prior_admin_local

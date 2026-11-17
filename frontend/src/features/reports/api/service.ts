@@ -7,6 +7,7 @@ import {
   apiFetch,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 import type {
   ExportResult,
@@ -164,7 +165,7 @@ export async function getLatestReport(
 ): Promise<SurveyReport | null> {
   const res = await apiFetch(`/surveys/${surveyId}/reports/latest`);
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not load report');
+  if (!res.ok) await readError(res, serviceMsg('reports', 'loadFailed'));
   const data = await res.json();
   if (data == null) return null;
   return mapReport(data as ApiReport);
@@ -172,18 +173,25 @@ export async function getLatestReport(
 
 export async function getReport(reportId: string): Promise<SurveyReport> {
   const res = await apiFetch(`/reports/${reportId}`);
-  if (!res.ok) await readError(res, 'Could not load report');
+  if (!res.ok) await readError(res, serviceMsg('reports', 'loadFailed'));
   return mapReport((await res.json()) as ApiReport);
 }
 
+type ReportJobErrorKey =
+  | 'jobReportGenerationFailed'
+  | 'jobReportGenerationTimedOut'
+  | 'jobReportExportFailed'
+  | 'jobReportExportTimedOut';
+
 async function pollJobResult<T extends object>(
   jobId: string,
-  label = 'Report job'
+  failedKey: ReportJobErrorKey,
+  timedOutKey: ReportJobErrorKey
 ): Promise<T> {
   const deadline = Date.now() + AI_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const res = await apiFetch(`/jobs/${jobId}`);
-    if (!res.ok) await readError(res, `${label} failed`);
+    if (!res.ok) await readError(res, serviceMsg('reports', failedKey));
     const data = (await res.json()) as {
       status: string;
       result?: T;
@@ -193,11 +201,11 @@ async function pollJobResult<T extends object>(
       return data.result;
     }
     if (data.status === 'failed' || data.status === 'not_found') {
-      throw new Error(data.error || `${label} failed`);
+      throw new Error(data.error || serviceMsg('reports', failedKey));
     }
     await new Promise((r) => setTimeout(r, 2000));
   }
-  throw new Error(`${label} timed out. Please try again.`);
+  throw new Error(serviceMsg('reports', timedOutKey));
 }
 
 export async function generateReport(
@@ -222,11 +230,14 @@ export async function generateReport(
     const accepted = (await res.json()) as { job_id: string };
     const report = await pollJobResult<ApiReport>(
       accepted.job_id,
-      'Report generation'
+      'jobReportGenerationFailed',
+      'jobReportGenerationTimedOut'
     );
     return mapReport(report);
   }
-  if (!res.ok) await readError(res, 'Could not generate report');
+  if (!res.ok) {
+    await readError(res, serviceMsg('reports', 'couldNotGenerateReport'));
+  }
   return mapReport((await res.json()) as ApiReport);
 }
 
@@ -253,7 +264,7 @@ export async function updateReport(
     method: 'PATCH',
     body: JSON.stringify(body)
   });
-  if (!res.ok) await readError(res, 'Could not save report');
+  if (!res.ok) await readError(res, serviceMsg('reports', 'couldNotSaveReport'));
   return mapReport((await res.json()) as ApiReport);
 }
 
@@ -277,7 +288,9 @@ export async function regenerateReportSection(
     },
     AI_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'Could not regenerate section');
+  if (!res.ok) {
+    await readError(res, serviceMsg('reports', 'regenerateFailedDesc'));
+  }
   return mapReport((await res.json()) as ApiReport);
 }
 
@@ -285,7 +298,7 @@ export async function getReportChat(
   reportId: string
 ): Promise<ReportChatMessage[]> {
   const res = await apiFetch(`/reports/${reportId}/chat`);
-  if (!res.ok) await readError(res, 'Could not load chat');
+  if (!res.ok) await readError(res, serviceMsg('reports', 'couldNotLoadChat'));
   const data = (await res.json()) as { messages: ApiChatMessage[] };
   return (data.messages ?? []).map(mapChat);
 }
@@ -304,7 +317,7 @@ export async function sendReportChat(
     },
     CHAT_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'Could not send message');
+  if (!res.ok) await readError(res, serviceMsg('reports', 'chatFailedDesc'));
   const data = (await res.json()) as { messages: ApiChatMessage[] };
   return (data.messages ?? []).map(mapChat);
 }
@@ -325,11 +338,14 @@ export async function exportReport(
     const accepted = (await res.json()) as { job_id: string };
     const exported = await pollJobResult<ApiExport>(
       accepted.job_id,
-      'Report export'
+      'jobReportExportFailed',
+      'jobReportExportTimedOut'
     );
     return mapExport(exported);
   }
-  if (!res.ok) await readError(res, 'Could not export report');
+  if (!res.ok) {
+    await readError(res, serviceMsg('reports', 'couldNotExportReport'));
+  }
   return mapExport((await res.json()) as ApiExport);
 }
 
@@ -342,11 +358,13 @@ export async function downloadExportPack(
     { method: 'POST' },
     AI_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'Could not build donor pack');
+  if (!res.ok) {
+    await readError(res, serviceMsg('reports', 'donorPackFailedDesc'));
+  }
   const exported = mapExport((await res.json()) as ApiExport);
   const safe = title.replace(/[^\w-]+/g, '_').slice(0, 60) || 'report';
   if (!exported.contentBase64) {
-    throw new Error('Donor pack returned no file data');
+    throw new Error(serviceMsg('reports', 'donorPackNoFileData'));
   }
   const blob = base64ToBlob(
     exported.contentBase64,
@@ -381,7 +399,7 @@ export async function downloadReportPdf(
   const result = await exportReport(reportId, 'pdf');
   const safe = title.replace(/[^\w-]+/g, '_').slice(0, 60) || 'report';
   if (!result.contentBase64) {
-    throw new Error('PDF export returned no file data');
+    throw new Error(serviceMsg('reports', 'exportNoFileData'));
   }
   const blob = base64ToBlob(
     result.contentBase64,
@@ -398,7 +416,7 @@ export async function downloadReportDocx(
   const result = await exportReport(reportId, 'docx');
   const safe = title.replace(/[^\w-]+/g, '_').slice(0, 60) || 'report';
   if (!result.contentBase64) {
-    throw new Error('Word export returned no file data');
+    throw new Error(serviceMsg('reports', 'exportNoFileData'));
   }
   const blob = base64ToBlob(
     result.contentBase64,

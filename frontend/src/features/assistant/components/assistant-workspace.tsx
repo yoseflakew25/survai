@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { ChatMarkdown } from '@/components/chat-markdown';
 import { Icons } from '@/components/icons';
@@ -29,31 +30,35 @@ import {
   sendMessageStream,
   updateThread
 } from '../api/service';
-import type { AssistantMessage, AssistantThread } from '../api/types';
+import type {
+  AssistantMessage,
+  AssistantThread,
+  AssistantThreadList
+} from '../api/types';
 
-const STARTERS = [
-  'What surveys do we have and how are they performing?',
-  'Summarize the latest findings across our reports',
-  'Which survey needs the most attention right now?'
-] as const;
+const STARTER_KEYS = ['starter1', 'starter2', 'starter3'] as const;
 
-const STAGE_LABELS: Record<string, string> = {
-  saving: 'Saving your question…',
-  retrieving: 'Searching org knowledge…',
-  planning: 'Planning tools…',
-  tools: 'Fetching metrics…',
-  answering: 'Writing answer…'
+const STAGE_KEYS: Record<string, 'stageSaving' | 'stageRetrieving' | 'stagePlanning' | 'stageTools' | 'stageAnswering'> = {
+  saving: 'stageSaving',
+  retrieving: 'stageRetrieving',
+  planning: 'stagePlanning',
+  tools: 'stageTools',
+  answering: 'stageAnswering'
 };
 
-function formatRelative(iso: string): string {
+function formatRelative(
+  iso: string,
+  locale: string,
+  tCommon: (key: string, values?: { count: number }) => string
+): string {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return tCommon('justNow');
+  if (mins < 60) return tCommon('minutesAgo', { count: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (hours < 24) return tCommon('hoursAgo', { count: hours });
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 function ThreadListSkeleton() {
@@ -69,8 +74,34 @@ function ThreadListSkeleton() {
   );
 }
 
+function primeEmptyThread(
+  queryClient: ReturnType<typeof useQueryClient>,
+  thread: AssistantThread
+) {
+  queryClient.setQueryData(assistantKeys.messages(thread.id), []);
+  queryClient.setQueryData<AssistantThreadList>(
+    assistantKeys.threads(),
+    (old) => {
+      if (!old) return { threads: [thread], total: 1 };
+      if (old.threads.some((t) => t.id === thread.id)) return old;
+      return {
+        threads: [thread, ...old.threads],
+        total: old.total + 1
+      };
+    }
+  );
+}
+
 export function AssistantWorkspace() {
+  const tAssistant = useTranslations('assistant');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const queryClient = useQueryClient();
+
+  const stageLabel = (stage: string | null) => {
+    const key = stage ? STAGE_KEYS[stage] : undefined;
+    return key ? tAssistant(key) : tAssistant('working');
+  };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -79,10 +110,11 @@ export function AssistantWorkspace() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const threadsQuery = useQuery(assistantThreadsOptions());
   const threads = threadsQuery.data?.threads ?? [];
-  const activeThread = threads.find((t) => t.id === activeId) ?? null;
+  const activeThread = threads.find((row) => row.id === activeId) ?? null;
 
   useEffect(() => {
     if (!activeId && threads.length > 0) {
@@ -92,6 +124,11 @@ export function AssistantWorkspace() {
 
   const messagesQuery = useQuery(assistantMessagesOptions(activeId));
   const messages = messagesQuery.data ?? [];
+  const isBlankActiveChat =
+    Boolean(activeId) &&
+    !messagesQuery.isLoading &&
+    messages.length === 0 &&
+    !sending;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -101,15 +138,38 @@ export function AssistantWorkspace() {
     await queryClient.invalidateQueries({ queryKey: assistantKeys.threads() });
   }, [queryClient]);
 
-  const handleNewThread = useCallback(async () => {
-    try {
-      const thread = await createThread();
-      await refreshThreads();
+  const createThreadMutation = useMutation({
+    mutationFn: () => createThread(),
+    onSuccess: (thread) => {
+      primeEmptyThread(queryClient, thread);
       setActiveId(thread.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not create chat');
+      setInput('');
+      setRenamingId(null);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof Error ? err.message : tAssistant('couldNotCreateChat')
+      );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: assistantKeys.threads() });
     }
-  }, [refreshThreads]);
+  });
+  const creatingThread = createThreadMutation.isPending;
+
+  const handleNewThread = useCallback(() => {
+    if (creatingThread || sending) return;
+
+    // Already on an empty chat — reuse it instead of spawning duplicates
+    if (isBlankActiveChat) {
+      setInput('');
+      inputRef.current?.focus();
+      return;
+    }
+
+    createThreadMutation.mutate();
+  }, [creatingThread, sending, isBlankActiveChat, createThreadMutation.mutate]);
 
   const handleDelete = useCallback(
     async (thread: AssistantThread) => {
@@ -119,7 +179,7 @@ export function AssistantWorkspace() {
         await refreshThreads();
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Could not delete chat'
+          err instanceof Error ? err.message : tAssistant('couldNotDeleteChat')
         );
       }
     },
@@ -139,7 +199,7 @@ export function AssistantWorkspace() {
         await refreshThreads();
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Could not rename chat'
+          err instanceof Error ? err.message : tAssistant('couldNotRenameChat')
         );
       }
     },
@@ -149,7 +209,7 @@ export function AssistantWorkspace() {
   const handleSend = useCallback(
     async (override?: string) => {
       const content = (override ?? input).trim();
-      if (!content || sending) return;
+      if (!content || sending || creatingThread) return;
 
       let threadId = activeId;
       setSending(true);
@@ -159,8 +219,11 @@ export function AssistantWorkspace() {
         if (!threadId) {
           const thread = await createThread();
           threadId = thread.id;
+          primeEmptyThread(queryClient, thread);
           setActiveId(threadId);
-          await refreshThreads();
+          void queryClient.invalidateQueries({
+            queryKey: assistantKeys.threads()
+          });
         }
 
         const optimistic: AssistantMessage = {
@@ -190,7 +253,7 @@ export function AssistantWorkspace() {
         await refreshThreads();
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Could not send message'
+          err instanceof Error ? err.message : tAssistant('couldNotSendMessage')
         );
         if (threadId) {
           await queryClient.invalidateQueries({
@@ -203,13 +266,14 @@ export function AssistantWorkspace() {
         setStreamDraft('');
       }
     },
-    [activeId, input, sending, queryClient, refreshThreads]
+    [activeId, input, sending, creatingThread, queryClient, refreshThreads]
   );
 
-  const chatTitle =
-    activeThread && activeThread.title !== 'New chat'
+  const chatTitle = creatingThread
+    ? tAssistant('newChat')
+    : activeThread && activeThread.title !== 'New chat'
       ? activeThread.title
-      : 'Org research assistant';
+      : tAssistant('orgTitle');
 
   return (
     <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
@@ -221,17 +285,33 @@ export function AssistantWorkspace() {
                 {chatTitle}
               </h2>
               <p className='text-sm leading-relaxed text-brand-foreground/70'>
-                Ask across your surveys, reports, and reviews
+                {tAssistant('subtitle')}
               </p>
             </div>
             <Button
               type='button'
               size='sm'
-              onClick={() => void handleNewThread()}
-              className={cn(primaryCtaClass, 'h-8 shrink-0 gap-1.5 rounded-xl px-3 text-xs')}
+              onClick={handleNewThread}
+              disabled={creatingThread || sending}
+              aria-busy={creatingThread}
+              aria-label={
+                creatingThread
+                  ? tAssistant('creating')
+                  : isBlankActiveChat
+                    ? tAssistant('newChat')
+                    : tAssistant('newChat')
+              }
+              className={cn(
+                primaryCtaClass,
+                'h-8 shrink-0 gap-1.5 rounded-xl px-3 text-xs'
+              )}
             >
-              <Icons.add className='mr-1 size-3.5' />
-              New chat
+              {creatingThread ? (
+                <Icons.spinner className='size-3.5 animate-spin' />
+              ) : (
+                <Icons.add className='size-3.5' />
+              )}
+              {creatingThread ? tAssistant('creating') : tAssistant('newChat')}
             </Button>
           </div>
         </div>
@@ -248,10 +328,10 @@ export function AssistantWorkspace() {
                     <Icons.alertCircle className='size-4' />
                   </div>
                   <p className='font-display text-sm font-bold tracking-tight'>
-                    Couldn’t load chats
+                    {tAssistant('loadFailed')}
                   </p>
                   <p className=' text-xs text-muted-foreground'>
-                    Check that you’re signed in, then try again.
+                    {tAssistant('loadFailedHint')}
                   </p>
                   <Button
                     type='button'
@@ -260,23 +340,49 @@ export function AssistantWorkspace() {
                     className='mt-3 rounded-xl'
                     onClick={() => void threadsQuery.refetch()}
                   >
-                    Retry
+                    {tCommon('retry')}
                   </Button>
                 </div>
-              ) : threads.length === 0 ? (
+              ) : threads.length === 0 && !creatingThread ? (
                 <div className='flex flex-col items-center px-4 py-10 text-center'>
                   <div className='mb-3 flex size-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground'>
                     <Icons.chat className='size-4' />
                   </div>
                   <p className='font-display text-sm font-bold tracking-tight'>
-                    No chats yet
+                    {tAssistant('noChats')}
                   </p>
-                  <p className=' text-xs leading-relaxed text-muted-foreground'>
-                    Start a conversation to explore your org knowledge.
+                  <p className='mb-3 text-xs leading-relaxed text-muted-foreground'>
+                    {tAssistant('noChatsHint')}
                   </p>
+                  <Button
+                    type='button'
+                    size='sm'
+                    onClick={handleNewThread}
+                    disabled={creatingThread || sending}
+                    className='rounded-xl'
+                  >
+                    <Icons.add className='size-3.5' />
+                    {tAssistant('newChat')}
+                  </Button>
                 </div>
               ) : (
                 <div className='space-y-0.5 p-1.5'>
+                  {creatingThread ? (
+                    <div
+                      className='flex items-start gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/60 px-2.5 py-2 animate-in fade-in duration-200'
+                      aria-live='polite'
+                    >
+                      <Icons.spinner className='mt-0.5 size-3.5 shrink-0 animate-spin text-primary' />
+                      <div className='min-w-0 flex-1 space-y-1'>
+                        <div className='text-sm font-medium text-foreground'>
+                          {tAssistant('creatingChat')}
+                        </div>
+                        <div className='font-mono text-[10px] text-muted-foreground'>
+                          {tCommon('justNow')}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                   {threads.map((thread) => {
                     const active = thread.id === activeId;
                     return (
@@ -285,14 +391,19 @@ export function AssistantWorkspace() {
                         className={cn(
                           'group flex items-start gap-0.5 rounded-xl px-2 py-2 transition-colors',
                           active
-                            ? 'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)]'
+                            ? 'border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                             : 'hover:bg-muted/70'
                         )}
                       >
                         <button
                           type='button'
-                          className='min-w-0 flex-1 text-left'
-                          onClick={() => setActiveId(thread.id)}
+                          className='min-w-0 flex-1 text-left disabled:opacity-60'
+                          disabled={creatingThread}
+                          onClick={() => {
+                            if (creatingThread) return;
+                            setActiveId(thread.id);
+                            setInput('');
+                          }}
                         >
                           {renamingId === thread.id ? (
                             <Input
@@ -312,25 +423,11 @@ export function AssistantWorkspace() {
                             />
                           ) : (
                             <>
-                              <div
-                                className={cn(
-                                  'truncate text-sm font-medium',
-                                  active
-                                    ? 'text-brand-foreground'
-                                    : 'text-foreground'
-                                )}
-                              >
+                              <div className='truncate text-sm font-medium text-foreground'>
                                 {thread.title}
                               </div>
-                              <div
-                                className={cn(
-                                  'font-mono text-[10px]',
-                                  active
-                                    ? 'text-brand-foreground/70'
-                                    : 'text-muted-foreground'
-                                )}
-                              >
-                                {formatRelative(thread.updatedAt)}
+                              <div className='font-mono text-[10px] text-muted-foreground'>
+                                {formatRelative(thread.updatedAt, locale, tCommon)}
                               </div>
                             </>
                           )}
@@ -338,13 +435,8 @@ export function AssistantWorkspace() {
                         <div className='flex shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100'>
                           <button
                             type='button'
-                            aria-label='Rename chat'
-                            className={cn(
-                              'rounded-lg p-1 hover:bg-card',
-                              active
-                                ? 'text-brand-foreground/70 hover:text-brand-foreground'
-                                : 'text-muted-foreground hover:text-foreground'
-                            )}
+                            aria-label={tAssistant('rename')}
+                            className='rounded-lg p-1 text-muted-foreground hover:bg-card hover:text-foreground'
                             onClick={() => {
                               setRenamingId(thread.id);
                               setRenameValue(thread.title);
@@ -354,13 +446,8 @@ export function AssistantWorkspace() {
                           </button>
                           <button
                             type='button'
-                            aria-label='Delete chat'
-                            className={cn(
-                              'rounded-lg p-1 hover:bg-card hover:text-destructive',
-                              active
-                                ? 'text-brand-foreground/70'
-                                : 'text-muted-foreground'
-                            )}
+                            aria-label={tAssistant('deleteChat')}
+                            className='rounded-lg p-1 text-muted-foreground hover:bg-card hover:text-destructive'
                             onClick={() => void handleDelete(thread)}
                           >
                             <Icons.close className='size-3.5' />
@@ -387,14 +474,36 @@ export function AssistantWorkspace() {
               backgroundSize: 'auto, 16px 16px'
             }}
           >
-            {messagesQuery.isLoading && activeId ? (
+            {creatingThread ? (
+              <div
+                className='flex flex-col items-center justify-center gap-3 px-1 py-16 text-center animate-in fade-in zoom-in-95 duration-300'
+                aria-live='polite'
+              >
+                <div className='flex size-11 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
+                  <Icons.spinner className='size-4 animate-spin' />
+                </div>
+                <div className='space-y-1'>
+                  <p className='font-display text-base font-bold tracking-tight text-foreground'>
+                    {tAssistant('newChatStarting')}
+                  </p>
+                  <p className='text-sm text-muted-foreground'>
+                    {tAssistant('newChatHint')}
+                  </p>
+                </div>
+              </div>
+            ) : messagesQuery.isLoading &&
+              activeId &&
+              messagesQuery.data === undefined ? (
               <div className='space-y-3 px-1 py-2'>
                 <Skeleton className='ml-auto h-16 w-2/3 rounded-2xl' />
                 <Skeleton className='h-20 w-3/4 rounded-2xl' />
                 <Skeleton className='ml-auto h-12 w-1/2 rounded-2xl' />
               </div>
             ) : messages.length === 0 && !sending ? (
-              <div className='space-y-4 px-1 py-2'>
+              <div
+                key={activeId ?? 'empty'}
+                className='space-y-4 px-1 py-2 animate-in fade-in slide-in-from-bottom-2 duration-300'
+              >
                 <div className='flex items-start gap-3'>
                   <div
                     className=' flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-muted text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
@@ -404,24 +513,23 @@ export function AssistantWorkspace() {
                   </div>
                   <div className='min-w-0 space-y-1'>
                     <p className='font-display text-base font-bold tracking-tight text-foreground'>
-                      Ask anything about your research
+                      {tAssistant('askAnything')}
                     </p>
                     <p className='text-sm leading-relaxed text-muted-foreground'>
-                      Surveys, response trends, report findings, or review
-                      quality — answers stay grounded in your org data.
+                      {tAssistant('askAnythingHint')}
                     </p>
                   </div>
                 </div>
                 <div className='flex flex-wrap gap-1.5 pl-12'>
-                  {STARTERS.map((starter) => (
+                  {STARTER_KEYS.map((key) => (
                     <button
-                      key={starter}
+                      key={key}
                       type='button'
-                      disabled={sending}
-                      onClick={() => void handleSend(starter)}
-                      className='rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50'
+                      disabled={sending || creatingThread}
+                      onClick={() => void handleSend(tAssistant(key))}
+                      className='rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50'
                     >
-                      {starter}
+                      {tAssistant(key)}
                     </button>
                   ))}
                 </div>
@@ -466,7 +574,7 @@ export function AssistantWorkspace() {
                       {msg.citations.map((c, i) => {
                         const label =
                           c.sourceType === 'metrics'
-                            ? 'Metrics'
+                            ? tCommon('metrics')
                             : c.title || c.sourceType;
                         if (c.href) {
                           return (
@@ -499,9 +607,7 @@ export function AssistantWorkspace() {
               <div
                 className='flex gap-2.5 animate-in fade-in duration-200'
                 aria-label={
-                  streamDraft
-                    ? 'SurvAI is answering'
-                    : STAGE_LABELS[streamStage ?? ''] || 'SurvAI is working'
+                  streamDraft ? tAssistant('isAnswering') : stageLabel(streamStage)
                 }
               >
                 <div
@@ -527,9 +633,7 @@ export function AssistantWorkspace() {
                           />
                         ))}
                       </span>
-                      <span>
-                        {STAGE_LABELS[streamStage ?? ''] ?? 'Working…'}
-                      </span>
+                      <span>{stageLabel(streamStage)}</span>
                     </div>
                   )}
                 </div>
@@ -541,12 +645,17 @@ export function AssistantWorkspace() {
           <div className='shrink-0 space-y-3 border-t border-border bg-brand-soft/70 px-4 py-3.5 sm:px-6 md:px-8'>
             <div className='relative'>
               <Input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={
-                  sending ? 'SurvAI is typing…' : 'Ask about your org research…'
+                  creatingThread
+                    ? tAssistant('starting')
+                    : sending
+                      ? tAssistant('typing')
+                      : tAssistant('placeholder')
                 }
-                disabled={sending}
+                disabled={sending || creatingThread}
                 className='h-11 rounded-2xl border-2 border-border bg-card pr-12 text-sm shadow-sm focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))] disabled:opacity-70'
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -558,8 +667,8 @@ export function AssistantWorkspace() {
               <Button
                 size='icon'
                 onClick={() => void handleSend()}
-                disabled={!input.trim() || sending}
-                aria-label='Send message'
+                disabled={!input.trim() || sending || creatingThread}
+                aria-label={tAssistant('sendMessage')}
                 className={cn(
                   brandCtaClass,
                   'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'

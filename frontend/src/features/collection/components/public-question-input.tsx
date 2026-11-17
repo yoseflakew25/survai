@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Icons } from '@/components/icons';
 import type { PublicQuestion, AnswerValue } from '../api/types';
+import { useTranslations } from 'next-intl';
 
 interface PublicQuestionInputProps {
   question: PublicQuestion;
@@ -22,6 +23,7 @@ export function PublicQuestionInput({
   onChange,
   error
 }: PublicQuestionInputProps) {
+  const tCommon = useTranslations('common');
   return (
     <div id={`collection-q-${question.id}`} className='scroll-mt-24 space-y-3'>
       <div className='flex items-start gap-3'>
@@ -35,7 +37,7 @@ export function PublicQuestionInput({
               <span className='text-destructive ml-0.5'>*</span>
             ) : (
               <span className='text-muted-foreground ml-1.5 text-xs font-normal'>
-                (optional)
+                ({tCommon('optional')})
               </span>
             )}
           </p>
@@ -139,11 +141,12 @@ function ShortTextInput({
   onChange: (v: string) => void;
   error?: string;
 }) {
+  const t = useTranslations('publicCollect');
   return (
     <Input
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder='Type your answer'
+      placeholder={t('typeAnswer')}
       aria-invalid={!!error}
       className={cn('h-11 border-border/80 bg-background text-sm shadow-none', error && 'border-destructive')}
     />
@@ -161,12 +164,13 @@ function LongTextInput({
   maxLength?: number;
   error?: string;
 }) {
+  const t = useTranslations('publicCollect');
   return (
     <div className='space-y-1.5'>
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder='Type your answer'
+        placeholder={t('typeAnswer')}
         rows={5}
         maxLength={maxLength}
         className={cn(
@@ -177,7 +181,7 @@ function LongTextInput({
       />
       <div className='flex items-center justify-between'>
         <p className='text-muted-foreground text-[11px]'>
-          {maxLength ? 'Be as detailed as you like' : 'Share your thoughts'}
+          {maxLength ? t('longTextDetailed') : t('shareThoughts')}
         </p>
         {maxLength && (
           <p
@@ -194,14 +198,6 @@ function LongTextInput({
   );
 }
 
-const RATING_LABELS: Record<number, string> = {
-  1: 'Poor',
-  2: 'Fair',
-  3: 'Good',
-  4: 'Very good',
-  5: 'Excellent'
-};
-
 function RatingScaleInput({
   min,
   max,
@@ -215,6 +211,14 @@ function RatingScaleInput({
   onChange: (v: number) => void;
   error?: string;
 }) {
+  const t = useTranslations('publicCollect');
+  const ratingLabels: Record<number, string> = {
+    1: t('ratingPoor'),
+    2: t('ratingFair'),
+    3: t('ratingGood'),
+    4: t('ratingVeryGood'),
+    5: t('ratingExcellent')
+  };
   const count = max - min + 1;
   const showMidpoint = count === 5;
 
@@ -224,7 +228,7 @@ function RatingScaleInput({
         {Array.from({ length: count }, (_, i) => {
           const n = min + i;
           const isSelected = value === n;
-          const label = RATING_LABELS[n];
+          const label = ratingLabels[n];
           return (
             <button
               key={n}
@@ -248,11 +252,11 @@ function RatingScaleInput({
         })}
       </div>
       <div className='flex items-start justify-between px-1 text-[10px] text-muted-foreground'>
-        <span>{RATING_LABELS[min] ?? `${min}`}</span>
-        {showMidpoint && RATING_LABELS[3] && (
-          <span className='hidden sm:inline'>{RATING_LABELS[3]}</span>
+        <span>{ratingLabels[min] ?? `${min}`}</span>
+        {showMidpoint && ratingLabels[3] && (
+          <span className='hidden sm:inline'>{ratingLabels[3]}</span>
         )}
-        <span>{RATING_LABELS[max] ?? `${max}`}</span>
+        <span>{ratingLabels[max] ?? `${max}`}</span>
       </div>
     </div>
   );
@@ -369,6 +373,7 @@ function DropdownInput({
   onChange: (v: string) => void;
   error?: string;
 }) {
+  const t = useTranslations('publicCollect');
   return (
     <div className='relative'>
       <select
@@ -383,7 +388,7 @@ function DropdownInput({
         )}
       >
         <option value='' disabled>
-          Select an option…
+          {t('selectOption')}
         </option>
         {options.map((opt) => (
           <option key={opt.id} value={opt.value}>
@@ -409,6 +414,7 @@ function NumberInput({
   max?: number;
   error?: string;
 }) {
+  const t = useTranslations('publicCollect');
   return (
     <Input
       type='number'
@@ -420,7 +426,7 @@ function NumberInput({
       }}
       min={min}
       max={max}
-      placeholder='Enter a number'
+      placeholder={t('enterNumber')}
       aria-invalid={!!error}
       className={cn('h-11 w-full max-w-[240px] border-border/80 bg-background text-sm shadow-none', error && 'border-destructive')}
     />

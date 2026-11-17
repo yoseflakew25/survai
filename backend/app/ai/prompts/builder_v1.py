@@ -22,7 +22,8 @@ For rating_scale, set help_text like "1 = Poor, 5 = Excellent" (UI uses 1–5).
 - Mix closed and open questions thoughtfully; keep the survey completable in the \
 plan's estimated length when provided.
 - is_required: mark core measurement questions required; demographics optional unless essential.
-- Write neutral, non-leading wording suitable for NGO / community research.
+- Write neutral, non-leading wording. Follow the CONTENT LANGUAGE rule above \
+for every user-facing string (prompts, options, help_text, section titles, notes).
 - Do NOT add First Name, Last Name, Email, or a "Respondent details" / contact \
 section — the system always injects those required fields separately.
 - Do not request other unnecessary personally identifying information.
@@ -39,8 +40,9 @@ Rules:
 - Use only: short_text, long_text, single_choice, multiple_choice, dropdown, \
 rating_scale, number, date.
 - Choice types need 2–8 options. Non-choice / rating_scale: options [] + scale help_text.
-- Neutral, non-leading wording. Do not add First Name / Last Name / Email \
-(system-owned). notes: string (may be "").
+- Neutral, non-leading wording. Follow the CONTENT LANGUAGE rule above for \
+prompts, options, help_text, titles, and notes. Do not add First Name / \
+Last Name / Email (system-owned). notes: string (may be "").
 """
 
 
@@ -72,9 +74,12 @@ def _plan_block(plan: dict[str, Any]) -> str:
 
 
 def user_prompt_draft(plan: dict[str, Any]) -> str:
+    lang = plan.get("content_language") or "en"
     return (
         _plan_block(plan)
-        + "\n\nProduce the full survey draft JSON (all sections + questions) now."
+        + f"\n\nContent language code: {lang}. Obey the CONTENT LANGUAGE rule "
+        "for every user-facing field.\n"
+        "Produce the full survey draft JSON (all sections + questions) now."
     )
 
 
@@ -87,10 +92,12 @@ def user_prompt_section(
 ) -> str:
     others = ", ".join(other_section_titles) if other_section_titles else "(none)"
     desc = section_description.strip() if section_description else "(none)"
+    lang = plan.get("content_language") or "en"
     return (
         _plan_block(plan)
         + f"\n\nSection to regenerate:\nTitle: {section_title}\n"
         f"Description: {desc}\n"
         f"Other sections (leave alone): {others}\n\n"
+        f"Content language code: {lang}. Obey the CONTENT LANGUAGE rule.\n"
         "Produce JSON for this one section only."
     )

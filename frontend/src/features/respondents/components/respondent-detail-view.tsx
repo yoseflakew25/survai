@@ -1,6 +1,7 @@
 'use client';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +53,7 @@ export function RespondentDetailView({
   respondentId,
   variant = 'page'
 }: RespondentDetailViewProps) {
+  const t = useTranslations('respondents');
   const { data: detail } = useSuspenseQuery(
     respondentDetailOptions(surveyId, respondentId)
   );
@@ -85,10 +87,10 @@ export function RespondentDetailView({
               <Icons.forms className='size-5' />
             </div>
             <p className='font-display font-bold tracking-tight'>
-              No answers recorded
+              {t('noAnswersRecorded')}
             </p>
             <p className='text-muted-foreground  max-w-sm text-sm'>
-              This submission did not include any question responses.
+              {t('noAnswersHint')}
             </p>
           </div>
         </SurvaiPanel>
@@ -109,6 +111,7 @@ export function RespondentDetailView({
                 questionNumber={answerIdx + 1}
                 isLast={answerIdx === group.answers.length - 1}
                 stacked={isDrawer}
+                t={t}
               />
             ))}
           </SectionCard>
@@ -154,7 +157,7 @@ export function RespondentDetailView({
                     ) : (
                       <Icons.clock className='mr-1 size-3' />
                     )}
-                    {isComplete ? 'Completed' : 'Partial'}
+                    {isComplete ? t('statusCompleted') : t('statusPartial')}
                   </Badge>
                 </div>
                 <p className='truncate text-xs text-brand-foreground/70'>
@@ -168,12 +171,12 @@ export function RespondentDetailView({
               <dl className='grid grid-cols-2 gap-2 sm:shrink-0'>
                 <MetaStat
                   icon={<Icons.calendar className='size-3' />}
-                  label='Submitted'
+                  label={t('colSubmitted')}
                   value={formatDateTime(detail.submittedAt)}
                 />
                 <MetaStat
                   icon={<Icons.check className='size-3' />}
-                  label='Answered'
+                  label={t('answeredLabel')}
                   value={`${answeredCount}/${totalQuestions}`}
                   mono
                 />
@@ -228,7 +231,7 @@ export function RespondentDetailView({
                 ) : (
                   <Icons.clock className='mr-1 size-3' />
                 )}
-                {isComplete ? 'Completed' : 'Partial'}
+                {isComplete ? t('statusCompleted') : t('statusPartial')}
               </Badge>
             </div>
 
@@ -241,13 +244,13 @@ export function RespondentDetailView({
             <dl className='mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-brand-foreground/75'>
               <div className='flex items-center gap-1.5'>
                 <Icons.calendar className='size-3.5 shrink-0 text-brand-foreground' />
-                <dt className='sr-only'>Submitted</dt>
+                <dt className='sr-only'>{t('colSubmitted')}</dt>
                 <dd>{formatDateTime(detail.submittedAt)}</dd>
               </div>
               <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
                 <Icons.clock className='size-3.5 shrink-0 text-brand-foreground' />
-                <dt className='sr-only'>Duration</dt>
+                <dt className='sr-only'>{t('durationLabel')}</dt>
                 <dd className='font-mono tabular-nums'>
                   {formatDuration(detail.durationSeconds)}
                 </dd>
@@ -255,9 +258,12 @@ export function RespondentDetailView({
               <span className='hidden h-3 w-px bg-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] sm:block' aria-hidden />
               <div className='flex items-center gap-1.5'>
                 <Icons.check className='size-3.5 shrink-0 text-brand-foreground' />
-                <dt className='sr-only'>Answered</dt>
+                <dt className='sr-only'>{t('answeredLabel')}</dt>
                 <dd className='font-mono tabular-nums'>
-                  {answeredCount}/{totalQuestions} answered
+                  {t('answeredCount', {
+                    answered: answeredCount,
+                    total: totalQuestions
+                  })}
                 </dd>
               </div>
             </dl>
@@ -348,12 +354,14 @@ function AnsweredQuestion({
   answer,
   questionNumber,
   isLast,
-  stacked
+  stacked,
+  t
 }: {
   answer: RespondentAnswer;
   questionNumber: number;
   isLast: boolean;
   stacked?: boolean;
+  t: (key: string) => string;
 }) {
   return (
     <div
@@ -382,18 +390,21 @@ function AnsweredQuestion({
       </div>
 
       <div className={cn('min-w-0', stacked ? 'pl-6' : 'pl-6 sm:pl-0 sm:pt-0.5')}>
-        {renderAnswerValue(answer)}
+        {renderAnswerValue(answer, t)}
       </div>
     </div>
   );
 }
 
-function renderAnswerValue(answer: RespondentAnswer): ReactNode {
+function renderAnswerValue(
+  answer: RespondentAnswer,
+  t: (key: string) => string
+): ReactNode {
   if (!answer.answered || answer.value === null) {
     return (
       <span className='text-muted-foreground inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-2 py-1 text-xs'>
         <Icons.minus className='size-3 opacity-60' />
-        No answer
+        {t('noAnswer')}
       </span>
     );
   }

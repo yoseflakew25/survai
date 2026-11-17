@@ -47,14 +47,15 @@ html.dark:has(.lp) body {
 
 .dark .lp,
 .lp.dark {
+  /* Keep teal chrome + green brand split — landing UI pairs these for contrast */
   --background: #0a1419;
   --foreground: #f4f8fa;
   --card: #102029;
   --card-foreground: #f4f8fa;
   --popover: #102029;
   --popover-foreground: #f4f8fa;
-  --primary: #22f187;
-  --primary-foreground: #0a1419;
+  --primary: #103344;
+  --primary-foreground: #f4f8fa;
   --secondary: #152833;
   --secondary-foreground: #f4f8fa;
   --muted: #12222b;
@@ -66,10 +67,11 @@ html.dark:has(.lp) body {
   --input: #1e3540;
   --ring: #22f187;
   --brand: #22f187;
-  --brand-foreground: #0a1419;
+  --brand-foreground: #103344;
   --brand-strong: #4dffab;
   --brand-soft: #123028;
   --gold: #22f187;
+  --shadow-sm: 0 1px 3px 0 #00000059, 0 1px 2px -1px #00000059;
 }
 
 .lp .font-display {
@@ -191,7 +193,7 @@ html.dark:has(.lp) body {
     border-color 0.15s,
     box-shadow 0.15s,
     transform 0.15s;
-  box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 2px;
+  box-shadow: var(--shadow-sm);
 }
 
 .lp .pill-card:hover {
@@ -216,10 +218,10 @@ html.dark:has(.lp) body {
 }
 
 .lp .btn-back:hover {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 28%, transparent);
+  background: var(--brand-strong);
+  color: var(--brand-foreground);
+  border-color: color-mix(in srgb, var(--brand-strong) 70%, var(--foreground));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 
 .lp .btn-back:active {
@@ -295,8 +297,13 @@ html.dark:has(.lp) body {
 
 .dark .lp .hl,
 .lp.dark .hl {
-  color: var(--gold);
-  background: none;
+  color: inherit;
+  background: linear-gradient(
+    transparent 58%,
+    color-mix(in srgb, var(--gold) 45%, transparent) 58%,
+    color-mix(in srgb, var(--gold) 45%, transparent) 92%,
+    transparent 92%
+  );
 }
 
 .lp .dot-grid {

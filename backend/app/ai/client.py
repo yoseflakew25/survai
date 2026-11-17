@@ -70,7 +70,10 @@ def _timeout_for(feature: str) -> float:
 def _max_tokens_for(feature: str) -> int:
     if feature == "report":
         return _REPORT_MAX_OUTPUT_TOKENS
-    if feature.startswith("assistant") or feature == "planner_interview":
+    if feature == "planner_interview":
+        # Keep interview turns short — Amharic models otherwise loop.
+        return 512
+    if feature.startswith("assistant"):
         return 768
     if feature == "report_chat":
         return _CHAT_MAX_OUTPUT_TOKENS
@@ -82,7 +85,9 @@ def _temperature_for(feature: str) -> float:
         return 0.55
     if feature == "report_chat":
         return 0.2
-    if feature in ("assistant_plan", "assistant_answer", "planner_interview"):
+    if feature == "planner_interview":
+        return 0.2
+    if feature in ("assistant_plan", "assistant_answer"):
         return 0.25
     return 0.4
 

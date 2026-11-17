@@ -14,10 +14,14 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ContentLanguagePicker } from '@/components/content-language-picker';
 import { toast } from '@/lib/toast';
+import { isAppLocale } from '@/i18n/config';
 import { createPlanWithAI } from '../api/service';
+import type { ContentLanguage } from '../api/types';
 import { createPlanSchema, type CreatePlanValues } from '../schemas/plan.schema';
 import { PlanGenerationProgress } from './plan-generation-progress';
 
@@ -26,8 +30,16 @@ interface CreatePlanFormProps {
 }
 
 export function CreatePlanForm({ children }: CreatePlanFormProps) {
+  const t = useTranslations('plan');
+  const tCommon = useTranslations('common');
+  const uiLocale = useLocale();
+  const defaultContentLanguage: ContentLanguage = isAppLocale(uiLocale)
+    ? uiLocale
+    : 'en';
   const [open, setOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [contentLanguage, setContentLanguage] =
+    useState<ContentLanguage>(defaultContentLanguage);
   const router = useRouter();
 
   const {
@@ -50,18 +62,22 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
     setIsGenerating(true);
 
     try {
-      const plan = await createPlanWithAI({ researchGoal: values.researchGoal });
+      const plan = await createPlanWithAI({
+        researchGoal: values.researchGoal,
+        contentLanguage
+      });
 
-      toast.success('Plan generated', {
-        description: 'Your survey plan has been created with AI-generated content.'
+      toast.success(t('planGenerated'), {
+        description: t('planCreatedDesc')
       });
 
       reset();
+      setContentLanguage(defaultContentLanguage);
       setOpen(false);
       router.push(`/dashboard/plans/${plan.id}`);
     } catch {
-      toast.error('Failed to create plan', {
-        description: 'Please try again.'
+      toast.error(t('createFailed'), {
+        description: t('saveFailedDesc')
       });
     } finally {
       setIsGenerating(false);
@@ -73,6 +89,7 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
     setOpen(nextOpen);
     if (!nextOpen) {
       reset();
+      setContentLanguage(defaultContentLanguage);
       setIsGenerating(false);
     }
   }
@@ -80,7 +97,7 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger
-        render={<button type='button' aria-label='Create research plan' />}
+        render={<button type='button' aria-label={t('createAria')} />}
       >
         {children}
       </SheetTrigger>
@@ -103,10 +120,9 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
         ) : (
           <>
             <SheetHeader>
-              <SheetTitle>New Survey Plan</SheetTitle>
+              <SheetTitle>{t('createTitle')}</SheetTitle>
               <SheetDescription>
-                Describe your research goal and the AI will generate a structured
-                plan with objectives, questions, and proposed sections.
+                {t('createDesc')}
               </SheetDescription>
             </SheetHeader>
             <form
@@ -114,35 +130,40 @@ export function CreatePlanForm({ children }: CreatePlanFormProps) {
               className='flex flex-1 flex-col gap-4 px-4 pb-4'
             >
               <Field>
-                <FieldLabel htmlFor='researchGoal'>Research Goal *</FieldLabel>
+                <FieldLabel htmlFor='researchGoal'>{t('goalFieldLabel')}</FieldLabel>
                 <Textarea
                   id='researchGoal'
-                  placeholder='e.g., Assess the health status and healthcare access of residents in target communities to inform program design...'
+                  placeholder={t('createGoalPlaceholder')}
                   rows={6}
                   className='resize-none'
                   aria-invalid={!!errors.researchGoal}
                   {...register('researchGoal')}
                 />
                 <FieldDescription>
-                  {goalLength}/2,000 characters. Be specific about what you want
-                  to learn, why it matters, and who will benefit.
+                  {t('goalLengthHint', { count: String(goalLength) })}
                 </FieldDescription>
                 {errors.researchGoal && (
                   <FieldError>{errors.researchGoal.message}</FieldError>
                 )}
               </Field>
 
+              <ContentLanguagePicker
+                value={contentLanguage}
+                onChange={setContentLanguage}
+                disabled={isGenerating}
+              />
+
               <div className='flex items-center gap-3 pt-2'>
                 <Button type='submit'>
                   <Icons.sparkles className='mr-2 h-4 w-4' />
-                  Generate Survey Plan
+                  {t('generateSurveyPlan')}
                 </Button>
                 <Button
                   type='button'
                   variant='ghost'
                   onClick={() => setOpen(false)}
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
               </div>
             </form>

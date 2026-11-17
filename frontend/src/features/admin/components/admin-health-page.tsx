@@ -156,7 +156,7 @@ function HealthHero({
     level === 'critical'
       ? 'border-b border-destructive/40 bg-[color-mix(in_srgb,var(--destructive)_22%,var(--brand))]'
       : level === 'attention'
-        ? 'border-b border-amber-500/35 bg-[color-mix(in_srgb,var(--gold)_18%,var(--brand))]'
+        ? 'border-b border-amber-500/35 bg-[color-mix(in_srgb,#f59e0b_18%,var(--card))]'
         : 'border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand';
 
   return (
@@ -400,7 +400,7 @@ export default function AdminHealthPage() {
       size='sm'
       onClick={() => void refetch()}
       disabled={isFetching}
-      className='h-9 rounded-xl border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card text-primary hover:bg-[color-mix(in_srgb,var(--card)_88%,white)]'
+      className='h-9 rounded-xl border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card text-brand-foreground hover:bg-muted'
     >
       <Icons.spinner
         className={cn('mr-1.5 size-3.5', isFetching && 'animate-spin')}

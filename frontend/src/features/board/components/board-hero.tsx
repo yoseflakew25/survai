@@ -2,25 +2,30 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { FormEvent, useState, type ReactNode } from 'react';
 
 import { IconChevronRight } from '@/features/board/components/launchpot-mark';
 import { cn } from '@/lib/utils';
 
 const SUGGESTIONS = [
-  'How did our training change community practice?',
-  'What barriers keep youth from joining the program?',
-  'Which services do beneficiaries need most next quarter?'
+  'hero.suggestion1',
+  'hero.suggestion2',
+  'hero.suggestion3'
 ] as const;
 
 const STAGES = [
-  'Plan',
-  'Build',
-  'Review',
-  'Collect',
-  'Analyze',
-  'Report'
+  'plan',
+  'build',
+  'review',
+  'collect',
+  'analyze',
+  'report'
 ] as const;
+
+function hl(chunks: ReactNode) {
+  return <span className='hl'>{chunks}</span>;
+}
 
 function IconSpark({ className }: { className?: string }) {
   return (
@@ -45,6 +50,7 @@ function IconSpark({ className }: { className?: string }) {
 }
 
 export function BoardHero() {
+  const t = useTranslations('landing');
   const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [focused, setFocused] = useState(false);
@@ -71,22 +77,17 @@ export function BoardHero() {
 
       <div className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/80 px-3 py-1 font-mono text-[11px] text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
         <span className='live-dot' aria-hidden='true' />
-        <span className='font-semibold'>Survai</span>
-        <span className='text-muted-foreground'>
-          · design · collect · decide
-        </span>
+        <span className='font-semibold'>{t('hero.badgeName')}</span>
+        <span className='text-muted-foreground'>· {t('hero.badgeTagline')}</span>
       </div>
 
       <h1 className='font-display mx-auto mt-6 max-w-[18ch] text-[2.65rem] leading-[1.02] font-extrabold tracking-[-0.04em] text-foreground sm:mt-7 sm:max-w-none sm:text-[3.75rem]'>
-        Design smarter surveys.
-        <br className='hidden sm:block' /> Make better{' '}
-        <span className='hl'>decisions</span>.
+        {t('hero.titleBefore')}
+        <br className='hidden sm:block' /> {t.rich('hero.titleAfter', { hl })}
       </h1>
 
       <p className='mx-auto mt-4 max-w-[34rem] text-[15px] leading-relaxed text-muted-foreground sm:text-base'>
-        From research goal to donor-ready report — plan, build, collect,
-        analyze, and write in one place. AI helps you draft; you stay in
-        control of every finding.
+        {t('hero.subtitle')}
       </p>
 
       <div
@@ -111,8 +112,8 @@ export function BoardHero() {
                 onChange={(e) => setPrompt(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                placeholder='What do you need to learn — and decide?'
-                aria-label='Survey goal or research question'
+                placeholder={t('hero.placeholder')}
+                aria-label={t('hero.inputLabel')}
                 className='h-11 min-w-0 flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none'
               />
             </div>
@@ -120,22 +121,23 @@ export function BoardHero() {
               type='submit'
               className='btn-back h-11 w-full shrink-0 px-5 text-sm sm:w-auto'
             >
-              Start planning <IconChevronRight className='h-4 w-4' />
+              {t('hero.start')} <IconChevronRight className='h-4 w-4' />
             </button>
           </form>
 
           <div className='mt-2 flex flex-wrap gap-1.5 border-t border-border/70 px-1 pt-2.5'>
-            {SUGGESTIONS.map((s) => (
+            {SUGGESTIONS.map((key) => (
               <button
-                key={s}
+                key={key}
                 type='button'
                 onClick={() => {
-                  setPrompt(s);
-                  goPlan(s);
+                  const text = t(key);
+                  setPrompt(text);
+                  goPlan(text);
                 }}
                 className='rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-left text-[11px] leading-snug text-muted-foreground transition-colors hover:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] hover:bg-brand-soft hover:text-foreground'
               >
-                {s}
+                {t(key)}
               </button>
             ))}
           </div>
@@ -143,7 +145,7 @@ export function BoardHero() {
       </div>
 
       <div
-        aria-label='Survey lifecycle stages'
+        aria-label={t('stages.aria')}
         className='mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-center gap-1.5'
       >
         {STAGES.map((stage, i) => (
@@ -156,7 +158,7 @@ export function BoardHero() {
                   : 'border border-border bg-card text-muted-foreground'
               )}
             >
-              {stage}
+              {t(`stages.${stage}`)}
             </span>
             {i < STAGES.length - 1 ? (
               <span
@@ -169,14 +171,14 @@ export function BoardHero() {
       </div>
 
       <p className='mt-5 font-mono text-[11px] text-muted-foreground'>
-        Shaped with Ethiopian civil society · built to scale
+        {t('hero.footnote')}
       </p>
 
       <Link
         href='/dashboard/overview'
         className='mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
       >
-        Already have a survey underway? Open the dashboard
+        {t('hero.dashboard')}
         <IconChevronRight className='h-3.5 w-3.5' />
       </Link>
     </section>

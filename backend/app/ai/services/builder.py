@@ -10,6 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.client import StructuredCallResult, call_structured
 from app.ai.prompts import builder_v1
 from app.ai.schemas import SectionDraftOutput, SurveyDraftOutput
+from app.core.i18n import with_content_language
+
+
+def _with_lang(system: str, content_language: str | None) -> str:
+    return with_content_language(system, content_language)
 
 
 async def generate_survey_draft(
@@ -18,9 +23,10 @@ async def generate_survey_draft(
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
 ) -> StructuredCallResult:
+    lang = plan.get("content_language") or "en"
     return await call_structured(
         feature="builder",
-        system=builder_v1.SYSTEM,
+        system=_with_lang(builder_v1.SYSTEM, lang),
         user=builder_v1.user_prompt_draft(plan),
         schema=SurveyDraftOutput,
         user_id=user_id,
@@ -29,6 +35,7 @@ async def generate_survey_draft(
             "plan_id": str(plan.get("id")) if plan.get("id") else None,
             "research_goal_chars": len(str(plan.get("research_goal") or "")),
             "proposed_section_count": len(plan.get("proposed_sections") or []),
+            "content_language": lang,
         },
     )
 
@@ -42,9 +49,10 @@ async def regenerate_section(
     user_id: UUID | None = None,
     session: AsyncSession | None = None,
 ) -> StructuredCallResult:
+    lang = plan.get("content_language") or "en"
     return await call_structured(
         feature="builder",
-        system=builder_v1.SYSTEM_SECTION,
+        system=_with_lang(builder_v1.SYSTEM_SECTION, lang),
         user=builder_v1.user_prompt_section(
             plan,
             section_title=section_title,
@@ -58,5 +66,6 @@ async def regenerate_section(
             "plan_id": str(plan.get("id")) if plan.get("id") else None,
             "section_title": section_title,
             "mode": "section_regenerate",
+            "content_language": lang,
         },
     )

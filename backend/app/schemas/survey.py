@@ -70,6 +70,7 @@ class SurveyPublic(BaseModel):
     created_by: UUID
     title: str
     description: str | None = None
+    content_language: str = "en"
     status: SurveyStatusLiteral
     anonymous_collection: bool
     current_version_id: UUID | None = None
@@ -96,6 +97,7 @@ class SurveyCreate(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     plan_id: UUID | None = None
     anonymous_collection: bool = True
+    content_language: Literal["en", "am"] = "en"
 
 
 class SurveyCreateFromPlan(BaseModel):
@@ -103,6 +105,7 @@ class SurveyCreateFromPlan(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=500)
     description: str | None = Field(default=None, max_length=5000)
     generate: bool = True
+    content_language: Literal["en", "am"] | None = None
 
 
 class SurveyUpdate(BaseModel):
@@ -110,6 +113,7 @@ class SurveyUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     status: SurveyStatusLiteral | None = None
     anonymous_collection: bool | None = None
+    content_language: Literal["en", "am"] | None = None
     response_quota: int | None = Field(default=None, ge=1, le=1_000_000)
     closes_at: datetime | None = None
     clear_response_quota: bool = False

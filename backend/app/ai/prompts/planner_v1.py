@@ -14,7 +14,7 @@ Rules:
 - Proposed sections: 4–7 survey sections with a short rationale each.
 - estimated_length_minutes: realistic completion time for the full survey.
 - notes: optional one-sentence guidance for the human reviewer.
-- Write in clear English suitable for NGO / community research contexts.
+- Follow the CONTENT LANGUAGE rule above for every user-facing string.
 - Do not include personally identifying data collection advice unless the goal requires it.
 """
 
@@ -23,5 +23,6 @@ def user_prompt(research_goal: str) -> str:
     return (
         "Research goal:\n"
         f"{research_goal.strip()}\n\n"
-        "Produce the survey plan JSON now."
+        "Produce the survey plan JSON now. Obey the CONTENT LANGUAGE rule "
+        "for all user-facing fields."
     )

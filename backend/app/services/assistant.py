@@ -19,6 +19,7 @@ from app.ai.prompts.assistant_v1 import (
     AssistantPlanOutput,
 )
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.i18n import content_language_instruction, normalize_locale
 from app.models.assistant import (
     AssistantMessage,
     AssistantMessageRole,
@@ -260,10 +261,16 @@ class AssistantService:
             for s in surveys
         ]
 
+        ui_locale = normalize_locale(getattr(user, "ui_locale", None))
+        reply_lang = content_language_instruction(ui_locale)
+
         yield ("status", {"stage": "planning"})
         plan_call = await call_structured(
             feature="assistant_plan",
-            system=assistant_v1.SYSTEM_PLAN,
+            system=(
+                f"{assistant_v1.SYSTEM_PLAN.strip()}\n\n"
+                f"User UI locale guidance (for rationale phrasing):\n{reply_lang}"
+            ),
             user=assistant_v1.build_plan_user_prompt(
                 question=question,
                 chunks=chunk_payload,
@@ -273,7 +280,11 @@ class AssistantService:
             schema=AssistantPlanOutput,
             user_id=user.id,
             session=self.session,
-            input_meta={"thread_id": str(thread.id), "org_id": str(org_id)},
+            input_meta={
+                "thread_id": str(thread.id),
+                "org_id": str(org_id),
+                "ui_locale": ui_locale,
+            },
         )
         plan = plan_call.value
         assert isinstance(plan, AssistantPlanOutput)
@@ -294,7 +305,12 @@ class AssistantService:
         yield ("status", {"stage": "answering"})
         answer_call = await call_structured(
             feature="assistant_answer",
-            system=assistant_v1.SYSTEM_ANSWER,
+            system=(
+                f"{assistant_v1.SYSTEM_ANSWER.strip()}\n\n"
+                f"Reply language (UI locale):\n{reply_lang}\n"
+                "Keep grounded numbers and metric keys locale-invariant. "
+                "When quoting survey question text, keep the original content language."
+            ),
             user=assistant_v1.build_answer_user_prompt(
                 question=question,
                 chunks=chunk_payload,
@@ -304,7 +320,11 @@ class AssistantService:
             schema=AssistantAnswerOutput,
             user_id=user.id,
             session=self.session,
-            input_meta={"thread_id": str(thread.id), "org_id": str(org_id)},
+            input_meta={
+                "thread_id": str(thread.id),
+                "org_id": str(org_id),
+                "ui_locale": ui_locale,
+            },
         )
         answer = answer_call.value
         assert isinstance(answer, AssistantAnswerOutput)

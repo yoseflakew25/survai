@@ -95,8 +95,8 @@ async def test_notify_org_creates_row_and_attempts_email(
     rows = await svc.notify_org(
         organization_id=user.organization_id,
         type=NotificationType.report_ready,
-        title="Report ready",
-        body="Open it",
+        message_key="report_ready",
+        params={"survey_title": "Pilot Survey"},
         href="/dashboard/surveys/abc/reports",
         meta={"survey_id": "abc"},
     )

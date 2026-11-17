@@ -1,5 +1,4 @@
 from app.models.ai_generation_log import AiGenerationLog
-from app.models.audit_log import AuditLog
 from app.models.assistant import (
     AssistantMessage,
     AssistantMessageRole,
@@ -7,6 +6,7 @@ from app.models.assistant import (
     KnowledgeSourceType,
     OrgKnowledgeChunk,
 )
+from app.models.audit_log import AuditLog
 from app.models.collection import Respondent, ResponseAnswer, SurveyVersion
 from app.models.email_verification import EmailVerificationOtp
 from app.models.notification import Notification, NotificationType

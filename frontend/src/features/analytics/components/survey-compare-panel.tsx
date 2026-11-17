@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -33,6 +34,7 @@ function distSummary(rows: Array<Record<string, unknown>>): string {
 }
 
 export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
+  const t = useTranslations('analytics');
   const { user } = useAuth();
   const canEdit = canEditOrg(user?.role);
   const router = useRouter();
@@ -72,21 +74,21 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
-        title='Baseline / endline'
-        subtitle='Duplicate as endline, then compare matched questions'
+        title={t('baselineEndline')}
+        subtitle={t('baselineEndlineHint')}
       />
       <SurvaiPanelBody className='space-y-4'>
         <div className='flex flex-wrap items-center gap-2 text-xs'>
           {survey.waveLabel ? (
             <span className='bg-muted rounded-md px-2 py-1 capitalize'>
-              Wave: {survey.waveLabel}
+              {t('waveLabel', { label: survey.waveLabel })}
             </span>
           ) : (
-            <span className='text-muted-foreground'>No wave label yet</span>
+            <span className='text-muted-foreground'>{t('noWaveLabel')}</span>
           )}
           {survey.instrumentFamilyId ? (
             <span className='text-muted-foreground font-mono'>
-              family {survey.instrumentFamilyId.slice(0, 8)}
+              {t('familyChip', { id: survey.instrumentFamilyId.slice(0, 8) })}
             </span>
           ) : null}
         </div>
@@ -102,15 +104,13 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
                 setDuplicating(true);
                 try {
                   const endline = await duplicateAsEndline(surveyId);
-                  toast.success('Endline draft created', {
+                  toast.success(t('endlineCreated'), {
                     description: endline.title
                   });
                   router.push(`/dashboard/surveys/${endline.id}/builder`);
                 } catch (err) {
                   toast.error(
-                    err instanceof Error
-                      ? err.message
-                      : 'Could not duplicate survey'
+                    err instanceof Error ? err.message : t('duplicateFailed')
                   );
                 } finally {
                   setDuplicating(false);
@@ -123,12 +123,12 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
             ) : (
               <Icons.plus className='mr-2 size-4' />
             )}
-            Duplicate as endline
+            {t('duplicateEndline')}
           </Button>
         ) : null}
 
         <div className='space-y-1.5'>
-          <Label htmlFor='compare-other'>Compare with</Label>
+          <Label htmlFor='compare-other'>{t('compareWith')}</Label>
           <select
             id='compare-other'
             className='border-input bg-background h-9 w-full rounded-md border px-3 text-sm'
@@ -138,7 +138,7 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
               setCompare(null);
             }}
           >
-            <option value=''>Select a survey…</option>
+            <option value=''>{t('selectSurvey')}</option>
             {compareCandidates.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.title}
@@ -158,9 +158,7 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
                   setCompare(result);
                 } catch (err) {
                   toast.error(
-                    err instanceof Error
-                      ? err.message
-                      : 'Comparison failed — surveys must share an instrument family'
+                    err instanceof Error ? err.message : t('comparisonFailed')
                   );
                 } finally {
                   setLoading(false);
@@ -171,7 +169,7 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
             {loading ? (
               <Icons.spinner className='mr-2 size-4 animate-spin' />
             ) : null}
-            Run comparison
+            {t('runComparison')}
           </Button>
         </div>
 
@@ -181,7 +179,9 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
               <div className='rounded-lg border border-border p-2'>
                 <p className='font-semibold'>{compare.baseline.title}</p>
                 <p className='text-muted-foreground tabular-nums'>
-                  {compare.baseline.responseCount} responses
+                  {t('responseCount', {
+                    count: compare.baseline.responseCount
+                  })}
                   {compare.baseline.waveLabel
                     ? ` · ${compare.baseline.waveLabel}`
                     : ''}
@@ -190,7 +190,7 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
               <div className='rounded-lg border border-border p-2'>
                 <p className='font-semibold'>{compare.endline.title}</p>
                 <p className='text-muted-foreground tabular-nums'>
-                  {compare.endline.responseCount} responses
+                  {t('responseCount', { count: compare.endline.responseCount })}
                   {compare.endline.waveLabel
                     ? ` · ${compare.endline.waveLabel}`
                     : ''}
@@ -202,9 +202,9 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
               <table className='w-full min-w-[28rem] text-left text-xs'>
                 <thead className='bg-muted/40 text-muted-foreground'>
                   <tr>
-                    <th className='px-2 py-2 font-medium'>Question</th>
-                    <th className='px-2 py-2 font-medium'>Baseline</th>
-                    <th className='px-2 py-2 font-medium'>Endline</th>
+                    <th className='px-2 py-2 font-medium'>{t('questionColumn')}</th>
+                    <th className='px-2 py-2 font-medium'>{t('baseline')}</th>
+                    <th className='px-2 py-2 font-medium'>{t('endline')}</th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-border'>
@@ -228,8 +228,10 @@ export function SurveyComparePanel({ surveyId }: { surveyId: string }) {
             {(compare.unmatchedBaseline.length > 0 ||
               compare.unmatchedEndline.length > 0) && (
               <p className='text-muted-foreground text-[11px] leading-relaxed'>
-                Unmatched baseline: {compare.unmatchedBaseline.length}. Unmatched
-                endline: {compare.unmatchedEndline.length}.
+                {t('unmatched', {
+                  baseline: compare.unmatchedBaseline.length,
+                  endline: compare.unmatchedEndline.length
+                })}
               </p>
             )}
           </div>

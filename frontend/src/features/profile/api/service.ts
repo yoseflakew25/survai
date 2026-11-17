@@ -1,4 +1,5 @@
 import { apiErrorMessage, apiFetch, type ApiUser } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 export type ProfileUpdatePayload = {
   full_name?: string;
@@ -13,7 +14,9 @@ export type ProfileUpdatePayload = {
 export async function fetchMe(): Promise<ApiUser> {
   const res = await apiFetch('/users/me');
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(apiErrorMessage(data, 'Failed to load profile'));
+  if (!res.ok) {
+    throw new Error(apiErrorMessage(data, serviceMsg('account', 'loadFailed')));
+  }
   return data as ApiUser;
 }
 
@@ -23,7 +26,9 @@ export async function updateMe(payload: ProfileUpdatePayload): Promise<ApiUser> 
     body: JSON.stringify(payload)
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(apiErrorMessage(data, 'Failed to save profile'));
+  if (!res.ok) {
+    throw new Error(apiErrorMessage(data, serviceMsg('account', 'saveFailed')));
+  }
   return data as ApiUser;
 }
 
@@ -40,7 +45,7 @@ export async function changePassword(input: {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(apiErrorMessage(data, 'Failed to update password'));
+    throw new Error(apiErrorMessage(data, serviceMsg('account', 'passwordFailed')));
   }
 }
 
@@ -48,6 +53,8 @@ export async function deleteMyAccount(): Promise<void> {
   const res = await apiFetch('/users/me', { method: 'DELETE' });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(apiErrorMessage(data, 'Failed to delete account'));
+    throw new Error(
+      apiErrorMessage(data, serviceMsg('account', 'couldNotDeleteAccount'))
+    );
   }
 }

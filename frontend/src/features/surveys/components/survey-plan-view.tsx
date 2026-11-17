@@ -9,6 +9,7 @@ import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+import { useTranslations } from 'next-intl';
 
 interface SurveyPlanViewProps {
   surveyId: string;
@@ -16,15 +17,15 @@ interface SurveyPlanViewProps {
 
 export function SurveyPlanView({ surveyId }: SurveyPlanViewProps) {
   return (
-    <AuthQueryBoundary
-      fallback={<SurveyActivityFallback activity='fetch-plan' />}
-    >
+    <AuthQueryBoundary fallback={<SurveyActivityFallback activity='fetch-plan' />}>
       <SurveyPlanContent surveyId={surveyId} />
     </AuthQueryBoundary>
   );
 }
 
 function SurveyPlanContent({ surveyId }: { surveyId: string }) {
+  const t = useTranslations('surveys');
+  const tReview = useTranslations('review');
   const { data: survey } = useSuspenseQuery(surveyByIdOptions(surveyId));
 
   if (!survey) {
@@ -35,18 +36,16 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
         </div>
         <div className='space-y-1.5'>
           <h2 className='font-display text-xl font-extrabold tracking-tight'>
-            Survey not found
+            {tReview('notFoundTitle')}
           </h2>
-          <p className='text-muted-foreground text-sm leading-relaxed'>
-            This survey is missing or you don&apos;t have access to it.
-          </p>
+          <p className='text-muted-foreground text-sm leading-relaxed'>{tReview('notFoundDesc')}</p>
         </div>
         <Button
           nativeButton={false}
-          render={<Link href='/dashboard/surveys' aria-label='Back to surveys' />}
+          render={<Link href='/dashboard/surveys' aria-label={tReview('backToSurveysAria')} />}
           className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
-          Back to Surveys
+          {tReview('backToSurveys')}
           <Icons.arrowRight className='ml-1.5 size-4' />
         </Button>
       </div>
@@ -61,24 +60,18 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
         </div>
         <div className='space-y-1.5'>
           <h2 className='font-display text-xl font-extrabold tracking-tight'>
-            No plan linked
+            {t('noPlanLinked')}
           </h2>
-          <p className='text-muted-foreground text-sm leading-relaxed'>
-            This survey wasn&apos;t created from a plan, or the plan is missing.
-            You can still review and edit questions.
-          </p>
+          <p className='text-muted-foreground text-sm leading-relaxed'>{t('noPlanLinkedDesc')}</p>
         </div>
         <Button
           nativeButton={false}
           render={
-            <Link
-              href={`/dashboard/surveys/${surveyId}/review`}
-              aria-label='Go to survey review'
-            />
+            <Link href={`/dashboard/surveys/${surveyId}/review`} aria-label={t('goToReviewAria')} />
           }
           className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
-          Go to Review
+          {t('goToReview')}
           <Icons.arrowRight className='ml-1.5 size-4' />
         </Button>
       </div>

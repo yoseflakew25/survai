@@ -101,6 +101,7 @@ def _snapshot_from_survey(survey: Survey) -> dict[str, Any]:
         "title": survey.title,
         "description": survey.description,
         "anonymous_collection": survey.anonymous_collection,
+        "content_language": getattr(survey, "content_language", None) or "en",
         "sections": sections,
     }
 
@@ -487,6 +488,14 @@ class CollectionService:
     ) -> RespondentPublic:
         """Persist a respondent only when the full response is valid + complete."""
         version, survey = await self._require_published_version(version_id)
+        # Serialize concurrent submits so response_quota cannot be overrun.
+        locked = await self.surveys.lock_by_id(survey.id)
+        if locked is None:
+            raise NotFoundError("Survey not found")
+        survey = locked
+        if survey.status != SurveyStatus.published.value:
+            raise BadRequestError("This survey is not accepting responses")
+
         from app.core.feature_flags import assert_org_flag
 
         await assert_org_flag(

@@ -3,6 +3,7 @@ import {
   apiFetch,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 import {
   actionLabelFor,
@@ -66,7 +67,7 @@ export function notificationActions(n: OrgNotification) {
 export async function listNotifications(): Promise<NotificationList> {
   try {
     const res = await apiFetch('/notifications?limit=50');
-    if (!res.ok) await readError(res, 'Could not load notifications');
+    if (!res.ok) await readError(res, serviceMsg('notifications', 'loadFailed'));
     const data = (await res.json()) as ApiList;
     return {
       notifications: data.notifications.map(mapOne),
@@ -74,34 +75,42 @@ export async function listNotifications(): Promise<NotificationList> {
       unreadCount: data.unread_count
     };
   } catch (err) {
-    throw new Error(toUserFacingError(err, 'Could not load notifications'), {
-      cause: err
-    });
+    throw new Error(
+      toUserFacingError(err, serviceMsg('notifications', 'loadFailed')),
+      { cause: err }
+    );
   }
 }
 
 export async function getUnreadCount(): Promise<number> {
   try {
     const res = await apiFetch('/notifications/unread-count');
-    if (!res.ok) await readError(res, 'Could not load unread count');
+    if (!res.ok) {
+      await readError(res, serviceMsg('notifications', 'unreadCountFailed'));
+    }
     const data = (await res.json()) as { unread_count: number };
     return data.unread_count;
   } catch (err) {
-    throw new Error(toUserFacingError(err, 'Could not load unread count'), {
-      cause: err
-    });
+    throw new Error(
+      toUserFacingError(err, serviceMsg('notifications', 'unreadCountFailed')),
+      { cause: err }
+    );
   }
 }
 
 export async function markNotificationRead(id: string): Promise<OrgNotification> {
   const res = await apiFetch(`/notifications/${id}/read`, { method: 'POST' });
-  if (!res.ok) await readError(res, 'Could not mark notification as read');
+  if (!res.ok) {
+    await readError(res, serviceMsg('notifications', 'markReadFailed'));
+  }
   return mapOne((await res.json()) as ApiNotification);
 }
 
 export async function markAllNotificationsRead(): Promise<number> {
   const res = await apiFetch('/notifications/read-all', { method: 'POST' });
-  if (!res.ok) await readError(res, 'Could not mark notifications as read');
+  if (!res.ok) {
+    await readError(res, serviceMsg('notifications', 'markAllReadFailed'));
+  }
   const data = (await res.json()) as { unread_count: number };
   return data.unread_count;
 }

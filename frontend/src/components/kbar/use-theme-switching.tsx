@@ -1,8 +1,10 @@
 import { useRegisterActions } from 'kbar';
+import { useTranslations } from 'next-intl';
 import { useTheme } from '@/components/themes/theme-provider';
 
 const useThemeSwitching = () => {
   const { theme, setTheme } = useTheme();
+  const t = useTranslations('kbar');
 
   const toggleDarkLight = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -11,26 +13,26 @@ const useThemeSwitching = () => {
   const themeActions = [
     {
       id: 'toggleDarkLight',
-      name: 'Toggle Dark/Light Mode',
+      name: t('toggleTheme'),
       shortcut: ['d', 'd'],
-      section: 'Theme',
+      section: t('theme'),
       perform: toggleDarkLight
     },
     {
       id: 'setLightTheme',
-      name: 'Set Light Theme',
-      section: 'Theme',
+      name: t('setLight'),
+      section: t('theme'),
       perform: () => setTheme('light')
     },
     {
       id: 'setDarkTheme',
-      name: 'Set Dark Theme',
-      section: 'Theme',
+      name: t('setDark'),
+      section: t('theme'),
       perform: () => setTheme('dark')
     }
   ];
 
-  useRegisterActions(themeActions, [theme]);
+  useRegisterActions(themeActions, [theme, t]);
 };
 
 export default useThemeSwitching;

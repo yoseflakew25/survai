@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Icons } from '@/components/icons';
@@ -32,15 +33,17 @@ export function SavedAnalyses({
   onSave,
   onDelete
 }: SavedAnalysesProps) {
+  const t = useTranslations('analytics');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const dateLocale = locale === 'en' ? 'en-US' : locale;
   const [name, setName] = useState('');
 
   return (
     <div className='rounded-lg border bg-background p-4'>
       <div className='mb-3'>
-        <h3 className='text-md font-semibold text-primary'>Saved views</h3>
-        <p className='text-muted-foreground text-xs'>
-          Named filters for analytics, reports, and reuse
-        </p>
+        <h3 className='text-md font-semibold text-primary'>{t('savedViews')}</h3>
+        <p className='text-muted-foreground text-xs'>{t('savedViewsHint')}</p>
       </div>
 
       {activeFilters.length > 0 ? (
@@ -60,12 +63,12 @@ export function SavedAnalyses({
             className='h-6 px-2 text-[10px]'
             onClick={onClear}
           >
-            Clear
+            {tCommon('clear')}
           </Button>
         </div>
       ) : (
         <p className='text-muted-foreground mb-3 text-xs'>
-          No active filters. Click a distribution bar or save after filtering.
+          {t('noActiveFilters')}
         </p>
       )}
 
@@ -85,7 +88,7 @@ export function SavedAnalyses({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder='Name this view…'
+            placeholder={t('nameViewPlaceholder')}
             className='h-9 text-xs'
           />
           <Button
@@ -97,7 +100,7 @@ export function SavedAnalyses({
             {saving ? (
               <Icons.spinner className='size-3.5 animate-spin' />
             ) : (
-              'Save'
+              tCommon('save')
             )}
           </Button>
         </form>
@@ -106,7 +109,7 @@ export function SavedAnalyses({
       {analyses.length === 0 ? (
         <div className='flex flex-col items-center py-4 text-center'>
           <Icons.analytics className='text-muted-foreground/30 mb-2 h-8 w-8' />
-          <p className='text-muted-foreground text-sm'>No saved views yet</p>
+          <p className='text-muted-foreground text-sm'>{t('noSavedViews')}</p>
         </div>
       ) : (
         <div className='space-y-2'>
@@ -136,9 +139,8 @@ export function SavedAnalyses({
                       {analysis.name}
                     </p>
                     <p className='text-muted-foreground text-xs'>
-                      {new Date(analysis.createdAt).toLocaleDateString()} ·{' '}
-                      {analysis.filters.length} filter
-                      {analysis.filters.length === 1 ? '' : 's'}
+                      {new Date(analysis.createdAt).toLocaleDateString(dateLocale)}{' '}
+                      · {t('filterCount', { count: analysis.filters.length })}
                     </p>
                   </div>
                   {isActive ? (
@@ -154,7 +156,7 @@ export function SavedAnalyses({
                     size='icon-sm'
                     className='text-muted-foreground hover:text-destructive shrink-0'
                     disabled={isDeleting}
-                    aria-label={`Delete saved view ${analysis.name}`}
+                    aria-label={t('deleteViewNamed', { name: analysis.name })}
                     onClick={() => void onDelete(analysis)}
                   >
                     {isDeleting ? (

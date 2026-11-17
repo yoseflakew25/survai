@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 type BreadcrumbItem = {
@@ -8,58 +9,61 @@ type BreadcrumbItem = {
   link: string;
 };
 
-// This allows to add custom title as well
-const routeMapping: Record<string, BreadcrumbItem[]> = {
-  '/dashboard': [{ title: 'Dashboard', link: '/dashboard' }],
-  '/dashboard/overview': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Overview', link: '/dashboard/overview' }
-  ],
-  '/dashboard/profile': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Account', link: '/dashboard/profile' }
-  ],
-  '/dashboard/settings': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Account', link: '/dashboard/profile' }
-  ],
-  '/dashboard/plans': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Plans', link: '/dashboard/plans' }
-  ],
-  '/dashboard/surveys': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Surveys', link: '/dashboard/surveys' }
-  ],
-  '/dashboard/employee': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Employee', link: '/dashboard/employee' }
-  ],
-  '/dashboard/product': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Product', link: '/dashboard/product' }
-  ]
+/** Path segment → `nav` message key (falls back to title-case segment). */
+const SEGMENT_KEYS: Record<string, string> = {
+  dashboard: 'dashboard',
+  overview: 'overview',
+  surveys: 'surveys',
+  plans: 'plans',
+  assistant: 'assistant',
+  profile: 'account',
+  settings: 'account',
+  security: 'security',
+  account: 'account',
+  collect: 'collect',
+  respondents: 'respondents',
+  analytics: 'analytics',
+  report: 'report',
+  review: 'review',
+  billing: 'billing',
+  team: 'team',
+  new: 'new',
+  edit: 'edit',
+  notifications: 'notifications'
 };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function useBreadcrumbs() {
   const pathname = usePathname();
+  const t = useTranslations('nav');
 
   const breadcrumbs = useMemo(() => {
-    // Check if we have a custom mapping for this exact path
-    if (routeMapping[pathname]) {
-      return routeMapping[pathname];
-    }
+    const labelFor = (segment: string): string => {
+      if (UUID_RE.test(segment) || /^\d+$/.test(segment)) {
+        return segment.length > 8 ? `${segment.slice(0, 8)}…` : segment;
+      }
+      const key = SEGMENT_KEYS[segment];
+      if (key) {
+        try {
+          return t(key as 'dashboard');
+        } catch {
+          /* fall through */
+        }
+      }
+      return segment.charAt(0).toUpperCase() + segment.slice(1);
+    };
 
-    // If no exact match, fall back to generating breadcrumbs from the path
     const segments = pathname.split('/').filter(Boolean);
     return segments.map((segment, index) => {
       const path = `/${segments.slice(0, index + 1).join('/')}`;
       return {
-        title: segment.charAt(0).toUpperCase() + segment.slice(1),
+        title: labelFor(segment),
         link: path
-      };
+      } satisfies BreadcrumbItem;
     });
-  }, [pathname]);
+  }, [pathname, t]);
 
   return breadcrumbs;
 }

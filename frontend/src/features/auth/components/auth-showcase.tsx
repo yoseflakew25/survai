@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { SurvaiMark } from '@/components/survai-logo';
 
 const LIFECYCLE_ROWS = [
@@ -5,32 +7,34 @@ const LIFECYCLE_ROWS = [
     step: 1,
     initials: 'PL',
     color: '#7c4dff',
-    name: 'Plan',
-    meta: 'Research design drafted with AI',
+    nameKey: 'showcasePlan',
+    metaKey: 'showcasePlanMeta',
     value: '12',
-    unit: 'questions'
+    unitKey: 'showcaseQuestions'
   },
   {
     step: 2,
     initials: 'RV',
     color: '#4f9a00',
-    name: 'Review',
-    meta: 'Bias & clarity checks passed',
+    nameKey: 'showcaseReview',
+    metaKey: 'showcaseReviewMeta',
     value: '94',
-    unit: 'quality'
+    unitKey: 'showcaseQuality'
   },
   {
     step: 3,
     initials: 'RP',
     color: '#0a84d6',
-    name: 'Report',
-    meta: 'Narrative grounded in live stats',
+    nameKey: 'showcaseReport',
+    metaKey: 'showcaseReportMeta',
     value: '100%',
-    unit: 'reconciled'
+    unitKey: 'showcaseReconciled'
   }
 ] as const;
 
 export function AuthShowcase() {
+  const t = useTranslations('auth');
+
   return (
     <div className='hidden border-l border-border/40 lg:block lg:w-[55%] xl:w-[60%]'>
       <div className='auth-panel-tint relative h-full w-full overflow-hidden'>
@@ -46,19 +50,19 @@ export function AuthShowcase() {
           <div className='w-full max-w-sm'>
             <p className='flex items-center gap-2 font-mono text-[11px] tracking-wider text-muted-foreground uppercase'>
               <span className='live-dot' />
-              Survey Copilot · M&amp;E ready
+              {t('showcaseEyebrow')}
             </p>
             <p className='font-display mt-3 text-2xl leading-tight font-extrabold tracking-[-0.03em]'>
-              From first question to final report — without inventing a single number.
+              {t('showcaseHeadline')}
             </p>
 
             <div className='board mt-6'>
               {LIFECYCLE_ROWS.map((row) => (
-                <div key={row.name} className='board-row flex items-center gap-3 px-4 py-3'>
+                <div key={row.step} className='board-row flex items-center gap-3 px-4 py-3'>
                   <span
                     className={
                       row.step === 1
-                        ? 'grid h-6 w-6 place-items-center rounded-full bg-gold font-mono text-[11px] text-[#111210]'
+                        ? 'grid h-6 w-6 place-items-center rounded-full bg-gold font-mono text-[11px] text-brand-foreground'
                         : 'grid h-6 w-6 place-items-center rounded-full bg-foreground font-mono text-[11px] text-background'
                     }
                   >
@@ -74,15 +78,15 @@ export function AuthShowcase() {
                     {row.initials}
                   </span>
                   <span className='min-w-0 flex-1'>
-                    <span className='block truncate text-sm font-semibold'>{row.name}</span>
+                    <span className='block truncate text-sm font-semibold'>{t(row.nameKey)}</span>
                     <span className='block truncate text-xs text-muted-foreground'>
-                      {row.meta}
+                      {t(row.metaKey)}
                     </span>
                   </span>
                   <span className='text-right'>
                     <span className='font-display block font-bold tabular-nums'>{row.value}</span>
                     <span className='block font-mono text-[10px] text-muted-foreground'>
-                      {row.unit}
+                      {t(row.unitKey)}
                     </span>
                   </span>
                 </div>

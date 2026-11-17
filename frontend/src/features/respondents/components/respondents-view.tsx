@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { DataTable } from '@/components/ui/table/data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 import { respondentsOptions } from '../api/queries';
@@ -41,6 +42,7 @@ export function RespondentsView({ surveyId }: RespondentsViewProps) {
 }
 
 function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
+  const t = useTranslations('respondents');
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -63,9 +65,10 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
     void setParams({ respondent: null });
   }, [setParams]);
 
+  const tCommon = useTranslations('common');
   const columns = useMemo(
-    () => createColumns(openRespondent),
-    [openRespondent]
+    () => createColumns(openRespondent, t, tCommon),
+    [openRespondent, t, tCommon]
   );
 
   const filters = {
@@ -109,11 +112,10 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
               <Icons.teams className='size-5 text-foreground' />
             </div>
             <h3 className='font-display font-bold tracking-tight'>
-              No responses yet
+              {t('noResponsesYet')}
             </h3>
             <p className='text-muted-foreground  max-w-xs text-sm'>
-              Publish your survey and share the collection link to start receiving
-              responses.
+              {t('publishToCollectHint')}
             </p>
             <Link
               href={`/dashboard/surveys/${surveyId}/collect`}
@@ -121,7 +123,7 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
             >
               <Button className={brandCtaClass}>
                 <Icons.send className='mr-1.5 h-3.5 w-3.5' />
-                Go to Collect
+                {t('goToCollect')}
               </Button>
             </Link>
           </div>
@@ -130,7 +132,7 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
             {data.activeFilter && (
               <div className='flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm'>
                 <span className='text-muted-foreground text-xs'>
-                  Respondents who answered
+                  {t('filterWhoAnswered')}
                 </span>
                 <span className='min-w-0 max-w-[16rem] truncate font-medium'>
                   {data.activeFilter.questionText}
@@ -145,7 +147,7 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
                 <Button
                   variant='ghost'
                   size='icon-sm'
-                  aria-label='Clear answer filter'
+                  aria-label={t('clearAnswerFilterAria')}
                   className='ml-auto h-6 w-6'
                   onClick={() =>
                     setParams({ question: null, answer: null, page: 1 })
@@ -158,7 +160,7 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
 
             <DataTable
               table={table}
-              rowNoun={data.total === 1 ? 'respondent' : 'respondents'}
+              rowNoun={data.total === 1 ? t('rowNounOne') : t('rowNounMany')}
               onRowClick={(row) => openRespondent(row.id)}
               isRowSelected={(row) => row.id === params.respondent}
               emptyIcon={
@@ -167,14 +169,10 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
                 </div>
               }
               emptyTitle={
-                hasAnswerFilter
-                  ? 'No matching respondents'
-                  : 'No respondents found'
+                hasAnswerFilter ? t('noMatching') : t('empty')
               }
               emptyDescription={
-                hasAnswerFilter
-                  ? 'Clear the answer filter or adjust search criteria.'
-                  : 'Try adjusting your search or filter criteria.'
+                hasAnswerFilter ? t('clearFilterHint') : t('adjustSearchHint')
               }
             />
           </>
@@ -183,11 +181,13 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
 
       <div className='sticky top-[4.5rem] self-start'>
         <SurvaiBrandCard
-          title='View Analytics?'
+          title={t('viewAnalyticsTitle')}
           description={
             responseCount > 0
-              ? `${responseCount.toLocaleString()} response${responseCount === 1 ? '' : 's'} ready to explore`
-              : 'Charts unlock once responses start coming in'
+              ? responseCount === 1
+                ? t('oneResponseReady')
+                : t('responsesReady', { count: responseCount.toLocaleString() })
+              : t('chartsUnlock')
           }
         >
           <Link
@@ -203,7 +203,7 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
               size='lg'
               disabled={responseCount === 0}
             >
-              View Analytics
+              {t('viewAnalytics')}
               <Icons.arrowRight className='ml-2 size-4' />
             </Button>
           </Link>

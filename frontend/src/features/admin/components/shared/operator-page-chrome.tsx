@@ -39,7 +39,7 @@ export function operatorHeaderClass(level: OperatorLevel) {
     case 'critical':
       return 'border-b border-destructive/40 bg-[color-mix(in_srgb,var(--destructive)_22%,var(--brand))]';
     case 'attention':
-      return 'border-b border-amber-500/35 bg-[color-mix(in_srgb,var(--gold)_18%,var(--brand))]';
+      return 'border-b border-amber-500/35 bg-[color-mix(in_srgb,#f59e0b_18%,var(--card))]';
     default:
       return 'border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand';
   }
@@ -271,4 +271,4 @@ export function OperatorPageSkeleton() {
 }
 
 export const brandToolbarButtonClass =
-  'h-9 min-h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card text-primary hover:bg-[color-mix(in_srgb,var(--card)_88%,white)]';
+  'h-9 min-h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card text-brand-foreground hover:bg-muted';

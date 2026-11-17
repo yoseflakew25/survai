@@ -15,6 +15,7 @@ import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
 import { triggerReview } from '../api/service';
 import type { ReviewerReport } from '../api/types';
+import { useTranslations } from 'next-intl';
 
 interface ReviewTriggerProps {
   surveyId: string;
@@ -27,6 +28,7 @@ export function ReviewTrigger({
   existingReport,
   onReviewComplete
 }: ReviewTriggerProps) {
+  const t = useTranslations('review');
   const [isReviewing, setIsReviewing] = useState(false);
 
   const handleReview = useCallback(async () => {
@@ -34,31 +36,31 @@ export function ReviewTrigger({
     try {
       const report = await triggerReview(surveyId);
       onReviewComplete(report);
-      toast.success('Review complete', {
-        description: `Found ${report.findings.length} potential issues.`
+      toast.success(t('reviewComplete'), {
+        description: t('foundIssues', { count: report.findings.length })
       });
     } catch {
-      toast.error('Review failed', {
-        description: 'AI could not complete the review. Please try again.'
+      toast.error(t('reviewFailed'), {
+        description: t('reviewFailedDesc')
       });
     } finally {
       setIsReviewing(false);
     }
-  }, [surveyId, onReviewComplete]);
+  }, [surveyId, onReviewComplete, t]);
 
   return (
     <Card>
       <CardHeader>
         <div className='flex items-start justify-between gap-2'>
           <div>
-            <CardTitle className='text-base'>AI Review</CardTitle>
+            <CardTitle className='text-base'>{t('aiReview')}</CardTitle>
             <CardDescription>
-              Analyze questions for wording issues, ambiguity, and alignment
+              {t('aiReviewDesc')}
             </CardDescription>
           </div>
           {existingReport && !isReviewing && (
             <Badge variant='secondary'>
-              {existingReport.findings.length} findings
+              {t('findingsBadge', { count: existingReport.findings.length })}
             </Badge>
           )}
         </div>
@@ -72,12 +74,12 @@ export function ReviewTrigger({
           {isReviewing ? (
             <>
               <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-              Analyzing questions…
+              {t('analyzing')}
             </>
           ) : (
             <>
               <Icons.review className='mr-2 h-4 w-4' />
-              {existingReport ? 'Re-run Review' : 'Run AI Review'}
+              {existingReport ? t('reReview') : t('runReview')}
             </>
           )}
         </Button>
@@ -86,24 +88,22 @@ export function ReviewTrigger({
           <div className='space-y-2'>
             <div className='text-muted-foreground flex items-center gap-2 text-xs'>
               <Icons.spinner className='h-3 w-3 animate-spin' />
-              Checking for leading wording…
+              {t('checkingLeading')}
             </div>
             <div className='text-muted-foreground flex items-center gap-2 text-xs'>
               <Icons.spinner className='h-3 w-3 animate-spin' />
-              Detecting double-barreled questions…
+              {t('detectingDouble')}
             </div>
             <div className='text-muted-foreground flex items-center gap-2 text-xs'>
               <Icons.spinner className='h-3 w-3 animate-spin' />
-              Evaluating objective alignment…
+              {t('evaluatingAlignment')}
             </div>
           </div>
         )}
 
         {!isReviewing && (
           <p className='text-muted-foreground text-xs'>
-            The AI checks each question for common quality issues: leading
-            wording, double-barreled questions, ambiguity, and alignment with
-            your research objectives.
+            {t('reviewExplain')}
           </p>
         )}
 
@@ -113,19 +113,19 @@ export function ReviewTrigger({
             <Separator />
             <div className='space-y-1 text-xs text-muted-foreground'>
               <p>
-                Model:{' '}
+                {t('modelLabel')}{' '}
                 <span className='font-mono'>
                   {existingReport.aiGenerationMeta.model}
                 </span>
               </p>
               <p>
-                Prompt version:{' '}
+                {t('promptVersion')}{' '}
                 <span className='font-mono'>
                   {existingReport.aiGenerationMeta.promptVersion}
                 </span>
               </p>
               <p>
-                Latency:{' '}
+                {t('latency')}{' '}
                 <span className='font-mono'>
                   {existingReport.aiGenerationMeta.latencyMs}ms
                 </span>

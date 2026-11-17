@@ -71,7 +71,7 @@ function surveyStatusClass(status: string) {
     case 'closed':
       return 'border-border bg-card text-foreground';
     case 'archived':
-      return 'border-[color-mix(in_srgb,var(--gold)_40%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_16%,var(--card))] text-foreground';
+      return 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200';
     default:
       return 'border-border bg-muted/50 text-muted-foreground';
   }
@@ -124,7 +124,7 @@ function MetaText({
 }
 
 const brandToolbarButtonClass =
-  'h-9 min-h-9 min-w-0 gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card px-3.5 text-sm font-semibold text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--card)_88%,white)]';
+  'h-9 min-h-9 min-w-0 gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card px-3.5 text-sm font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)] hover:bg-muted';
 
 const brandToolbarDangerClass =
   'h-9 min-h-9 min-w-0 gap-2 rounded-xl border border-[color-mix(in_srgb,var(--destructive)_45%,transparent)] bg-card px-3.5 text-sm font-semibold text-destructive shadow-[0_1px_0_color-mix(in_srgb,var(--destructive)_12%,transparent)] hover:bg-[color-mix(in_srgb,var(--destructive)_8%,var(--card))]';

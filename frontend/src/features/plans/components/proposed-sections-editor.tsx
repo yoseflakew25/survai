@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   DndContext,
   closestCenter,
@@ -37,6 +38,7 @@ export function ProposedSectionsEditor({
   disabled = false,
   className
 }: ProposedSectionsEditorProps) {
+  const t = useTranslations('plan');
   const [newTitle, setNewTitle] = useState('');
   const [newRationale, setNewRationale] = useState('');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -78,10 +80,7 @@ export function ProposedSectionsEditor({
     const trimmedTitle = newTitle.trim();
     if (!trimmedTitle) return;
 
-    onChange([
-      ...sections,
-      { title: trimmedTitle, rationale: newRationale.trim() }
-    ]);
+    onChange([...sections, { title: trimmedTitle, rationale: newRationale.trim() }]);
     setNewTitle('');
     setNewRationale('');
     setExpandedIndex(sections.length);
@@ -112,17 +111,13 @@ export function ProposedSectionsEditor({
           <div className='flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
             <Icons.kanban className='size-4' />
           </div>
-          <p className='text-sm font-semibold text-foreground'>No sections yet</p>
+          <p className='text-sm font-semibold text-foreground'>{t('noSections')}</p>
           <p className='text-muted-foreground max-w-xs text-xs leading-relaxed'>
-            Sections group questions into a clear flow for respondents.
+            {t('sectionsGroupHint')}
           </p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={sections.map((_, i) => `section-${i}`)}
             strategy={verticalListSortingStrategy}
@@ -135,9 +130,7 @@ export function ProposedSectionsEditor({
                   index={index}
                   section={section}
                   isExpanded={expandedIndex === index}
-                  onToggle={() =>
-                    setExpandedIndex((prev) => (prev === index ? null : index))
-                  }
+                  onToggle={() => setExpandedIndex((prev) => (prev === index ? null : index))}
                   onUpdate={(field, value) => handleUpdate(index, field, value)}
                   onRemove={() => handleRemove(index)}
                   disabled={disabled}
@@ -152,13 +145,13 @@ export function ProposedSectionsEditor({
         <div className='space-y-2.5 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/30 p-3.5'>
           <p className='text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase'>
             <Icons.add className='size-3.5' />
-            New section
+            {t('newSectionLabel')}
           </p>
           <Input
             ref={newTitleRef}
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder='Section title'
+            placeholder={t('sectionTitlePlaceholder')}
             className='h-10 rounded-xl border-border bg-card font-medium'
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newTitle.trim()) {
@@ -170,7 +163,7 @@ export function ProposedSectionsEditor({
           <Textarea
             value={newRationale}
             onChange={(e) => setNewRationale(e.target.value)}
-            placeholder='Rationale — why this section matters (optional)'
+            placeholder={t('rationaleOptional')}
             rows={2}
             className='resize-none rounded-xl border-border bg-card text-sm'
           />
@@ -181,7 +174,7 @@ export function ProposedSectionsEditor({
             disabled={!newTitle.trim()}
           >
             <Icons.add className='size-4' />
-            Add section
+            {t('addSection')}
           </Button>
         </div>
       ) : null}

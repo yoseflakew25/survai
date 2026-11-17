@@ -121,23 +121,35 @@ def _body_paragraphs(content: str) -> list[str]:
     return out
 
 
+_EXPORT_LABELS = {
+    "en": {"report": "Survey Report", "survey": "Survey", "section": "Section"},
+    "am": {"report": "የዳሰሳ ሪፖርት", "survey": "ዳሰሳ", "section": "ክፍል"},
+}
+
+
 def build_report_docx(
     *,
     title: str,
     survey_title: str,
     sections: list[dict[str, Any]],
     generated_label: str | None = None,
+    content_language: str | None = None,
 ) -> bytes:
     """Render report sections to DOCX bytes (Office Open XML package)."""
-    parts: list[str] = [_heading(title or "Survey Report", 0)]
+    from app.core.i18n import normalize_locale
 
-    meta = f"Survey: {survey_title}"
+    labels = _EXPORT_LABELS[normalize_locale(content_language)]
+    parts: list[str] = [_heading(title or labels["report"], 0)]
+
+    meta = f"{labels['survey']}: {survey_title}"
     if generated_label:
         meta += f"  ·  {generated_label}"
     parts.append(_paragraph(meta, size_half_points=20, space_after=240))
 
     for index, sec in enumerate(sections or [], start=1):
-        sec_title = str(sec.get("title") or f"Section {index}").strip()
+        sec_title = str(
+            sec.get("title") or f"{labels['section']} {index}"
+        ).strip()
         parts.append(_heading(f"{index}. {sec_title}", 1))
         parts.extend(_body_paragraphs(str(sec.get("content") or "")))
 

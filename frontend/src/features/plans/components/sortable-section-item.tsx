@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
@@ -30,14 +31,11 @@ export function SortableSectionItem({
   onRemove,
   disabled = false
 }: SortableSectionItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id, disabled });
+  const t = useTranslations('plan');
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -52,8 +50,7 @@ export function SortableSectionItem({
       className={cn(
         'group overflow-hidden rounded-xl border border-border bg-card transition-[box-shadow,border-color]',
         isDragging && 'opacity-95 shadow-md ring-1 ring-border',
-        isExpanded &&
-          'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] shadow-sm'
+        isExpanded && 'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] shadow-sm'
       )}
     >
       <div className='flex items-center gap-1.5 px-2 py-2 sm:gap-2 sm:px-2.5'>
@@ -63,7 +60,7 @@ export function SortableSectionItem({
             className='text-muted-foreground hover:text-foreground hover:bg-muted/60 flex size-8 shrink-0 cursor-grab items-center justify-center rounded-lg transition-colors active:cursor-grabbing'
             {...attributes}
             {...listeners}
-            aria-label={`Drag to reorder section ${index + 1}`}
+            aria-label={t('dragSection', { index: index + 1 })}
           >
             <Icons.gripVertical className='size-4' />
           </button>
@@ -87,13 +84,13 @@ export function SortableSectionItem({
               !section.title && 'text-muted-foreground italic'
             )}
           >
-            {section.title || 'Section title'}
+            {section.title || t('sectionTitlePlaceholder')}
           </p>
         ) : (
           <Input
             value={section.title}
             onChange={(e) => onUpdate('title', e.target.value)}
-            placeholder='Section title'
+            placeholder={t('sectionTitlePlaceholder')}
             className={cn(
               'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-semibold text-foreground shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
               !section.title && 'text-muted-foreground italic'
@@ -113,7 +110,7 @@ export function SortableSectionItem({
               onClick={onToggle}
               className='size-8 rounded-lg'
               aria-expanded={isExpanded}
-              aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
+              aria-label={isExpanded ? t('collapseSection') : t('expandSection')}
             >
               <Icons.chevronsUpDown className='size-3.5' />
             </Button>
@@ -123,7 +120,7 @@ export function SortableSectionItem({
               size='icon-sm'
               onClick={onRemove}
               className='text-muted-foreground hover:text-destructive size-8 rounded-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
-              aria-label={`Remove section ${index + 1}`}
+              aria-label={t('removeSection', { index: index + 1 })}
             >
               <Icons.close className='size-3.5' />
             </Button>
@@ -137,26 +134,25 @@ export function SortableSectionItem({
             htmlFor={`section-rationale-${id}`}
             className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'
           >
-            Rationale
+            {t('rationale')}
           </label>
           {disabled ? (
             <p className='border-border bg-card min-h-[4rem] rounded-xl border px-2.5 py-2 text-sm leading-relaxed text-foreground'>
-              {section.rationale.trim() ||
-                'Why this section exists — what it helps measure…'}
+              {section.rationale.trim() || t('rationalePlaceholder')}
             </p>
           ) : (
             <Textarea
               id={`section-rationale-${id}`}
               value={section.rationale}
               onChange={(e) => onUpdate('rationale', e.target.value)}
-              placeholder='Why this section exists — what it helps measure…'
+              placeholder={t('rationalePlaceholder')}
               rows={2}
               className='border-border bg-card min-h-[4rem] resize-none rounded-xl text-sm text-foreground'
             />
           )}
           {!disabled && !section.rationale.trim() ? (
             <p className='text-muted-foreground text-[11px] leading-relaxed'>
-              A short rationale helps your team keep the survey focused.
+              {t('rationaleHint')}
             </p>
           ) : null}
         </div>

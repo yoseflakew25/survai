@@ -9,11 +9,14 @@ export interface ProposedSection {
   rationale: string;
 }
 
+export type ContentLanguage = 'en' | 'am';
+
 export interface Plan {
   id: string;
   createdBy: string;
   organizationId: string | null;
   researchGoal: string;
+  contentLanguage: ContentLanguage;
   objectives: string[];
   researchQuestions: string[];
   targetRespondents: string[];
@@ -40,10 +43,12 @@ export interface PlanListResponse {
 
 export interface PlanCreatePayload {
   researchGoal: string;
+  contentLanguage?: ContentLanguage;
 }
 
 export interface PlanUpdatePayload {
   researchGoal?: string;
+  contentLanguage?: ContentLanguage;
   objectives?: string[];
   researchQuestions?: string[];
   targetRespondents?: string[];

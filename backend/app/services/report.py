@@ -190,12 +190,21 @@ class ReportService:
         audience = body.audience
         title = (body.title or f"{survey.title} — Report").strip()
 
+        content_language = (
+            getattr(survey, "content_language", None)
+            or snapshot.get("content_language")
+            or "en"
+        )
+        if isinstance(snapshot, dict) and "content_language" not in snapshot:
+            snapshot = {**snapshot, "content_language": content_language}
+
         call = await generate_report(
             survey_title=survey.title,
             audience=audience,
             snapshot=snapshot,
             user_id=user.id,
             session=self.session,
+            content_language=content_language,
         )
         output = call.value
         assert isinstance(output, ReportGenerationOutput)
@@ -324,12 +333,18 @@ class ReportService:
             raise BadRequestError(f"Unknown section_id: {section_id}")
 
         snapshot = report.metrics_snapshot or {}
+        content_language = (
+            getattr(survey, "content_language", None)
+            or snapshot.get("content_language")
+            or "en"
+        )
         call = await generate_report(
             survey_title=survey.title,
             audience=report.audience,
             snapshot=snapshot,
             user_id=user.id,
             session=self.session,
+            content_language=content_language,
         )
         output = call.value
         assert isinstance(output, ReportGenerationOutput)
@@ -399,6 +414,7 @@ class ReportService:
             history=history,
             user_id=user.id,
             session=self.session,
+            ui_locale=getattr(user, "ui_locale", None),
         )
         chat_out = call.value
         metrics = list((report.metrics_snapshot or {}).get("metrics") or [])
@@ -470,6 +486,11 @@ class ReportService:
             survey_id=report.survey_id, organization_id=org_id
         )
         survey_title = survey.title if survey is not None else "Survey"
+        content_language = (
+            getattr(survey, "content_language", None)
+            if survey is not None
+            else None
+        ) or (report.metrics_snapshot or {}).get("content_language") or "en"
 
         md = self._report_markdown(report)
         safe_name = _SAFE_FILENAME.sub("_", (report.title or "report")).strip("_")[
@@ -491,6 +512,7 @@ class ReportService:
                 survey_title=survey_title,
                 sections=sections,
                 generated_label=generated_label,
+                content_language=content_language,
             )
             content_b64 = base64.b64encode(pdf_bytes).decode("ascii")
             filename = f"{safe_name}.pdf"
@@ -503,6 +525,7 @@ class ReportService:
                 survey_title=survey_title,
                 sections=sections,
                 generated_label=generated_label,
+                content_language=content_language,
             )
             content_b64 = base64.b64encode(docx_bytes).decode("ascii")
             filename = f"{safe_name}.docx"
@@ -554,6 +577,11 @@ class ReportService:
             survey_id=report.survey_id, organization_id=org_id
         )
         survey_title = survey.title if survey is not None else "Survey"
+        content_language = (
+            getattr(survey, "content_language", None)
+            if survey is not None
+            else None
+        ) or (report.metrics_snapshot or {}).get("content_language") or "en"
         safe_name = _SAFE_FILENAME.sub("_", (report.title or "report")).strip("_")[
             :60
         ] or "report"
@@ -567,12 +595,14 @@ class ReportService:
             survey_title=survey_title,
             sections=sections,
             generated_label=generated_label,
+            content_language=content_language,
         )
         docx_bytes = build_report_docx(
             title=report.title,
             survey_title=survey_title,
             sections=sections,
             generated_label=generated_label,
+            content_language=content_language,
         )
         csv_export = await self.export_analytics_csv(
             user=user, survey_id=report.survey_id

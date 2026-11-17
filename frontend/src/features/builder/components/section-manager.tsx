@@ -45,6 +45,7 @@ import {
   reorderQuestions
 } from '../api/service';
 import { toast } from '@/lib/toast';
+import { useTranslations } from 'next-intl';
 
 interface SectionManagerProps {
   surveyId: string;
@@ -73,6 +74,8 @@ function SortableSection({
   onQuestionDelete: (questionId: string) => void;
   onAddQuestion: (sectionId: string, type: QuestionType, promptText: string) => void;
 }) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(section.title);
   const [description, setDescription] = useState(section.description ?? '');
@@ -138,25 +141,25 @@ function SortableSection({
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className='h-8 text-sm font-medium'
-                    placeholder='Section title'
+                    placeholder={t('sectionTitlePlaceholder')}
                   />
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className='resize-none text-xs'
                     rows={2}
-                    placeholder='Section description (optional)'
+                    placeholder={t('sectionDescriptionPlaceholder')}
                   />
                   <div className='flex gap-1'>
                     <Button  onClick={handleSaveEdit}>
-                      Save
+                      {tCommon('save')}
                     </Button>
                     <Button
                       
                       variant='ghost'
                       onClick={() => setIsEditing(false)}
                     >
-                      Cancel
+                      {tCommon('cancel')}
                     </Button>
                   </div>
                 </div>
@@ -179,7 +182,7 @@ function SortableSection({
                   variant='ghost'
                   size='icon-sm'
                   onClick={() => setIsEditing(true)}
-                  aria-label='Edit section'
+                  aria-label={t('editSection')}
                 >
                   <Icons.edit className='h-3.5 w-3.5' />
                 </Button>
@@ -187,7 +190,7 @@ function SortableSection({
                   variant='ghost'
                   size='icon-sm'
                   onClick={() => setIsCollapsed(!isCollapsed)}
-                  aria-label={isCollapsed ? 'Expand section' : 'Collapse section'}
+                  aria-label={isCollapsed ? t('expandSection') : t('collapseSection')}
                 >
                   {isCollapsed ? (
                     <Icons.chevronDown className='h-3.5 w-3.5' />
@@ -199,7 +202,7 @@ function SortableSection({
                   variant='ghost'
                   size='icon-sm'
                   onClick={() => onDelete(section.id)}
-                  aria-label='Delete section'
+                  aria-label={t('deleteSection')}
                   className='text-destructive hover:text-destructive'
                 >
                   <Icons.trash className='h-3.5 w-3.5' />
@@ -215,7 +218,7 @@ function SortableSection({
             <div className='space-y-2'>
               {section.questions.length === 0 ? (
                 <p className='text-muted-foreground py-4 text-center text-xs'>
-                  No questions yet. Add one below.
+                  {t('noQuestionsYet')}
                 </p>
               ) : (
                 <DndContext
@@ -286,6 +289,8 @@ export function SectionManager({
   sections,
   onSectionsChange
 }: SectionManagerProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionEditorOpen, setQuestionEditorOpen] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
@@ -331,11 +336,11 @@ export function SectionManager({
       onSectionsChange([...sections, section]);
       setNewSectionTitle('');
       setIsAddingSection(false);
-      toast.success('Section added');
+      toast.success(t('sectionAdded'));
     } catch {
-      toast.error('Failed to add section');
+      toast.error(t('failedAddSection'));
     }
-  }, [newSectionTitle, surveyId, sections, onSectionsChange]);
+  }, [newSectionTitle, surveyId, sections, onSectionsChange, t]);
 
   const handleEditSection = useCallback(
     async (sectionId: string, title: string, description: string) => {
@@ -356,9 +361,9 @@ export function SectionManager({
     async (sectionId: string) => {
       await deleteSection(surveyId, sectionId);
       onSectionsChange(sections.filter((s) => s.id !== sectionId));
-      toast.success('Section deleted');
+      toast.success(t('sectionDeleted'));
     },
-    [surveyId, sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange, t]
   );
 
   // ---- Question handlers ----
@@ -380,12 +385,12 @@ export function SectionManager({
               : s
           )
         );
-        toast.success('Question added');
+        toast.success(t('questionAdded'));
       } catch {
-        toast.error('Failed to add question');
+        toast.error(t('failedAddQuestion'));
       }
     },
-    [surveyId, sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange, t]
   );
 
   const handleEditQuestion = useCallback((question: Question) => {
@@ -444,10 +449,10 @@ export function SectionManager({
               : s
           )
         );
-        toast.success('Question updated');
+        toast.success(t('questionUpdated'));
       }
     },
-    [surveyId, editingQuestion, sections, onSectionsChange]
+    [surveyId, editingQuestion, sections, onSectionsChange, t]
   );
 
   const handleDraftPendingLogic = useCallback(
@@ -460,11 +465,11 @@ export function SectionManager({
         ...editingQuestion,
         pendingConditionalLogic: logic
       });
-      toast.success('Skip logic drafted', {
-        description: 'Confirm in the banner to apply it to the question.'
+      toast.success(t('skipLogicDrafted'), {
+        description: t('skipLogicDraftedDesc')
       });
     },
-    [editingQuestion, patchQuestionLocal]
+    [editingQuestion, patchQuestionLocal, t]
   );
 
   const handleDismissPendingLogic = useCallback(() => {
@@ -506,13 +511,13 @@ export function SectionManager({
             ...updated,
             pendingConditionalLogic: null
           });
-          toast.success('Conditional logic confirmed');
+          toast.success(t('skipLogicConfirmed'));
         }
       } catch {
-        toast.error('Could not confirm skip logic');
+        toast.error(t('skipLogicConfirmFailed'));
       }
     },
-    [editingQuestion, onSectionsChange, sections, surveyId]
+    [editingQuestion, onSectionsChange, sections, surveyId, t]
   );
 
   const handleClearConditionalLogic = useCallback(async () => {
@@ -540,12 +545,12 @@ export function SectionManager({
           ...updated,
           pendingConditionalLogic: null
         });
-        toast.success('Skip logic cleared');
+        toast.success(t('skipLogicCleared'));
       }
     } catch {
-      toast.error('Could not clear skip logic');
+      toast.error(t('skipLogicClearFailed'));
     }
-  }, [editingQuestion, onSectionsChange, sections, surveyId]);
+  }, [editingQuestion, onSectionsChange, sections, surveyId, t]);
 
   const handleDeleteQuestion = useCallback(
     async (questionId: string) => {
@@ -556,9 +561,9 @@ export function SectionManager({
           questions: s.questions.filter((q) => q.id !== questionId)
         }))
       );
-      toast.success('Question deleted');
+      toast.success(t('questionDeleted'));
     },
-    [surveyId, sections, onSectionsChange]
+    [surveyId, sections, onSectionsChange, t]
   );
 
   return (
@@ -599,13 +604,13 @@ export function SectionManager({
               <Input
                 value={newSectionTitle}
                 onChange={(e) => setNewSectionTitle(e.target.value)}
-                placeholder='Section title'
+                placeholder={t('sectionTitlePlaceholder')}
                 className='text-sm'
                 autoFocus
               />
               <div className='flex gap-2'>
                 <Button  onClick={handleAddSection} disabled={!newSectionTitle.trim()}>
-                  Add Section
+                  {t('addSection')}
                 </Button>
                 <Button
                   
@@ -615,7 +620,7 @@ export function SectionManager({
                     setNewSectionTitle('');
                   }}
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
               </div>
             </div>
@@ -628,7 +633,7 @@ export function SectionManager({
           onClick={() => setIsAddingSection(true)}
         >
           <Icons.add className='mr-2 h-4 w-4' />
-          Add Section
+          {t('addSection')}
         </Button>
       )}
 

@@ -23,6 +23,8 @@ import {
   softSectionHeaderClass
 } from '@/components/survai-panel';
 import { cn } from '@/lib/utils';
+import { useLocale, useTranslations } from 'next-intl';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 interface CollectionFormProps {
   survey: PublicSurvey;
@@ -40,6 +42,9 @@ function estimateMinutes(questionCount: number): number {
 }
 
 export function CollectionForm({ survey }: CollectionFormProps) {
+  const t = useTranslations('publicCollect');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -115,26 +120,26 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       for (const q of section.questions) {
         if (q.conditionalLogic && !conditionIsActive(q.conditionalLogic, answers)) continue;
         if (!q.isRequired || isAnswered(answers[q.id])) continue;
-        newErrors[q.id] = 'Please answer this question';
+        newErrors[q.id] = t('answerRequired');
       }
       setErrors(newErrors);
       return newErrors;
     },
-    [answers]
+    [answers, t]
   );
 
   const handleNext = useCallback(() => {
     const sectionErrors = validateSection(currentSection);
     if (Object.keys(sectionErrors).length > 0) {
-      toast.error('Almost there — a few questions need answers', {
-        description: 'Review the highlighted questions in this section.'
+      toast.error(t('almostThere'), {
+        description: t('reviewSection')
       });
       return;
     }
     setErrors({});
     setCurrentSectionIndex((i) => Math.min(sections.length - 1, i + 1));
     scrollSectionIntoView();
-  }, [currentSection, validateSection, sections.length, scrollSectionIntoView]);
+  }, [currentSection, validateSection, sections.length, scrollSectionIntoView, t]);
 
   const handlePrev = useCallback(() => {
     setErrors({});
@@ -149,7 +154,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       for (const q of section.questions) {
         if (q.conditionalLogic && !conditionIsActive(q.conditionalLogic, answers)) continue;
         if (q.isRequired && !isAnswered(answers[q.id])) {
-          map[q.id] = 'Please answer this question';
+          map[q.id] = t('answerRequired');
         }
       }
       return map;
@@ -184,8 +189,8 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       } else {
         setErrors(buildErrorsFor(invalidSection));
       }
-      toast.error('Please complete the highlighted questions', {
-        description: `Jumped to “${invalidSection.title}” so you can finish it.`
+      toast.error(t('completeHighlighted'), {
+        description: t('jumpedToSection', { title: invalidSection.title })
       });
       return;
     }
@@ -199,16 +204,16 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       setIsCompleted(true);
       window.scrollTo({ top: 0 });
     } catch (err) {
-      toast.error('Submission failed', {
+      toast.error(t('submitError'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Something went wrong. Please try again.'
+            : tCommon('errorGeneric')
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [sections, currentSectionIndex, answers, survey.surveyVersionId]);
+  }, [sections, currentSectionIndex, answers, survey.surveyVersionId, t, tCommon]);
 
   const handleReset = useCallback(() => {
     setAnswers({});
@@ -252,7 +257,10 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   }
 
   return (
-    <div className='flex min-h-dvh flex-col bg-white'>
+    <div className='flex min-h-dvh flex-col bg-background' lang={locale}>
+      <div className='flex justify-end px-4 pt-3 sm:px-6'>
+        <LanguageSwitcher />
+      </div>
       <main className='mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8'>
         {/* Hero — Survai brand outline (matches SurvaiBrandCard) */}
         <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
@@ -283,15 +291,26 @@ export function CollectionForm({ survey }: CollectionFormProps) {
 
             <div className='flex flex-wrap items-center gap-2'>
               {[
-                { icon: Icons.forms, label: `${sections.length} sections` },
-                { icon: Icons.check, label: `${totalQuestions} questions` },
                 {
+                  id: 'sections',
+                  icon: Icons.forms,
+                  label: t('sectionsCount', { count: sections.length })
+                },
+                {
+                  id: 'questions',
+                  icon: Icons.check,
+                  label: t('questionsCount', { count: totalQuestions })
+                },
+                {
+                  id: 'minutes',
                   icon: Icons.clock,
-                  label: `~${estimateMinutes(totalQuestions)} min`
+                  label: t('minutesEstimate', {
+                    count: estimateMinutes(totalQuestions)
+                  })
                 }
               ].map((chip) => (
                 <span
-                  key={chip.label}
+                  key={chip.id}
                   className={cn(brandMetaChipClass, 'rounded-full px-2.5 font-medium')}
                 >
                   <chip.icon className='size-3 opacity-90' />
@@ -301,7 +320,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
               {totalRequired > 0 ? (
                 <span className='ml-auto text-[11px] text-brand-foreground/70'>
                   <span className='font-semibold text-brand-foreground'>*</span>{' '}
-                  required
+                  {t('required')}
                 </span>
               ) : null}
             </div>
@@ -311,7 +330,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
         {/* Section card */}
         <div
           ref={scrollAnchorRef}
-          className='mt-4 scroll-mt-6 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_18%,var(--border))] bg-white shadow-sm'
+          className='mt-4 scroll-mt-6 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_18%,var(--border))] bg-card shadow-sm'
         >
           {/* Section header */}
           <div className={cn(softSectionHeaderClass, 'px-5 py-4 sm:px-6')}>
@@ -329,8 +348,11 @@ export function CollectionForm({ survey }: CollectionFormProps) {
                   </p>
                 )}
               </div>
-              <Badge className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-white/70 text-[10px] font-semibold text-primary'>
-                {answeredInSection} of {totalInSection} answered
+              <Badge className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-card/80 text-[10px] font-semibold text-brand-foreground'>
+                {t('answeredOf', {
+                  answered: answeredInSection,
+                  total: totalInSection
+                })}
               </Badge>
             </div>
           </div>
@@ -354,19 +376,19 @@ export function CollectionForm({ survey }: CollectionFormProps) {
           </div>
 
           {/* Footer nav */}
-          <div className='flex items-center justify-between gap-3 border-t border-border bg-white px-4 py-3.5 sm:px-6'>
+          <div className='flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3.5 sm:px-6'>
             <Button
               variant='outline'
               onClick={handlePrev}
               disabled={currentSectionIndex === 0}
-              className='min-w-[7rem] bg-white shadow-none'
+              className='min-w-[7rem] bg-card shadow-none'
             >
               <Icons.chevronLeft className='mr-1 size-4' />
-              Back
+              {t('previous')}
             </Button>
 
             <p className='text-muted-foreground hidden text-xs sm:block'>
-              {sectionProgress}% complete
+              {t('progress')}: {sectionProgress}%
             </p>
 
             {isLastSection ? (
@@ -378,11 +400,11 @@ export function CollectionForm({ survey }: CollectionFormProps) {
                 {isSubmitting ? (
                   <>
                     <Icons.spinner className='mr-2 size-4 animate-spin' />
-                    Submitting…
+                    {t('submitting')}
                   </>
                 ) : (
                   <>
-                    Submit survey
+                    {t('submit')}
                     <Icons.send className='ml-2 size-3.5' />
                   </>
                 )}
@@ -392,7 +414,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
                 onClick={handleNext}
                 className='min-w-[7rem] shadow-sm'
               >
-                Next
+                {t('next')}
                 <Icons.chevronRight className='ml-1 size-4' />
               </Button>
             )}
@@ -401,8 +423,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
 
         <p className='text-muted-foreground mt-6 flex items-center justify-center gap-1.5 pb-2 text-center text-[11px]'>
           <Icons.lock className='size-3' />
-          Your responses are used only for this research and visible to the
-          organizer.
+          {t('privacyNote')}
         </p>
       </main>
     </div>

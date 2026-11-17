@@ -1,11 +1,17 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { SurveyActivityCard } from '@/features/surveys/components/survey-activity-card';
 import {
   getActivityScript,
   PLAN_GENERATION_STAGES,
   type ActivityStage
 } from '@/features/surveys/lib/activity-scripts';
+import {
+  localizeActivityEyebrow,
+  localizeActivityScript
+} from '@/features/surveys/lib/localize-activity';
 
 export type PlanGenerationStage = ActivityStage;
 
@@ -29,8 +35,6 @@ type PlanGenerationProgressProps = {
   compact?: boolean;
 };
 
-const SCRIPT = getActivityScript('generate-plan');
-
 /**
  * Same instrument loading card as publish / generate questions.
  */
@@ -39,11 +43,22 @@ export function PlanGenerationProgress({
   goalPreview,
   className
 }: PlanGenerationProgressProps) {
+  const t = useTranslations('activity');
+  const script = useMemo(
+    () =>
+      localizeActivityScript(
+        'generate-plan',
+        getActivityScript('generate-plan'),
+        t
+      ),
+    [t]
+  );
+
   return (
     <SurveyActivityCard
-      script={SCRIPT}
+      script={script}
       active={active}
-      eyebrow='Survai · Plan'
+      eyebrow={localizeActivityEyebrow('generate-plan', t)}
       previewText={goalPreview}
       className={className}
     />

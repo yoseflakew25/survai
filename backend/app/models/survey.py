@@ -74,6 +74,10 @@ class Survey(Base):
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Language of questionnaire / AI narrative content (en | am).
+    content_language: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="en"
+    )
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default=SurveyStatus.draft.value
     )

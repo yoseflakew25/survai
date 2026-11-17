@@ -31,6 +31,7 @@ import { toast } from '@/lib/toast';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useState } from 'react';
 import { Icons } from '../icons';
@@ -49,7 +50,8 @@ function NavCollapsibleItem({
   item,
   isActive,
   IconComponent,
-  pathname
+  pathname,
+  label
 }: {
   item: {
     title: string;
@@ -59,9 +61,11 @@ function NavCollapsibleItem({
   isActive: boolean;
   IconComponent: ComponentType<React.SVGProps<SVGSVGElement>> | null;
   pathname: string;
+  label: string;
 }) {
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
   const open = userToggled ?? isActive;
+  const t = useTranslations('nav');
 
   return (
     <Collapsible
@@ -71,27 +75,30 @@ function NavCollapsibleItem({
     >
       <CollapsibleTrigger
         render={
-          <SidebarMenuButton tooltip={item.title} isActive={isActive} />
+          <SidebarMenuButton tooltip={label} isActive={isActive} />
         }
       >
         {IconComponent ? <IconComponent className='size-4 shrink-0' /> : null}
         <span className='flex-1 group-data-[collapsible=icon]:hidden'>
-          {item.title}
+          {label}
         </span>
         <Icons.chevronRight className='ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden group-data-panel-open/collapsible:rotate-90' />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <SidebarMenuSub>
-          {item.items?.map((subItem) => (
-            <SidebarMenuSubItem key={subItem.title}>
-              <SidebarMenuSubButton
-                render={<Link href={subItem.url} aria-label={subItem.title} />}
-                isActive={isNavActive(pathname, subItem.url)}
-              >
-                <span>{subItem.title}</span>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          ))}
+          {item.items?.map((subItem) => {
+            const subLabel = t(subItem.title as 'dashboard');
+            return (
+              <SidebarMenuSubItem key={subItem.title}>
+                <SidebarMenuSubButton
+                  render={<Link href={subItem.url} aria-label={subLabel} />}
+                  isActive={isNavActive(pathname, subItem.url)}
+                >
+                  <span>{subLabel}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
         </SidebarMenuSub>
       </CollapsibleContent>
     </Collapsible>
@@ -106,6 +113,8 @@ export default function AppSidebar() {
   const filteredGroups = useFilteredNavGroups(navGroups);
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
 
   return (
     <Sidebar collapsible='icon'>
@@ -145,6 +154,7 @@ export default function AppSidebar() {
                 const isActive =
                   isNavActive(pathname, item.url) ||
                   Boolean(item.items?.some((sub) => isNavActive(pathname, sub.url)));
+                const label = t(item.title as 'dashboard');
 
                 if (hasChildren) {
                   return (
@@ -154,6 +164,7 @@ export default function AppSidebar() {
                       isActive={isActive}
                       IconComponent={IconComponent}
                       pathname={pathname}
+                      label={label}
                     />
                   );
                 }
@@ -161,12 +172,12 @@ export default function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
-                      render={<Link href={item.url} aria-label={item.title} />}
-                      tooltip={item.title}
+                      render={<Link href={item.url} aria-label={label} />}
+                      tooltip={label}
                       isActive={isNavActive(pathname, item.url)}
                     >
                       {IconComponent && <IconComponent className='size-4 shrink-0' />}
-                      <span className='flex-1 group-data-[collapsible=icon]:hidden'>{item.title}</span>
+                      <span className='flex-1 group-data-[collapsible=icon]:hidden'>{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -238,7 +249,7 @@ export default function AppSidebar() {
                       onClick={() => router.push('/dashboard/profile')}
                     >
                       <Icons.account className='text-muted-foreground mr-2 size-4' />
-                      <span>Account</span>
+                      <span>{t('account')}</span>
                       <span className='text-muted-foreground ml-auto text-xs'>
                         ⌘P
                       </span>
@@ -248,7 +259,7 @@ export default function AppSidebar() {
                     onClick={() => router.push('/dashboard/security')}
                   >
                     <Icons.lock className='text-muted-foreground mr-2 size-4' />
-                    <span>Security</span>
+                    <span>{t('security')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
@@ -262,13 +273,11 @@ export default function AppSidebar() {
                       void (async () => {
                         try {
                           await logout();
-                          toast.success('Signed out', {
-                            description: 'See you next time.'
+                          toast.success(t('signOut'), {
+                            description: tCommon('continue')
                           });
                         } catch {
-                          toast.error('Could not sign out', {
-                            description: 'Try again in a moment.'
-                          });
+                          toast.error(tCommon('errorGeneric'));
                         }
                       })();
                     }}
@@ -278,7 +287,9 @@ export default function AppSidebar() {
                     ) : (
                       <Icons.logout aria-hidden className='mr-2 size-4' />
                     )}
-                    <span>{isLoggingOut ? 'Signing out…' : 'Sign out'}</span>
+                    <span>
+                      {isLoggingOut ? tCommon('loading') : t('signOut')}
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>

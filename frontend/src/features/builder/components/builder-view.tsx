@@ -31,6 +31,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 
 interface BuilderViewProps {
   surveyId: string;
@@ -53,7 +55,11 @@ export function BuilderView({ surveyId }: BuilderViewProps) {
 }
 
 function BuilderContent({ surveyId }: { surveyId: string }) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
   const { data: survey, refetch } = useSuspenseQuery(surveyByIdOptions(surveyId));
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -68,15 +74,21 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
     survey.status === 'published' ||
     survey.status === 'closed' ||
     survey.status === 'archived';
+  const readOnly = questionsLocked || !canEdit;
 
   const assertEditable = useCallback(() => {
+    if (!canEdit) {
+      toast.error(tCommon('viewOnly'), {
+        description: t('viewersCannotEdit')
+      });
+      return false;
+    }
     if (!questionsLocked) return true;
-    toast.error('Survey locked', {
-      description:
-        'Questions cannot be edited while this survey is published or closed.'
+    toast.error(t('lockedToast'), {
+      description: t('lockedDescription')
     });
     return false;
-  }, [questionsLocked]);
+  }, [canEdit, questionsLocked, t, tCommon]);
 
   // Initialize undo/redo state
   const initialState: SurveyState = {
@@ -112,17 +124,17 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
     try {
       await updateSurveyTitle(surveyId, title);
       lastSavedRef.current = JSON.stringify(surveyState);
-      toast.success('Survey saved', {
-        description: 'Your changes have been saved.'
+      toast.success(t('surveySaved'), {
+        description: t('surveySavedDesc')
       });
     } catch {
-      toast.error('Failed to save', {
-        description: 'Please try again.'
+      toast.error(t('failedToSave'), {
+        description: tCommon('pleaseTryAgain')
       });
     } finally {
       setIsSaving(false);
     }
-  }, [surveyId, title, surveyState]);
+  }, [surveyId, title, surveyState, t, tCommon]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -151,13 +163,13 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
   // Section handlers
   const handleAddSection = useCallback(async () => {
     if (!assertEditable()) return;
-    const newSection = await addSection(surveyId, 'New Section', '');
+    const newSection = await addSection(surveyId, t('newSection'), '');
     setSurveyState((prev) => ({
       ...prev,
       sections: [...prev.sections, newSection]
     }));
-    toast.success('Section added');
-  }, [surveyId, setSurveyState, assertEditable]);
+    toast.success(t('sectionAdded'));
+  }, [surveyId, setSurveyState, assertEditable, t]);
 
   const handleUpdateSection = useCallback(
     async (sectionId: string, data: { title?: string; description?: string }) => {
@@ -181,9 +193,9 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         ...prev,
         sections: prev.sections.filter((s) => s.id !== sectionId)
       }));
-      toast.success('Section deleted');
+      toast.success(t('sectionDeleted'));
     },
-    [surveyId, setSurveyState, assertEditable]
+    [surveyId, setSurveyState, assertEditable, t]
   );
 
   const handleReorderSections = useCallback(
@@ -215,7 +227,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         surveyId,
         sectionId,
         type,
-        'New Question'
+        t('newQuestion')
       );
       setSurveyState((prev) => ({
         ...prev,
@@ -226,7 +238,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
         )
       }));
     },
-    [surveyId, setSurveyState, assertEditable]
+    [surveyId, setSurveyState, assertEditable, t]
   );
 
   const handleUpdateQuestion = useCallback(
@@ -258,9 +270,9 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
             : s
         )
       }));
-      toast.success('Question deleted');
+      toast.success(t('questionDeleted'));
     },
-    [surveyId, setSurveyState, assertEditable]
+    [surveyId, setSurveyState, assertEditable, t]
   );
 
   const handleReorderQuestions = useCallback(
@@ -343,7 +355,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
             ) : (
               <div className='flex items-center gap-2'>
                 <h1 className='text-base font-semibold'>{title}</h1>
-                {!questionsLocked ? (
+                {!readOnly ? (
                   <Button
                     variant='ghost'
                     size='icon-sm'
@@ -356,54 +368,74 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
             )}
             <div className='flex items-center gap-2'>
               {questionsLocked ? (
-                <Badge variant='outline'>Locked · {survey.status}</Badge>
+                <Badge variant='outline'>
+                  {t('lockedBadge', {
+                    status:
+                      survey.status === 'published'
+                        ? t('statusPublished')
+                        : survey.status === 'closed'
+                          ? t('statusClosed')
+                          : survey.status === 'archived'
+                            ? t('statusArchived')
+                            : survey.status
+                  })}
+                </Badge>
+              ) : !canEdit ? (
+                <Badge variant='outline'>{tCommon('viewOnly')}</Badge>
               ) : null}
-              {hasUnsavedChanges() && !questionsLocked ? (
+              {hasUnsavedChanges() && !readOnly ? (
                 <Badge variant='outline' className='border-amber-500 text-amber-600'>
-                  Unsaved
+                  {tCommon('unsaved')}
                 </Badge>
               ) : null}
               <Badge variant='secondary'>
-                {sections.length} sections · {totalQuestions} questions
+                {t('sectionQuestionCount', {
+                  sections: sections.length,
+                  questions: totalQuestions
+                })}
               </Badge>
             </div>
           </div>
           <div className='flex items-center gap-2'>
-            <Button
-              variant='ghost'
-              size='default'
-              onClick={undo}
-              disabled={!canUndo}
-            >
-              <Icons.chevronsLeft className='mr-1 h-4 w-4' />
-              Undo
-            </Button>
-            <Button
-              variant='ghost'
-              size='default'
-              onClick={redo}
-              disabled={!canRedo}
-            >
-              Redo
-              <Icons.chevronsRight className='ml-1 h-4 w-4' />
-            </Button>
-            <Separator orientation='vertical' className='h-6' />
-            <Button
-              variant='outline'
-              size='default'
-              onClick={handleSave}
-              disabled={isSaving || questionsLocked}
-            >
-              {isSaving ? (
-                <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-              ) : (
-                <Icons.check className='mr-2 h-4 w-4' />
-              )}
-              Save
-            </Button>
+            {canEdit ? (
+              <>
+                <Button
+                  variant='ghost'
+                  size='default'
+                  onClick={undo}
+                  disabled={!canUndo || readOnly}
+                >
+                  <Icons.chevronsLeft className='mr-1 h-4 w-4' />
+                  {t('undo')}
+                </Button>
+                <Button
+                  variant='ghost'
+                  size='default'
+                  onClick={redo}
+                  disabled={!canRedo || readOnly}
+                >
+                  {t('redo')}
+                  <Icons.chevronsRight className='ml-1 h-4 w-4' />
+                </Button>
+                <Separator orientation='vertical' className='h-6' />
+                <Button
+                  variant='outline'
+                  size='default'
+                  onClick={handleSave}
+                  disabled={isSaving || readOnly}
+                >
+                  {isSaving ? (
+                    <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+                  ) : (
+                    <Icons.check className='mr-2 h-4 w-4' />
+                  )}
+                  {tCommon('save')}
+                </Button>
+              </>
+            ) : null}
             <Link href={`/dashboard/surveys/${surveyId}/review`}>
               <Button size='default'>
-                Continue to Review
+                {t('continueToReview')}
                 <Icons.arrowRight className='ml-2 h-4 w-4' />
               </Button>
             </Link>
@@ -419,14 +451,14 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
             {sections.length === 0 ? (
               <div className='flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center'>
                 <Icons.forms className='text-muted-foreground/40 mb-4 h-12 w-12' />
-                <h3 className='text-lg font-semibold'>No sections yet</h3>
+                <h3 className='text-lg font-semibold'>{t('noSections')}</h3>
                 <p className='text-muted-foreground  text-sm'>
-                  Add sections to organize your survey questions, or use AI to generate them.
+                  {t('emptyHint')}
                 </p>
-                {!questionsLocked ? (
+                {!readOnly ? (
                   <Button className='mt-4' onClick={handleAddSection}>
                     <Icons.add className='mr-2 h-4 w-4' />
-                    Add Section
+                    {t('addSection')}
                   </Button>
                 ) : null}
               </div>
@@ -437,7 +469,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
                   section={section}
                   index={index}
                   totalSections={sections.length}
-                  readOnly={questionsLocked}
+                  readOnly={readOnly}
                   onUpdate={(data) => handleUpdateSection(section.id, data)}
                   onDelete={() => handleDeleteSection(section.id)}
                   onAddQuestion={(type) => handleAddQuestion(section.id, type)}
@@ -454,14 +486,14 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
               ))
             )}
 
-            {sections.length > 0 && !questionsLocked ? (
+            {sections.length > 0 && !readOnly ? (
               <Button
                 variant='outline'
                 className='w-full border-dashed'
                 onClick={handleAddSection}
               >
                 <Icons.add className='mr-2 h-4 w-4' />
-                Add Section
+                {t('addSection')}
               </Button>
             ) : null}
           </div>
@@ -472,39 +504,41 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
           <div className='h-full overflow-y-auto p-4'>
             <div className='space-y-4'>
               {/* AI Generation */}
-              <AIGenerationPanel
-                surveyId={surveyId}
-                planId={survey.planId}
-                goalPreview={survey.title}
-                locked={questionsLocked}
-                onApplied={handleAIGenerateApplied}
-              />
+              {canEdit ? (
+                <AIGenerationPanel
+                  surveyId={surveyId}
+                  planId={survey.planId}
+                  goalPreview={survey.title}
+                  locked={questionsLocked}
+                  onApplied={handleAIGenerateApplied}
+                />
+              ) : null}
 
               <Separator />
 
               {/* Survey Stats */}
               <div className='rounded-lg border bg-background p-4'>
-                <h3 className='mb-3 text-sm font-semibold'>Survey Stats</h3>
+                <h3 className='mb-3 text-sm font-semibold'>{t('surveyStats')}</h3>
                 <div className='space-y-2 text-sm'>
                   <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Sections</span>
+                    <span className='text-muted-foreground'>{t('sections')}</span>
                     <span className='font-medium'>{sections.length}</span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Questions</span>
+                    <span className='text-muted-foreground'>{t('questions')}</span>
                     <span className='font-medium'>{totalQuestions}</span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>AI-generated</span>
+                    <span className='text-muted-foreground'>{t('aiGenerated')}</span>
                     <span className='font-medium'>{aiQuestions}</span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Manual</span>
+                    <span className='text-muted-foreground'>{t('manual')}</span>
                     <span className='font-medium'>{totalQuestions - aiQuestions}</span>
                   </div>
                   <Separator className='my-2' />
                   <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Required</span>
+                    <span className='text-muted-foreground'>{t('required')}</span>
                     <span className='font-medium'>
                       {sections.reduce(
                         (sum, s) => sum + s.questions.filter((q) => q.isRequired).length,
@@ -513,7 +547,7 @@ function BuilderContent({ surveyId }: { surveyId: string }) {
                     </span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='text-muted-foreground'>Optional</span>
+                    <span className='text-muted-foreground'>{tCommon('optional')}</span>
                     <span className='font-medium'>
                       {sections.reduce(
                         (sum, s) => sum + s.questions.filter((q) => !q.isRequired).length,

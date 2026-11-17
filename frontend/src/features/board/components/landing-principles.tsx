@@ -1,23 +1,10 @@
-const PRINCIPLES = [
-  {
-    title: 'AI assists — you decide',
-    body: 'Suggestions, drafts, and explanations are always editable. Nothing publishes or reports without your judgment.'
-  },
-  {
-    title: 'Numbers come from your data',
-    body: 'Counts, percentages, and charts are calculated from real responses — never invented to fill a narrative.'
-  },
-  {
-    title: 'Simple enough for busy teams',
-    body: 'You don’t need a research degree to run a solid survey. Clear defaults; deeper tools when you want them.'
-  },
-  {
-    title: 'Respect for respondents',
-    body: 'Collect only what you need. Share a simple link. Keep sensitive answers under your organization’s control.'
-  }
-] as const;
+import { useTranslations } from 'next-intl';
+
+const PRINCIPLE_IDS = ['decide', 'numbers', 'simple', 'respect'] as const;
 
 export function LandingPrinciples() {
+  const t = useTranslations('landing');
+
   return (
     <section
       id='principles'
@@ -28,23 +15,22 @@ export function LandingPrinciples() {
           <div className='landing-grid-wash' aria-hidden='true' />
           <div className='relative'>
             <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground sm:text-[2rem]'>
-              How we earn your trust
+              {t('principles.title')}
             </h2>
             <p className='mt-3 text-sm leading-relaxed text-brand-foreground/75'>
-              The same standards we’d want if our own program evidence were on
-              the line — for boards, donors, and communities.
+              {t('principles.body')}
             </p>
             <div className='mt-8 inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--foreground)_14%,transparent)] bg-card/90 px-3 py-1.5 font-mono text-[11px] font-medium text-foreground shadow-sm transition-all duration-200 group-hover/panel:translate-y-[-1px] group-hover/panel:shadow-md'>
               <span className='live-dot' aria-hidden='true' />
-              Human-controlled by design
+              {t('principles.badge')}
             </div>
           </div>
         </div>
 
         <ol className='space-y-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
-          {PRINCIPLES.map((item, i) => (
+          {PRINCIPLE_IDS.map((id, i) => (
             <li
-              key={item.title}
+              key={id}
               className='principle-row group flex cursor-default gap-4 border-b border-border px-5 py-5 transition-colors duration-200 last:border-b-0 hover:bg-[var(--primary)] sm:gap-5 sm:px-6 sm:py-6'
             >
               <span
@@ -55,10 +41,10 @@ export function LandingPrinciples() {
               </span>
               <div className='min-w-0'>
                 <h3 className='font-display text-base font-extrabold tracking-tight text-foreground transition-colors duration-200 sm:text-lg'>
-                  {item.title}
+                  {t(`principles.items.${id}.title`)}
                 </h3>
                 <p className='text-sm leading-relaxed text-muted-foreground transition-colors duration-200'>
-                  {item.body}
+                  {t(`principles.items.${id}.body`)}
                 </p>
               </div>
             </li>

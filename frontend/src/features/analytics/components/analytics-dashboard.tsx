@@ -40,6 +40,7 @@ import Link from 'next/link';
 import { canEditOrg, useAuth } from '@/lib/auth-context';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+import { useTranslations } from 'next-intl';
 
 const CROSSTAB_TYPES = new Set([
   'single_choice',
@@ -89,6 +90,7 @@ function AnalyticsSection({
 }
 
 function AnalyticsContent({ surveyId }: { surveyId: string }) {
+  const t = useTranslations('analytics');
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const canEdit = canEditOrg(user?.role);
@@ -128,8 +130,8 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
   function applyFilter(questionId: string, value: string) {
     setActiveAnalysisId(null);
     setActiveFilters([{ questionId, op: 'eq', value }]);
-    toast.success('Filter applied', {
-      description: `Showing responses where answer is “${value}”.`
+    toast.success(t('filterApplied'), {
+      description: t('filterAppliedDesc', { value })
     });
   }
 
@@ -137,11 +139,10 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
     setExporting(true);
     try {
       await exportAnalyticsCsv(surveyId);
-      toast.success('CSV downloaded');
+      toast.success(t('csvDownloaded'));
     } catch (err) {
-      toast.error('Export failed', {
-        description:
-          err instanceof Error ? err.message : 'Could not export CSV.'
+      toast.error(t('exportFailed'), {
+        description: err instanceof Error ? err.message : t('exportCsvFailedDesc')
       });
     } finally {
       setExporting(false);
@@ -169,12 +170,12 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
         queryKey: analyticsKeys.saved(surveyId)
       });
       setActiveAnalysisId(saved.id);
-      toast.success('View saved', {
-        description: 'Reports can reuse these filters when generating.'
+      toast.success(t('viewSaved'), {
+        description: t('viewSavedDesc')
       });
     } catch (err) {
-      toast.error('Could not save view', {
-        description: err instanceof Error ? err.message : 'Try again.'
+      toast.error(t('saveViewFailed'), {
+        description: err instanceof Error ? err.message : t('tryAgainShort')
       });
     } finally {
       setSavingView(false);
@@ -195,7 +196,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
       setCrosstabAId(cfg.questionAId);
       setCrosstabBId(cfg.questionBId);
     }
-    toast.success(`Applied “${analysis.name}”`);
+    toast.success(t('appliedView', { name: analysis.name }));
   }
 
   async function handleDeleteView(analysis: SavedAnalysis) {
@@ -208,12 +209,12 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
       if (activeAnalysisId === analysis.id) {
         setActiveAnalysisId(null);
       }
-      toast.success('View deleted', {
-        description: `Removed “${analysis.name}”.`
+      toast.success(t('viewDeleted'), {
+        description: t('viewDeletedDesc', { name: analysis.name })
       });
     } catch (err) {
-      toast.error('Could not delete view', {
-        description: err instanceof Error ? err.message : 'Try again.'
+      toast.error(t('deleteViewFailed'), {
+        description: err instanceof Error ? err.message : t('tryAgainShort')
       });
     } finally {
       setDeletingViewId(null);
@@ -233,12 +234,14 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
           {/* Summary Stats */}
           <AnalyticsSection
             tone='brand'
-            title='Response Summary'
-            subtitle='Overview of collected survey responses'
+            title={t('responseSummary')}
+            subtitle={t('responseSummarySubtitle')}
             badge={
               summary.surveyVersionId ? (
                 <Badge className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] font-mono text-[10px] text-brand-foreground'>
-                  ver {summary.surveyVersionId.slice(0, 8)}
+                  {t('versionChip', {
+                    id: summary.surveyVersionId.slice(0, 8)
+                  })}
                 </Badge>
               ) : undefined
             }
@@ -248,22 +251,21 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
           {/* Distribution Charts */}
           <AnalyticsSection
-            title='Question Distributions'
+            title={t('questionDistributions')}
             subtitle={
               activeFilters.length > 0
-                ? 'Filtered response breakdown'
-                : 'Per-question response breakdown'
+                ? t('filteredBreakdown')
+                : t('perQuestionBreakdown')
             }
             badge={
               <Badge variant='secondary' className='text-xs'>
-                {distributions.length} charts
+                {t('chartCount', { count: distributions.length })}
               </Badge>
             }
           >
             {distributions.length === 0 ? (
               <p className='text-sm text-muted-foreground'>
-                No categorical questions to chart yet — publish the survey and
-                collect responses first.
+                {t('noCharts')}
               </p>
             ) : (
               <div className='grid gap-4 md:grid-cols-2'>
@@ -283,11 +285,11 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
 
           {/* Cross-Tab */}
           <AnalyticsSection
-            title='Cross-Tabulation'
+            title={t('crossTab')}
             subtitle={
               crossTab
                 ? `${crossTab.questionAText} × ${crossTab.questionBText}`
-                : 'Compare two categorical questions'
+                : t('compareTwo')
             }
             badge={
               <div className='flex flex-wrap items-center gap-1.5'>
@@ -300,7 +302,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                         setActiveAnalysisId(null);
                         setCrosstabAId(e.target.value);
                       }}
-                      aria-label='Cross-tab row question'
+                      aria-label={t('crosstabRow')}
                     >
                       {crosstabAxes.map((d) => (
                         <option key={d.questionId} value={d.questionId}>
@@ -316,7 +318,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                         setActiveAnalysisId(null);
                         setCrosstabBId(e.target.value);
                       }}
-                      aria-label='Cross-tab column question'
+                      aria-label={t('crosstabColumn')}
                     >
                       {crosstabAxes
                         .filter((d) => d.questionId !== questionAId)
@@ -330,7 +332,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                 ) : null}
                 {crossTab ? (
                   <Badge variant='secondary' className='text-xs'>
-                    {crossTab.totalResponses} responses
+                    {t('responseCount', { count: crossTab.totalResponses })}
                   </Badge>
                 ) : null}
               </div>
@@ -338,8 +340,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
           >
             {!questionAId || !questionBId ? (
               <p className='text-sm text-muted-foreground'>
-                Need at least two single-choice, dropdown, or rating questions
-                to build a cross-tab.
+                {t('needTwoQuestions')}
               </p>
             ) : crossTabLoading ? (
               <Skeleton className='h-56 w-full rounded-lg' />
@@ -347,7 +348,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
               <CrossTabTable result={crossTab} />
             ) : (
               <p className='text-sm text-muted-foreground'>
-                Cross-tab could not be loaded for this survey.
+                {t('crosstabLoadFailed')}
               </p>
             )}
           </AnalyticsSection>
@@ -357,11 +358,9 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
         <div className='sticky top-[4.5rem] self-start space-y-6'>
           {canEdit ? (
             <SurvaiBrandCard
-              title='Generate Report?'
+              title={t('generateReport')}
               description={
-                activeAnalysisId
-                  ? 'Report will use the active saved view filters'
-                  : 'AI will create a comprehensive report with findings and recommendations'
+                activeAnalysisId ? t('reportUsesView') : t('reportAiHint')
               }
             >
               <Link href={reportHref} className='block w-full'>
@@ -369,7 +368,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                   className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
                   size='lg'
                 >
-                  Generate Report
+                  {t('generateReportCta')}
                   <Icons.arrowRight className='ml-2 h-4 w-4' />
                 </Button>
               </Link>
@@ -403,7 +402,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                 ) : (
                   <Icons.fileTypeXls className='mr-2 size-4' />
                 )}
-                Export CSV
+                {t('exportCsv')}
               </Button>
             </SurvaiPanelBody>
           </SurvaiPanel>

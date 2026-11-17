@@ -5,6 +5,8 @@ import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
 import ThemeProvider from '@/components/themes/theme-provider';
 import { THEME_BOOTSTRAP_SCRIPT } from '@/components/themes/theme-bootstrap';
 import type { Metadata, Viewport } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import Script from 'next/script';
 import NextTopLoader from 'nextjs-toploader';
@@ -50,12 +52,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const activeThemeValue = cookieStore.get('active_theme')?.value;
   const isValidTheme = THEMES.some((t) => t.value === activeThemeValue);
   const themeToApply = isValidTheme ? activeThemeValue! : DEFAULT_THEME;
+  const locale = await getLocale();
+  const messages = await getMessages();
 
   return (
     <html
-      lang='en'
+      lang={locale}
       suppressHydrationWarning
       data-theme={themeToApply}
+      data-locale={locale}
       className={fontVariables}
     >
       <body className='bg-background overflow-x-hidden overscroll-none font-sans antialiased'>
@@ -65,14 +70,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
         <NextTopLoader color='var(--primary)' showSpinner={false} />
-        <NuqsAdapter>
-          <ThemeProvider defaultTheme='light' enableSystem>
-            <Providers activeThemeValue={themeToApply}>
-              <Toaster />
-              {children}
-            </Providers>
-          </ThemeProvider>
-        </NuqsAdapter>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <NuqsAdapter>
+            <ThemeProvider defaultTheme='light' enableSystem>
+              <Providers activeThemeValue={themeToApply}>
+                <Toaster />
+                {children}
+              </Providers>
+            </ThemeProvider>
+          </NuqsAdapter>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

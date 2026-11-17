@@ -1,35 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 const SIDES = [
-  {
-    id: 'fragmented',
-    label: 'The old way',
-    verdict: 'Scattered & slow',
-    tone: 'muted' as const,
-    points: [
-      'Plan in docs, build in a form tool, analyze in sheets',
-      'Weeks writing the donor report by hand',
-      'Hundreds of responses — still unclear what to do next'
-    ]
-  },
-  {
-    id: 'survai',
-    label: 'Survai',
-    verdict: 'One clear path',
-    tone: 'brand' as const,
-    points: [
-      'Plan, build, collect, analyze, and report in one place',
-      'Draft reports in minutes — numbers stay tied to your data',
-      'Chat with findings to brief donors, boards, or your team'
-    ]
-  }
+  { id: 'fragmented', tone: 'muted' },
+  { id: 'survai', tone: 'brand' }
 ] as const;
 
+const POINT_KEYS = ['point1', 'point2', 'point3'] as const;
+
+function hl(chunks: ReactNode) {
+  return <span className='hl'>{chunks}</span>;
+}
+
 export function LandingContrast() {
-  const [focus, setFocus] = useState<'fragmented' | 'survai'>('survai');
+  const t = useTranslations('landing');
+  const [focus, setFocus] = useState<(typeof SIDES)[number]['id']>('survai');
 
   return (
     <section
@@ -43,11 +31,10 @@ export function LandingContrast() {
 
       <div className='text-center'>
         <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-          Stop stitching tools. Start shipping <span className='hl'>answers</span>
+          {t.rich('contrast.title', { hl })}
         </h2>
         <p className='mx-auto mt-2.5 max-w-md text-sm leading-relaxed text-muted-foreground'>
-          Same research goal. Two ways of working. Hover or tap a side to see
-          the difference.
+          {t('contrast.subtitle')}
         </p>
       </div>
 
@@ -66,7 +53,7 @@ export function LandingContrast() {
                 : 'text-muted-foreground'
             )}
           >
-            {side.label}
+            {t(`contrast.${side.id}.label`)}
           </button>
         ))}
       </div>
@@ -106,7 +93,7 @@ export function LandingContrast() {
                           'line-through decoration-primary-foreground/30'
                       )}
                     >
-                      {side.label}
+                      {t(`contrast.${side.id}.label`)}
                     </h3>
                     <p
                       className={cn(
@@ -116,7 +103,7 @@ export function LandingContrast() {
                           : 'text-[var(--gold)]'
                       )}
                     >
-                      {side.verdict}
+                      {t(`contrast.${side.id}.verdict`)}
                     </p>
                   </div>
                   <span
@@ -132,7 +119,7 @@ export function LandingContrast() {
                   </span>
                 </div>
                 <ul className='mt-5 space-y-3'>
-                  {side.points.map((point) => (
+                  {POINT_KEYS.map((point) => (
                     <li
                       key={point}
                       className={cn(
@@ -149,7 +136,7 @@ export function LandingContrast() {
                         )}
                         aria-hidden='true'
                       />
-                      {point}
+                      {t(`contrast.${side.id}.${point}`)}
                     </li>
                   ))}
                 </ul>

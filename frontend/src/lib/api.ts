@@ -20,6 +20,7 @@ export type ApiUser = {
   job_title: string | null;
   bio: string | null;
   avatar_url: string | null;
+  ui_locale?: 'en' | 'am';
   created_at: string;
   updated_at: string;
   impersonation?: boolean;

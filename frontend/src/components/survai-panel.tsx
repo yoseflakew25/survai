@@ -3,10 +3,11 @@ import { cn } from '@/lib/utils';
 
 /**
  * App chrome rules (landing page excluded):
- * - primary: page/hero headers — teal bg, white titles, gold accents
- * - soft: default panel / section headers — light green wash, foreground text
+ * - primary: page/hero headers — teal bg, light titles
+ * - soft: default panel / section headers — brand-soft wash, foreground text
  * - brand: lead callouts only (chat rail headers, SurvaiBrandCard, CTAs)
- * - CTAs: brand fill → primary on hover; quiet actions stay outline/card
+ * - CTAs: brand fill → primary (teal) on hover; quiet actions stay outline/card
+ * Dark mode keeps primary teal and brand green distinct — do not collapse them.
  */
 
 export type SurvaiPanelHeaderTone = 'brand' | 'primary' | 'soft';
@@ -37,14 +38,14 @@ const panelIconToneClass: Record<SurvaiPanelHeaderTone, string> = {
   primary:
     'border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-primary-foreground/12 text-primary-foreground shadow-none',
   soft:
-    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card/80 text-primary shadow-none'
+    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card/80 text-brand-foreground shadow-none'
 };
 
-/** Meta chips on primary surfaces — uses primary-foreground so dark (primary≈brand) stays readable. */
+/** Meta chips on primary (teal) surfaces. */
 export const primaryMetaChipClass =
   'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary-foreground)_12%,transparent)] px-2 py-1 text-[11px] text-primary-foreground';
 
-/** Meta chips on brand (green) surfaces — brand-foreground, not primary (converges in dark). */
+/** Meta chips on brand (green) surfaces — always brand-foreground. */
 export const brandMetaChipClass =
   'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2 py-1 text-[11px] text-brand-foreground';
 
