@@ -10,21 +10,27 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import { useTranslations } from 'next-intl';
 import { overviewQueryOptions } from '@/features/overview/api/queries';
 import { AreaGraphSkeleton } from './area-graph-skeleton';
 
-const chartConfig = {
-  completed: {
-    label: 'Completed',
-    color: 'var(--chart-1)'
-  },
-  started: {
-    label: 'Started',
-    color: 'var(--chart-2)'
-  }
-} satisfies ChartConfig;
+const chartColors = {
+  completed: 'var(--chart-1)',
+  started: 'var(--chart-2)'
+} as const;
 
 export function AreaGraph() {
+  const t = useTranslations('overview');
+  const chartConfig = {
+    completed: {
+      label: t('completed'),
+      color: chartColors.completed
+    },
+    started: {
+      label: t('started'),
+      color: chartColors.started
+    }
+  } satisfies ChartConfig;
   const { data, isLoading, isError } = useQuery(overviewQueryOptions());
 
   if (isLoading) return <AreaGraphSkeleton />;
@@ -32,9 +38,9 @@ export function AreaGraph() {
   if (isError || !data) {
     return (
       <Card className='flex h-full flex-col rounded-[1.125rem] border border-destructive/30 bg-card p-5'>
-        <CardTitle className='font-display text-xl font-extrabold'>Response activity</CardTitle>
+        <CardTitle className='font-display text-xl font-extrabold'>{t('responseActivity')}</CardTitle>
         <CardDescription className='mt-2 text-destructive'>
-          Could not load response activity. Refresh and try again.
+          {t('activityLoadError')}
         </CardDescription>
       </Card>
     );
@@ -53,10 +59,10 @@ export function AreaGraph() {
         <div className='flex flex-wrap items-start justify-between gap-3'>
           <div>
             <CardTitle className='font-display text-xl font-extrabold tracking-tight'>
-              Response activity
+              {t('responseActivity')}
             </CardTitle>
             <CardDescription className=''>
-              Completed vs started over the last 12 months
+              {t('activitySubtitle')}
             </CardDescription>
           </div>
           <div className='flex flex-wrap gap-2'>
@@ -65,14 +71,14 @@ export function AreaGraph() {
                 className='size-2 rounded-full bg-[var(--chart-1)]'
                 aria-hidden='true'
               />
-              Completed
+              {t('completed')}
             </span>
             <span className='inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 font-mono text-[10px] font-medium text-muted-foreground'>
               <span
                 className='size-2 rounded-full bg-[var(--chart-2)]'
                 aria-hidden='true'
               />
-              Started
+              {t('started')}
             </span>
           </div>
         </div>
@@ -81,10 +87,9 @@ export function AreaGraph() {
         {!hasAny ? (
           <div className='flex flex-1 items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-4 py-16 text-center'>
             <div>
-              <p className='text-sm font-medium text-foreground'>No responses yet</p>
+              <p className='text-sm font-medium text-foreground'>{t('noResponses')}</p>
               <p className='text-muted-foreground  max-w-sm text-xs leading-relaxed'>
-                Publish a survey and collect submissions — this chart fills with
-                real started vs completed activity.
+                {t('noResponsesHint')}
               </p>
             </div>
           </div>

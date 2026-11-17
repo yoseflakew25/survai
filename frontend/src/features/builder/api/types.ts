@@ -79,6 +79,7 @@ export interface Survey {
   title: string;
   description: string | null;
   status: SurveyStatus;
+  contentLanguage: 'en' | 'am';
   anonymousCollection: boolean;
   currentVersionId: string | null;
   responseQuota: number | null;

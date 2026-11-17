@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
+from app.core.i18n import normalize_locale
+from app.core.notification_i18n import render_notification
 from app.models.notification import Notification, NotificationType
 from app.models.user import User
 from app.repositories.notification import NotificationRepository
@@ -32,12 +34,30 @@ DIGEST_MIN_DELTA = 5
 DIGEST_MIN_AGE = timedelta(hours=1)
 
 
-def _to_public(row: Notification) -> NotificationPublic:
+def _render_for_user(
+    row: Notification, *, locale: str | None
+) -> tuple[str, str]:
+    meta = row.meta or {}
+    key = meta.get("message_key") or row.type
+    params = dict(meta.get("params") or {})
+    # Legacy rows may keep survey_title only at top-level meta.
+    if "survey_title" not in params and meta.get("survey_title"):
+        params["survey_title"] = meta["survey_title"]
+    if "response_count" not in params and meta.get("response_count") is not None:
+        params["response_count"] = meta["response_count"]
+    rendered = render_notification(str(key), locale=locale, params=params)
+    if rendered:
+        return rendered
+    return row.title, row.body
+
+
+def _to_public(row: Notification, *, locale: str | None = None) -> NotificationPublic:
+    title, body = _render_for_user(row, locale=locale)
     return NotificationPublic(
         id=row.id,
         type=row.type,  # type: ignore[arg-type]
-        title=row.title,
-        body=row.body,
+        title=title,
+        body=body,
         href=row.href,
         meta=row.meta,
         read_at=row.read_at,
@@ -67,8 +87,9 @@ class NotificationService:
             user_id=user.id, limit=limit, offset=offset
         )
         total, unread = await self.notifications.counts_for_user(user_id=user.id)
+        locale = getattr(user, "ui_locale", None) or "en"
         return NotificationListResponse(
-            notifications=[_to_public(r) for r in rows],
+            notifications=[_to_public(r, locale=locale) for r in rows],
             total=total,
             unread_count=unread,
         )
@@ -89,7 +110,7 @@ class NotificationService:
         if row is None:
             raise NotFoundError("Notification not found")
         await self.session.commit()
-        return _to_public(row)
+        return _to_public(row, locale=getattr(user, "ui_locale", None))
 
     async def mark_all_read(self, *, user: User) -> UnreadCountResponse:
         await self.notifications.mark_all_read(
@@ -103,11 +124,14 @@ class NotificationService:
         *,
         organization_id: UUID,
         type: NotificationType | str,
-        title: str,
-        body: str,
+        message_key: str,
+        params: dict[str, Any] | None = None,
         href: str | None = None,
         meta: dict[str, Any] | None = None,
         send_email: bool = True,
+        # Legacy fallbacks when catalogs miss a key
+        title: str | None = None,
+        body: str | None = None,
     ) -> list[Notification]:
         """Fan-out one notification to every active verified org member."""
         members = await self.users.list_active_by_organization(organization_id)
@@ -120,17 +144,29 @@ class NotificationService:
             return []
 
         type_value = type.value if isinstance(type, NotificationType) else str(type)
+        params = dict(params or {})
+        base_meta: dict[str, Any] = {
+            **(meta or {}),
+            "message_key": message_key,
+            "params": params,
+        }
         created: list[Notification] = []
         absolute = _abs_url(href)
         for member in members:
+            locale = normalize_locale(getattr(member, "ui_locale", None))
+            rendered = render_notification(
+                message_key, locale=locale, params=params
+            )
+            row_title = (rendered[0] if rendered else title) or message_key
+            row_body = (rendered[1] if rendered else body) or ""
             row = Notification(
                 user_id=member.id,
                 organization_id=organization_id,
                 type=type_value,
-                title=title,
-                body=body,
+                title=row_title,
+                body=row_body,
                 href=href,
-                meta=meta,
+                meta=base_meta,
             )
             self.session.add(row)
             created.append(row)
@@ -142,9 +178,10 @@ class NotificationService:
                 try:
                     await send_lifecycle_notification_email(
                         to_email=member.email,
-                        title=title,
-                        body=body,
+                        title=row.title,
+                        body=row.body,
                         action_url=absolute,
+                        locale=getattr(member, "ui_locale", None),
                     )
                     if deliver:
                         row.email_sent_at = datetime.now(UTC)
@@ -166,13 +203,10 @@ class NotificationService:
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.survey_published,
-            title=f'Survey "{survey_title}" is live',
-            body=(
-                "Collection is open. Share the public link or QR code "
-                "to start receiving responses."
-            ),
+            message_key="survey_published",
+            params={"survey_title": survey_title},
             href=href,
-            meta={"survey_id": str(survey_id)},
+            meta={"survey_id": str(survey_id), "survey_title": survey_title},
         )
 
     async def notify_survey_closed(
@@ -182,10 +216,10 @@ class NotificationService:
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.survey_closed,
-            title=f'Collection closed for "{survey_title}"',
-            body="New responses are no longer accepted. Review analytics or generate a report.",
+            message_key="survey_closed",
+            params={"survey_title": survey_title},
             href=href,
-            meta={"survey_id": str(survey_id)},
+            meta={"survey_id": str(survey_id), "survey_title": survey_title},
         )
 
     async def maybe_notify_responses(
@@ -209,35 +243,33 @@ class NotificationService:
             href = f"/dashboard/surveys/{survey_id}/respondents"
         meta: dict[str, Any] = {
             "survey_id": str(survey_id),
+            "survey_title": survey_title,
             "response_count": response_count,
         }
         if respondent_id is not None:
             meta["respondent_id"] = str(respondent_id)
+        params = {
+            "survey_title": survey_title,
+            "response_count": response_count,
+        }
 
         if response_count in RESPONSE_MILESTONES:
             await self.notify_org(
                 organization_id=organization_id,
                 type=NotificationType.response_milestone,
-                title=(
-                    f"{response_count} response"
-                    f"{'s' if response_count != 1 else ''} for \"{survey_title}\""
-                ),
-                body=(
-                    f"You reached {response_count} completed "
-                    f"{'response' if response_count == 1 else 'responses'}."
-                ),
+                message_key="response_milestone",
+                params=params,
                 href=href,
                 meta=meta,
                 send_email=True,
             )
             return
 
-        # Always surface in-app so each submission is visible immediately.
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.response_received,
-            title=f'New response for "{survey_title}"',
-            body=f"Total completed responses: {response_count}.",
+            message_key="response_received",
+            params=params,
             href=href,
             meta=meta,
             send_email=False,
@@ -259,8 +291,8 @@ class NotificationService:
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.response_digest,
-            title=f'{delta} new responses for "{survey_title}"',
-            body=f"Total completed responses: {response_count}.",
+            message_key="response_digest",
+            params={**params, "delta": delta},
             href=href,
             meta=meta,
             send_email=True,
@@ -279,14 +311,12 @@ class NotificationService:
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.review_complete,
-            title=f'AI review ready for "{survey_title}"',
-            body=(
-                f"Quality score {quality_score:.1f}/5 with "
-                f"{finding_count} finding{'s' if finding_count != 1 else ''}."
-            ),
+            message_key="review_complete",
+            params={"survey_title": survey_title},
             href=href,
             meta={
                 "survey_id": str(survey_id),
+                "survey_title": survey_title,
                 "finding_count": finding_count,
                 "quality_score": quality_score,
             },
@@ -307,12 +337,13 @@ class NotificationService:
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.report_ready,
-            title=f'Report ready for "{survey_title}"',
-            body="Your grounded narrative report is ready to review and export.",
+            message_key="report_ready",
+            params={"survey_title": survey_title},
             href=href,
             meta={
                 "survey_id": str(survey_id),
                 "report_id": str(report_id),
+                "survey_title": survey_title,
             },
         )
 
@@ -325,14 +356,14 @@ class NotificationService:
         detail: str | None = None,
     ) -> None:
         href = f"/dashboard/surveys/{survey_id}/reports"
-        body = "Report generation failed. Open the survey and try again."
-        if detail:
-            body = f"{body} ({detail[:180]})"
         await self.notify_org(
             organization_id=organization_id,
             type=NotificationType.report_failed,
-            title=f'Report failed for "{survey_title}"',
-            body=body,
+            message_key="report_failed",
+            params={
+                "survey_title": survey_title,
+                "detail": detail or "",
+            },
             href=href,
-            meta={"survey_id": str(survey_id)},
+            meta={"survey_id": str(survey_id), "survey_title": survey_title},
         )

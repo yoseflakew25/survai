@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useTheme } from '@/components/themes/theme-provider';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { SurvaiLogo } from '@/components/survai-logo';
 import {
   IconMoon,
@@ -12,13 +14,14 @@ import {
 } from '@/features/board/components/launchpot-mark';
 
 const NAV = [
-  { href: '#lifecycle', label: 'Lifecycle' },
-  { href: '#contrast', label: 'Why Survai' },
-  { href: '#demo', label: 'Try it' },
-  { href: '#faq', label: 'FAQ' }
-];
+  { href: '#lifecycle', labelKey: 'nav.lifecycle' },
+  { href: '#contrast', labelKey: 'nav.why' },
+  { href: '#demo', labelKey: 'nav.tryIt' },
+  { href: '#faq', labelKey: 'nav.faq' }
+] as const;
 
 export function BoardHeader() {
+  const t = useTranslations('landing');
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [activeHash, setActiveHash] = useState('');
@@ -39,28 +42,28 @@ export function BoardHeader() {
   return (
     <header className='sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md'>
       <div className='mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto] items-center gap-3 px-4 sm:px-6 lg:grid-cols-[1fr_auto_1fr]'>
-        <Link href='/' className='justify-self-start' aria-label='Survai home'>
+        <Link href='/' className='justify-self-start' aria-label={t('nav.home')}>
           <SurvaiLogo />
         </Link>
 
         <nav
-          aria-label='Product sections'
+          aria-label={t('nav.sections')}
           className='hidden w-max items-center gap-0.5 rounded-full border border-border/60 bg-secondary p-[3px] lg:inline-flex'
         >
           {NAV.map((item) => {
             const isActive = activeHash === item.href;
             return (
               <a
-                key={item.label}
+                key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'true' : undefined}
                 className={
                   isActive
-                    ? 'h-8 rounded-full bg-card px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors'
+                    ? 'h-8 rounded-full bg-card px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-foreground shadow-sm transition-colors'
                     : 'h-8 rounded-full px-3.5 text-[13.5px] font-medium leading-8 whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground'
                 }
               >
-                {item.label}
+                {t(item.labelKey)}
               </a>
             );
           })}
@@ -69,8 +72,8 @@ export function BoardHeader() {
         <div className='flex items-center justify-self-end gap-2'>
           <button
             type='button'
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={isDark ? 'Light mode' : 'Dark mode'}
+            aria-label={isDark ? t('nav.switchToLight') : t('nav.switchToDark')}
+            title={isDark ? t('nav.lightMode') : t('nav.darkMode')}
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             className='relative grid size-9 shrink-0 place-items-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent'
           >
@@ -87,14 +90,16 @@ export function BoardHeader() {
             className='inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 text-sm font-medium whitespace-nowrap text-brand-foreground transition-all hover:brightness-105'
           >
             <IconRocket className='h-4 w-4' />
-            Launch
+            {t('nav.launch')}
           </Link>
+
+          <LanguageSwitcher className='h-9' />
 
           <Link
             href='/auth/sign-in'
             className='inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background px-4 text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:bg-accent'
           >
-            Sign in
+            {t('nav.signIn')}
           </Link>
         </div>
       </div>

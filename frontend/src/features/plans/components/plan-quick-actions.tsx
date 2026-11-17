@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -113,6 +114,8 @@ export function PlanQuickActions({
   canRegenerate,
   locked = false
 }: PlanQuickActionsProps) {
+  const t = useTranslations('plan');
+  const tCommon = useTranslations('common');
   const [confirmRegen, setConfirmRegen] = useState(false);
 
   if (locked) {
@@ -120,26 +123,26 @@ export function PlanQuickActions({
       <SurvaiPanel>
         <SurvaiPanelHeader
           icon={<Icons.check className='size-3.5' />}
-          title='Editing locked'
-          subtitle='Questions already generated'
+          title={t('editingLocked')}
+          subtitle={t('questionsAlreadyGenerated')}
           badge={
             <span className='inline-flex items-center gap-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground'>
-              Read-only
+              {t('readOnly')}
             </span>
           }
         />
         <SurvaiPanelBody className='space-y-3 p-4'>
           <p className='text-sm leading-relaxed text-foreground'>
-            This research plan can no longer be edited or regenerated.
+            {t('lockedImmutable')}
           </p>
           <ul className='text-muted-foreground space-y-1.5 text-xs leading-relaxed'>
             <li className='flex gap-2'>
               <Icons.circleCheck className=' size-3.5 shrink-0 text-primary' />
-              Goal, objectives, and sections stay as the source of truth.
+              {t('lockedSourceOfTruth')}
             </li>
             <li className='flex gap-2'>
               <Icons.review className=' size-3.5 shrink-0 text-primary' />
-              Change survey questions on the Review tab instead.
+              {t('lockedChangeOnReview')}
             </li>
           </ul>
         </SurvaiPanelBody>
@@ -152,8 +155,8 @@ export function PlanQuickActions({
       <SurvaiPanel>
         <SurvaiPanelHeader
           icon={<Icons.edit className='size-3.5' />}
-          title='Quick actions'
-          subtitle='Edit history, save, and AI'
+          title={t('quickActions')}
+          subtitle={t('quickActionsSubtitle')}
           badge={
             <span
               className={cn(
@@ -171,7 +174,7 @@ export function PlanQuickActions({
                     : 'bg-muted-foreground/40'
                 )}
               />
-              {hasUnsavedChanges ? 'Unsaved' : 'Saved'}
+              {hasUnsavedChanges ? t('unsaved') : t('savedBadge')}
             </span>
           }
         />
@@ -179,11 +182,11 @@ export function PlanQuickActions({
         <SurvaiPanelBody className='space-y-3 p-3'>
           <div className='bg-muted/35 grid grid-cols-2 gap-1 rounded-2xl p-1'>
             <ActionTile
-              label='Undo'
+              label={t('undo')}
               hint={
                 canUndo
-                  ? `${pastCount} step${pastCount === 1 ? '' : 's'} back`
-                  : 'Nothing to undo'
+                  ? t('stepsBack', { count: pastCount })
+                  : t('nothingToUndo')
               }
               shortcut='⌘Z'
               icon={<Icons.chevronsLeft className='size-3.5' />}
@@ -192,11 +195,11 @@ export function PlanQuickActions({
               active={canUndo}
             />
             <ActionTile
-              label='Redo'
+              label={t('redo')}
               hint={
                 canRedo
-                  ? `${futureCount} step${futureCount === 1 ? '' : 's'} ahead`
-                  : 'Nothing to redo'
+                  ? t('stepsAhead', { count: futureCount })
+                  : t('nothingToRedo')
               }
               shortcut='⌘⇧Z'
               icon={<Icons.chevronsRight className='size-3.5' />}
@@ -236,15 +239,15 @@ export function PlanQuickActions({
             <span className='min-w-0 flex-1'>
               <span className='text-foreground block text-sm font-semibold tracking-tight'>
                 {isSaving
-                  ? 'Saving…'
+                  ? tCommon('saving')
                   : hasUnsavedChanges
-                    ? 'Save progress'
-                    : 'All changes saved'}
+                    ? t('saveProgress')
+                    : t('allChangesSaved')}
               </span>
               <span className='text-muted-foreground  block text-[11px] leading-snug'>
                 {hasUnsavedChanges
-                  ? 'Keep your latest edits on the plan'
-                  : "You're up to date — keep editing"}
+                  ? t('saveProgressHint')
+                  : t('upToDateHint')}
               </span>
             </span>
             <Kbd className='shrink-0 opacity-70'>⌘S</Kbd>
@@ -272,12 +275,12 @@ export function PlanQuickActions({
               </span>
               <span className='min-w-0 flex-1 pt-0.5'>
                 <span className='text-foreground block text-sm font-semibold tracking-tight'>
-                  {isGenerating ? 'Regenerating…' : 'Regenerate with AI'}
+                  {isGenerating ? t('regenerating') : t('regenerate')}
                 </span>
                 <span className='text-muted-foreground  block text-[11px] leading-snug'>
                   {canRegenerate
-                    ? 'Rewrite objectives, questions, audiences & sections from your goal'
-                    : 'Add a research goal to enable AI regenerate'}
+                    ? t('regenerateHint')
+                    : t('regenerateNeedsGoal')}
                 </span>
               </span>
               <Icons.arrowRight className='text-foreground/50  size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-disabled:translate-x-0' />
@@ -289,14 +292,11 @@ export function PlanQuickActions({
       <Dialog open={confirmRegen} onOpenChange={setConfirmRegen}>
         <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
           <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
-            <DialogTitle>Regenerate this plan?</DialogTitle>
+            <DialogTitle>{t('regenerateConfirmTitle')}</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>
             <p className='text-muted-foreground text-sm leading-relaxed'>
-              This permanently replaces objectives, research questions, target
-              respondents, and sections with a new AI draft from your current
-              research goal. Previous content (including undo history) will not
-              be kept.
+              {t('regenerateConfirmBody')}
             </p>
           </div>
           <Separator />
@@ -306,7 +306,7 @@ export function PlanQuickActions({
               variant='outline'
               onClick={() => setConfirmRegen(false)}
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button
               type='button'
@@ -317,7 +317,7 @@ export function PlanQuickActions({
               disabled={isGenerating || !canRegenerate}
             >
               <Icons.sparkles className='size-4' />
-              Replace &amp; regenerate
+              {t('replaceAndRegenerate')}
             </Button>
           </div>
         </DialogContent>

@@ -1,11 +1,12 @@
 import { NavGroup } from '@/types';
 
+/** `title` / `label` values are next-intl keys under the `nav` namespace. */
 export const navGroups: NavGroup[] = [
   {
-    label: 'Survey Lifecycle',
+    label: 'surveyLifecycle',
     items: [
       {
-        title: 'Dashboard',
+        title: 'dashboard',
         url: '/dashboard/overview',
         icon: 'dashboard',
         isActive: false,
@@ -13,7 +14,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Surveys',
+        title: 'surveys',
         url: '/dashboard/surveys',
         icon: 'survey',
         isActive: false,
@@ -21,7 +22,7 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Assistant',
+        title: 'assistant',
         url: '/dashboard/assistant',
         icon: 'chat',
         isActive: false,
@@ -34,7 +35,7 @@ export const navGroups: NavGroup[] = [
     label: '',
     items: [
       {
-        title: 'Account',
+        title: 'account',
         url: '/dashboard/profile',
         icon: 'account',
         isActive: false,
@@ -44,7 +45,7 @@ export const navGroups: NavGroup[] = [
         access: { role: 'organization' }
       },
       {
-        title: 'Security',
+        title: 'security',
         url: '/dashboard/security',
         icon: 'lock',
         isActive: false,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
 import type { Icon } from '@/components/icons';
@@ -10,6 +11,7 @@ interface AnalyticsSummaryStatsProps {
 }
 
 interface Stat {
+  id: string;
   title: string;
   value: string;
   description: string;
@@ -19,6 +21,7 @@ interface Stat {
 }
 
 export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
+  const t = useTranslations('analytics');
   const started =
     summary.metrics.find((m) => m.key === 'started_count')?.value ?? null;
   const median =
@@ -26,39 +29,44 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
 
   const stats: Stat[] = [
     {
-      title: 'Total Responses',
+      id: 'total',
+      title: t('totalResponses'),
       value: summary.responseCount.toLocaleString(),
-      description: 'Completed responses',
+      description: t('completedResponses'),
       icon: 'user' as const,
       trend: '',
       trendUp: true
     },
     {
-      title: 'Completion Rate',
+      id: 'completion',
+      title: t('completionRate'),
       value: `${summary.completionRate}%`,
       description:
         started != null
-          ? `${started} started this version`
-          : 'Finished vs started',
+          ? t('startedThisVersion', { count: started })
+          : t('finishedVsStarted'),
       icon: 'circleCheck' as const,
       trend: '',
       trendUp: true
     },
     {
-      title: 'Avg. Time',
+      id: 'avg',
+      title: t('avgTime'),
       value:
         summary.avgCompletionMinutes > 0
-          ? `${summary.avgCompletionMinutes} min`
+          ? t('minutes', { count: summary.avgCompletionMinutes })
           : '—',
-      description: 'To complete survey',
+      description: t('toComplete'),
       icon: 'clock' as const,
       trend: '',
       trendUp: true
     },
     {
-      title: 'Median Time',
-      value: median != null && median !== '' ? `${median} min` : '—',
-      description: 'Middle completion time',
+      id: 'median',
+      title: t('medianTime'),
+      value:
+        median != null && median !== '' ? t('minutes', { count: median }) : '—',
+      description: t('middleTime'),
       icon: 'forms' as const,
       trend: '',
       trendUp: true
@@ -72,7 +80,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
 
         return (
           <div
-            key={stat.title}
+            key={stat.id}
             className='rounded-xl border border-border bg-muted/40 p-3'
           >
             <div className='flex items-center justify-between gap-2'>

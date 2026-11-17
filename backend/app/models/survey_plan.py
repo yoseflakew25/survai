@@ -37,6 +37,10 @@ class SurveyPlan(Base):
         index=True,
     )
     research_goal: Mapped[str] = mapped_column(Text, nullable=False)
+    # Survey content language for AI generation (en | am). Independent of UI locale.
+    content_language: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="en"
+    )
     objectives: Mapped[list[Any]] = mapped_column(JsonType, nullable=False, default=list)
     research_questions: Mapped[list[Any]] = mapped_column(
         JsonType, nullable=False, default=list

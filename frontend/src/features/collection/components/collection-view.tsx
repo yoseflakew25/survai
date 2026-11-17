@@ -1,6 +1,7 @@
 'use client';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { publicSurveyOptions } from '../api/queries';
 import { CollectionForm } from './collection-form';
 import { Icons } from '@/components/icons';
@@ -15,25 +16,23 @@ export function CollectionView({ versionId }: CollectionViewProps) {
 }
 
 function CollectionViewContent({ versionId }: { versionId: string }) {
+  const t = useTranslations('publicCollect');
   const { data: survey } = useSuspenseQuery(publicSurveyOptions(versionId));
 
   if (!survey) {
     return (
-      <div className='flex min-h-dvh flex-col items-center justify-center bg-white px-4'>
-        <div className='w-full max-w-md rounded-xl border border-border bg-white p-8 text-center shadow-sm'>
-          <div className='bg-primary/10 mx-auto mb-5 flex size-14 items-center justify-center rounded-full'>
-            <Icons.lock className='text-primary size-6' />
+      <div className='flex min-h-dvh flex-col items-center justify-center bg-background px-4'>
+        <div className='w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-sm'>
+          <div className='mx-auto mb-5 flex size-14 items-center justify-center rounded-full bg-brand-soft'>
+            <Icons.lock className='size-6 text-brand-foreground' />
           </div>
-          <h1 className='text-lg font-bold tracking-tight'>Survey unavailable</h1>
-          <p className='text-muted-foreground .5 text-sm leading-relaxed'>
-            This survey link is invalid or has expired. Please contact the survey
-            owner for a new link.
-          </p>
+          <h1 className='text-lg font-bold tracking-tight text-foreground'>{t('unavailable')}</h1>
+          <p className='text-muted-foreground text-sm leading-relaxed'>{t('unavailableHint')}</p>
         </div>
-        <p className='text-muted-foreground mt-6 text-[11px]'>
-          Powered by{' '}
-          <span className='text-primary inline-flex items-center gap-1 font-medium'>
-            <Icons.sparkles className='size-3' />
+        <p className='mt-6 text-[11px] text-muted-foreground'>
+          {t('poweredBy')}{' '}
+          <span className='inline-flex items-center gap-1 font-medium text-foreground'>
+            <Icons.sparkles className='size-3 text-brand' />
             Survai
           </span>
         </p>
@@ -46,10 +45,10 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
 
 export function CollectionLoading() {
   return (
-    <div className='min-h-dvh bg-white'>
+    <div className='min-h-dvh bg-background'>
       <div className='mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8'>
         {/* Hero skeleton */}
-        <div className='rounded-xl border border-border bg-white p-6 shadow-sm sm:p-8'>
+        <div className='rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8'>
           <div className='flex items-center justify-between'>
             <Skeleton className='h-4 w-28 rounded' />
             <Skeleton className='h-5 w-24 rounded-full' />
@@ -65,7 +64,7 @@ export function CollectionLoading() {
         </div>
 
         {/* Progress skeleton */}
-        <div className='mt-4 rounded-xl border border-border bg-white px-4 py-3'>
+        <div className='mt-4 rounded-xl border border-border bg-card px-4 py-3'>
           <div className='flex items-center justify-between'>
             <Skeleton className='h-4 w-48 rounded' />
             <Skeleton className='h-4 w-24 rounded' />
@@ -79,8 +78,8 @@ export function CollectionLoading() {
         </div>
 
         {/* Section skeleton */}
-        <div className='mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm'>
-          <div className='border-b border-border bg-white px-5 py-4 sm:px-6'>
+        <div className='mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm'>
+          <div className='border-b border-border bg-card px-5 py-4 sm:px-6'>
             <div className='flex items-center gap-3'>
               <Skeleton className='size-7 rounded-full' />
               <div className='flex-1 space-y-1.5'>
@@ -104,7 +103,7 @@ export function CollectionLoading() {
               </div>
             ))}
           </div>
-          <div className='flex items-center justify-between border-t border-border bg-white px-4 py-3.5 sm:px-6'>
+          <div className='flex items-center justify-between border-t border-border bg-card px-4 py-3.5 sm:px-6'>
             <Skeleton className='h-9 w-28 rounded-md' />
             <Skeleton className='h-9 w-28 rounded-md' />
           </div>

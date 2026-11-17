@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   DndContext,
   closestCenter,
@@ -35,12 +36,16 @@ interface EditableListProps {
 export function EditableList({
   items,
   onChange,
-  placeholder = 'Enter item…',
-  addLabel = 'Add item',
-  emptyMessage = 'No items yet',
+  placeholder,
+  addLabel,
+  emptyMessage,
   disabled = false,
   className
 }: EditableListProps) {
+  const t = useTranslations('plan');
+  const resolvedPlaceholder = placeholder ?? t('enterItem');
+  const resolvedAddLabel = addLabel ?? t('addItemDefault');
+  const resolvedEmpty = emptyMessage ?? t('noItemsDefault');
   const [newItem, setNewItem] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const newItemRef = useRef<HTMLInputElement>(null);
@@ -105,11 +110,7 @@ export function EditableList({
         }
       } else if (e.key === 'Escape') {
         setEditingIndex(null);
-      } else if (
-        e.key === 'Backspace' &&
-        index !== undefined &&
-        items[index] === ''
-      ) {
+      } else if (e.key === 'Backspace' && index !== undefined && items[index] === '') {
         e.preventDefault();
         handleRemove(index);
         if (index > 0) setEditingIndex(index - 1);
@@ -125,19 +126,13 @@ export function EditableList({
           <div className='flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
             <Icons.forms className='size-4' />
           </div>
-          <p className='text-sm font-semibold text-foreground'>{emptyMessage}</p>
+          <p className='text-sm font-semibold text-foreground'>{resolvedEmpty}</p>
           <p className='text-muted-foreground max-w-[16rem] text-xs leading-relaxed'>
-            {disabled
-              ? 'Nothing was captured for this section.'
-              : 'Add one below, or regenerate the plan with AI.'}
+            {disabled ? t('nothingCapturedSection') : t('addOrRegenerate')}
           </p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={items.map((_, i) => `item-${i}`)}
             strategy={verticalListSortingStrategy}
@@ -174,7 +169,7 @@ export function EditableList({
                           !item && 'text-muted-foreground italic'
                         )}
                       >
-                        {item || placeholder}
+                        {item || resolvedPlaceholder}
                       </p>
                     ) : (
                       <Input
@@ -185,7 +180,7 @@ export function EditableList({
                         onBlur={() => {
                           window.setTimeout(() => setEditingIndex(null), 150);
                         }}
-                        placeholder={placeholder}
+                        placeholder={resolvedPlaceholder}
                         className={cn(
                           'h-9 flex-1 rounded-lg border-transparent bg-transparent px-2 text-sm font-medium text-foreground shadow-none focus-visible:border-border focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/40',
                           !item && 'text-muted-foreground italic'
@@ -199,7 +194,7 @@ export function EditableList({
                         size='icon-sm'
                         onClick={() => handleRemove(index)}
                         className='text-muted-foreground hover:text-destructive size-8 shrink-0 rounded-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
-                        aria-label={`Remove item ${index + 1}`}
+                        aria-label={t('removeItemN', { index: index + 1 })}
                       >
                         <Icons.close className='size-3.5' />
                       </Button>
@@ -219,7 +214,7 @@ export function EditableList({
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e)}
-            placeholder={`${addLabel}…`}
+            placeholder={`${resolvedAddLabel}…`}
             className='h-10 flex-1 rounded-xl border-dashed'
           />
           <Button
@@ -230,7 +225,7 @@ export function EditableList({
             disabled={!newItem.trim()}
           >
             <Icons.add className='size-4' />
-            {addLabel}
+            {resolvedAddLabel}
           </Button>
         </div>
       ) : null}

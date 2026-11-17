@@ -43,18 +43,14 @@ import type {
 import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
 import { canEditOrg, useAuth } from '@/lib/auth-context';
+import { useLocale, useTranslations } from 'next-intl';
 
-const CHAT_STARTERS = [
-  'What are the top findings?',
-  'Summarize this for a donor brief',
-  'What should we do next?',
-  'Any limitations I should mention?'
-] as const;
+const CHAT_STARTER_KEYS = ['starter1', 'starter2', 'starter3', 'starter4'] as const;
 
-function confidenceLabel(c: ChatConfidence | null): string | null {
-  if (c === 'grounded') return 'Grounded';
-  if (c === 'partial') return 'Partial';
-  if (c === 'insufficient_data') return 'Insufficient data';
+function confidenceKey(c: ChatConfidence | null): string | null {
+  if (c === 'grounded') return 'confidenceGrounded';
+  if (c === 'partial') return 'confidencePartial';
+  if (c === 'insufficient_data') return 'confidenceInsufficient';
   return null;
 }
 
@@ -103,8 +99,8 @@ function renderSectionContent(content: string): ReactNode[] {
   });
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
@@ -112,6 +108,9 @@ function formatDate(iso: string): string {
 }
 
 export function ReportView({ surveyId }: ReportViewProps) {
+  const t = useTranslations('reports');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const deepReportId = searchParams.get('reportId');
@@ -191,20 +190,16 @@ export function ReportView({ surveyId }: ReportViewProps) {
           queryKey: reportKeys.chat(next.id)
         });
       });
-      toast.success(report ? 'Report regenerated' : 'Report generated', {
-        description: report
-          ? 'Rewrote the full report from the latest metrics snapshot.'
-          : 'AI drafted a grounded report from your metrics snapshot.'
+      toast.success(report ? t('reportRegenerated') : t('reportGenerated'), {
+        description: report ? t('regeneratedDesc') : t('generatedDesc')
       });
     } catch (err) {
-      toast.error('Generation failed', {
+      toast.error(t('generationFailed'), {
         description:
-          err instanceof Error
-            ? err.message
-            : 'Could not generate the report. Please try again.'
+          err instanceof Error ? err.message : t('generationFailedDesc')
       });
     }
-  }, [applyReport, queryClient, report, run, savedAnalysisId, surveyId]);
+  }, [applyReport, queryClient, report, run, savedAnalysisId, surveyId, t]);
 
   const startEditSection = useCallback((section: ReportSection) => {
     setDraftSection({ ...section });
@@ -226,14 +221,14 @@ export function ReportView({ surveyId }: ReportViewProps) {
     const section = sections.find((s) => s.id === activeSection);
     if (!section) return;
     if (!section.title.trim()) {
-      toast.error('Title required', {
-        description: 'Give this section a title before saving.'
+      toast.error(t('titleRequired'), {
+        description: t('sectionTitleRequiredDesc')
       });
       return;
     }
     if (!section.content.trim()) {
-      toast.error('Section cannot be empty', {
-        description: 'Add some content before saving.'
+      toast.error(t('sectionEmpty'), {
+        description: t('sectionEmptyDesc')
       });
       return;
     }
@@ -243,22 +238,22 @@ export function ReportView({ surveyId }: ReportViewProps) {
       applyReport(next);
       setActiveSection(null);
       setDraftSection(null);
-      toast.success('Section saved');
+      toast.success(t('sectionSaved'));
     } catch (err) {
-      toast.error('Save failed', {
+      toast.error(t('saveFailed'), {
         description:
-          err instanceof Error ? err.message : 'Could not save section.'
+          err instanceof Error ? err.message : t('sectionSaveFailedDesc')
       });
     } finally {
       setSaving(false);
     }
-  }, [activeSection, applyReport, report, sections]);
+  }, [activeSection, applyReport, report, sections, t]);
 
   const handleSaveTitle = useCallback(async () => {
     if (!report) return;
     const nextTitle = titleDraft.trim();
     if (!nextTitle) {
-      toast.error('Title required');
+      toast.error(t('titleRequired'));
       return;
     }
     if (nextTitle === report.title) {
@@ -270,16 +265,15 @@ export function ReportView({ surveyId }: ReportViewProps) {
       const next = await updateReport(report.id, { title: nextTitle });
       applyReport(next);
       setEditingTitle(false);
-      toast.success('Title updated');
+      toast.success(t('titleUpdated'));
     } catch (err) {
-      toast.error('Save failed', {
-        description:
-          err instanceof Error ? err.message : 'Could not save title.'
+      toast.error(t('saveFailed'), {
+        description: err instanceof Error ? err.message : t('titleSaveFailedDesc')
       });
     } finally {
       setSaving(false);
     }
-  }, [applyReport, report, titleDraft]);
+  }, [applyReport, report, titleDraft, t]);
 
   const handleRegenerateSection = useCallback(
     async (sectionId: string) => {
@@ -302,21 +296,19 @@ export function ReportView({ surveyId }: ReportViewProps) {
           const next = await regenerateReportSection(report.id, sectionId);
           applyReport(next);
         });
-        toast.success('Section regenerated', {
-          description: 'Rewrote this section from the same metrics snapshot.'
+        toast.success(t('sectionRegenerated'), {
+          description: t('sectionRegeneratedDesc')
         });
       } catch (err) {
-        toast.error('Regenerate failed', {
+        toast.error(t('regenerateFailed'), {
           description:
-            err instanceof Error
-              ? err.message
-              : 'Could not regenerate this section.'
+            err instanceof Error ? err.message : t('regenerateFailedDesc')
         });
       } finally {
         setRegeneratingId(null);
       }
     },
-    [activeSection, applyReport, draftSection, report, run, sections]
+    [activeSection, applyReport, draftSection, report, run, sections, t]
   );
 
   const handleSendMessage = useCallback(
@@ -349,15 +341,14 @@ export function ReportView({ surveyId }: ReportViewProps) {
       } catch (err) {
         queryClient.setQueryData(reportKeys.chat(report.id), previous);
         setChatInput(message);
-        toast.error('Chat failed', {
-          description:
-            err instanceof Error ? err.message : 'Could not send message.'
+        toast.error(t('chatFailed'), {
+          description: err instanceof Error ? err.message : t('chatFailedDesc')
         });
       } finally {
         setIsReplying(false);
       }
     },
-    [chatInput, isReplying, queryClient, report]
+    [chatInput, isReplying, queryClient, report, t]
   );
 
   const handleSavePdf = useCallback(async () => {
@@ -365,54 +356,52 @@ export function ReportView({ surveyId }: ReportViewProps) {
     setIsExporting(true);
     try {
       await downloadReportPdf(report.id, report.title);
-      toast.success('PDF saved', {
-        description: 'Your report downloaded as a PDF.'
+      toast.success(t('pdfSaved'), {
+        description: t('pdfSavedDesc')
       });
     } catch (err) {
-      toast.error('PDF export failed', {
-        description:
-          err instanceof Error ? err.message : 'Could not save as PDF.'
+      toast.error(t('pdfExportFailed'), {
+        description: err instanceof Error ? err.message : t('pdfExportFailedDesc')
       });
     } finally {
       setIsExporting(false);
     }
-  }, [report, canEdit]);
+  }, [report, canEdit, t]);
 
   const handleSaveDocx = useCallback(async () => {
     if (!report || !canEdit) return;
     setIsExporting(true);
     try {
       await downloadReportDocx(report.id, report.title);
-      toast.success('Word saved', {
-        description: 'Your report downloaded as a Word document.'
+      toast.success(t('wordSaved'), {
+        description: t('wordSavedDesc')
       });
     } catch (err) {
-      toast.error('Word export failed', {
+      toast.error(t('wordExportFailed'), {
         description:
-          err instanceof Error ? err.message : 'Could not save as Word.'
+          err instanceof Error ? err.message : t('wordExportFailedDesc')
       });
     } finally {
       setIsExporting(false);
     }
-  }, [report, canEdit]);
+  }, [report, canEdit, t]);
 
   const handleDonorPack = useCallback(async () => {
     if (!report || !canEdit) return;
     setIsExporting(true);
     try {
       await downloadExportPack(report.id, report.title);
-      toast.success('Donor pack ready', {
-        description: 'ZIP with PDF, Word, and analytics CSV downloaded.'
+      toast.success(t('donorReady'), {
+        description: t('donorReadyDesc')
       });
     } catch (err) {
-      toast.error('Donor pack failed', {
-        description:
-          err instanceof Error ? err.message : 'Could not build the pack.'
+      toast.error(t('donorPackFailed'), {
+        description: err instanceof Error ? err.message : t('donorPackFailedDesc')
       });
     } finally {
       setIsExporting(false);
     }
-  }, [report, canEdit]);
+  }, [report, canEdit, t]);
 
   if (isLoading) {
     return <SurveyActivityFallback activity='fetch-report' />;
@@ -423,10 +412,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
       <SurvaiPanel>
         <SurvaiPanelBody className='space-y-3 py-10 text-center'>
           <p className='text-sm text-destructive'>
-            {error instanceof Error ? error.message : 'Failed to load report'}
+            {error instanceof Error ? error.message : t('loadFailed')}
           </p>
           <Button variant='outline' onClick={() => void refetch()}>
-            Retry
+            {tCommon('retry')}
           </Button>
         </SurvaiPanelBody>
       </SurvaiPanel>
@@ -442,10 +431,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
             title={
               <div className='min-w-0'>
                 <h1 className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                  Generate report
+                  {t('generateTitle')}
                 </h1>
                 <p className='mt-1 text-sm leading-snug text-brand-foreground/70'>
-                  Create a grounded narrative from your analytics snapshot
+                  {t('generateSubtitle')}
                 </p>
               </div>
             }
@@ -455,8 +444,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
               <Icons.report className='size-5' />
             </div>
             <p className='text-muted-foreground max-w-md text-sm leading-relaxed'>
-              Reports use only numbers from the stored metrics snapshot — no
-              invented statistics. Publish and collect responses first.
+              {t('generateBody')}
             </p>
             <Button
               onClick={() => void handleGenerateReport()}
@@ -468,13 +456,13 @@ export function ReportView({ surveyId }: ReportViewProps) {
               ) : (
                 <Icons.sparkles className='mr-2 size-4' />
               )}
-              Generate report
+              {t('generateReport')}
             </Button>
             <Link
               href={`/dashboard/surveys/${surveyId}/analytics`}
               className='text-muted-foreground text-xs underline-offset-4 hover:underline'
             >
-              View analytics first
+              {t('viewAnalyticsFirst')}
             </Link>
           </SurvaiPanelBody>
         </SurvaiPanel>
@@ -507,15 +495,15 @@ export function ReportView({ surveyId }: ReportViewProps) {
               <Icons.warning className=' size-4 shrink-0 text-amber-700 dark:text-amber-400' />
               <div className='min-w-0'>
                 <p className='text-sm font-semibold tracking-tight'>
-                  Report snapshot is stale
+                  {t('staleTitle')}
                 </p>
                 <p className='text-muted-foreground  text-xs leading-relaxed'>
-                  New responses arrived after this report was generated
                   {liveCount != null
-                    ? ` (${snapshotCount} → ${liveCount} responses)`
-                    : ''}
-                  . Numbers in the narrative still match the frozen metrics —
-                  regenerate to refresh from the latest analytics.
+                    ? t('staleBodyCounts', {
+                        snapshot: snapshotCount,
+                        live: liveCount
+                      })
+                    : t('staleBody')}
                 </p>
               </div>
             </div>
@@ -530,7 +518,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
               ) : (
                 <Icons.sparkles className='mr-1.5 size-3.5' />
               )}
-              Regenerate from latest
+              {t('regenerateFromLatest')}
             </Button>
           </div>
         ) : null}
@@ -560,7 +548,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           onBrandControlClass,
                           'font-display h-10 max-w-xl text-base font-extrabold placeholder:text-brand-foreground/45'
                         )}
-                        aria-label='Report title'
+                        aria-label={t('reportTitle')}
                       />
                       <Button
                         size='sm'
@@ -573,7 +561,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                         ) : (
                           <Icons.check className='mr-1 size-3' />
                         )}
-                        Save
+                        {tCommon('save')}
                       </Button>
                       <Button
                         size='sm'
@@ -585,13 +573,13 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           setTitleDraft(reportTitle);
                         }}
                       >
-                        Cancel
+                        {tCommon('cancel')}
                       </Button>
                     </div>
                   ) : (
                     <div className='flex items-start gap-2'>
                       <h1 className='font-display min-w-0 flex-1 text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                        {reportTitle || 'AI-generated report'}
+                        {reportTitle || t('fallbackTitle')}
                       </h1>
                       {canEdit ? (
                         <Button
@@ -604,7 +592,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           }}
                         >
                           <Icons.edit className='size-3.5' strokeWidth={2.25} />
-                          Edit title
+                          {t('editTitle')}
                         </Button>
                       ) : null}
                     </div>
@@ -612,7 +600,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   <div className='mt-2.5 flex flex-wrap items-center gap-1.5 leading-none'>
                     <span className={brandMetaChipClass}>
                       <Icons.calendar className='size-3 shrink-0 opacity-80' />
-                      {formatDate(report.createdAt)}
+                      {formatDate(report.createdAt, locale)}
                     </span>
                     <span className={brandMetaChipClass}>
                       <Icons.sparkles className='size-3 shrink-0 opacity-80' />
@@ -621,18 +609,22 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     <span
                       className={cn(brandMetaChipClass, 'font-mono tabular-nums')}
                     >
-                      ver {report.surveyVersionId.slice(0, 8)}
+                      {t('versionChip', {
+                        id: report.surveyVersionId.slice(0, 8)
+                      })}
                     </span>
                     <span className={brandMetaChipClass}>
                       <Icons.page className='size-3 shrink-0 opacity-80' />
-                      {totalWords.toLocaleString()} words · {sections.length}{' '}
-                      sections
+                      {t('wordSectionCount', {
+                        words: totalWords.toLocaleString(),
+                        sections: sections.length
+                      })}
                     </span>
                     <span
                       className={cn(
                         brandMetaChipClass,
                         isStale &&
-                          'border-amber-500/50 bg-amber-500/15 text-amber-900'
+                          'border-amber-500/50 bg-amber-500/15 text-amber-900 dark:text-amber-200'
                       )}
                     >
                       {isStale ? (
@@ -643,7 +635,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           strokeWidth={2.5}
                         />
                       )}
-                      {isStale ? 'Stale snapshot' : 'Snapshot current'}
+                      {isStale ? t('staleSnapshot') : t('snapshotCurrent')}
                     </span>
                   </div>
                 </div>
@@ -669,7 +661,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   ) : (
                     <Icons.fileTypePdf className='size-3' />
                   )}
-                  Save as PDF
+                  {t('exportPdf')}
                 </Button>
                 <Button
                   type='button'
@@ -678,7 +670,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   className={cn(compactCtaClass, 'w-full')}
                 >
                   <Icons.page className='size-3' />
-                  Save as Word
+                  {t('exportDocx')}
                 </Button>
                 <Button
                   type='button'
@@ -688,7 +680,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   className={cn(quietActionClass, 'w-full')}
                 >
                   <Icons.fileZip className='size-3' />
-                  Download donor pack
+                  {t('donorPack')}
                 </Button>
                 {canEdit ? (
                   <Button
@@ -703,7 +695,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                     ) : (
                       <Icons.sparkles className='size-3' />
                     )}
-                    Regenerate report
+                    {t('regenerateReport')}
                   </Button>
                 ) : null}
               </div>
@@ -739,7 +731,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                         }
                         disabled={saving}
                         className='font-display h-8 max-w-md border-border bg-card text-sm font-bold text-foreground'
-                        aria-label='Section title'
+                        aria-label={t('sectionTitle')}
                       />
                     ) : (
                       <h3 className='font-display truncate text-base font-extrabold tracking-tight text-foreground sm:text-lg'>
@@ -749,7 +741,9 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   </div>
                   <div className='flex shrink-0 flex-wrap items-center gap-2'>
                     <span className='text-muted-foreground font-mono text-[11px] tabular-nums'>
-                      {countWords(section.content).toLocaleString()} words
+                      {t('sectionWords', {
+                        count: countWords(section.content).toLocaleString()
+                      })}
                     </span>
                     {!isEditing ? (
                       <>
@@ -768,7 +762,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           ) : (
                             <Icons.sparkles className='size-3.5' />
                           )}
-                          Regenerate
+                          {t('regenerate')}
                         </Button>
                         <Button
                           type='button'
@@ -778,7 +772,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           onClick={() => startEditSection(section)}
                         >
                           <Icons.edit className='size-3.5' strokeWidth={2.25} />
-                          Edit
+                          {tCommon('edit')}
                         </Button>
                       </>
                     ) : null}
@@ -788,13 +782,13 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   {isRegen ? (
                     <div className='text-muted-foreground flex items-center gap-2 py-8 text-sm'>
                       <Icons.spinner className='size-4 animate-spin' />
-                      Regenerating this section…
+                      {t('regeneratingSection')}
                     </div>
                   ) : isEditing ? (
                     <div className='space-y-3'>
                       <textarea
                         value={section.content}
-                        aria-label={`Edit ${section.title}`}
+                        aria-label={t('editSectionAria', { title: section.title })}
                         disabled={saving}
                         onChange={(e) =>
                           setSections((prev) =>
@@ -819,7 +813,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           ) : (
                             <Icons.check className='mr-1 h-3 w-3' />
                           )}
-                          Save section
+                          {t('saveSection')}
                         </Button>
                         <Button
                           size='sm'
@@ -828,11 +822,11 @@ export function ReportView({ surveyId }: ReportViewProps) {
                           disabled={saving}
                           onClick={cancelEditSection}
                         >
-                          Cancel
+                          {tCommon('cancel')}
                         </Button>
                         {sectionDirty ? (
                           <span className='text-muted-foreground text-[11px]'>
-                            Unsaved changes
+                            {tCommon('unsavedChanges')}
                           </span>
                         ) : null}
                       </div>
@@ -852,11 +846,10 @@ export function ReportView({ surveyId }: ReportViewProps) {
           <SurvaiPanel className='flex min-h-0 flex-1 flex-col h-[70vh] lg:h-full'>
             <div className={cn(panelHeaderToneClass.brand, 'shrink-0 px-4 py-4')}>
               <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                Chat with the report
+                {t('chatTitle')}
               </h3>
               <p className='text-xs leading-relaxed text-[color-mix(in_srgb,var(--primary)_72%,transparent)]'>
-                Ask about findings, donors, or next steps — answers stay
-                grounded in the metrics snapshot.
+                {t('chatSubtitle')}
               </p>
             </div>
 
@@ -875,26 +868,26 @@ export function ReportView({ surveyId }: ReportViewProps) {
               {chatMessages.length === 0 && !isReplying ? (
                 <div className='space-y-3 px-1'>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
-                    Ask about findings, donors, or next steps. Answers stay
-                    grounded in the metrics snapshot.
+                    {t('chatEmpty')}
                   </p>
                   <div className='flex flex-wrap gap-1.5'>
-                    {CHAT_STARTERS.map((starter) => (
+                    {CHAT_STARTER_KEYS.map((key) => (
                       <button
-                        key={starter}
+                        key={key}
                         type='button'
                         disabled={isReplying}
-                        onClick={() => void handleSendMessage(starter)}
+                        onClick={() => void handleSendMessage(t(key))}
                         className='rounded-full border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50'
                       >
-                        {starter}
+                        {t(key)}
                       </button>
                     ))}
                   </div>
                 </div>
               ) : null}
               {chatMessages.map((msg) => {
-                const conf = confidenceLabel(msg.confidence);
+                const confKey = confidenceKey(msg.confidence);
+                const conf = confKey ? t(confKey) : null;
                 return (
                   <div
                     key={msg.id}
@@ -958,7 +951,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
               {isReplying ? (
                 <div
                   className='flex gap-2.5 animate-in fade-in duration-200'
-                  aria-label='SurvAI is typing'
+                  aria-label={t('typingAria')}
                 >
                   <div
                     className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
@@ -988,7 +981,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder={
-                    isReplying ? 'SurvAI is typing…' : 'Ask about the report…'
+                    isReplying ? t('typingPlaceholder') : t('askPlaceholder')
                   }
                   disabled={isReplying}
                   className='border-border bg-card h-11 rounded-2xl border-2 pr-12 text-sm shadow-sm focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))] disabled:opacity-70'
@@ -1003,7 +996,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                   size='icon'
                   onClick={() => void handleSendMessage()}
                   disabled={!chatInput.trim() || isReplying}
-                  aria-label='Send message'
+                  aria-label={t('sendMessage')}
                   className={cn(
                     brandCtaClass,
                     'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'

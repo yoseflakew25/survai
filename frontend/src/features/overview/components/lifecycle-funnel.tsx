@@ -9,7 +9,21 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { overviewQueryOptions } from '@/features/overview/api/queries';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+
+function stageLabel(
+  key: string,
+  fallback: string,
+  tSurveys: ReturnType<typeof useTranslations<'surveys'>>
+) {
+  if (key === 'plan') return tSurveys('tabPlan');
+  if (key === 'review') return tSurveys('tabReview');
+  if (key === 'collect') return tSurveys('tabCollect');
+  if (key === 'analytics') return tSurveys('tabAnalytics');
+  if (key === 'report') return tSurveys('tabReport');
+  return fallback;
+}
 
 const STAGE_HREF: Record<string, string> = {
   plan: '/dashboard/plans',
@@ -28,6 +42,8 @@ function stageIcon(key: string) {
 }
 
 export function LifecycleFunnel() {
+  const t = useTranslations('overview');
+  const tSurveys = useTranslations('surveys');
   const { data, isLoading, isError } = useQuery(overviewQueryOptions());
 
   if (isLoading) {
@@ -35,8 +51,8 @@ export function LifecycleFunnel() {
       <SurvaiPanel className='flex h-full flex-col'>
         <SurvaiPanelHeader
           // icon={<Icons.forms className='size-3.5' />}
-          title='Lifecycle'
-          subtitle='Loading pipeline…'
+          title={t('lifecycle')}
+          subtitle={t('loadingPipeline')}
         />
         <SurvaiPanelBody className='flex flex-1 flex-col gap-2'>
           {Array.from({ length: 5 }).map((_, i) => (
@@ -52,11 +68,11 @@ export function LifecycleFunnel() {
       <SurvaiPanel className='flex h-full flex-col'>
         <SurvaiPanelHeader
           // icon={<Icons.forms className='size-3.5' />}
-          title='Lifecycle'
-          subtitle='Could not load pipeline'
+          title={t('lifecycle')}
+          subtitle={t('pipelineLoadError')}
         />
         <SurvaiPanelBody>
-          <p className='text-sm text-destructive'>Refresh and try again.</p>
+          <p className='text-sm text-destructive'>{t('refreshRetry')}</p>
         </SurvaiPanelBody>
       </SurvaiPanel>
     );
@@ -70,11 +86,9 @@ export function LifecycleFunnel() {
     <SurvaiPanel className='flex h-full flex-col'>
       <SurvaiPanelHeader
         // icon={<Icons.forms className='size-3.5' />}
-        title='Lifecycle'
+        title={t('lifecycle')}
         subtitle={
-          total === 0
-            ? 'No workspace activity yet'
-            : 'Plan → Report at a glance'
+          total === 0 ? t('noWorkspaceActivity') : t('lifecycleGlance')
         }
       />
       <SurvaiPanelBody className='flex flex-1 flex-col gap-2'>
@@ -98,10 +112,10 @@ export function LifecycleFunnel() {
               </span>
               <div className='relative min-w-0 flex-1'>
                 <p className='text-sm font-semibold tracking-tight text-foreground'>
-                  {stage.label}
+                  {stageLabel(stage.key, stage.label, tSurveys)}
                 </p>
                 <p className='text-muted-foreground text-[11px]'>
-                  Stage {index + 1} of {stages.length}
+                  {t('stageOf', { current: index + 1, total: stages.length })}
                 </p>
               </div>
               <p className='relative font-display text-xl font-extrabold tabular-nums tracking-tight text-foreground'>

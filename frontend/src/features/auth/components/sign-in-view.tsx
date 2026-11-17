@@ -2,37 +2,24 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  startTransition
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
-import {
-  AuthDivider,
-  GoogleSignInButton
-} from '@/features/auth/components/google-sign-in-button';
+import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/google-sign-in-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
-const passwordSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z
-    .string()
-    .min(1, 'Password is required')
-    .min(8, 'At least 8 characters')
-});
-
-type PasswordValues = z.infer<typeof passwordSchema>;
+type PasswordValues = {
+  email: string;
+  password: string;
+};
 
 const inputClass =
   'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
@@ -40,8 +27,18 @@ const inputClass =
 export default function SignInViewPage() {
   const { login, isSignedIn, isLoading, user } = useAuth();
   const router = useRouter();
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
   const [serverError, setServerError] = useState<string | null>(null);
   const redirectedRef = useRef(false);
+  const passwordSchema = useMemo(
+    () =>
+      z.object({
+        email: z.string().min(1, t('emailRequired')).email(t('emailInvalid')),
+        password: z.string().min(1, t('passwordRequired')).min(8, t('passwordMin'))
+      }),
+    [t]
+  );
 
   const form = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
@@ -57,9 +54,7 @@ export default function SignInViewPage() {
       if (redirectedRef.current) return;
       redirectedRef.current = true;
       const dest =
-        (role ?? user?.role) === 'system_admin'
-          ? '/admin/overview'
-          : '/dashboard/overview';
+        (role ?? user?.role) === 'system_admin' ? '/admin/overview' : '/dashboard/overview';
       startTransition(() => {
         router.replace(dest);
       });
@@ -77,16 +72,13 @@ export default function SignInViewPage() {
     setServerError(null);
     try {
       const pair = await login(values.email.trim(), values.password);
-      toast.success('Welcome back', {
-        description: 'Signed in successfully.'
+      toast.success(t('welcomeBack'), {
+        description: t('signedInSuccess')
       });
       goHome(pair.user.role);
     } catch (err) {
       redirectedRef.current = false;
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Could not sign in. Please try again.';
+      const message = err instanceof Error ? err.message : t('signInFailed');
       setServerError(message);
     }
   }
@@ -103,7 +95,7 @@ export default function SignInViewPage() {
         >
           <Icons.spinner className='text-muted-foreground size-5 animate-spin' />
           <p className='text-muted-foreground text-sm' suppressHydrationWarning>
-            {isSignedIn ? 'Taking you to your workspace…' : 'Checking your session…'}
+            {isSignedIn ? tCommon('loading') : t('checkingSession')}
           </p>
         </div>
       </AuthShell>
@@ -114,11 +106,9 @@ export default function SignInViewPage() {
     <AuthShell>
       <div className='mb-6'>
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
-          Welcome back
+          {t('signInTitle')}
         </h1>
-        <p className='text-muted-foreground .5 text-[15px]'>
-          Sign in with your organization email and password.
-        </p>
+        <p className='text-muted-foreground .5 text-[15px]'>{t('signInSubtitle')}</p>
       </div>
 
       <div className='space-y-4'>
@@ -135,8 +125,8 @@ export default function SignInViewPage() {
           mode='signin'
           onError={(message) => setServerError(message)}
           onSuccess={() => {
-            toast.success('Welcome back', {
-              description: 'Signed in with Google.'
+            toast.success(t('welcomeBack'), {
+              description: t('signedInGoogle')
             });
             goHome();
           }}
@@ -151,16 +141,13 @@ export default function SignInViewPage() {
           noValidate
         >
           <div className='space-y-1.5'>
-            <label
-              htmlFor='sign-in-email'
-              className='text-foreground/80 text-[13px] font-medium'
-            >
-              Email
+            <label htmlFor='sign-in-email' className='text-foreground/80 text-[13px] font-medium'>
+              {t('email')}
             </label>
             <input
               id='sign-in-email'
               type='email'
-              placeholder='you@organization.org'
+              placeholder={t('emailPlaceholder')}
               autoComplete='email'
               autoCapitalize='none'
               autoCorrect='off'
@@ -179,9 +166,7 @@ export default function SignInViewPage() {
               })}
             />
             {form.formState.errors.email ? (
-              <p className='text-destructive text-sm'>
-                {form.formState.errors.email.message}
-              </p>
+              <p className='text-destructive text-sm'>{form.formState.errors.email.message}</p>
             ) : null}
           </div>
 
@@ -191,18 +176,18 @@ export default function SignInViewPage() {
                 htmlFor='sign-in-password'
                 className='text-foreground/80 text-[13px] font-medium'
               >
-                Password
+                {t('password')}
               </label>
               <Link
                 href='/auth/forgot-password'
                 className='text-muted-foreground hover:text-foreground text-[12px] font-medium hover:underline'
               >
-                Forgot password?
+                {t('forgotPassword')}
               </Link>
             </div>
             <PasswordInput
               id='sign-in-password'
-              placeholder='Your password'
+              placeholder={t('passwordPlaceholder')}
               autoComplete='current-password'
               disabled={isSubmitting}
               aria-invalid={!!form.formState.errors.password}
@@ -218,9 +203,7 @@ export default function SignInViewPage() {
               })}
             />
             {form.formState.errors.password ? (
-              <p className='text-destructive text-sm'>
-                {form.formState.errors.password.message}
-              </p>
+              <p className='text-destructive text-sm'>{form.formState.errors.password.message}</p>
             ) : null}
           </div>
 
@@ -232,21 +215,18 @@ export default function SignInViewPage() {
             {isSubmitting ? (
               <>
                 <Icons.spinner className='size-4 animate-spin' />
-                Signing in…
+                {t('signingIn')}
               </>
             ) : (
-              'Sign in'
+              t('signIn')
             )}
           </button>
         </form>
 
         <p className='text-muted-foreground text-center text-[13px]'>
-          New organization?{' '}
-          <Link
-            href='/auth/sign-up'
-            className='text-foreground font-semibold hover:underline'
-          >
-            Create a workspace
+          {t('newOrganization')}{' '}
+          <Link href='/auth/sign-up' className='text-foreground font-semibold hover:underline'>
+            {t('createWorkspace')}
           </Link>
         </p>
       </div>

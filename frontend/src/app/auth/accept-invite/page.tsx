@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,15 +19,15 @@ function AcceptInviteForm() {
   const token = params.get('token') || '';
   const router = useRouter();
   const { setUserFromApi } = useAuth();
+  const t = useTranslations('team');
+  const tAuth = useTranslations('auth');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
   if (!token) {
     return (
-      <p className='text-sm text-destructive'>
-        Missing invite token. Open the link from your email.
-      </p>
+      <p className='text-sm text-destructive'>{t('missingInviteOpenEmail')}</p>
     );
   }
 
@@ -40,11 +41,11 @@ function AcceptInviteForm() {
           try {
             const tokens = await acceptInvite({ token, fullName, password });
             setUserFromApi(tokens.user);
-            toast.success('Welcome to the team');
+            toast.success(t('welcomeToTeam'));
             router.replace('/dashboard');
           } catch (err) {
             toast.error(
-              err instanceof Error ? err.message : 'Could not accept invite'
+              err instanceof Error ? err.message : t('couldNotAcceptInvite')
             );
           } finally {
             setBusy(false);
@@ -53,7 +54,7 @@ function AcceptInviteForm() {
       }}
     >
       <div className='space-y-1.5'>
-        <Label htmlFor='full-name'>Your name</Label>
+        <Label htmlFor='full-name'>{t('yourName')}</Label>
         <Input
           id='full-name'
           value={fullName}
@@ -63,7 +64,7 @@ function AcceptInviteForm() {
         />
       </div>
       <div className='space-y-1.5'>
-        <Label htmlFor='password'>Choose a password</Label>
+        <Label htmlFor='password'>{t('choosePassword')}</Label>
         <PasswordInput
           id='password'
           value={password}
@@ -73,31 +74,36 @@ function AcceptInviteForm() {
         />
       </div>
       <Button type='submit' className='w-full' disabled={busy}>
-        {busy ? 'Joining…' : 'Join organization'}
+        {busy ? t('joining') : t('joinOrganization')}
       </Button>
       <p className='text-muted-foreground text-center text-xs'>
-        Already have an account?{' '}
+        {tAuth('alreadyHaveAccount')}{' '}
         <Link href='/auth/sign-in' className='underline'>
-          Sign in
+          {tAuth('signIn')}
         </Link>
       </p>
     </form>
   );
 }
 
+function AcceptInviteFallback() {
+  const t = useTranslations('common');
+  return <p className='text-sm'>{t('loading')}</p>;
+}
+
 export default function AcceptInvitePage() {
+  const t = useTranslations('team');
+
   return (
     <AuthShell>
       <div className='space-y-6'>
         <div className='space-y-1'>
           <h1 className='font-display text-2xl font-extrabold tracking-tight'>
-            Accept invite
+            {t('acceptInviteHeading')}
           </h1>
-          <p className='text-muted-foreground text-sm'>
-            Create your password to join the organization on Survai.
-          </p>
+          <p className='text-muted-foreground text-sm'>{t('acceptInviteBody')}</p>
         </div>
-        <Suspense fallback={<p className='text-sm'>Loading…</p>}>
+        <Suspense fallback={<AcceptInviteFallback />}>
           <AcceptInviteForm />
         </Suspense>
       </div>

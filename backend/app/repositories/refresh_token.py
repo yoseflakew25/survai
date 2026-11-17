@@ -29,6 +29,26 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
         )
         return result.scalar_one_or_none()
 
+    async def claim_valid_by_hash(self, token_hash: str) -> RefreshToken | None:
+        """Atomically load + revoke a refresh token (prevents concurrent reuse)."""
+        now = datetime.now(UTC)
+        result = await self.session.execute(
+            select(RefreshToken)
+            .options(selectinload(RefreshToken.user).selectinload(User.organization))
+            .where(
+                RefreshToken.token_hash == token_hash,
+                RefreshToken.revoked_at.is_(None),
+                RefreshToken.expires_at > now,
+            )
+            .with_for_update()
+        )
+        stored = result.scalar_one_or_none()
+        if stored is None:
+            return None
+        stored.revoked_at = now
+        await self.session.flush()
+        return stored
+
     async def revoke(self, token: RefreshToken) -> None:
         token.revoked_at = datetime.now(UTC)
         await self.session.flush()

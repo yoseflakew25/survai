@@ -8,9 +8,11 @@ body {
 :root {
   --header-height: calc(var(--spacing, 0.25rem) * 12 + 1px);
   /* Landing fonts — used app-wide (same as / board) */
-  --font-sans: var(--font-geist-sans), Geist, ui-sans-serif, sans-serif;
+  --font-sans: var(--font-geist-sans), Geist, var(--font-noto-ethiopic),
+    'Noto Sans Ethiopic', ui-sans-serif, sans-serif;
   --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
-  --font-display: var(--font-bricolage), 'Bricolage Grotesque', var(--font-sans);
+  --font-display: var(--font-bricolage), 'Bricolage Grotesque',
+    var(--font-noto-ethiopic), 'Noto Sans Ethiopic', var(--font-sans);
   --font-serif: Georgia, serif;
 }
 

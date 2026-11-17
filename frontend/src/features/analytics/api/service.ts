@@ -7,6 +7,7 @@ import {
   apiFetch,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 import type {
   AnalyticsSummary,
@@ -129,7 +130,7 @@ export async function getAnalyticsSummary(
   surveyId: string
 ): Promise<AnalyticsSummary> {
   const res = await apiFetch(`/surveys/${surveyId}/analytics/summary`);
-  if (!res.ok) await readError(res, 'Could not load analytics summary');
+  if (!res.ok) await readError(res, serviceMsg('analytics', 'loadSummaryFailed'));
   return mapSummary((await res.json()) as ApiSummary);
 }
 
@@ -150,7 +151,9 @@ export async function getQuestionDistributions(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ filters: serializeFilters(filters) })
   });
-  if (!res.ok) await readError(res, 'Could not load question distributions');
+  if (!res.ok) {
+    await readError(res, serviceMsg('analytics', 'loadDistributionsFailed'));
+  }
   const data = (await res.json()) as ApiQueryResponse;
   return data.distributions.map(mapDistribution);
 }
@@ -170,7 +173,7 @@ export async function getCrossTab(
       filters: serializeFilters(filters)
     })
   });
-  if (!res.ok) await readError(res, 'Could not load cross-tabulation');
+  if (!res.ok) await readError(res, serviceMsg('analytics', 'loadCrosstabFailed'));
   return mapCrossTab((await res.json()) as ApiCrossTab);
 }
 
@@ -208,7 +211,9 @@ export async function getSavedAnalyses(
   surveyId: string
 ): Promise<SavedAnalysis[]> {
   const res = await apiFetch(`/surveys/${surveyId}/saved-analyses`);
-  if (!res.ok) await readError(res, 'Could not load saved analyses');
+  if (!res.ok) {
+    await readError(res, serviceMsg('analytics', 'loadSavedAnalysesFailed'));
+  }
   const rows = (await res.json()) as ApiSavedAnalysis[];
   return rows.map(mapSaved);
 }
@@ -227,7 +232,7 @@ export async function createSavedAnalysis(
       chart_config: chartConfig
     })
   });
-  if (!res.ok) await readError(res, 'Could not save analysis');
+  if (!res.ok) await readError(res, serviceMsg('analytics', 'saveAnalysisFailed'));
   return mapSaved((await res.json()) as ApiSavedAnalysis);
 }
 
@@ -239,14 +244,16 @@ export async function deleteSavedAnalysis(
     `/surveys/${surveyId}/saved-analyses/${analysisId}`,
     { method: 'DELETE' }
   );
-  if (!res.ok) await readError(res, 'Could not delete saved view');
+  if (!res.ok) await readError(res, serviceMsg('analytics', 'deleteViewFailed'));
 }
 
 export async function exportAnalyticsCsv(surveyId: string): Promise<void> {
   const res = await apiFetch(`/surveys/${surveyId}/analytics/export`, {
     method: 'POST'
   });
-  if (!res.ok) await readError(res, 'Could not export analytics CSV');
+  if (!res.ok) {
+    await readError(res, serviceMsg('analytics', 'exportCsvFailedDesc'));
+  }
   const data = (await res.json()) as {
     content_text: string | null;
   };

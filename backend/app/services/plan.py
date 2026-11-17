@@ -12,7 +12,9 @@ from app.ai.client import StructuredCallResult
 from app.ai.schemas import PlanInterviewTurnOutput, SurveyPlanOutput
 from app.ai.services.planner import generate_survey_plan, iter_interview_plan_turn
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.i18n import normalize_locale
 from app.core.rbac import require_org_editor
+from app.core.text_cleanup import collapse_repetitive_text
 from app.models.survey import Survey
 from app.models.survey_plan import PlanStatus, SurveyPlan
 from app.models.user import User
@@ -64,6 +66,7 @@ def _to_public(
         created_by=plan.created_by,
         organization_id=plan.organization_id,
         research_goal=plan.research_goal,
+        content_language=getattr(plan, "content_language", None) or "en",
         objectives=list(plan.objectives or []),
         research_questions=list(plan.research_questions or []),
         target_respondents=list(plan.target_respondents or []),
@@ -114,6 +117,7 @@ class PlanService:
             created_by=user.id,
             organization_id=user.organization_id,
             research_goal=body.research_goal.strip(),
+            content_language=body.content_language,
             objectives=[],
             research_questions=[],
             target_respondents=[],
@@ -133,6 +137,8 @@ class PlanService:
         data = body.model_dump(exclude_unset=True)
         if "research_goal" in data and data["research_goal"] is not None:
             plan.research_goal = data["research_goal"].strip()
+        if "content_language" in data and data["content_language"] is not None:
+            plan.content_language = data["content_language"]
         if "objectives" in data and data["objectives"] is not None:
             plan.objectives = data["objectives"]
         if "research_questions" in data and data["research_questions"] is not None:
@@ -167,6 +173,7 @@ class PlanService:
         user: User,
         plan_id,
         research_goal: str | None = None,
+        content_language: str | None = None,
     ) -> SurveyPlanGenerateResponse:
         """Hard-replace AI fields on the plan — never merge with prior content."""
         plan = await self._get_owned(user, plan_id)
@@ -178,6 +185,8 @@ class PlanService:
         )
         if research_goal is not None:
             plan.research_goal = research_goal.strip()
+        if content_language is not None:
+            plan.content_language = content_language
 
         goal = plan.research_goal.strip()
         if len(goal) < 10:
@@ -187,6 +196,7 @@ class PlanService:
             research_goal=goal,
             user_id=user.id,
             session=self.session,
+            content_language=plan.content_language,
         )
         output = call.value
         assert isinstance(output, SurveyPlanOutput)
@@ -257,6 +267,10 @@ class PlanService:
             if m.content.strip()
         ]
 
+        lang = normalize_locale(body.content_language)
+        # Buffer Amharic deltas — models often loop mid-stream on Fidel text.
+        stream_live = stream_deltas and lang != "am"
+
         yield ("status", {"stage": "thinking"})
         call: StructuredCallResult | None = None
         answering = False
@@ -265,8 +279,9 @@ class PlanService:
             history=history,
             user_id=user.id,
             session=self.session,
+            content_language=body.content_language,
         ):
-            if kind == "delta" and stream_deltas:
+            if kind == "delta" and stream_live:
                 text = str(payload or "")
                 if not text:
                     continue
@@ -282,17 +297,41 @@ class PlanService:
         output = call.value
         assert isinstance(output, PlanInterviewTurnOutput)
 
+        fallback = (
+            "ስለምን መማር እንደሚፈልጉ ጥቂት ይንገሩኝ።"
+            if lang == "am"
+            else "Tell me a bit more about what you want to learn."
+        )
         reply = (
-            output.assistant_reply.strip()
-            or "Tell me a bit more about what you want to learn."
+            collapse_repetitive_text(
+                output.assistant_reply.strip(),
+                max_chars=650,
+            )
+            or fallback
         )
         if stream_deltas and not answering and reply:
             yield ("status", {"stage": "answering"})
             yield ("delta", {"text": reply})
 
         brief = output.brief
-        draft = (output.research_goal_draft or "").strip()
+        draft = collapse_repetitive_text(
+            (output.research_goal_draft or "").strip(),
+            max_chars=1200,
+        )
         ready = bool(output.ready_to_generate) and len(draft) >= 10
+
+        def _uniq(items: list[str]) -> list[str]:
+            seen: set[str] = set()
+            out: list[str] = []
+            for item in items or []:
+                cleaned = collapse_repetitive_text(item.strip(), max_chars=160)
+                key = cleaned.casefold()
+                if not cleaned or key in seen:
+                    continue
+                seen.add(key)
+                out.append(cleaned)
+            return out
+
         yield (
             "done",
             PlanInterviewTurnResponse(
@@ -300,11 +339,15 @@ class PlanService:
                 ready_to_generate=ready,
                 research_goal_draft=draft,
                 brief=PlanInterviewBriefPublic(
-                    title_hint=(brief.title_hint or "").strip(),
-                    audiences=list(brief.audiences or []),
-                    decisions=list(brief.decisions or []),
-                    constraints=list(brief.constraints or []),
-                    summary=(brief.summary or "").strip(),
+                    title_hint=collapse_repetitive_text(
+                        (brief.title_hint or "").strip(), max_chars=80
+                    ),
+                    audiences=_uniq(list(brief.audiences or [])),
+                    decisions=_uniq(list(brief.decisions or [])),
+                    constraints=_uniq(list(brief.constraints or [])),
+                    summary=collapse_repetitive_text(
+                        (brief.summary or "").strip(), max_chars=240
+                    ),
                 ),
             ),
         )

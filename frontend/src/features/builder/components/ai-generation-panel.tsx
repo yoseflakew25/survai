@@ -15,6 +15,7 @@ import { toast } from '@/lib/toast';
 import type { Survey } from '../api/types';
 import { generateSurveyDraft } from '../api/service';
 import { SurveyGenerationProgress } from './survey-generation-progress';
+import { useTranslations } from 'next-intl';
 
 interface AIGenerationPanelProps {
   surveyId: string;
@@ -33,21 +34,21 @@ export function AIGenerationPanel({
   onApplied,
   locked = false
 }: AIGenerationPanelProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (locked) {
-      toast.error('Survey locked', {
-        description:
-          'Questions cannot be regenerated while this survey is published or closed.'
+      toast.error(t('lockedToast'), {
+        description: t('lockedRegenDesc')
       });
       return;
     }
     if (!planId) {
-      toast.error('No linked plan', {
-        description:
-          'Link a research plan before regenerating the survey draft.'
+      toast.error(t('noLinkedPlan'), {
+        description: t('noLinkedPlanDesc')
       });
       return;
     }
@@ -58,20 +59,22 @@ export function AIGenerationPanel({
       const survey = await generateSurveyDraft(surveyId);
       // Same survey id; sections/questions hard-replaced — no merge with prior draft.
       onApplied(survey);
-      toast.success('Survey regenerated', {
-        description: `Replaced with ${survey.sections.length} sections from your plan.`
+      toast.success(t('surveyRegenerated'), {
+        description: t('surveyRegeneratedDesc', {
+          count: survey.sections.length
+        })
       });
     } catch (err) {
-      toast.error('Generation failed', {
+      toast.error(t('generationFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Please try again.'
+            : tCommon('pleaseTryAgain')
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [surveyId, planId, onApplied, locked]);
+  }, [surveyId, planId, onApplied, locked, t, tCommon]);
 
   return (
     <>
@@ -80,13 +83,11 @@ export function AIGenerationPanel({
           <div className='bg-primary/10 flex h-7 w-7 items-center justify-center rounded-md'>
             <Icons.sparkles className='text-primary h-4 w-4' />
           </div>
-          <h3 className='text-sm font-semibold'>AI Assistant</h3>
+          <h3 className='text-sm font-semibold'>{t('aiAssistant')}</h3>
         </div>
 
         <p className='text-muted-foreground mb-3 text-xs leading-relaxed'>
-          {locked
-            ? 'Questions are locked while this survey is live or closed. Use Collect to share and monitor.'
-            : 'Regenerate the full questionnaire from the linked research plan. This permanently replaces existing sections and questions.'}
+          {locked ? t('lockedHint') : t('regenerateHint')}
         </p>
 
         <Button
@@ -98,12 +99,12 @@ export function AIGenerationPanel({
           {isGenerating ? (
             <>
               <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-              Regenerating…
+              {t('regenerating')}
             </>
           ) : (
             <>
               <Icons.sparkles className='mr-2 h-4 w-4' />
-              Regenerate with AI
+              {t('regenerateWithAi')}
             </>
           )}
         </Button>
@@ -112,13 +113,11 @@ export function AIGenerationPanel({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
           <DialogHeader className='border-b border-border bg-brand-soft px-5 py-4 text-foreground'>
-            <DialogTitle>Regenerate survey questions?</DialogTitle>
+            <DialogTitle>{t('regenerateTitle')}</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>
             <p className='text-muted-foreground text-sm leading-relaxed'>
-              This permanently replaces every section and question on this
-              survey with a new AI draft from the linked plan. The survey id
-              stays the same — previous questions are not kept or merged.
+              {t('regenerateBody')}
             </p>
           </div>
           <Separator />
@@ -129,7 +128,7 @@ export function AIGenerationPanel({
               onClick={() => setConfirmOpen(false)}
               disabled={isGenerating}
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button
               type='button'
@@ -137,7 +136,7 @@ export function AIGenerationPanel({
               disabled={isGenerating || !planId}
             >
               <Icons.sparkles className='size-4' />
-              Replace &amp; regenerate
+              {t('replaceRegenerate')}
             </Button>
           </div>
         </DialogContent>
@@ -154,7 +153,7 @@ export function AIGenerationPanel({
           showCloseButton={false}
         >
           <DialogTitle className='sr-only'>
-            Generating survey questions
+            {t('generatingQuestions')}
           </DialogTitle>
           <SurveyGenerationProgress
             active={isGenerating}

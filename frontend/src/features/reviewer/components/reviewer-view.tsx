@@ -70,6 +70,19 @@ import {
 } from '@/lib/survey-display';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
+
+const QUESTION_TYPE_KEY: Record<QuestionType, string> = {
+  short_text: 'shortText',
+  long_text: 'longText',
+  single_choice: 'singleChoice',
+  multiple_choice: 'multipleChoice',
+  dropdown: 'dropdown',
+  rating_scale: 'ratingScale',
+  number: 'number',
+  date: 'date'
+};
 
 function isOptionsType(type: QuestionType) {
   return (
@@ -124,8 +137,13 @@ export function ReviewerView({ surveyId }: ReviewerViewProps) {
 }
 
 function ReviewerContent({ surveyId }: { surveyId: string }) {
+  const t = useTranslations('review');
+  const tBuilder = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
   const { run, activeId } = useSurveyActivity();
   const surveyQuery = useQuery(surveyByIdOptions(surveyId));
   const reportQuery = useQuery(latestReviewOptions(surveyId));
@@ -156,12 +174,12 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   const navigateToQuestion = useCallback((questionId: string) => {
     const el = document.getElementById(`review-question-${questionId}`);
     if (!el) {
-      toast.error('Question not found in this draft');
+      toast.error(t('questionNotInDraft'));
       return;
     }
     setHighlightedQuestionId(questionId);
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!highlightedQuestionId) return;
@@ -190,11 +208,17 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   );
 
   const handleReview = useCallback(async () => {
+    if (!canEdit) {
+      toast.error(tCommon('viewOnly'), {
+        description: t('viewersCannotReview')
+      });
+      return;
+    }
     if (isReviewing || isRegenerating) return;
     const hasQuestions = survey?.sections.some((s) => s.questions.length > 0);
     if (!hasQuestions) {
-      toast.error('No questions to review', {
-        description: 'Generate or add questions before running AI review.'
+      toast.error(t('noQuestionsToReview'), {
+        description: t('noQuestionsToReviewDesc')
       });
       return;
     }
@@ -205,75 +229,89 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         queryClient.setQueryData(reviewerKeys.latest(surveyId), result);
         return result;
       });
-      toast.success('Review complete', {
+      toast.success(t('reviewComplete'), {
         description:
           next.findings.length === 0
-            ? 'No issues flagged — still advisory only.'
-            : `Found ${next.findings.length} potential issue${next.findings.length === 1 ? '' : 's'}.`
+            ? t('reviewCompleteNone')
+            : t('reviewCompleteSome', { count: next.findings.length })
       });
     } catch (err) {
-      toast.error('Review failed', {
+      toast.error(t('reviewFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'AI could not complete the review. Please try again.'
+            : t('reviewFailedDesc')
       });
     }
   }, [
+    canEdit,
     isReviewing,
     isRegenerating,
     survey?.sections,
     surveyId,
     queryClient,
-    run
+    run,
+    t,
+    tCommon
   ]);
 
   const handleDelete = useCallback(async () => {
+    if (!canEdit) {
+      toast.error(tCommon('viewOnly'), {
+        description: t('viewersCannotDelete')
+      });
+      return;
+    }
     if (isDeleting) return;
     setIsDeleting(true);
     try {
       const ok = await deleteSurvey(surveyId);
       if (!ok) {
-        throw new Error('Survey not found');
+        throw new Error(t('surveyNotFoundError'));
       }
       queryClient.removeQueries({ queryKey: surveyKeys.detail(surveyId) });
       queryClient.removeQueries({ queryKey: reviewerKeys.latest(surveyId) });
       await queryClient.invalidateQueries({ queryKey: surveyKeys.list() });
       await queryClient.invalidateQueries({ queryKey: surveyListKeys.all });
       setDeleteOpen(false);
-      toast.success('Survey deleted', {
-        description: 'The linked research plan was kept.'
+      toast.success(t('surveyDeleted'), {
+        description: t('surveyDeletedDesc')
       });
       router.replace('/dashboard/surveys');
     } catch (err) {
-      toast.error('Failed to delete survey', {
+      toast.error(t('deleteFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Please try again.'
+            : tCommon('pleaseTryAgain')
       });
     } finally {
       setIsDeleting(false);
     }
-  }, [isDeleting, surveyId, queryClient, router]);
+  }, [canEdit, isDeleting, surveyId, queryClient, router, t, tCommon]);
 
   const questionsLocked =
     survey?.status === 'published' ||
     survey?.status === 'closed' ||
     survey?.status === 'archived';
+  const readOnly = questionsLocked || !canEdit;
 
   const handleRegenerate = useCallback(async () => {
+    if (!canEdit) {
+      toast.error(tCommon('viewOnly'), {
+        description: t('viewersCannotRegenerate')
+      });
+      return;
+    }
     if (questionsLocked) {
-      toast.error('Survey locked', {
-        description:
-          'Published surveys cannot regenerate questions.'
+      toast.error(tBuilder('lockedToast'), {
+        description: t('publishedCannotRegenerate')
       });
       return;
     }
     if (!survey?.planId) {
-      toast.error('No linked plan', {
-        description:
-          'This survey has no research plan to regenerate questions from.'
+      toast.error(tBuilder('noLinkedPlan'), {
+        description: t('noLinkedPlanDesc')
       });
       return;
     }
@@ -300,25 +338,31 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         },
         { previewText: survey?.title }
       );
-      toast.success('Survey regenerated', {
-        description: `Replaced with ${next.sections.length} sections from your plan.`
+      toast.success(tBuilder('surveyRegenerated'), {
+        description: tBuilder('surveyRegeneratedDesc', {
+          count: next.sections.length
+        })
       });
     } catch (err) {
-      toast.error('Failed to regenerate survey', {
+      toast.error(t('regenerateFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Please try again.'
+            : tCommon('pleaseTryAgain')
       });
     }
   }, [
+    canEdit,
     questionsLocked,
     survey?.planId,
     survey?.title,
     surveyId,
     isRegenerating,
     queryClient,
-    run
+    run,
+    t,
+    tBuilder,
+    tCommon
   ]);
 
   if (surveyQuery.isLoading || reportQuery.isLoading) {
@@ -331,7 +375,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         <p className='text-sm font-medium text-foreground'>
           {surveyQuery.error instanceof Error
             ? surveyQuery.error.message
-            : 'Could not load this survey'}
+            : t('loadFailed')}
         </p>
         <Button
           type='button'
@@ -343,7 +387,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             void reportQuery.refetch();
           }}
         >
-          Try again
+          {tCommon('retry')}
         </Button>
       </div>
     );
@@ -357,18 +401,18 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
         <div className='space-y-1.5'>
           <h2 className='font-display text-xl font-extrabold tracking-tight'>
-            Survey not found
+            {t('notFoundTitle')}
           </h2>
           <p className='text-muted-foreground text-sm leading-relaxed'>
-            This survey is missing or you don&apos;t have access to it.
+            {t('notFoundDesc')}
           </p>
         </div>
         <Button
           nativeButton={false}
-          render={<Link href='/dashboard/surveys' aria-label='Back to surveys' />}
+          render={<Link href='/dashboard/surveys' aria-label={t('backToSurveysAria')} />}
           className={brandCtaClass}
         >
-          Back to Surveys
+          {t('backToSurveys')}
           <Icons.arrowRight className='ml-1.5 size-4' />
         </Button>
       </div>
@@ -387,9 +431,13 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
   );
   const statusLabel = questionsLocked
     ? survey.status === 'published'
-      ? 'Live'
-      : survey.status
-    : 'Draft';
+      ? t('statusLive')
+      : survey.status === 'closed'
+        ? t('statusClosed')
+        : survey.status === 'archived'
+          ? t('statusArchived')
+          : survey.status
+    : t('statusDraft');
   const openFindingCount =
     report?.findings.filter((f) => f.status === 'open').length ?? 0;
   const acceptedFindingCount =
@@ -418,20 +466,18 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
       }}
       onConfirm={() => void handleDelete()}
       loading={isDeleting}
-      title='Delete survey?'
-      description='This permanently deletes the questionnaire (sections and questions). The linked research plan is kept so you can generate a new survey from it later.'
-      confirmLabel='Delete survey'
+      title={t('deleteTitle')}
+      description={t('deleteDescription')}
+      confirmLabel={t('deleteConfirm')}
     />
     <Dialog open={collectWarnOpen} onOpenChange={setCollectWarnOpen}>
       <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
         <DialogHeader className={dialogHeaderSoftClass}>
-          <DialogTitle>Open findings remain</DialogTitle>
+          <DialogTitle>{t('openFindingsTitle')}</DialogTitle>
         </DialogHeader>
         <div className='px-4 pt-4 pb-2'>
           <p className='text-muted-foreground text-sm leading-relaxed'>
-            You still have {openFindingCount} open finding
-            {openFindingCount === 1 ? '' : 's'}. You can continue to Collect and
-            publish, or stay here and resolve them first.
+            {t('openFindingsBody', { count: openFindingCount })}
           </p>
         </div>
         <Separator />
@@ -441,10 +487,10 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             variant='outline'
             onClick={() => setCollectWarnOpen(false)}
           >
-            Stay on Review
+            {t('stayOnReview')}
           </Button>
           <Button type='button' className={primaryCtaClass} onClick={goToCollect}>
-            Continue to Collect
+            {t('continueToCollect')}
           </Button>
         </div>
       </DialogContent>
@@ -452,13 +498,11 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
     <Dialog open={confirmRegenOpen} onOpenChange={setConfirmRegenOpen}>
       <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
         <DialogHeader className={dialogHeaderSoftClass}>
-          <DialogTitle>Regenerate survey questions?</DialogTitle>
+          <DialogTitle>{tBuilder('regenerateTitle')}</DialogTitle>
         </DialogHeader>
         <div className='px-4 pt-4 pb-2'>
           <p className='text-muted-foreground text-sm leading-relaxed'>
-            This permanently replaces every section and question on this survey
-            with a new AI draft from the linked plan. The survey id stays the
-            same — previous questions are not kept or merged.
+            {tBuilder('regenerateBody')}
           </p>
         </div>
         <Separator />
@@ -469,7 +513,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             onClick={() => setConfirmRegenOpen(false)}
             disabled={isRegenerating}
           >
-            Cancel
+            {tCommon('cancel')}
           </Button>
           <Button
             type='button'
@@ -479,7 +523,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             }
           >
             <Icons.sparkles className='size-4' />
-            Replace &amp; regenerate
+            {tBuilder('replaceRegenerate')}
           </Button>
         </div>
       </DialogContent>
@@ -507,8 +551,8 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 ) : (
                   <p className='mt-1 text-sm leading-snug text-brand-foreground/70'>
                     {questionsLocked
-                      ? 'Questions are locked — review the draft structure below.'
-                      : 'Edit questions, run AI review, then continue to Collect.'}
+                      ? t('lockedSubtitle')
+                      : t('draftSubtitle')}
                   </p>
                 )}
               </div>
@@ -516,73 +560,79 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             badge={
               <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold capitalize text-brand-foreground'>
                 {statusLabel}
-                {questionsLocked ? ' · locked' : ''}
+                {questionsLocked ? t('lockedSuffix') : ''}
               </span>
             }
             actions={
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='sm'
-                      className='h-9 rounded-xl px-2.5 text-brand-foreground hover:bg-primary/10 hover:text-brand-foreground'
-                      aria-label='More actions'
-                    />
-                  }
-                >
-                  <Icons.ellipsis className='size-4' />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' className='w-52'>
-                  {!questionsLocked ? (
-                    <>
-                      <DropdownMenuItem
-                        disabled={
-                          isRegenerating ||
-                          isReviewing ||
-                          questionCount === 0
-                        }
-                        onClick={() => void handleReview()}
-                      >
-                        {isReviewing ? (
-                          <Icons.spinner className='size-3.5 animate-spin' />
-                        ) : (
-                          <Icons.review className='size-3.5' />
-                        )}
-                        {isReviewing
-                          ? 'Reviewing…'
-                          : report
-                            ? 'Re-run review'
-                            : 'Review with AI'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={
-                          isRegenerating || isReviewing || !survey.planId
-                        }
-                        onClick={() => setConfirmRegenOpen(true)}
-                      >
-                        {isRegenerating ? (
-                          <Icons.spinner className='size-3.5 animate-spin' />
-                        ) : (
-                          <Icons.sparkles className='size-3.5' />
-                        )}
-                        {questionCount === 0
-                          ? 'Generate questions'
-                          : 'Regenerate'}
-                      </DropdownMenuItem>
-                    </>
-                  ) : null}
-                  <DropdownMenuItem
-                    variant='destructive'
-                    disabled={isRegenerating || isReviewing || isDeleting}
-                    onClick={() => setDeleteOpen(true)}
+              canEdit ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='h-9 rounded-xl px-2.5 text-brand-foreground hover:bg-primary/10 hover:text-brand-foreground'
+                        aria-label={t('moreActions')}
+                      />
+                    }
                   >
-                    <Icons.trash className='size-3.5' />
-                    Remove survey
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <Icons.ellipsis className='size-4' />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end' className='w-52'>
+                    {!questionsLocked ? (
+                      <>
+                        <DropdownMenuItem
+                          disabled={
+                            isRegenerating ||
+                            isReviewing ||
+                            questionCount === 0
+                          }
+                          onClick={() => void handleReview()}
+                        >
+                          {isReviewing ? (
+                            <Icons.spinner className='size-3.5 animate-spin' />
+                          ) : (
+                            <Icons.review className='size-3.5' />
+                          )}
+                          {isReviewing
+                            ? t('reviewing')
+                            : report
+                              ? t('reReview')
+                              : t('reviewWithAi')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={
+                            isRegenerating || isReviewing || !survey.planId
+                          }
+                          onClick={() => setConfirmRegenOpen(true)}
+                        >
+                          {isRegenerating ? (
+                            <Icons.spinner className='size-3.5 animate-spin' />
+                          ) : (
+                            <Icons.sparkles className='size-3.5' />
+                          )}
+                          {questionCount === 0
+                            ? tBuilder('generateQuestions')
+                            : t('regenerate')}
+                        </DropdownMenuItem>
+                      </>
+                    ) : null}
+                    <DropdownMenuItem
+                      variant='destructive'
+                      disabled={isRegenerating || isReviewing || isDeleting}
+                      onClick={() => setDeleteOpen(true)}
+                    >
+                      <Icons.trash className='size-3.5' />
+                      {t('removeSurvey')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold text-brand-foreground'>
+                  {tCommon('viewOnly')}
+                </span>
+              )
             }
           />
         </SurvaiPanel>
@@ -595,14 +645,13 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 </div>
                 <div>
                   <p className='font-display text-base font-extrabold tracking-tight'>
-                    No questions yet
+                    {t('noQuestionsYet')}
                   </p>
                   <p className='text-muted-foreground mx-auto mt-1 max-w-xs text-xs leading-relaxed'>
-                    Generate a draft from your plan, then refine each question
-                    here.
+                    {t('noQuestionsHint')}
                   </p>
                 </div>
-                {!questionsLocked ? (
+                {canEdit && !questionsLocked ? (
                   <Button
                     type='button'
                     className={cn(primaryCtaClass, 'mt-1 h-10 w-auto px-4')}
@@ -610,7 +659,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                     disabled={!survey.planId || isRegenerating}
                   >
                     <Icons.sparkles className='size-3.5' />
-                    Generate questions
+                    {tBuilder('generateQuestions')}
                   </Button>
                 ) : null}
               </div>
@@ -620,7 +669,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               <SectionReviewCard
                 key={section.id}
                 section={section}
-                readOnly={questionsLocked}
+                readOnly={readOnly}
                 openFindingsByQuestionId={openFindingsByQuestionId}
                 highlightedQuestionId={highlightedQuestionId}
               />
@@ -631,10 +680,10 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
             <FindingsList
               findings={report.findings}
               onFindingUpdate={
-                questionsLocked ? undefined : handleFindingUpdate
+                readOnly ? undefined : handleFindingUpdate
               }
               onNavigateToQuestion={navigateToQuestion}
-              readOnly={questionsLocked}
+              readOnly={readOnly}
             />
           ) : null}
         </div>
@@ -643,12 +692,12 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
           <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] sm:p-5'>
             <div>
               <p className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {questionsLocked ? 'Collecting responses' : 'Ready to collect?'}
+                {questionsLocked ? t('collectingResponses') : t('readyToCollect')}
               </p>
               <p className='mt-1 text-sm leading-relaxed text-brand-foreground/75'>
                 {questionsLocked
-                  ? 'Questions are locked while this survey is live. Share and monitor from Collect.'
-                  : 'Finish reviewing findings, then publish and share with respondents.'}
+                  ? t('lockedCollectHint')
+                  : t('readyCollectHint')}
               </p>
             </div>
             <ul className='space-y-1.5'>
@@ -657,7 +706,10 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   <Icons.forms className='size-3.5' />
                 </span>
                 <span className='min-w-0 flex-1 text-sm font-medium text-foreground'>
-                  {questionCount} questions across {sectionCount} sections
+                  {t('questionsAcross', {
+                    questions: questionCount,
+                    sections: sectionCount
+                  })}
                 </span>
               </li>
               <li className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'>
@@ -686,15 +738,21 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   )}
                 >
                   {report
-                    ? `${openFindingCount} open · ${acceptedFindingCount} accepted`
-                    : 'AI review not run yet'}
+                    ? t('findingsSummary', {
+                        open: openFindingCount,
+                        accepted: acceptedFindingCount
+                      })
+                    : t('reviewNotRun')}
                 </span>
               </li>
             </ul>
             <div className='space-y-2'>
               {report && !questionsLocked ? (
                 <p className='text-center font-mono text-[11px] font-semibold tracking-wide text-brand-foreground/80 tabular-nums'>
-                  {openFindingCount} open · {acceptedFindingCount} accepted
+                  {t('findingsSummary', {
+                    open: openFindingCount,
+                    accepted: acceptedFindingCount
+                  })}
                 </p>
               ) : null}
               <Button
@@ -702,14 +760,14 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 className={cn(primaryCtaClass, 'w-full justify-between')}
                 onClick={handleCollectClick}
               >
-                {questionsLocked ? 'Open Collect' : 'Go to Collect'}
+                {questionsLocked ? t('openCollect') : t('goToCollect')}
                 <Icons.arrowRight className='size-4' />
               </Button>
               {report && !questionsLocked ? (
                 <p className='text-center text-[11px] leading-relaxed text-brand-foreground/70'>
                   {openFindingCount > 0
-                    ? 'Open findings aren’t a hard block — you’ll get a reminder before leaving.'
-                    : 'No open findings — ready to publish from Collect.'}
+                    ? t('openFindingsReminder')
+                    : t('noOpenFindingsReady')}
                 </p>
               ) : null}
             </div>
@@ -722,17 +780,16 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               estimatedMinutes={report.estimatedCompletionMinutes ?? 0}
               requiredQuestionCount={report.requiredQuestionCount ?? 0}
             />
-          ) : !questionsLocked ? (
+          ) : canEdit && !questionsLocked ? (
             <SurvaiPanel>
               <SurvaiPanelHeader
                 icon={<Icons.review className='size-3.5' />}
-                title='Quality assessment'
-                subtitle='Use Review with AI in the header'
+                title={t('qualityAssessment')}
+                subtitle={t('qualityUseAi')}
               />
               <SurvaiPanelBody>
                 <p className='text-sm leading-relaxed text-foreground'>
-                  Checks leading wording, ambiguity, and alignment with your
-                  research plan. Advisory only — not a certification.
+                  {t('qualityEmptyHint')}
                 </p>
               </SurvaiPanelBody>
             </SurvaiPanel>
@@ -754,6 +811,7 @@ function SectionReviewCard({
   openFindingsByQuestionId: Map<string, number>;
   highlightedQuestionId: string | null;
 }) {
+  const t = useTranslations('review');
   const questionCount = section.questions.length;
   const requiredCount = section.questions.filter((q) => q.isRequired).length;
 
@@ -771,9 +829,12 @@ function SectionReviewCard({
           </h2>
           <p className='text-[11px] leading-snug text-muted-foreground'>
             {section.description?.trim() ||
-              `${questionCount} question${questionCount === 1 ? '' : 's'}${
-                requiredCount > 0 ? ` · ${requiredCount} required` : ''
-              }`}
+              (requiredCount > 0
+                ? t('sectionMetaRequired', {
+                    count: questionCount,
+                    required: requiredCount
+                  })
+                : t('sectionMeta', { count: questionCount }))}
           </p>
         </div>
         <span className='text-muted-foreground font-mono text-[10px] tabular-nums'>
@@ -785,7 +846,7 @@ function SectionReviewCard({
         {section.questions.length === 0 ? (
           <div className='flex flex-col items-center justify-center gap-2 px-5 py-8 text-center'>
             <p className='text-sm text-muted-foreground'>
-              No questions in this section yet
+              {t('noQuestionsInSection')}
             </p>
           </div>
         ) : (
@@ -820,6 +881,9 @@ function QuestionReviewItem({
   openFindingCount?: number;
   highlighted?: boolean;
 }) {
+  const t = useTranslations('review');
+  const tBuilder = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [isEditing, setIsEditing] = useState(false);
   const [editPrompt, setEditPrompt] = useState(question.promptText);
   const [editHelpText, setEditHelpText] = useState(question.helpText ?? '');
@@ -849,18 +913,18 @@ function QuestionReviewItem({
   const sourceBadge =
     question.source === 'ai_generated'
       ? {
-          label: 'AI',
+          label: t('sourceAi'),
           className:
             'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft text-foreground'
         }
       : question.source === 'ai_edited'
         ? {
-            label: 'AI edited',
+            label: t('sourceAiEdited'),
             className:
               'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft text-foreground'
           }
         : {
-            label: 'Manual',
+            label: t('sourceManual'),
             className: 'border-border bg-muted/60 text-muted-foreground'
           };
 
@@ -874,7 +938,7 @@ function QuestionReviewItem({
   const handleSave = useCallback(async () => {
     const trimmed = editPrompt.trim();
     if (!trimmed) {
-      toast.error('Question text is required');
+      toast.error(t('questionTextRequired'));
       return;
     }
 
@@ -888,7 +952,7 @@ function QuestionReviewItem({
         }))
         .filter((o) => o.label.length > 0);
       if (filled.length < 2) {
-        toast.error('Add at least two options');
+        toast.error(t('minTwoOptions'));
         return;
       }
       // Ensure unique option values
@@ -920,7 +984,7 @@ function QuestionReviewItem({
             : {})
       });
       if (!updated) {
-        throw new Error('Question not found');
+        throw new Error(t('questionNotFound'));
       }
 
       queryClient.setQueryData<Survey | null | undefined>(
@@ -928,18 +992,18 @@ function QuestionReviewItem({
         (prev) => patchQuestionInSurveyCache(prev ?? undefined, updated) ?? prev
       );
       setIsEditing(false);
-      toast.success('Question updated', {
+      toast.success(t('questionUpdated'), {
         description:
           updated.source === 'ai_edited'
-            ? 'Marked as AI edited'
+            ? t('markedAiEdited')
             : undefined
       });
     } catch (err) {
-      toast.error('Failed to update question', {
+      toast.error(t('updateQuestionFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Please try again.'
+            : tCommon('pleaseTryAgain')
       });
     } finally {
       setIsSaving(false);
@@ -954,7 +1018,9 @@ function QuestionReviewItem({
     editType,
     editIsRequired,
     editOptions,
-    queryClient
+    queryClient,
+    t,
+    tCommon
   ]);
 
   const handleCancel = useCallback(() => {
@@ -984,15 +1050,15 @@ function QuestionReviewItem({
         ? question.options
         : isOptionsType(question.type)
           ? [
-              { id: crypto.randomUUID(), label: 'Option 1', value: 'option_1' },
-              { id: crypto.randomUUID(), label: 'Option 2', value: 'option_2' }
+              { id: crypto.randomUUID(), label: tBuilder('optionN', { n: 1 }), value: 'option_1' },
+              { id: crypto.randomUUID(), label: tBuilder('optionN', { n: 2 }), value: 'option_2' }
             ]
           : []
     );
     setEditType(question.type);
     setEditIsRequired(question.isRequired);
     setIsEditing(true);
-  }, [question, readOnly]);
+  }, [question, readOnly, tBuilder]);
 
   const handleTypeChange = useCallback((newType: QuestionType) => {
     setEditType(newType);
@@ -1003,12 +1069,12 @@ function QuestionReviewItem({
           : [
               {
                 id: crypto.randomUUID(),
-                label: 'Option 1',
+                label: tBuilder('optionN', { n: 1 }),
                 value: 'option_1'
               },
               {
                 id: crypto.randomUUID(),
-                label: 'Option 2',
+                label: tBuilder('optionN', { n: 2 }),
                 value: 'option_2'
               }
             ]
@@ -1016,7 +1082,7 @@ function QuestionReviewItem({
     } else {
       setEditOptions([]);
     }
-  }, []);
+  }, [tBuilder]);
 
   const addOption = useCallback(() => {
     setEditOptions((prev) => [
@@ -1063,7 +1129,7 @@ function QuestionReviewItem({
       >
         <span
           className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-brand-soft font-mono text-[10px] font-semibold tabular-nums text-primary'
-          aria-label={`Question ${index + 1}`}
+          aria-label={t('questionAria', { index: index + 1 })}
         >
           {index + 1}
         </span>
@@ -1085,12 +1151,12 @@ function QuestionReviewItem({
               <div className='flex flex-wrap items-center gap-1.5 sm:justify-end'>
                 {openFindingCount > 0 ? (
                   <span className='rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground'>
-                    {openFindingCount} open
+                    {t('openCount', { count: openFindingCount })}
                   </span>
                 ) : null}
                 <span className='inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground'>
                   {ReadTypeIcon ? <ReadTypeIcon className='size-3' /> : null}
-                  {readTypeMeta.label}
+                  {tBuilder(QUESTION_TYPE_KEY[question.type])}
                 </span>
                 <span
                   className={cn(
@@ -1100,7 +1166,7 @@ function QuestionReviewItem({
                       : 'bg-muted text-muted-foreground'
                   )}
                 >
-                  {question.isRequired ? 'Required' : 'Optional'}
+                  {question.isRequired ? tCommon('required') : tCommon('optional')}
                 </span>
                 <span
                   className={cn(
@@ -1123,7 +1189,7 @@ function QuestionReviewItem({
                   onClick={startEditing}
                 >
                   <Icons.edit className='size-3.5' />
-                  Edit
+                  {tCommon('edit')}
                 </Button>
               ) : null}
             </div>
@@ -1188,9 +1254,9 @@ function QuestionReviewItem({
       <Sheet open={isEditing} onOpenChange={handleSheetOpenChange}>
         <SheetContent side='right' className='gap-0 p-0 sm:max-w-md'>
           <SheetHeader className='border-b border-border px-4 py-4'>
-            <SheetTitle>Edit question {index + 1}</SheetTitle>
+            <SheetTitle>{t('editQuestionN', { index: index + 1 })}</SheetTitle>
             <SheetDescription>
-              Change type, options, and required — save when done.
+              {t('editQuestionHint')}
             </SheetDescription>
           </SheetHeader>
 
@@ -1207,7 +1273,7 @@ function QuestionReviewItem({
                   }
                 >
                   {TypeIcon ? <TypeIcon className='size-3.5' /> : null}
-                  {typeMeta.label}
+                  {tBuilder(QUESTION_TYPE_KEY[editType])}
                   <Icons.chevronDown className='size-3.5 opacity-60' />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='start' className='w-52'>
@@ -1224,7 +1290,7 @@ function QuestionReviewItem({
                         )}
                       >
                         {Icon ? <Icon className='size-3.5' /> : null}
-                        <span className='flex-1'>{qt.label}</span>
+                        <span className='flex-1'>{tBuilder(QUESTION_TYPE_KEY[qt.type])}</span>
                         {selected ? (
                           <Icons.check className='size-3.5 text-foreground' />
                         ) : null}
@@ -1241,7 +1307,7 @@ function QuestionReviewItem({
                   className='scale-90'
                 />
                 <span className='text-xs font-medium'>
-                  {editIsRequired ? 'Required' : 'Optional'}
+                  {editIsRequired ? tCommon('required') : tCommon('optional')}
                 </span>
               </label>
             </div>
@@ -1251,7 +1317,7 @@ function QuestionReviewItem({
                 htmlFor={`q-prompt-${question.id}`}
                 className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'
               >
-                Question
+                {t('questionLabel')}
               </Label>
               <Textarea
                 id={`q-prompt-${question.id}`}
@@ -1259,7 +1325,7 @@ function QuestionReviewItem({
                 onChange={(e) => setEditPrompt(e.target.value)}
                 rows={3}
                 autoFocus
-                placeholder='What do you want to ask?'
+                placeholder={t('questionPlaceholder')}
                 className='min-h-[5rem] resize-none rounded-xl border-2 border-border text-sm font-medium leading-relaxed focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))]'
               />
             </div>
@@ -1269,16 +1335,16 @@ function QuestionReviewItem({
                 htmlFor={`q-help-${question.id}`}
                 className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'
               >
-                Help text
+                {t('helpText')}
                 <span className='ml-1 font-normal normal-case tracking-normal opacity-70'>
-                  optional
+                  {t('optionalInline')}
                 </span>
               </Label>
               <Input
                 id={`q-help-${question.id}`}
                 value={editHelpText}
                 onChange={(e) => setEditHelpText(e.target.value)}
-                placeholder='Clarify how respondents should answer…'
+                placeholder={t('helpPlaceholder')}
                 className='h-9 rounded-xl text-sm'
               />
             </div>
@@ -1287,7 +1353,7 @@ function QuestionReviewItem({
               <div className='space-y-2.5'>
                 <div className='flex items-center justify-between gap-2'>
                   <p className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
-                    Options
+                    {tBuilder('options')}
                   </p>
                   <span className='font-mono text-[10px] text-muted-foreground tabular-nums'>
                     {editOptions.length}
@@ -1314,7 +1380,7 @@ function QuestionReviewItem({
                       <Input
                         value={opt.label}
                         onChange={(e) => updateOption(opt.id, e.target.value)}
-                        placeholder={`Option ${optIdx + 1}`}
+                        placeholder={tBuilder('optionN', { n: optIdx + 1 })}
                         className='h-9 flex-1 rounded-xl text-sm'
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -1329,7 +1395,7 @@ function QuestionReviewItem({
                         size='icon-sm'
                         className='size-8 shrink-0 rounded-lg text-muted-foreground opacity-70 hover:text-destructive group-hover/opt:opacity-100'
                         disabled={!canRemoveOption}
-                        aria-label={`Remove option ${optIdx + 1}`}
+                        aria-label={t('removeOption', { index: optIdx + 1 })}
                         onClick={() => removeOption(opt.id)}
                       >
                         <Icons.close className='size-3.5' />
@@ -1346,16 +1412,17 @@ function QuestionReviewItem({
                   onClick={addOption}
                 >
                   <Icons.add className='size-3.5' />
-                  Add option
+                  {tBuilder('addOption')}
                 </Button>
               </div>
             ) : null}
 
             {editType === 'rating_scale' ? (
               <p className='rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground'>
-                Scale{' '}
-                {question.validationRules?.min ?? 1}–
-                {question.validationRules?.max ?? 5}
+                {t('scaleRange', {
+                  min: question.validationRules?.min ?? 1,
+                  max: question.validationRules?.max ?? 5
+                })}
               </p>
             ) : null}
           </div>
@@ -1374,7 +1441,7 @@ function QuestionReviewItem({
                 ) : (
                   <Icons.check className='size-3.5' />
                 )}
-                Save
+                {tCommon('save')}
               </Button>
               <Button
                 type='button'
@@ -1384,11 +1451,11 @@ function QuestionReviewItem({
                 onClick={handleCancel}
                 disabled={isSaving}
               >
-                Cancel
+                {tCommon('cancel')}
               </Button>
               {hasChanges ? (
                 <span className='ml-auto text-[11px] text-muted-foreground'>
-                  Unsaved changes
+                  {tCommon('unsavedChanges')}
                 </span>
               ) : null}
             </div>

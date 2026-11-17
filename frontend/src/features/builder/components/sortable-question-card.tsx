@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card } from '@/components/ui/card';
@@ -7,8 +8,28 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import type { Question } from '../api/types';
-import { getQuestionTypeMeta } from '../api/types';
+import type { Question, QuestionType } from '../api/types';
+
+const TYPE_LABEL_KEY: Record<
+  QuestionType,
+  | 'shortText'
+  | 'longText'
+  | 'singleChoice'
+  | 'multipleChoice'
+  | 'dropdown'
+  | 'ratingScale'
+  | 'number'
+  | 'date'
+> = {
+  short_text: 'shortText',
+  long_text: 'longText',
+  single_choice: 'singleChoice',
+  multiple_choice: 'multipleChoice',
+  dropdown: 'dropdown',
+  rating_scale: 'ratingScale',
+  number: 'number',
+  date: 'date'
+};
 
 interface SortableQuestionCardProps {
   question: Question;
@@ -23,21 +44,15 @@ export function SortableQuestionCard({
   onEdit,
   onDelete
 }: SortableQuestionCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: question.id });
+  const t = useTranslations('builder');
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: question.id
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition
   };
-
-  const typeMeta = getQuestionTypeMeta(question.type);
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -67,29 +82,27 @@ export function SortableQuestionCard({
             <p className='truncate text-sm font-medium'>{question.promptText}</p>
             {question.isRequired && (
               <Badge variant='destructive' className='shrink-0 text-[10px]'>
-                Required
+                {t('required')}
               </Badge>
             )}
           </div>
 
           <div className='flex items-center gap-2'>
             <Badge variant='outline' className='text-[10px]'>
-              {typeMeta.label}
+              {t(TYPE_LABEL_KEY[question.type])}
             </Badge>
             {question.options && (
               <span className='text-muted-foreground text-xs'>
-                {question.options.length} options
+                {t('optionsCount', { count: question.options.length })}
               </span>
             )}
             {question.helpText && (
-              <span className='text-muted-foreground text-xs'>
-                · Has help text
-              </span>
+              <span className='text-muted-foreground text-xs'>· {t('hasHelpText')}</span>
             )}
             {question.source !== 'manual' && (
               <Badge variant='secondary' className='text-[10px]'>
                 <Icons.sparkles className='mr-0.5 h-2.5 w-2.5' />
-                AI
+                {t('sourceAi')}
               </Badge>
             )}
           </div>
@@ -107,7 +120,7 @@ export function SortableQuestionCard({
               ))}
               {question.options.length > 4 && (
                 <span className='text-muted-foreground text-[10px]'>
-                  +{question.options.length - 4} more
+                  {t('moreOptions', { count: question.options.length - 4 })}
                 </span>
               )}
             </div>
@@ -119,9 +132,7 @@ export function SortableQuestionCard({
               {Array.from(
                 {
                   length:
-                    (question.validationRules.max ?? 5) -
-                    (question.validationRules.min ?? 1) +
-                    1
+                    (question.validationRules.max ?? 5) - (question.validationRules.min ?? 1) + 1
                 },
                 (_, i) => (question.validationRules?.min ?? 1) + i
               ).map((n) => (
@@ -142,7 +153,7 @@ export function SortableQuestionCard({
             variant='ghost'
             size='icon-sm'
             onClick={() => onEdit(question)}
-            aria-label='Edit question'
+            aria-label={t('editQuestion')}
           >
             <Icons.edit className='h-3.5 w-3.5' />
           </Button>
@@ -150,7 +161,7 @@ export function SortableQuestionCard({
             variant='ghost'
             size='icon-sm'
             onClick={() => onDelete(question.id)}
-            aria-label='Delete question'
+            aria-label={t('deleteQuestion')}
             className='text-destructive hover:text-destructive'
           >
             <Icons.trash className='h-3.5 w-3.5' />

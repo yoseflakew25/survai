@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ComponentProps } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -13,10 +14,13 @@ type PasswordInputProps = Omit<ComponentProps<'input'>, 'type'> & {
 export function PasswordInput({
   className,
   disabled,
-  toggleLabelShow = 'Show password',
-  toggleLabelHide = 'Hide password',
+  toggleLabelShow,
+  toggleLabelHide,
   ...props
 }: PasswordInputProps) {
+  const t = useTranslations('auth');
+  const showLabel = toggleLabelShow ?? t('showPassword');
+  const hideLabel = toggleLabelHide ?? t('hidePassword');
   const [visible, setVisible] = useState(false);
 
   return (
@@ -31,7 +35,7 @@ export function PasswordInput({
         type='button'
         tabIndex={-1}
         disabled={disabled}
-        aria-label={visible ? toggleLabelHide : toggleLabelShow}
+        aria-label={visible ? hideLabel : showLabel}
         aria-pressed={visible}
         onClick={() => setVisible((v) => !v)}
         className='text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-50'

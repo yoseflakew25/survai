@@ -5,8 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
-import type { ReviewerFinding, FindingStatus } from '../api/types';
-import { getIssueTypeMeta } from '../api/types';
+import type { ReviewerFinding, FindingIssueType, FindingStatus } from '../api/types';
+import { useTranslations } from 'next-intl';
+
+const ISSUE_KEY: Record<FindingIssueType, string> = {
+  leading_wording: 'issueLeading',
+  double_barreled: 'issueDouble',
+  ambiguous: 'issueAmbiguous',
+  objective_misalignment: 'issueMisalignment',
+  other: 'issueOther'
+};
+
+const FILTER_KEY = {
+  all: 'filterAll',
+  open: 'filterOpen',
+  accepted: 'filterAccepted',
+  dismissed: 'filterDismissed'
+} as const;
+
+const EMPTY_FILTER_KEY = {
+  open: 'noOpenFindings',
+  accepted: 'noAcceptedFindings',
+  dismissed: 'noDismissedFindings'
+} as const;
 import { updateFindingStatus } from '../api/service';
 import {
   SurvaiPanel,
@@ -27,6 +48,7 @@ export function FindingsList({
   onNavigateToQuestion,
   readOnly = false
 }: FindingsListProps) {
+  const t = useTranslations('review');
   const [filter, setFilter] = useState<FindingStatus | 'all'>('all');
 
   const filtered = findings.filter(
@@ -45,8 +67,12 @@ export function FindingsList({
       <SurvaiPanelHeader
         tone='brand'
         // icon={<Icons.review className='size-3.5' />}
-        title='Findings'
-        subtitle={`${counts.open} open · ${counts.accepted} accepted · ${counts.dismissed} dismissed`}
+        title={t('findings')}
+        subtitle={t('findingsCounts', {
+          open: counts.open,
+          accepted: counts.accepted,
+          dismissed: counts.dismissed
+        })}
         badge={
           <span className='inline-flex min-w-6 items-center justify-center rounded-lg bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
             {counts.all}
@@ -57,7 +83,7 @@ export function FindingsList({
       <SurvaiPanelBody className='space-y-3'>
         <div
           role='tablist'
-          aria-label='Filter findings'
+          aria-label={t('filterFindings')}
           className='flex flex-wrap gap-1'
         >
           {(['all', 'open', 'accepted', 'dismissed'] as const).map((status) => {
@@ -76,7 +102,7 @@ export function FindingsList({
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
-                {status}
+                {t(FILTER_KEY[status])}
                 {status !== 'all' ? (
                   <span className='font-mono text-[10px] tabular-nums opacity-70'>
                     {counts[status]}
@@ -90,12 +116,14 @@ export function FindingsList({
         {filtered.length === 0 ? (
           <div className='flex flex-col items-center py-8 text-center'>
             <p className='text-sm font-medium text-foreground'>
-              {filter === 'all' ? 'No findings detected' : `No ${filter} findings`}
+              {filter === 'all'
+                ? t('noFindingsDetected')
+                : t(EMPTY_FILTER_KEY[filter])}
             </p>
             <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
               {filter === 'all'
-                ? 'AI did not flag wording or alignment issues on this draft.'
-                : 'Try another filter to see more findings.'}
+                ? t('noFindingsHint')
+                : t('tryAnotherFilter')}
             </p>
           </div>
         ) : (
@@ -128,9 +156,9 @@ function FindingCard({
   onNavigateToQuestion?: (questionId: string) => void;
   readOnly?: boolean;
 }) {
+  const t = useTranslations('review');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const issueMeta = getIssueTypeMeta(finding.issueType);
   const canJump = Boolean(finding.questionId && onNavigateToQuestion);
 
   const handleStatusChange = useCallback(
@@ -143,19 +171,19 @@ function FindingCard({
           onUpdate(updated);
           toast.success(
             status === 'accepted'
-              ? 'Finding accepted'
+              ? t('findingAccepted')
               : status === 'dismissed'
-                ? 'Finding dismissed'
-                : 'Finding reopened'
+                ? t('findingDismissed')
+                : t('findingReopened')
           );
         }
       } catch {
-        toast.error('Failed to update finding');
+        toast.error(t('findingUpdateFailed'));
       } finally {
         setIsUpdating(false);
       }
     },
-    [finding.id, onUpdate, readOnly]
+    [finding.id, onUpdate, readOnly, t]
   );
 
   return (
@@ -168,7 +196,7 @@ function FindingCard({
     >
       <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
         <span className='text-[11px] font-semibold text-foreground'>
-          {issueMeta.label}
+          {t(ISSUE_KEY[finding.issueType])}
         </span>
         {finding.sectionTitle ? (
           <>
@@ -189,7 +217,9 @@ function FindingCard({
                 : 'bg-muted text-muted-foreground'
             )}
           >
-            {finding.status}
+            {finding.status === 'accepted'
+              ? t('filterAccepted')
+              : t('filterDismissed')}
           </span>
         ) : null}
       </div>
@@ -211,7 +241,7 @@ function FindingCard({
               onClick={() => onNavigateToQuestion?.(finding.questionId!)}
               className='inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-primary hover:underline'
             >
-              View question
+              {t('viewQuestion')}
               <Icons.arrowRight className='size-3' />
             </button>
           ) : null}
@@ -230,7 +260,7 @@ function FindingCard({
             ) : (
               <Icons.chevronDown className='size-3' />
             )}
-            Suggested rewrite
+            {t('suggestedRewrite')}
           </button>
           {isExpanded ? (
             <p className='rounded-lg border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/50 px-3 py-2 text-xs leading-relaxed text-foreground'>
@@ -250,7 +280,7 @@ function FindingCard({
             className='h-7 rounded-lg px-2.5 text-xs'
           >
             <Icons.check className='size-3' />
-            Accept
+            {t('accept')}
           </Button>
           <Button
             variant='ghost'
@@ -259,7 +289,7 @@ function FindingCard({
             disabled={isUpdating}
             className='h-7 rounded-lg px-2.5 text-xs text-muted-foreground'
           >
-            Dismiss
+            {t('dismiss')}
           </Button>
         </div>
       ) : null}
@@ -271,7 +301,7 @@ function FindingCard({
           disabled={isUpdating}
           className='h-7 rounded-lg px-2 text-xs text-muted-foreground'
         >
-          Reopen
+          {t('reopen')}
         </Button>
       ) : null}
     </div>

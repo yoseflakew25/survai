@@ -1,15 +1,17 @@
 import type {
+  ContentLanguage,
   PlanInterviewBrief,
   PlanInterviewMessage
 } from '../api/types';
 
-const DRAFT_KEY = 'planInterviewDraft:v1';
+const DRAFT_KEY = 'planInterviewDraft:v2';
 
 export type PlanInterviewDraft = {
   messages: PlanInterviewMessage[];
   brief: PlanInterviewBrief;
   researchGoalDraft: string;
   readyToGenerate: boolean;
+  contentLanguage?: ContentLanguage;
   updatedAt: string;
 };
 

@@ -13,8 +13,110 @@ import aiosmtplib
 import httpx
 
 from app.core.config import get_settings
+from app.core.i18n import normalize_locale
 
 logger = logging.getLogger(__name__)
+
+_EMAIL_COPY = {
+    "en": {
+        "invite_subject": "You're invited to {org_name} on SurvAI",
+        "invite_title": "You're invited to SurvAI",
+        "invite_preheader": "Join {org_name} on SurvAI as a {role_label}.",
+        "invite_body": (
+            '<strong style="color:{fg};">{invited_by}</strong> invited you to join '
+            '<strong style="color:{fg};">{org_name}</strong> as a '
+            '<strong style="color:{fg};">{role_label}</strong>.'
+        ),
+        "invite_cta": "Accept invite",
+        "invite_or_paste": "Or paste this URL into your browser:",
+        "invite_footnote": (
+            "This invite expires in 7 days. If you weren't expecting it, ignore this email."
+        ),
+        "invite_text": (
+            "{invited_by} invited you to join {org_name} on SurvAI as a {role_label}.\n\n"
+            "Accept the invite (expires in 7 days):\n{invite_url}\n"
+        ),
+        "role_researcher": "Researcher",
+        "role_viewer": "Viewer",
+        "reset_subject": "Your SurvAI password reset code",
+        "reset_title": "Reset your password",
+        "reset_intro": (
+            "Enter this code with your new password to reset your SurvAI account."
+        ),
+        "reset_cta": "Enter code on SurvAI",
+        "reset_expires": "This code expires in <strong style=\"color:{fg};\">{minutes} minutes</strong>. Don’t share it with anyone.",
+        "reset_footnote": "If you did not request a password reset, you can safely ignore this email.",
+        "reset_text": (
+            "Your SurvAI password reset code is: {code}\n\n"
+            "Enter it here: {action_url}\n\n"
+            "It expires in {minutes} minutes. If you did not request a reset, ignore this email.\n"
+        ),
+        "verify_subject": "Your SurvAI verification code",
+        "verify_title": "Verify your email",
+        "verify_intro": (
+            "Enter this code to verify your email and finish creating your SurvAI workspace."
+        ),
+        "verify_cta": "Enter code on SurvAI",
+        "verify_expires": "This code expires in <strong style=\"color:{fg};\">{minutes} minutes</strong>. Don’t share it with anyone.",
+        "verify_footnote": "If you did not create a SurvAI account, you can safely ignore this email.",
+        "verify_text": (
+            "Your SurvAI verification code is: {code}\n\n"
+            "Enter it here: {action_url}\n\n"
+            "It expires in {minutes} minutes. If you did not create an account, ignore this email.\n"
+        ),
+        "lifecycle_cta": "Open in SurvAI",
+        "lifecycle_footnote": "You received this because you have a SurvAI organization account.",
+        "lifecycle_subject": "SurvAI: {title}",
+    },
+    "am": {
+        "invite_subject": "ወደ {org_name} በ SurvAI ተጋብዘዋል",
+        "invite_title": "ወደ SurvAI ተጋብዘዋል",
+        "invite_preheader": "ወደ {org_name} በ SurvAI እንደ {role_label} ይቀላቀሉ።",
+        "invite_body": (
+            '<strong style="color:{fg};">{invited_by}</strong> ወደ '
+            '<strong style="color:{fg};">{org_name}</strong> እንደ '
+            '<strong style="color:{fg};">{role_label}</strong> ጋብዘዎታል።'
+        ),
+        "invite_cta": "ግብዣውን ተቀበል",
+        "invite_or_paste": "ወይም ይህን URL በአሳሽዎ ውስጥ ይለጥፉ:",
+        "invite_footnote": "ይህ ግብዣ በ7 ቀናት ውስጥ ያበቃል። ካልጠበቁት ይህን ኢሜይል ችላ ይበሉ።",
+        "invite_text": (
+            "{invited_by} ወደ {org_name} በ SurvAI እንደ {role_label} ጋብዘዎታል።\n\n"
+            "ግብዣውን ይቀበሉ (በ7 ቀናት ያበቃል):\n{invite_url}\n"
+        ),
+        "role_researcher": "ተመራማሪ",
+        "role_viewer": "ተመልካች",
+        "reset_subject": "የ SurvAI የይለፍ ቃል ዳግም ማስጀመሪያ ኮድዎ",
+        "reset_title": "የይለፍ ቃልዎን ዳግም ያስጀምሩ",
+        "reset_intro": "የ SurvAI መለያዎን ለመቀየር ይህን ኮድ ከአዲሱ የይለፍ ቃል ጋር ያስገቡ።",
+        "reset_cta": "ኮዱን በ SurvAI ያስገቡ",
+        "reset_expires": "ይህ ኮድ በ <strong style=\"color:{fg};\">{minutes} ደቂቃዎች</strong> ውስጥ ያበቃል። ለማንም አያጋሩ።",
+        "reset_footnote": "የይለፍ ቃል ዳግም ማስጀመር ካልጠየቁ ይህን ኢሜይል በደህና ችላ ይበሉ።",
+        "reset_text": (
+            "የ SurvAI የይለፍ ቃል ዳግም ማስጀመሪያ ኮድዎ: {code}\n\n"
+            "እዚህ ያስገቡ: {action_url}\n\n"
+            "በ {minutes} ደቂቃዎች ያበቃል። ካልጠየቁ ችላ ይበሉ።\n"
+        ),
+        "verify_subject": "የ SurvAI ማረጋገጫ ኮድዎ",
+        "verify_title": "ኢሜይልዎን ያረጋግጡ",
+        "verify_intro": "ኢሜይልዎን ለማረጋገጥ እና የ SurvAI የስራ ቦታዎን ለመጨረስ ይህን ኮድ ያስገቡ።",
+        "verify_cta": "ኮዱን በ SurvAI ያስገቡ",
+        "verify_expires": "ይህ ኮድ በ <strong style=\"color:{fg};\">{minutes} ደቂቃዎች</strong> ውስጥ ያበቃል። ለማንም አያጋሩ።",
+        "verify_footnote": "የ SurvAI መለያ ካልፈጠሩ ይህን ኢሜይል በደህና ችላ ይበሉ።",
+        "verify_text": (
+            "የ SurvAI ማረጋገጫ ኮድዎ: {code}\n\n"
+            "እዚህ ያስገቡ: {action_url}\n\n"
+            "በ {minutes} ደቂቃዎች ያበቃል። መለያ ካልፈጠሩ ችላ ይበሉ።\n"
+        ),
+        "lifecycle_cta": "በ SurvAI ክፈት",
+        "lifecycle_footnote": "ይህን ኢሜይል የተቀበሉት የ SurvAI ድርጅት መለያ ስላለዎት ነው።",
+        "lifecycle_subject": "SurvAI: {title}",
+    },
+}
+
+
+def _copy(locale: str | None) -> dict[str, str]:
+    return _EMAIL_COPY[normalize_locale(locale)]
 
 # SurvAI brand tokens (match frontend theme — inline for email clients).
 _BG = "#f7f7f2"
@@ -306,39 +408,54 @@ async def send_org_invite_email(
     role: str,
     invite_url: str,
     invited_by_name: str,
+    locale: str | None = None,
 ) -> None:
-    role_label = "Researcher" if role == "researcher" else "Viewer"
-    subject = f"You're invited to {org_name} on SurvAI"
-    text_body = (
-        f"{invited_by_name} invited you to join {org_name} on SurvAI as a {role_label}.\n\n"
-        f"Accept the invite (expires in 7 days):\n{invite_url}\n"
+    t = _copy(locale)
+    role_label = (
+        t["role_researcher"] if role == "researcher" else t["role_viewer"]
+    )
+    subject = t["invite_subject"].format(org_name=org_name)
+    text_body = t["invite_text"].format(
+        invited_by=invited_by_name,
+        org_name=org_name,
+        role_label=role_label,
+        invite_url=invite_url,
+    )
+    body_inner = t["invite_body"].format(
+        fg=_FG,
+        invited_by=html.escape(invited_by_name),
+        org_name=html.escape(org_name),
+        role_label=html.escape(role_label),
     )
     body = f"""\
 <p style="margin:0 0 8px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.55;color:{_MUTED};">
-  <strong style="color:{_FG};">{html.escape(invited_by_name)}</strong> invited you to join
-  <strong style="color:{_FG};">{html.escape(org_name)}</strong> as a
-  <strong style="color:{_FG};">{role_label}</strong>.
+  {body_inner}
 </p>
-{_cta_button(href=invite_url, label="Accept invite")}
+{_cta_button(href=invite_url, label=t["invite_cta"])}
 <p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;line-height:1.5;color:{_MUTED};
   word-break:break-all;">
-  Or paste this URL into your browser:<br />
+  {html.escape(t["invite_or_paste"])}<br />
   <a href="{html.escape(invite_url, quote=True)}" style="color:{_BRAND_STRONG};">{html.escape(invite_url)}</a>
 </p>
 """
     html_body = _email_shell(
-        preheader=f"Join {org_name} on SurvAI as a {role_label}.",
-        title="You're invited to SurvAI",
+        preheader=t["invite_preheader"].format(
+            org_name=org_name, role_label=role_label
+        ),
+        title=t["invite_title"],
         body_html=body,
-        footnote="This invite expires in 7 days. If you weren't expecting it, ignore this email.",
+        footnote=t["invite_footnote"],
     )
     await send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
 
 
-async def send_password_reset_otp(*, to_email: str, code: str) -> None:
+async def send_password_reset_otp(
+    *, to_email: str, code: str, locale: str | None = None
+) -> None:
     """6-digit OTP to reset password (same delivery path as signup verification)."""
+    t = _copy(locale)
     settings = get_settings()
     minutes = settings.email_verification_otp_expire_minutes
     action_url = settings.frontend_absolute_url(
@@ -346,16 +463,14 @@ async def send_password_reset_otp(*, to_email: str, code: str) -> None:
         query={"email": to_email, "mode": "otp"},
     )
     safe_code = html.escape(code)
-    subject = "Your SurvAI password reset code"
-    text_body = (
-        f"Your SurvAI password reset code is: {code}\n\n"
-        f"Enter it here: {action_url}\n\n"
-        f"It expires in {minutes} minutes. If you did not request a reset, ignore this email.\n"
+    subject = t["reset_subject"]
+    text_body = t["reset_text"].format(
+        code=code, action_url=action_url, minutes=minutes
     )
     body = f"""\
 <p style="margin:0 0 20px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.55;color:{_MUTED};">
-  Enter this code with your new password to reset your SurvAI account.
+  {html.escape(t["reset_intro"])}
 </p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
   style="margin:0 0 20px 0;">
@@ -369,23 +484,25 @@ async def send_password_reset_otp(*, to_email: str, code: str) -> None:
     </td>
   </tr>
 </table>
-{_cta_button(href=action_url, label="Enter code on SurvAI")}
+{_cta_button(href=action_url, label=t["reset_cta"])}
 <p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:{_MUTED};">
-  This code expires in <strong style="color:{_FG};">{minutes} minutes</strong>.
-  Don’t share it with anyone.
+  {t["reset_expires"].format(fg=_FG, minutes=minutes)}
 </p>
 """
     html_body = _email_shell(
-        preheader=f"Your SurvAI reset code is {code} — expires in {minutes} minutes.",
-        title="Reset your password",
+        preheader=f"{code} — {minutes}",
+        title=t["reset_title"],
         body_html=body,
-        footnote="If you did not request a password reset, you can safely ignore this email.",
+        footnote=t["reset_footnote"],
     )
     await send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
 
 
-async def send_email_verification_otp(*, to_email: str, code: str) -> None:
+async def send_email_verification_otp(
+    *, to_email: str, code: str, locale: str | None = None
+) -> None:
+    t = _copy(locale)
     settings = get_settings()
     minutes = settings.email_verification_otp_expire_minutes
     action_url = settings.frontend_absolute_url(
@@ -393,16 +510,14 @@ async def send_email_verification_otp(*, to_email: str, code: str) -> None:
         query={"email": to_email, "mode": "verify"},
     )
     safe_code = html.escape(code)
-    subject = "Your SurvAI verification code"
-    text_body = (
-        f"Your SurvAI verification code is: {code}\n\n"
-        f"Enter it here: {action_url}\n\n"
-        f"It expires in {minutes} minutes. If you did not create an account, ignore this email.\n"
+    subject = t["verify_subject"]
+    text_body = t["verify_text"].format(
+        code=code, action_url=action_url, minutes=minutes
     )
     body = f"""\
 <p style="margin:0 0 20px 0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.55;color:{_MUTED};">
-  Enter this code to verify your email and finish creating your SurvAI workspace.
+  {html.escape(t["verify_intro"])}
 </p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
   style="margin:0 0 20px 0;">
@@ -416,18 +531,17 @@ async def send_email_verification_otp(*, to_email: str, code: str) -> None:
     </td>
   </tr>
 </table>
-{_cta_button(href=action_url, label="Enter code on SurvAI")}
+{_cta_button(href=action_url, label=t["verify_cta"])}
 <p style="margin:0;font-family:Geist,ui-sans-serif,system-ui,-apple-system,
   BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:{_MUTED};">
-  This code expires in <strong style="color:{_FG};">{minutes} minutes</strong>.
-  Don’t share it with anyone.
+  {t["verify_expires"].format(fg=_FG, minutes=minutes)}
 </p>
 """
     html_body = _email_shell(
-        preheader=f"Your SurvAI code is {code} — expires in {minutes} minutes.",
-        title="Verify your email",
+        preheader=f"{code} — {minutes}",
+        title=t["verify_title"],
         body_html=body,
-        footnote="If you did not create a SurvAI account, you can safely ignore this email.",
+        footnote=t["verify_footnote"],
     )
     await send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
 
@@ -438,9 +552,11 @@ async def send_lifecycle_notification_email(
     title: str,
     body: str,
     action_url: str | None = None,
+    locale: str | None = None,
 ) -> None:
     """Product notification email (survey lifecycle). Uses same SMTP/Resend path."""
-    subject = f"SurvAI: {title}"
+    t = _copy(locale)
+    subject = t["lifecycle_subject"].format(title=title)
     text_parts = [title, "", body]
     if action_url:
         text_parts.extend(["", f"Open: {action_url}"])
@@ -454,12 +570,12 @@ async def send_lifecycle_notification_email(
 </p>
 """
     if action_url:
-        body_html += _cta_button(href=action_url, label="Open in SurvAI")
+        body_html += _cta_button(href=action_url, label=t["lifecycle_cta"])
     html_body = _email_shell(
         preheader=title[:120],
         title=safe_title,
         body_html=body_html,
-        footnote="You received this because you have a SurvAI organization account.",
+        footnote=t["lifecycle_footnote"],
     )
     await send_email(
         to_email=to_email, subject=subject, html_body=html_body, text_body=text_body

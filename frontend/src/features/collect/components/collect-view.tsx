@@ -30,6 +30,7 @@ import { CollectionQr } from './collection-qr';
 import { useSurveyActivity } from '@/features/surveys/components/survey-activity-provider';
 import { AuthQueryBoundary } from '@/components/layout/auth-query-boundary';
 import { SurveyActivityFallback } from '@/features/surveys/components/survey-activity-fallback';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface CollectViewProps {
   surveyId: string;
@@ -60,6 +61,9 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
   const { run, activeId } = useSurveyActivity();
   const { user } = useAuth();
   const canEdit = canEditOrg(user?.role);
+  const t = useTranslations('collect');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
 
   const isPublishing = activeId === 'publish-survey';
   const [isClosing, setIsClosing] = useState(false);
@@ -106,18 +110,18 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
         });
         return published;
       });
-      toast.success('Survey published!', {
-        description: `Live form ready at ${result.collectionPath}`
+      toast.success(t('publishedToast'), {
+        description: t('publishedDesc', { path: result.collectionPath })
       });
     } catch (err) {
-      toast.error('Publish failed', {
+      toast.error(t('publishFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Could not publish your survey. Please try again.'
+            : t('publishFailedDesc')
       });
     }
-  }, [surveyId, queryClient, isPublishing, run]);
+  }, [surveyId, queryClient, isPublishing, run, t]);
 
   const handleClose = useCallback(async () => {
     if (isClosing || !isPublished) return;
@@ -130,35 +134,35 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
       await queryClient.invalidateQueries({
         queryKey: collectStatsKeys.stats(surveyId)
       });
-      toast.success('Survey closed', {
-        description: 'New respondents can no longer start this survey.'
+      toast.success(t('closedToast'), {
+        description: t('closedDesc')
       });
     } catch (err) {
-      toast.error('Close failed', {
+      toast.error(t('closeFailed'), {
         description:
           err instanceof Error && err.message
             ? err.message
-            : 'Could not close the survey.'
+            : t('closeFailedDesc')
       });
     } finally {
       setIsClosing(false);
     }
-  }, [surveyId, queryClient, isClosing, isPublished]);
+  }, [surveyId, queryClient, isClosing, isPublished, t]);
 
   const handleCopyLink = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(collectionUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
-      toast.success('Link copied!', {
-        description: 'Collection link copied to clipboard.'
+      toast.success(t('linkCopied'), {
+        description: t('linkCopiedDesc')
       });
     } catch {
-      toast.error('Copy failed', {
-        description: 'Could not copy the link. Please copy it manually.'
+      toast.error(t('copyFailed'), {
+        description: t('copyFailedDesc')
       });
     }
-  }, [collectionUrl]);
+  }, [collectionUrl, t]);
 
   const handleSaveSettings = useCallback(async () => {
     if (!canEdit || savingSettings) return;
@@ -170,8 +174,8 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
           ? null
           : Number.parseInt(trimmed, 10);
       if (trimmed !== '' && (!Number.isFinite(quota) || quota! < 1)) {
-        toast.error('Invalid quota', {
-          description: 'Response quota must be a positive whole number.'
+        toast.error(t('invalidQuota'), {
+          description: t('invalidQuotaDesc')
         });
         return;
       }
@@ -180,7 +184,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
           ? null
           : new Date(closesAtDraft).toISOString();
       if (closesAtDraft.trim() && Number.isNaN(new Date(closesAtDraft).getTime())) {
-        toast.error('Invalid close date');
+        toast.error(t('invalidCloseDate'));
         return;
       }
       await updateCollectionSettings(surveyId, {
@@ -193,10 +197,10 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
       await queryClient.invalidateQueries({
         queryKey: collectStatsKeys.stats(surveyId)
       });
-      toast.success('Collection settings saved');
+      toast.success(t('settingsSaved'));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not save settings'
+        err instanceof Error ? err.message : t('settingsSaveFailed')
       );
     } finally {
       setSavingSettings(false);
@@ -207,20 +211,23 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
     quotaDraft,
     closesAtDraft,
     surveyId,
-    queryClient
+    queryClient,
+    t
   ]);
 
   const handlePrintShareSheet = useCallback(() => {
     if (!collectionUrl) return;
     const printWindow = window.open('', '_blank', 'noopener,noreferrer');
     if (!printWindow) {
-      toast.error('Pop-up blocked', {
-        description: 'Allow pop-ups to print the share sheet.'
+      toast.error(t('popupBlocked'), {
+        description: t('popupBlockedDesc')
       });
       return;
     }
     const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&ecc=M&data=${encodeURIComponent(collectionUrl)}`;
-    printWindow.document.write(`<!doctype html><html><head><title>${survey.title} — share</title>
+    const shareSuffix = t('printShareSuffix');
+    const qrAlt = t('qrCodeAlt');
+    printWindow.document.write(`<!doctype html><html><head><title>${survey.title} — ${shareSuffix}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:2rem;text-align:center;color:#111}
   h1{font-size:1.5rem;margin:0 0 .5rem}
@@ -230,17 +237,20 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
 </style></head><body>
 <h1>${survey.title.replace(/</g, '&lt;')}</h1>
 <p>${collectionUrl.replace(/</g, '&lt;')}</p>
-<img src="${qrSrc}" alt="QR code" />
+<img src="${qrSrc}" alt="${qrAlt}" />
 <script>window.onload=()=>{window.print();}</script>
 </body></html>`);
     printWindow.document.close();
-  }, [collectionUrl, survey.title]);
+  }, [collectionUrl, survey.title, t]);
 
   const responseQuota = stats.responseQuota ?? survey.responseQuota;
   const quotaLabel =
     responseQuota != null
-      ? `${stats.responseCount} / ${responseQuota} responses`
-      : `${stats.responseCount} responses`;
+      ? t('quotaProgress', {
+          count: stats.responseCount,
+          quota: responseQuota
+        })
+      : t('responseCount', { count: stats.responseCount });
 
   return (
     <div className='space-y-4'>
@@ -252,24 +262,22 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
               title={
                 <div className='min-w-0'>
                   <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                    Collect Responses
+                    {t('heading')}
                   </h3>
                   <p className='text-sm leading-snug text-brand-foreground/70'>
-                    {isLive
-                      ? 'Link and QR for respondents'
-                      : 'Publish to unlock your collection link'}
+                    {isLive ? t('linkAndQr') : t('publishToUnlock')}
                   </p>
                 </div>
               }
               badge={
                 <Badge
                   className={cn(
-                    'rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-[10px] font-semibold text-brand-foreground',
+                    'rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] text-[10px] font-semibold text-brand-foreground',
                     isPublished &&
-                      'border-transparent bg-primary text-primary-foreground'
+                      'border-transparent bg-[var(--brand-foreground)] text-brand'
                   )}
                 >
-                  {isPublished ? 'Live' : isClosed ? 'Closed' : 'Not published'}
+                  {isPublished ? t('live') : isClosed ? t('closed') : t('notPublished')}
                 </Badge>
               }
             />
@@ -279,10 +287,11 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                   <p className='font-semibold tabular-nums'>{quotaLabel}</p>
                   {(stats.closesAt || survey.closesAt) && (
                     <p className='text-muted-foreground  text-xs'>
-                      Closes{' '}
-                      {new Date(
-                        stats.closesAt ?? survey.closesAt!
-                      ).toLocaleString()}
+                      {t('closesOn', {
+                        date: new Date(
+                          stats.closesAt ?? survey.closesAt!
+                        ).toLocaleString(locale === 'am' ? 'am-ET' : undefined)
+                      })}
                     </p>
                   )}
                 </div>
@@ -295,11 +304,10 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                       <Icons.collect className='size-5' />
                     </div>
                     <p className='mb-1 text-sm font-semibold tracking-tight'>
-                      Ready when you are
+                      {t('readyTitle')}
                     </p>
                     <p className='text-muted-foreground mx-auto max-w-sm text-xs leading-relaxed'>
-                      Publishing creates a public link. Respondents can answer
-                      without an account.
+                      {t('readyHint')}
                     </p>
                   </div>
                   {canEdit ? (
@@ -312,18 +320,18 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                       {isPublishing ? (
                         <>
                           <Icons.spinner className='mr-2 size-4 animate-spin' />
-                          Publishing…
+                          {t('publishing')}
                         </>
                       ) : (
                         <>
                           <Icons.sparkles className='mr-2 size-4' />
-                          Publish Survey
+                          {t('publishCta')}
                         </>
                       )}
                     </Button>
                   ) : (
                     <p className='text-muted-foreground text-center text-xs'>
-                      Viewers cannot publish surveys.
+                      {t('viewersCannotPublish')}
                     </p>
                   )}
                 </div>
@@ -349,14 +357,10 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                     </span>
                     <div className='min-w-0 flex-1'>
                       <p className='text-sm font-semibold tracking-tight text-foreground'>
-                        {isPublished
-                          ? 'Your survey is live'
-                          : 'This survey is closed'}
+                        {isPublished ? t('surveyIsLive') : t('surveyIsClosed')}
                       </p>
                       <p className='text-muted-foreground  text-xs leading-relaxed'>
-                        {isPublished
-                          ? 'Share the link or QR below. No account required for respondents.'
-                          : 'Existing links no longer accept new responses. Start a new survey from a plan for another round.'}
+                        {isPublished ? t('shareHint') : t('closedHint')}
                       </p>
                     </div>
                   </div>
@@ -367,7 +371,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                         htmlFor='collection-link'
                         className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'
                       >
-                        Collection link
+                        {t('collectionLink')}
                       </label>
                       <div className='flex flex-col gap-2 sm:flex-row'>
                         <Input
@@ -390,12 +394,12 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                           {copied ? (
                             <>
                               <Icons.check className='mr-1.5 size-4' />
-                              Copied
+                              {tCommon('copied')}
                             </>
                           ) : (
                             <>
                               <Icons.share className='mr-1.5 size-4' />
-                              Copy
+                              {tCommon('copy')}
                             </>
                           )}
                         </Button>
@@ -409,7 +413,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                       <div className='space-y-2'>
                         <div className='flex flex-wrap items-center justify-between gap-2'>
                           <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
-                            Share pack
+                            {t('sharePack')}
                           </p>
                           <Button
                             type='button'
@@ -419,7 +423,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                             onClick={handlePrintShareSheet}
                           >
                             <Icons.page className='mr-1.5 size-3.5' />
-                            Print share sheet
+                            {t('printShareSheet')}
                           </Button>
                         </div>
                         <CollectionQr url={collectionUrl} />
@@ -433,9 +437,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
             {isPublished ? (
               <SurvaiPanelFooter>
                 <p className='text-muted-foreground text-xs leading-relaxed'>
-                  This form is locked. Collect responses here, then close the
-                  survey when the round ends — questions stay fixed for data
-                  integrity.
+                  {t('lockedHint')}
                 </p>
               </SurvaiPanelFooter>
             ) : null}
@@ -444,25 +446,25 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
           {canEdit ? (
             <SurvaiPanel>
               <SurvaiPanelHeader
-                title='Collection settings'
-                subtitle='Optional quota and automatic close time'
+                title={t('settingsTitle')}
+                subtitle={t('settingsSubtitle')}
               />
               <SurvaiPanelBody className='space-y-4'>
                 <div className='space-y-1.5'>
-                  <Label htmlFor='response-quota'>Response quota</Label>
+                  <Label htmlFor='response-quota'>{t('quota')}</Label>
                   <Input
                     id='response-quota'
                     type='number'
                     min={1}
                     inputMode='numeric'
-                    placeholder='Unlimited'
+                    placeholder={tCommon('unlimited')}
                     value={quotaDraft}
                     onChange={(e) => setQuotaDraft(e.target.value)}
                     className='h-10 rounded-xl'
                   />
                 </div>
                 <div className='space-y-1.5'>
-                  <Label htmlFor='closes-at'>Close date & time</Label>
+                  <Label htmlFor='closes-at'>{t('closeDateTime')}</Label>
                   <Input
                     id='closes-at'
                     type='datetime-local'
@@ -480,7 +482,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                   {savingSettings ? (
                     <Icons.spinner className='mr-2 size-4 animate-spin' />
                   ) : null}
-                  Save settings
+                  {t('saveSettings')}
                 </Button>
               </SurvaiPanelBody>
             </SurvaiPanel>
@@ -489,11 +491,11 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
 
         <div className='sticky top-[4.5rem] self-start space-y-6'>
           <SurvaiBrandCard
-            title='View Results?'
+            title={t('viewResults')}
             description={
               isLive
-                ? `Collecting responses — ${quotaLabel}`
-                : 'Publish your survey to start collecting responses'
+                ? t('collectingResponses', { quota: quotaLabel })
+                : t('publishToStart')
             }
           >
             <Link
@@ -508,7 +510,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                 size='lg'
                 disabled={!isLive}
               >
-                View Respondents
+                {t('viewRespondents')}
                 <Icons.arrowRight className='ml-2 size-4' />
               </Button>
             </Link>
@@ -527,7 +529,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                 >
                   <Button className='h-auto w-full justify-start rounded-xl px-3 py-2.5 text-sm'>
                     <Icons.openInNew className='mr-2 size-3.5' />
-                    Preview Survey
+                    {t('previewSurvey')}
                   </Button>
                 </a>
               ) : null}
@@ -543,7 +545,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                   ) : (
                     <Icons.close className='mr-2 size-4' />
                   )}
-                  Close Survey
+                  {t('closeSurvey')}
                 </Button>
               ) : null}
             </SurvaiPanelBody>

@@ -5,8 +5,29 @@ import { Icons } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { overviewQueryOptions } from '@/features/overview/api/queries';
 import type { OverviewKpi } from '@/features/overview/api/types';
+
+function kpiLabel(
+  label: string,
+  t: ReturnType<typeof useTranslations<'overview'>>
+) {
+  if (label === 'Total Surveys') return t('kpiTotalSurveys');
+  if (label === 'Total Responses') return t('kpiTotalResponses');
+  if (label === 'Reports Generated') return t('kpiReportsGenerated');
+  return label;
+}
+
+function kpiHint(
+  hint: string,
+  t: ReturnType<typeof useTranslations<'overview'>>
+) {
+  if (hint === 'In your workspace') return t('kpiInWorkspace');
+  if (hint === 'Completed submissions') return t('kpiCompletedSubmissions');
+  if (hint === 'AI reports saved') return t('kpiReportsSaved');
+  return hint;
+}
 
 function TrendIcon({ trend }: { trend: OverviewKpi['trend'] }) {
   if (trend === 'down') return <Icons.trendingDown className='size-3' />;
@@ -15,6 +36,7 @@ function TrendIcon({ trend }: { trend: OverviewKpi['trend'] }) {
 }
 
 function WelcomeCard() {
+  const t = useTranslations('overview');
   return (
     <article
       className={cn(
@@ -23,16 +45,17 @@ function WelcomeCard() {
       )}
     >
       <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground'>
-        Welcome to Survai
+        {t('welcome')}
       </h1>
       <p className='text-sm leading-relaxed text-brand-foreground/75'>
-        Live counts from your surveys and responses.
+        {t('liveCounts')}
       </p>
     </article>
   );
 }
 
 function KpiCard({ kpi }: { kpi: OverviewKpi }) {
+  const t = useTranslations('overview');
   return (
     <article
       className={cn(
@@ -43,13 +66,13 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
           <p className='text-[12px] font-medium text-muted-foreground'>
-            {kpi.label}
+            {kpiLabel(kpi.label, t)}
           </p>
           <p className='font-display text-3xl font-extrabold tracking-tight tabular-nums text-primary'>
             {kpi.value}
           </p>
           <p className='font-mono text-[10px] tracking-wide text-muted-foreground uppercase'>
-            {kpi.hint}
+            {kpiHint(kpi.hint, t)}
           </p>
         </div>
         <Badge
@@ -75,6 +98,7 @@ function KpiSkeleton() {
 }
 
 export function OverviewKpis() {
+  const t = useTranslations('overview');
   const { data, isLoading, isError } = useQuery(overviewQueryOptions());
 
   if (isLoading) {
@@ -90,7 +114,7 @@ export function OverviewKpis() {
   if (isError || !data) {
     return (
       <div className='rounded-[1.125rem] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
-        Could not load workspace stats. Refresh and try again.
+        {t('statsLoadError')}
       </div>
     );
   }

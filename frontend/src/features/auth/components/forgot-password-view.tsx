@@ -2,53 +2,61 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
 import { PasswordInput } from '@/features/auth/components/password-input';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot
-} from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
-const emailSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email')
-});
-
-const resetSchema = z
-  .object({
-    password: z
-      .string()
-      .min(1, 'Password is required')
-      .min(8, 'At least 8 characters')
-      .regex(/[A-Z]/, 'Include an uppercase letter')
-      .regex(/[0-9]/, 'Include a number'),
-    confirmPassword: z.string().min(1, 'Confirm your password')
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword']
-  });
-
-type EmailValues = z.infer<typeof emailSchema>;
-type ResetValues = z.infer<typeof resetSchema>;
+type EmailValues = {
+  email: string;
+};
+type ResetValues = {
+  password: string;
+  confirmPassword: string;
+};
 
 const inputClass =
   'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function ForgotPasswordViewPage() {
-  const { requestPasswordReset, confirmPasswordReset, isSignedIn, isLoading } =
-    useAuth();
+  const { requestPasswordReset, confirmPasswordReset, isSignedIn, isLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations('auth');
   const searchParams = useSearchParams();
+  const emailSchema = useMemo(
+    () =>
+      z.object({
+        email: z.string().min(1, t('emailRequired')).email(t('emailInvalid'))
+      }),
+    [t]
+  );
+  const resetSchema = useMemo(
+    () =>
+      z
+        .object({
+          password: z
+            .string()
+            .min(1, t('passwordRequired'))
+            .min(8, t('passwordMin'))
+            .regex(/[A-Z]/, t('passwordUppercase'))
+            .regex(/[0-9]/, t('passwordNumber')),
+          confirmPassword: z.string().min(1, t('confirmPasswordRequired'))
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t('passwordsMismatch'),
+          path: ['confirmPassword']
+        }),
+    [t]
+  );
   const deepLinkHandled = useRef(false);
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [pendingEmail, setPendingEmail] = useState('');
@@ -96,43 +104,32 @@ export default function ForgotPasswordViewPage() {
       setDevCode(result.dev_code ?? null);
       setOtp(result.dev_code ?? '');
       setStep('otp');
-      toast.success(
-        result.dev_code ? 'Dev mode — code ready' : 'Check your email',
-        {
-          description: result.dev_code
-            ? 'Email delivery is not configured; use the code shown on screen.'
-            : 'If that address is registered, a 6-digit reset code is on the way.'
-        }
-      );
+      toast.success(result.dev_code ? t('devModeCodeReady') : t('checkEmail'), {
+        description: result.dev_code ? t('devEmailNotConfigured') : t('resetIfRegistered')
+      });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Could not send reset code. Please try again.';
+      const message = err instanceof Error ? err.message : t('couldNotSendReset');
       setServerError(message);
-      toast.error('Could not send reset code', { description: message });
+      toast.error(t('couldNotSendResetTitle'), { description: message });
     }
   }
 
   async function onResetSubmit(values: ResetValues) {
     if (otp.length !== 6) {
-      setServerError('Enter the 6-digit code from your email.');
+      setServerError(t('otpIncomplete'));
       return;
     }
     setServerError(null);
     try {
       await confirmPasswordReset(pendingEmail, otp, values.password);
       setDone(true);
-      toast.success('Password updated', {
-        description: 'You can sign in with your new password.'
+      toast.success(t('passwordUpdated'), {
+        description: t('passwordUpdatedDesc')
       });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Could not reset password. Please try again.';
+      const message = err instanceof Error ? err.message : t('couldNotReset');
       setServerError(message);
-      toast.error('Reset failed', { description: message });
+      toast.error(t('resetFailed'), { description: message });
     }
   }
 
@@ -143,14 +140,11 @@ export default function ForgotPasswordViewPage() {
       const result = await requestPasswordReset(pendingEmail);
       setDevCode(result.dev_code ?? null);
       setOtp(result.dev_code ?? '');
-      toast.success(result.dev_code ? 'Dev code refreshed' : 'Code sent', {
-        description: result.dev_code
-          ? 'Email delivery is not configured; use the code shown on screen.'
-          : 'Check your inbox for a new reset code.'
+      toast.success(result.dev_code ? t('devCodeRefreshed') : t('codeSent'), {
+        description: result.dev_code ? t('devEmailNotConfigured') : t('resendResetInbox')
       });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Could not resend code.';
+      const message = err instanceof Error ? err.message : t('couldNotResend');
       setServerError(message);
     } finally {
       setIsResending(false);
@@ -167,7 +161,7 @@ export default function ForgotPasswordViewPage() {
           aria-busy='true'
         >
           <Icons.spinner className='text-muted-foreground size-5 animate-spin' />
-          <p className='text-muted-foreground text-sm'>Checking your session…</p>
+          <p className='text-muted-foreground text-sm'>{t('checkingSession')}</p>
         </div>
       </AuthShell>
     );
@@ -177,18 +171,14 @@ export default function ForgotPasswordViewPage() {
     <AuthShell>
       <div className='mb-6'>
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
-          {done
-            ? 'Password updated'
-            : step === 'otp'
-              ? 'Enter reset code'
-              : 'Forgot password'}
+          {done ? t('passwordUpdated') : step === 'otp' ? t('enterResetCode') : t('forgotTitle')}
         </h1>
         <p className='text-muted-foreground .5 text-[15px]'>
           {done
-            ? 'Your password was updated. Sign in to continue.'
+            ? t('passwordUpdatedHint')
             : step === 'otp'
-              ? `Enter the 6-digit code we sent to ${pendingEmail}, then choose a new password.`
-              : 'Enter your organization email and we’ll send a 6-digit code.'}
+              ? t('resetCodeHint', { email: pendingEmail })
+              : t('forgotHint')}
         </p>
       </div>
 
@@ -207,27 +197,20 @@ export default function ForgotPasswordViewPage() {
             href='/auth/sign-in'
             className='btn-back flex h-11 w-full items-center justify-center text-[15px]'
           >
-            Continue to sign in
+            {t('continueToSignIn')}
           </Link>
         ) : null}
 
         {!done && step === 'email' ? (
-          <form
-            className='space-y-3'
-            onSubmit={emailForm.handleSubmit(onEmailSubmit)}
-            noValidate
-          >
+          <form className='space-y-3' onSubmit={emailForm.handleSubmit(onEmailSubmit)} noValidate>
             <div className='space-y-1.5'>
-              <label
-                htmlFor='forgot-email'
-                className='text-foreground/80 text-[13px] font-medium'
-              >
-                Email
+              <label htmlFor='forgot-email' className='text-foreground/80 text-[13px] font-medium'>
+                {t('email')}
               </label>
               <input
                 id='forgot-email'
                 type='email'
-                placeholder='you@organization.org'
+                placeholder={t('emailPlaceholder')}
                 autoComplete='email'
                 autoCapitalize='none'
                 autoCorrect='off'
@@ -260,24 +243,20 @@ export default function ForgotPasswordViewPage() {
               {emailForm.formState.isSubmitting ? (
                 <>
                   <Icons.spinner className='size-4 animate-spin' />
-                  Sending…
+                  {t('sending')}
                 </>
               ) : (
-                'Send reset code'
+                t('sendResetCode')
               )}
             </button>
           </form>
         ) : null}
 
         {!done && step === 'otp' ? (
-          <form
-            className='space-y-4'
-            onSubmit={resetForm.handleSubmit(onResetSubmit)}
-            noValidate
-          >
+          <form className='space-y-4' onSubmit={resetForm.handleSubmit(onResetSubmit)} noValidate>
             {devCode ? (
               <div className='border-border bg-card rounded-xl border px-3.5 py-3 text-sm'>
-                <p className='font-medium'>Dev code</p>
+                <p className='font-medium'>{t('devCode')}</p>
                 <p className='text-muted-foreground  font-mono text-lg tracking-widest'>
                   {devCode}
                 </p>
@@ -285,16 +264,13 @@ export default function ForgotPasswordViewPage() {
             ) : null}
 
             <div className='space-y-2'>
-              <p
-                id='reset-code-label'
-                className='text-foreground/80 text-[13px] font-medium'
-              >
-                Reset code
+              <p id='reset-code-label' className='text-foreground/80 text-[13px] font-medium'>
+                {t('resetCode')}
               </p>
               <InputOTP
                 maxLength={6}
                 value={otp}
-                aria-label='Reset code'
+                aria-label={t('resetCode')}
                 aria-labelledby='reset-code-label'
                 onChange={(value) => {
                   setOtp(value);
@@ -314,11 +290,11 @@ export default function ForgotPasswordViewPage() {
                 htmlFor='reset-password'
                 className='text-foreground/80 text-[13px] font-medium'
               >
-                New password
+                {t('newPassword')}
               </label>
               <PasswordInput
                 id='reset-password'
-                placeholder='At least 8 characters'
+                placeholder={t('newPasswordPlaceholder')}
                 autoComplete='new-password'
                 disabled={resetForm.formState.isSubmitting}
                 aria-invalid={!!resetForm.formState.errors.password}
@@ -341,15 +317,12 @@ export default function ForgotPasswordViewPage() {
             </div>
 
             <div className='space-y-1.5'>
-              <label
-                htmlFor='reset-confirm'
-                className='text-foreground/80 text-[13px] font-medium'
-              >
-                Confirm password
+              <label htmlFor='reset-confirm' className='text-foreground/80 text-[13px] font-medium'>
+                {t('confirmPassword')}
               </label>
               <PasswordInput
                 id='reset-confirm'
-                placeholder='Repeat password'
+                placeholder={t('repeatPassword')}
                 autoComplete='new-password'
                 disabled={resetForm.formState.isSubmitting}
                 aria-invalid={!!resetForm.formState.errors.confirmPassword}
@@ -375,10 +348,10 @@ export default function ForgotPasswordViewPage() {
               {resetForm.formState.isSubmitting ? (
                 <>
                   <Icons.spinner className='size-4 animate-spin' />
-                  Updating…
+                  {t('updating')}
                 </>
               ) : (
-                'Update password'
+                t('updatePassword')
               )}
             </button>
 
@@ -389,7 +362,7 @@ export default function ForgotPasswordViewPage() {
                 disabled={isResending}
                 onClick={() => void onResend()}
               >
-                {isResending ? 'Sending…' : 'Resend code'}
+                {isResending ? t('sending') : t('resendCode')}
               </button>
               <button
                 type='button'
@@ -402,7 +375,7 @@ export default function ForgotPasswordViewPage() {
                   resetForm.reset();
                 }}
               >
-                Use a different email
+                {t('useDifferentEmail')}
               </button>
             </div>
           </form>
@@ -410,12 +383,9 @@ export default function ForgotPasswordViewPage() {
 
         {!done ? (
           <p className='text-muted-foreground text-center text-[13px]'>
-            Remembered it?{' '}
-            <Link
-              href='/auth/sign-in'
-              className='text-foreground font-semibold hover:underline'
-            >
-              Back to sign in
+            {t('rememberedIt')}{' '}
+            <Link href='/auth/sign-in' className='text-foreground font-semibold hover:underline'>
+              {t('backToSignIn')}
             </Link>
           </p>
         ) : null}

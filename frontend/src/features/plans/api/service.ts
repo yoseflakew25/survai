@@ -9,8 +9,10 @@ import {
   apiFetch,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 import type {
+  ContentLanguage,
   Plan,
   PlanListResponse,
   PlanCreatePayload,
@@ -29,6 +31,7 @@ type ApiPlan = {
   created_by: string;
   organization_id: string | null;
   research_goal: string;
+  content_language?: ContentLanguage;
   objectives: string[];
   research_questions: string[];
   target_respondents: string[];
@@ -103,7 +106,8 @@ export type PlanInterviewStreamHandlers = {
 export async function sendPlanInterviewTurnStream(
   messages: PlanInterviewMessage[],
   content: string,
-  handlers: PlanInterviewStreamHandlers = {}
+  handlers: PlanInterviewStreamHandlers = {},
+  contentLanguage: ContentLanguage = 'en'
 ): Promise<PlanInterviewTurnResult> {
   const res = await apiFetch(
     '/plans/interview/turn/stream',
@@ -118,14 +122,15 @@ export async function sendPlanInterviewTurnStream(
           role: m.role,
           content: m.content
         })),
-        content
+        content,
+        content_language: contentLanguage
       })
     },
     STREAM_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'Could not continue the plan interview');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'interviewFailed'));
   if (!res.body) {
-    throw new Error('Plan interview stream returned an empty body');
+    throw new Error(serviceMsg('plan', 'interviewEmptyBody'));
   }
 
   const reader = res.body.getReader();
@@ -191,6 +196,7 @@ function mapPlan(p: ApiPlan): Plan {
     createdBy: p.created_by,
     organizationId: p.organization_id,
     researchGoal: p.research_goal,
+    contentLanguage: p.content_language === 'am' ? 'am' : 'en',
     objectives: p.objectives ?? [],
     researchQuestions: p.research_questions ?? [],
     targetRespondents: p.target_respondents ?? [],
@@ -224,7 +230,7 @@ async function readError(res: Response, fallback: string): Promise<never> {
 
 export async function getPlans(): Promise<PlanListResponse> {
   const res = await apiFetch('/plans');
-  if (!res.ok) await readError(res, 'Could not load plans');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'loadPlansFailed'));
   const data = (await res.json()) as { plans: ApiPlan[]; total: number };
   return {
     plans: (data.plans ?? []).map(mapPlan),
@@ -235,16 +241,19 @@ export async function getPlans(): Promise<PlanListResponse> {
 export async function getPlanById(id: string): Promise<Plan | null> {
   const res = await apiFetch(`/plans/${id}`);
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not load plan');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'loadPlanFailed'));
   return mapPlan((await res.json()) as ApiPlan);
 }
 
 export async function createPlan(data: PlanCreatePayload): Promise<Plan> {
   const res = await apiFetch('/plans', {
     method: 'POST',
-    body: JSON.stringify({ research_goal: data.researchGoal })
+    body: JSON.stringify({
+      research_goal: data.researchGoal,
+      content_language: data.contentLanguage ?? 'en'
+    })
   });
-  if (!res.ok) await readError(res, 'Could not create plan');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'createFailed'));
   return mapPlan((await res.json()) as ApiPlan);
 }
 
@@ -263,13 +272,16 @@ export async function createPlanWithAI(
     '/plans/generate',
     {
       method: 'POST',
-      body: JSON.stringify({ research_goal: data.researchGoal })
+      body: JSON.stringify({
+        research_goal: data.researchGoal,
+        content_language: data.contentLanguage ?? 'en'
+      })
     },
     AI_TIMEOUT_MS
   );
 
   onProgress?.('Finalizing plan…', 90);
-  if (!res.ok) await readError(res, 'AI could not generate the plan');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'couldNotGenerate'));
   const payload = (await res.json()) as ApiGenerateResponse;
   onProgress?.('Plan generated!', 100);
   return mapPlan(payload.plan);
@@ -281,6 +293,9 @@ export async function updatePlan(
 ): Promise<Plan | null> {
   const body: Record<string, unknown> = {};
   if (data.researchGoal !== undefined) body.research_goal = data.researchGoal;
+  if (data.contentLanguage !== undefined) {
+    body.content_language = data.contentLanguage;
+  }
   if (data.objectives !== undefined) body.objectives = data.objectives;
   if (data.researchQuestions !== undefined) {
     body.research_questions = data.researchQuestions;
@@ -301,7 +316,7 @@ export async function updatePlan(
     body: JSON.stringify(body)
   });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not update plan');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'saveFailed'));
   return mapPlan((await res.json()) as ApiPlan);
 }
 
@@ -312,15 +327,17 @@ export async function updatePlan(
  */
 export async function generatePlanWithAI(
   planId: string,
-  researchGoal?: string
+  researchGoal?: string,
+  contentLanguage?: ContentLanguage
 ): Promise<{
   plan: Plan;
   output: SurveyPlanOutput;
 }> {
+  const payload: Record<string, unknown> = {};
+  if (researchGoal !== undefined) payload.research_goal = researchGoal;
+  if (contentLanguage !== undefined) payload.content_language = contentLanguage;
   const body =
-    researchGoal !== undefined
-      ? JSON.stringify({ research_goal: researchGoal })
-      : undefined;
+    Object.keys(payload).length > 0 ? JSON.stringify(payload) : undefined;
   const res = await apiFetch(
     `/plans/${planId}/generate`,
     {
@@ -329,17 +346,17 @@ export async function generatePlanWithAI(
     },
     AI_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'AI could not generate the plan');
-  const payload = (await res.json()) as ApiGenerateResponse;
+  if (!res.ok) await readError(res, serviceMsg('plan', 'couldNotGenerate'));
+  const result = (await res.json()) as ApiGenerateResponse;
   return {
-    plan: mapPlan(payload.plan),
+    plan: mapPlan(result.plan),
     output: {
-      objectives: payload.objectives,
-      researchQuestions: payload.research_questions,
-      targetRespondents: payload.target_respondents,
-      proposedSections: payload.proposed_sections.map(mapSection),
-      estimatedLengthMinutes: payload.estimated_length_minutes,
-      notes: payload.notes
+      objectives: result.objectives,
+      researchQuestions: result.research_questions,
+      targetRespondents: result.target_respondents,
+      proposedSections: result.proposed_sections.map(mapSection),
+      estimatedLengthMinutes: result.estimated_length_minutes,
+      notes: result.notes
     }
   };
 }
@@ -347,6 +364,6 @@ export async function generatePlanWithAI(
 export async function approvePlan(id: string): Promise<Plan | null> {
   const res = await apiFetch(`/plans/${id}/approve`, { method: 'POST' });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not approve plan');
+  if (!res.ok) await readError(res, serviceMsg('plan', 'approvePlanFailed'));
   return mapPlan((await res.json()) as ApiPlan);
 }

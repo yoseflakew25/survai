@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { panelHeaderToneClass } from '@/components/survai-panel';
+import { useTranslations } from 'next-intl';
 
 import {
   notificationActions,
@@ -32,12 +33,12 @@ import type { NotificationFilterGroup, OrgNotification } from '../api/types';
 
 type NotifTab = 'all' | 'unread' | 'surveys' | 'reviews' | 'reports';
 
-const filters: { id: NotifTab; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'unread', label: 'Unread' },
-  { id: 'surveys', label: 'Surveys' },
-  { id: 'reviews', label: 'Reviews' },
-  { id: 'reports', label: 'Reports' }
+const FILTER_TABS: NotifTab[] = [
+  'all',
+  'unread',
+  'surveys',
+  'reviews',
+  'reports'
 ];
 
 function groupForTab(tab: NotifTab): NotificationFilterGroup | null {
@@ -48,8 +49,46 @@ function groupForTab(tab: NotifTab): NotificationFilterGroup | null {
 }
 
 export function NotificationCenter() {
+  const t = useTranslations('notifications');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const filterLabel = (tab: NotifTab) => {
+    switch (tab) {
+      case 'all':
+        return tCommon('all');
+      case 'unread':
+        return t('unread');
+      case 'surveys':
+        return t('surveys');
+      case 'reviews':
+        return t('reviews');
+      case 'reports':
+        return t('reports');
+    }
+  };
+
+  const actionLabel = (type: OrgNotification['type']) => {
+    switch (type) {
+      case 'survey_published':
+        return t('openCollect');
+      case 'survey_closed':
+        return t('viewAnalytics');
+      case 'response_received':
+        return t('viewResponse');
+      case 'response_milestone':
+      case 'response_digest':
+        return t('viewRespondents');
+      case 'review_complete':
+        return t('viewReview');
+      case 'report_ready':
+      case 'report_failed':
+        return t('openReport');
+      default:
+        return tCommon('open');
+    }
+  };
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotifTab>('all');
 
@@ -142,7 +181,9 @@ export function NotificationCenter() {
           <span className='bg-brand text-brand-foreground absolute top-1 right-1 size-2 rounded-full' />
         ) : null}
         <span className='sr-only'>
-          Notifications{count > 0 ? ` (${count} unread)` : ''}
+          {count > 0
+            ? `${t('title')} (${t('unreadCount', { count })})`
+            : t('title')}
         </span>
       </SheetTrigger>
 
@@ -170,16 +211,16 @@ export function NotificationCenter() {
               <div className='min-w-0'>
                 <div className='flex flex-wrap items-center gap-2'>
                   <SheetTitle className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                    Notifications
+                    {t('title')}
                   </SheetTitle>
                   {count > 0 ? (
                     <span className='rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground/15 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-foreground'>
-                      {count} unread
+                      {t('unreadCount', { count })}
                     </span>
                   ) : null}
                 </div>
                 <SheetDescription className=' text-brand-foreground/80'>
-                  Survey lifecycle updates for your organization.
+                  {t('subtitle')}
                 </SheetDescription>
               </div>
               {count > 0 ? (
@@ -191,29 +232,29 @@ export function NotificationCenter() {
                   onClick={() => markAllMutation.mutate()}
                 >
                   <Icons.check className='mr-1.5 size-3.5' />
-                  Mark all as read
+                  {t('markAllRead')}
                 </Button>
               ) : null}
             </div>
 
             <div
               role='tablist'
-              aria-label='Notification filters'
+              aria-label={t('filtersAria')}
               className='flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
             >
-              {filters.map((item) => {
-                const isActive = activeTab === item.id;
-                const tabCount = getCount(item.id);
-                const group = groupForTab(item.id);
+              {FILTER_TABS.map((tab) => {
+                const isActive = activeTab === tab;
+                const tabCount = getCount(tab);
+                const group = groupForTab(tab);
 
                 return (
                   <button
-                    key={item.id}
+                    key={tab}
                     type='button'
                     role='tab'
                     aria-selected={isActive}
                     data-group={group ?? undefined}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => setActiveTab(tab)}
                     className={cn(
                       'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                       isActive
@@ -221,7 +262,7 @@ export function NotificationCenter() {
                         : 'bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground/80 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_18%,transparent)] hover:text-brand-foreground'
                     )}
                   >
-                    {item.label}
+                    {filterLabel(tab)}
                     {tabCount > 0 ? (
                       <span
                         className={cn(
@@ -244,7 +285,7 @@ export function NotificationCenter() {
         <ScrollArea className='min-h-0 flex-1'>
           {listQuery.isLoading ? (
             <div className='text-muted-foreground px-6 py-16 text-center text-sm'>
-              Loading notifications…
+              {t('loading')}
             </div>
           ) : filtered.length === 0 ? (
             <div className='flex flex-col items-center justify-center px-6 py-16 text-center'>
@@ -252,12 +293,10 @@ export function NotificationCenter() {
                 <Icons.notification className='size-5' />
               </div>
               <p className='font-display font-bold tracking-tight text-foreground'>
-                {notifications.length === 0 ? 'All caught up' : 'No matches'}
+                {notifications.length === 0 ? t('allCaughtUp') : t('noMatches')}
               </p>
               <p className='text-muted-foreground  max-w-xs text-sm'>
-                {notifications.length === 0
-                  ? 'Publish, responses, reviews, and reports will show up here.'
-                  : 'Try another filter to see more notifications.'}
+                {notifications.length === 0 ? t('emptyHint') : t('filterHint')}
               </p>
             </div>
           ) : (
@@ -270,7 +309,12 @@ export function NotificationCenter() {
                   body={notification.body}
                   status={notification.status}
                   createdAt={notification.createdAt}
-                  actions={notificationActions(notification)}
+                  actions={(() => {
+                    const actions = notificationActions(notification);
+                    if (!actions) return undefined;
+                    const label = actionLabel(notification.type);
+                    return actions.map((action) => ({ ...action, label }));
+                  })()}
                   onMarkAsRead={(id) => markReadMutation.mutate(id)}
                   onAction={(id) => handleAction(id)}
                   onOpen={(id) => handleAction(id)}

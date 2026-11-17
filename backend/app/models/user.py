@@ -65,6 +65,8 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # UI chrome locale for emails / assistant phrasing (en | am).
+    ui_locale: Mapped[str] = mapped_column(String(8), nullable=False, default="en")
     # Last observed ISO country (edge geo header on login) for admin presence map.
     last_country: Mapped[str | None] = mapped_column(String(2), nullable=True, index=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(

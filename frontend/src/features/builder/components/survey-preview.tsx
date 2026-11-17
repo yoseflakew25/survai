@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
@@ -31,23 +32,20 @@ function optionChoices(question: Question): { label: string; value: string }[] {
 }
 
 export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
+  const t = useTranslations('builder');
+  const tSurveys = useTranslations('surveys');
   const [isExpanded, setIsExpanded] = useState(true);
   const [answers, setAnswers] = useState<Record<string, PreviewAnswer>>({});
 
   const visibleBySection = useMemo(() => {
     return sections.map((section) => ({
       section,
-      questions: section.questions.filter((q) =>
-        conditionIsActive(q.conditionalLogic, answers)
-      )
+      questions: section.questions.filter((q) => conditionIsActive(q.conditionalLogic, answers))
     }));
   }, [sections, answers]);
 
   const totalQuestions = sections.reduce((sum, s) => sum + s.questions.length, 0);
-  const visibleCount = visibleBySection.reduce(
-    (sum, row) => sum + row.questions.length,
-    0
-  );
+  const visibleCount = visibleBySection.reduce((sum, row) => sum + row.questions.length, 0);
   const hiddenCount = totalQuestions - visibleCount;
 
   function setAnswer(questionId: string, value: PreviewAnswer) {
@@ -62,27 +60,24 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
             <Icons.eye className='text-primary h-4 w-4' />
           </div>
           <div className='min-w-0'>
-            <h3 className='text-sm font-semibold'>Preview</h3>
-            <p className='text-muted-foreground truncate text-[11px]'>
-              Answer to test skip logic
-            </p>
+            <h3 className='text-sm font-semibold'>{t('preview')}</h3>
+            <p className='text-muted-foreground truncate text-[11px]'>{t('previewSkipHint')}</p>
           </div>
         </div>
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {isExpanded ? 'Collapse' : 'Expand'}
+        <Button variant='ghost' size='sm' onClick={() => setIsExpanded(!isExpanded)}>
+          {isExpanded ? t('collapse') : t('expand')}
         </Button>
       </div>
 
       <div className='space-y-3'>
         <div className='rounded-md bg-muted/50 p-3'>
-          <p className='text-sm font-medium'>{title || 'Untitled Survey'}</p>
+          <p className='text-sm font-medium'>{title || tSurveys('untitledSurvey')}</p>
           <p className='text-muted-foreground  text-xs'>
-            {sections.length} sections · {visibleCount} visible
-            {hiddenCount > 0 ? ` · ${hiddenCount} skipped` : ''}
+            {t('previewStats', {
+              sections: sections.length,
+              visible: visibleCount
+            })}
+            {hiddenCount > 0 ? ` · ${t('previewSkipped', { count: hiddenCount })}` : ''}
           </p>
         </div>
 
@@ -97,18 +92,14 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                   <p className='text-xs font-medium'>{section.title}</p>
                 </div>
                 {questions.length === 0 ? (
-                  <p className='text-muted-foreground ml-7 text-[11px] italic'>
-                    All questions in this section are currently skipped.
-                  </p>
+                  <p className='text-muted-foreground ml-7 text-[11px] italic'>{t('allSkipped')}</p>
                 ) : (
                   <div className='ml-7 space-y-3'>
                     {questions.map((question) => {
                       const meta = getQuestionTypeMeta(question.type);
                       const TypeIcon = Icons[meta.icon as keyof typeof Icons];
                       const choices = optionChoices(question);
-                      const skippedByLogic = Boolean(
-                        question.conditionalLogic?.rules.length
-                      );
+                      const skippedByLogic = Boolean(question.conditionalLogic?.rules.length);
                       return (
                         <div
                           key={question.id}
@@ -119,24 +110,16 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                               <TypeIcon className='text-muted-foreground  h-3 w-3 shrink-0' />
                             ) : null}
                             <div className='min-w-0 flex-1'>
-                              <p className='leading-relaxed'>
-                                {question.promptText}
-                              </p>
+                              <p className='leading-relaxed'>{question.promptText}</p>
                               <div className=' flex flex-wrap gap-1'>
                                 {question.isRequired ? (
-                                  <Badge
-                                    variant='secondary'
-                                    className='text-[9px]'
-                                  >
-                                    Required
+                                  <Badge variant='secondary' className='text-[9px]'>
+                                    {t('required')}
                                   </Badge>
                                 ) : null}
                                 {skippedByLogic ? (
-                                  <Badge
-                                    variant='outline'
-                                    className='text-[9px]'
-                                  >
-                                    Has skip rule
+                                  <Badge variant='outline' className='text-[9px]'>
+                                    {t('hasSkipRule')}
                                   </Badge>
                                 ) : null}
                               </div>
@@ -146,9 +129,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                           {choices.length > 0 ? (
                             <div className='flex flex-wrap gap-1.5'>
                               {choices.map((opt) => {
-                                const selected =
-                                  String(answers[question.id] ?? '') ===
-                                  opt.value;
+                                const selected = String(answers[question.id] ?? '') === opt.value;
                                 return (
                                   <button
                                     key={opt.value}
@@ -176,7 +157,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                           ) : (
                             <input
                               className='border-input bg-background h-8 w-full rounded-md border px-2 text-xs'
-                              placeholder='Type a preview answer…'
+                              placeholder={t('previewAnswerPlaceholder')}
                               value={
                                 typeof answers[question.id] === 'string' ||
                                 typeof answers[question.id] === 'number'
@@ -211,7 +192,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                 className='w-full text-xs'
                 onClick={() => setAnswers({})}
               >
-                Reset preview answers
+                {t('resetPreview')}
               </Button>
             ) : null}
           </div>

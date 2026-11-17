@@ -7,7 +7,8 @@ import { Icons } from '@/components/icons';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {
   SurvaiPanel,
@@ -20,25 +21,16 @@ import { changePassword } from '@/features/profile/api/service';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { toast } from '@/lib/toast';
 
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string().min(1, 'Please confirm your password')
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword']
-  });
+type PasswordFormValues = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
 
-type PasswordFormValues = z.infer<typeof passwordSchema>;
-
-function getPasswordStrength(password: string) {
+function getPasswordStrength(
+  password: string,
+  labels: Record<'weak' | 'fair' | 'good' | 'strong', string>
+) {
   if (!password) return { score: 0, label: '', color: '' };
   let score = 0;
   if (password.length >= 8) score++;
@@ -46,15 +38,52 @@ function getPasswordStrength(password: string) {
   if (/[a-z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  if (score <= 2) return { score, label: 'Weak', color: 'bg-destructive' };
-  if (score <= 3) return { score, label: 'Fair', color: 'bg-amber-500' };
-  if (score <= 4) return { score, label: 'Good', color: 'bg-brand' };
-  return { score, label: 'Strong', color: 'bg-brand' };
+  if (score <= 2) return { score, label: labels.weak, color: 'bg-destructive' };
+  if (score <= 3) return { score, label: labels.fair, color: 'bg-amber-500' };
+  if (score <= 4) return { score, label: labels.good, color: 'bg-brand' };
+  return { score, label: labels.strong, color: 'bg-brand' };
 }
 
 export default function SecurityViewPage() {
+  const tAccount = useTranslations('account');
+  const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const { user, isLoading } = useAuth();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const passwordSchema = useMemo(
+    () =>
+      z
+        .object({
+          currentPassword: z
+            .string()
+            .min(1, tAccount('validationCurrentPasswordRequired')),
+          newPassword: z
+            .string()
+            .min(8, tAccount('validationPasswordMin'))
+            .regex(/[A-Z]/, tAccount('validationPasswordUpper'))
+            .regex(/[a-z]/, tAccount('validationPasswordLower'))
+            .regex(/[0-9]/, tAccount('validationPasswordNumber')),
+          confirmPassword: z
+            .string()
+            .min(1, tAccount('validationConfirmPasswordRequired'))
+        })
+        .refine((data) => data.newPassword === data.confirmPassword, {
+          message: tAccount('validationPasswordsMismatch'),
+          path: ['confirmPassword']
+        }),
+    [tAccount]
+  );
+
+  const strengthLabels = useMemo(
+    () => ({
+      weak: tAccount('passwordStrengthWeak'),
+      fair: tAccount('passwordStrengthFair'),
+      good: tAccount('passwordStrengthGood'),
+      strong: tAccount('passwordStrengthStrong')
+    }),
+    [tAccount]
+  );
 
   const {
     register,
@@ -72,7 +101,7 @@ export default function SecurityViewPage() {
   });
 
   const newPasswordValue = watch('newPassword');
-  const passwordStrength = getPasswordStrength(newPasswordValue || '');
+  const passwordStrength = getPasswordStrength(newPasswordValue || '', strengthLabels);
 
   async function onPasswordSubmit(data: PasswordFormValues) {
     setIsChangingPassword(true);
@@ -82,12 +111,12 @@ export default function SecurityViewPage() {
         newPassword: data.newPassword
       });
       reset();
-      toast.success('Password updated', {
-        description: 'Use your new password the next time you sign in.'
+      toast.success(tAccount('passwordUpdated'), {
+        description: tAccount('passwordUpdatedDesc')
       });
     } catch (err) {
-      toast.error('Could not update password', {
-        description: err instanceof Error ? err.message : 'Try again'
+      toast.error(tAccount('passwordFailed'), {
+        description: err instanceof Error ? err.message : tAccount('tryAgain')
       });
     } finally {
       setIsChangingPassword(false);
@@ -111,10 +140,10 @@ export default function SecurityViewPage() {
     <div className='mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
       <header className='mb-6'>
         <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
-          Security
+          {tNav('security')}
         </h1>
         <p className='text-muted-foreground  text-sm'>
-          Update the password for {user.email}.
+          {tAccount('securityPageSubtitle', { email: user.email })}
         </p>
       </header>
 
@@ -123,12 +152,12 @@ export default function SecurityViewPage() {
           <SurvaiPanelHeader
             tone='brand'
             icon={<Icons.lock className='size-3.5' />}
-            title='Change Password'
-            subtitle='Keep your seat account secure.'
+            title={tAccount('changePassword')}
+            subtitle={tAccount('keepSeatSecure')}
           />
           <SurvaiPanelBody className='space-y-4'>
             <div className='space-y-2'>
-              <Label htmlFor='currentPassword'>Current Password</Label>
+              <Label htmlFor='currentPassword'>{tAccount('currentPassword')}</Label>
               <PasswordInput
                 id='currentPassword'
                 autoComplete='current-password'
@@ -147,7 +176,7 @@ export default function SecurityViewPage() {
             </div>
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>
-                <Label htmlFor='newPassword'>New Password</Label>
+                <Label htmlFor='newPassword'>{tAccount('newPassword')}</Label>
                 <PasswordInput
                   id='newPassword'
                   autoComplete='new-password'
@@ -179,14 +208,13 @@ export default function SecurityViewPage() {
                       ))}
                     </div>
                     <p className='text-muted-foreground text-xs'>
-                      {passwordStrength.label} — use 8+ characters with upper,
-                      lower, and numbers
+                      {passwordStrength.label} — {tAccount('passwordStrengthHint')}
                     </p>
                   </div>
                 ) : null}
               </div>
               <div className='space-y-2'>
-                <Label htmlFor='confirmPassword'>Confirm New Password</Label>
+                <Label htmlFor='confirmPassword'>{tAccount('confirmPassword')}</Label>
                 <PasswordInput
                   id='confirmPassword'
                   autoComplete='new-password'
@@ -214,10 +242,10 @@ export default function SecurityViewPage() {
               {isChangingPassword ? (
                 <>
                   <Icons.spinner className='mr-2 size-4 animate-spin' />
-                  Updating…
+                  {tCommon('updating')}
                 </>
               ) : (
-                'Update Password'
+                tAccount('updatePassword')
               )}
             </Button>
           </SurvaiPanelFooter>

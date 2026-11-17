@@ -128,6 +128,7 @@ async def generate_plan(
         user=current_user,
         plan_id=plan_id,
         research_goal=body.research_goal if body else None,
+        content_language=body.content_language if body else None,
     )
 
 

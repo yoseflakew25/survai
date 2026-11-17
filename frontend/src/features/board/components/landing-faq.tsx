@@ -1,38 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
-const FAQS = [
-  {
-    q: 'What problem does Survai solve?',
-    a: 'Most teams plan in documents, build in a form tool, analyze in spreadsheets, then write the report by hand. Survai connects that whole journey — from research goal to actionable findings — in one place.'
-  },
-  {
-    q: 'Will AI invent numbers in my reports?',
-    a: 'No. AI helps with planning, question wording, review suggestions, and narrative writing. Every count and percentage comes from your collected responses — or it isn’t shown.'
-  },
-  {
-    q: 'Do respondents need an account?',
-    a: 'No. You publish a survey and share a link or QR. People answer on phone or laptop without signing up. You can close the round when collection ends.'
-  },
-  {
-    q: 'Who is Survai for?',
-    a: 'Program and M&E officers, CSOs and NGOs, researchers, and policy teams — anyone who needs clearer surveys and reports they can take to donors, boards, or partners.'
-  },
-  {
-    q: 'Is Survai ready to use?',
-    a: 'Survai is in active development, shaped with Ethiopian civil society organizations. Core flows from planning through collection are live; analysis and reporting continue to deepen with pilot partners.'
-  }
-] as const;
+const FAQ_IDS = ['problem', 'numbers', 'account', 'who', 'ready'] as const;
+
+function gold(chunks: ReactNode) {
+  return (
+    <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
+      {chunks}
+    </span>
+  );
+}
 
 export function LandingFaq() {
+  const t = useTranslations('landing');
   const [open, setOpen] = useState(0);
 
   return (
     <section id='faq' className='landing-section scroll-mt-24 pt-16 sm:pt-24'>
       <div className='landing-shell overflow-hidden'>
-        <div className='relative border-b border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[var(--primary)] px-5 py-8 sm:px-8 '>
+        <div className='relative border-b border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[var(--primary)] px-5 py-8 sm:px-8'>
           <div
             className='absolute inset-0 opacity-40'
             aria-hidden='true'
@@ -45,29 +34,25 @@ export function LandingFaq() {
           <div className='relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
             <div className='max-w-lg'>
               <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-primary-foreground sm:text-[2.1rem]'>
-                Good questions before you{' '}
-                <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
-                  start
-                </span>
+                {t.rich('faq.title', { gold })}
               </h2>
               <p className='text-sm leading-relaxed text-primary-foreground/75'>
-                What Survai is for, how AI fits in, and what respondents
-                experience.
+                {t('faq.subtitle')}
               </p>
             </div>
             <div className='inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--gold)_45%,transparent)] bg-[color-mix(in_srgb,var(--gold)_18%,transparent)] px-3 py-1.5 font-mono text-[11px] font-semibold text-[var(--gold)]'>
               <span className='live-dot' aria-hidden='true' />
-              {FAQS.length} common questions
+              {t('faq.count', { count: FAQ_IDS.length })}
             </div>
           </div>
         </div>
 
         <div>
-          {FAQS.map((item, i) => {
+          {FAQ_IDS.map((id, i) => {
             const isOpen = open === i;
             return (
               <div
-                key={item.q}
+                key={id}
                 className={cn(
                   'border-b border-border last:border-b-0',
                   isOpen && 'bg-brand-soft/35'
@@ -92,7 +77,7 @@ export function LandingFaq() {
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span className='pt-0.5 text-sm font-semibold tracking-tight text-foreground sm:text-[15px]'>
-                      {item.q}
+                      {t(`faq.items.${id}.q`)}
                     </span>
                   </span>
                   <span
@@ -115,7 +100,7 @@ export function LandingFaq() {
                 >
                   <div className='overflow-hidden'>
                     <p className='border-t border-border/60 px-5 pb-5 pl-[3.75rem] text-sm leading-relaxed text-muted-foreground sm:px-8 sm:pb-6 sm:pl-[4.75rem]'>
-                      {item.a}
+                      {t(`faq.items.${id}.a`)}
                     </p>
                   </div>
                 </div>

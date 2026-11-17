@@ -1,60 +1,62 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { IconChevronRight } from '@/features/board/components/launchpot-mark';
 
-const TYPES = [
-  { id: 'single', label: 'Single choice' },
-  { id: 'rating', label: 'Rating' },
-  { id: 'open', label: 'Open text' }
-] as const;
+const TYPES = ['single', 'rating', 'open'] as const;
 
-type DemoType = (typeof TYPES)[number]['id'];
+type DemoType = (typeof TYPES)[number];
 
-const CHOICES = [
-  'Learn a new skill',
-  'Support my community',
-  'Find work opportunities',
-  'Something else'
-] as const;
+const CHOICES = ['skill', 'community', 'work', 'other'] as const;
+
+type ChoiceId = (typeof CHOICES)[number];
+
+const QUESTION_KEY = {
+  single: 'demo.qSingle',
+  rating: 'demo.qRating',
+  open: 'demo.qOpen'
+} as const;
+
+function hl(chunks: ReactNode) {
+  return <span className='hl'>{chunks}</span>;
+}
 
 export function LandingDemo() {
+  const t = useTranslations('landing');
   const [type, setType] = useState<DemoType>('single');
-  const [choice, setChoice] = useState<string | null>(null);
+  const [choice, setChoice] = useState<ChoiceId | null>(null);
   const [rating, setRating] = useState(0);
   const [openText, setOpenText] = useState('');
 
   return (
     <section id='demo' className='landing-section scroll-mt-24 pt-16 sm:pt-20'>
-
-
       <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-      See how respondents will answer <span className='hl'>your questions</span>
-        </h2>
+        {t.rich('demo.title', { hl })}
+      </h2>
       <p className='mx-auto mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground'>
-        Try a few question types — the same clear experience your community
-        gets on a phone or laptop.
+        {t('demo.subtitle')}
       </p>
 
       <div className='mt-7 overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
         <div className='flex gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
-          {TYPES.map((t) => {
-            const isActive = type === t.id;
+          {TYPES.map((id) => {
+            const isActive = type === id;
             return (
               <button
-                key={t.id}
+                key={id}
                 type='button'
-                onClick={() => setType(t.id)}
+                onClick={() => setType(id)}
                 className={cn(
                   'h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium transition-colors',
                   isActive
-                    ? 'bg-[var(--gold)] font-semibold text-[var(--primary)] shadow-sm'
+                    ? 'bg-[var(--gold)] font-semibold text-[var(--brand-foreground)] shadow-sm'
                     : 'text-primary-foreground/70 hover:text-[var(--gold)]'
                 )}
               >
-                {t.label}
+                {t(`demo.types.${id}`)}
               </button>
             );
           })}
@@ -63,33 +65,28 @@ export function LandingDemo() {
         <div className='space-y-4 p-5 sm:p-6'>
           <div>
             <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
-              Sample question
+              {t('demo.sample')}
             </p>
             <p className=' text-base font-semibold tracking-tight text-foreground'>
-              {type === 'single' &&
-                'What was the main reason you joined this program?'}
-              {type === 'rating' &&
-                'How useful was the training for your daily work?'}
-              {type === 'open' &&
-                'What would make it easier for you to participate next time?'}
+              {t(QUESTION_KEY[type])}
             </p>
           </div>
 
           {type === 'single' ? (
             <div
               role='radiogroup'
-              aria-label='Device choice'
+              aria-label={t('demo.choiceAria')}
               className='space-y-2'
             >
-              {CHOICES.map((option) => {
-                const selected = choice === option;
+              {CHOICES.map((id) => {
+                const selected = choice === id;
                 return (
                   <button
-                    key={option}
+                    key={id}
                     type='button'
                     role='radio'
                     aria-checked={selected}
-                    onClick={() => setChoice(option)}
+                    onClick={() => setChoice(id)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm font-medium transition-colors',
                       selected
@@ -110,7 +107,7 @@ export function LandingDemo() {
                         <span className='size-1.5 rounded-full bg-background' />
                       ) : null}
                     </span>
-                    {option}
+                    {t(`demo.choices.${id}`)}
                   </button>
                 );
               })}
@@ -121,7 +118,7 @@ export function LandingDemo() {
             <div className='space-y-3'>
               <div
                 role='group'
-                aria-label='Confidence rating from 1 to 5'
+                aria-label={t('demo.ratingAria')}
                 className='flex flex-wrap gap-2'
               >
                 {[1, 2, 3, 4, 5].map((n) => {
@@ -145,8 +142,8 @@ export function LandingDemo() {
                 })}
               </div>
               <div className='flex justify-between font-mono text-[11px] text-muted-foreground'>
-                <span>Not useful</span>
-                <span>Very useful</span>
+                <span>{t('demo.notUseful')}</span>
+                <span>{t('demo.veryUseful')}</span>
               </div>
             </div>
           ) : null}
@@ -156,20 +153,17 @@ export function LandingDemo() {
               value={openText}
               onChange={(e) => setOpenText(e.target.value)}
               rows={3}
-              placeholder='Type a short answer…'
+              placeholder={t('demo.placeholder')}
               className='w-full resize-none rounded-xl border border-border bg-background px-3.5 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus:border-foreground/40 focus:outline-none'
             />
           ) : null}
 
           <div className='flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4'>
             <p className='font-mono text-[11px] text-muted-foreground'>
-              Demo only · nothing is saved
+              {t('demo.note')}
             </p>
-            <Link
-              href='/auth/sign-up'
-              className='btn-back h-10 px-4 text-sm'
-            >
-              Build your first survey
+            <Link href='/auth/sign-up' className='btn-back h-10 px-4 text-sm'>
+              {t('demo.cta')}
               <IconChevronRight className='h-4 w-4' />
             </Link>
           </div>

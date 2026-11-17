@@ -10,7 +10,8 @@ import { Icons } from '@/components/icons';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -42,73 +43,22 @@ import { PasswordInput } from '@/features/auth/components/password-input';
 import { TeamPanel } from '@/features/team/components/team-panel';
 import { toast } from '@/lib/toast';
 
-const profileSchema = z.object({
-  organizationName: z
-    .string()
-    .min(2, 'Organization name must be at least 2 characters')
-    .max(100, 'Organization name must be at most 100 characters'),
-  fullName: z
-    .string()
-    .min(2, 'Display name must be at least 2 characters')
-    .max(100, 'Display name must be at most 100 characters'),
-  phone: z
-    .string()
-    .optional()
-    .refine((val) => !val || /^\+?[\d\s\-()]{7,20}$/.test(val), {
-      message: 'Please enter a valid phone number'
-    }),
-  jobTitle: z
-    .string()
-    .optional()
-    .refine((val) => !val || val.length <= 100, {
-      message: 'Job title must be at most 100 characters'
-    }),
-  bio: z
-    .string()
-    .optional()
-    .refine((val) => !val || val.length <= 500, {
-      message: 'Bio must be at most 500 characters'
-    }),
-  website: z
-    .string()
-    .optional()
-    .refine(
-      (val) =>
-        !val ||
-        /^https?:\/\/.+/i.test(val) ||
-        /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(val),
-      { message: 'Enter a valid website URL' }
-    )
-});
+type ProfileFormValues = {
+  organizationName: string;
+  fullName: string;
+  phone?: string;
+  jobTitle?: string;
+  bio?: string;
+  website?: string;
+};
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
-
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string().min(1, 'Please confirm your password')
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword']
-  });
-
-type PasswordFormValues = z.infer<typeof passwordSchema>;
+type PasswordFormValues = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
 
 type ProfileSection = 'profile' | 'team' | 'security' | 'danger';
-
-const navItems: { id: ProfileSection; label: string; icon: keyof typeof Icons }[] = [
-  { id: 'profile', label: 'Profile', icon: 'account' },
-  { id: 'team', label: 'Team', icon: 'users' },
-  { id: 'security', label: 'Security', icon: 'lock' },
-  { id: 'danger', label: 'Danger Zone', icon: 'logout' }
-];
 
 function normalizeWebsite(value: string | undefined): string | null {
   const trimmed = value?.trim() || '';
@@ -125,10 +75,102 @@ function sectionFromTab(tab: string | null): ProfileSection {
 }
 
 export default function ProfileViewPage() {
+  const tAccount = useTranslations('account');
+  const tTeam = useTranslations('team');
+  const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const { user, setUserFromApi, logout, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const owner = isOrgOwner(user?.role);
+
+  const profileSchema = useMemo(
+    () =>
+      z.object({
+        organizationName: z
+          .string()
+          .min(2, tAccount('validationOrgMin'))
+          .max(100, tAccount('validationOrgMax')),
+        fullName: z
+          .string()
+          .min(2, tAccount('validationNameMin'))
+          .max(100, tAccount('validationNameMax')),
+        phone: z
+          .string()
+          .optional()
+          .refine((val) => !val || /^\+?[\d\s\-()]{7,20}$/.test(val), {
+            message: tAccount('validationPhone')
+          }),
+        jobTitle: z
+          .string()
+          .optional()
+          .refine((val) => !val || val.length <= 100, {
+            message: tAccount('validationJobTitleMax')
+          }),
+        bio: z
+          .string()
+          .optional()
+          .refine((val) => !val || val.length <= 500, {
+            message: tAccount('validationBioMax')
+          }),
+        website: z
+          .string()
+          .optional()
+          .refine(
+            (val) =>
+              !val ||
+              /^https?:\/\/.+/i.test(val) ||
+              /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(val),
+            { message: tAccount('validationWebsite') }
+          )
+      }),
+    [tAccount]
+  );
+
+  const passwordSchema = useMemo(
+    () =>
+      z
+        .object({
+          currentPassword: z
+            .string()
+            .min(1, tAccount('validationCurrentPasswordRequired')),
+          newPassword: z
+            .string()
+            .min(8, tAccount('validationPasswordMin'))
+            .regex(/[A-Z]/, tAccount('validationPasswordUpper'))
+            .regex(/[a-z]/, tAccount('validationPasswordLower'))
+            .regex(/[0-9]/, tAccount('validationPasswordNumber')),
+          confirmPassword: z
+            .string()
+            .min(1, tAccount('validationConfirmPasswordRequired'))
+        })
+        .refine((data) => data.newPassword === data.confirmPassword, {
+          message: tAccount('validationPasswordsMismatch'),
+          path: ['confirmPassword']
+        }),
+    [tAccount]
+  );
+
+  const navItems: { id: ProfileSection; label: string; icon: keyof typeof Icons }[] =
+    useMemo(
+      () => [
+        { id: 'profile', label: tAccount('profile'), icon: 'account' },
+        { id: 'team', label: tTeam('title'), icon: 'users' },
+        { id: 'security', label: tNav('security'), icon: 'lock' },
+        { id: 'danger', label: tAccount('dangerZone'), icon: 'logout' }
+      ],
+      [tAccount, tTeam, tNav]
+    );
+
+  const strengthLabels = useMemo(
+    () => ({
+      weak: tAccount('passwordStrengthWeak'),
+      fair: tAccount('passwordStrengthFair'),
+      good: tAccount('passwordStrengthGood'),
+      strong: tAccount('passwordStrengthStrong')
+    }),
+    [tAccount]
+  );
   const [activeSection, setActiveSection] = useState<ProfileSection>(() =>
     sectionFromTab(searchParams.get('tab'))
   );
@@ -202,10 +244,10 @@ export default function ProfileViewPage() {
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
 
-    if (score <= 2) return { score, label: 'Weak', color: 'bg-destructive' };
-    if (score <= 3) return { score, label: 'Fair', color: 'bg-amber-500' };
-    if (score <= 4) return { score, label: 'Good', color: 'bg-success' };
-    return { score, label: 'Strong', color: 'bg-primary' };
+    if (score <= 2) return { score, label: strengthLabels.weak, color: 'bg-destructive' };
+    if (score <= 3) return { score, label: strengthLabels.fair, color: 'bg-amber-500' };
+    if (score <= 4) return { score, label: strengthLabels.good, color: 'bg-success' };
+    return { score, label: strengthLabels.strong, color: 'bg-primary' };
   };
 
   const passwordStrength = getPasswordStrength(newPasswordValue || '');
@@ -213,7 +255,7 @@ export default function ProfileViewPage() {
   if (!user) {
     return (
       <div className='flex min-h-[400px] items-center justify-center'>
-        <p className='text-muted-foreground'>Not signed in.</p>
+        <p className='text-muted-foreground'>{tAccount('notSignedIn')}</p>
       </div>
     );
   }
@@ -246,12 +288,12 @@ export default function ProfileViewPage() {
         bio: updated.bio || '',
         website: updated.organization_website || ''
       });
-      toast.success('Profile saved', {
-        description: 'Your organization profile was updated.'
+      toast.success(tAccount('saved'), {
+        description: tAccount('profileSavedDesc')
       });
     } catch (err) {
-      toast.error('Could not save profile', {
-        description: err instanceof Error ? err.message : 'Try again'
+      toast.error(tAccount('saveFailed'), {
+        description: err instanceof Error ? err.message : tAccount('tryAgain')
       });
     } finally {
       setIsSaving(false);
@@ -266,12 +308,12 @@ export default function ProfileViewPage() {
         newPassword: data.newPassword
       });
       resetPassword();
-      toast.success('Password updated', {
-        description: 'Use your new password the next time you sign in.'
+      toast.success(tAccount('passwordUpdated'), {
+        description: tAccount('passwordUpdatedDesc')
       });
     } catch (err) {
-      toast.error('Could not update password', {
-        description: err instanceof Error ? err.message : 'Try again'
+      toast.error(tAccount('passwordFailed'), {
+        description: err instanceof Error ? err.message : tAccount('tryAgain')
       });
     } finally {
       setIsChangingPassword(false);
@@ -282,12 +324,12 @@ export default function ProfileViewPage() {
     setIsDeleting(true);
     try {
       await deleteMyAccount();
-      toast.success('Organization deleted');
+      toast.success(tAccount('organizationDeleted'));
       await logout();
       // RequireAuth shows signing-out / redirect screens
     } catch (err) {
-      toast.error('Could not delete account', {
-        description: err instanceof Error ? err.message : 'Try again'
+      toast.error(tAccount('couldNotDeleteAccount'), {
+        description: err instanceof Error ? err.message : tAccount('tryAgain')
       });
       setIsDeleting(false);
     }
@@ -310,16 +352,14 @@ export default function ProfileViewPage() {
     <div className='mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
       <header className='mb-6'>
         <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
-          Account
+          {tNav('account')}
         </h1>
-        <p className='text-muted-foreground  text-sm'>
-          Organization profile and security.
-        </p>
+        <p className='text-muted-foreground  text-sm'>{tAccount('subtitle')}</p>
       </header>
 
       <div
         role='tablist'
-        aria-label='Profile sections'
+        aria-label={tAccount('sectionsAria')}
         className='mb-6 flex flex-wrap gap-1 rounded-full bg-brand-soft p-1'
       >
         {navItems.map((item) => {
@@ -421,14 +461,17 @@ function ProfileSection({
   onProfileSubmit: (data: ProfileFormValues) => void;
   brandCtaClass: string;
 }) {
+  const tAccount = useTranslations('account');
+  const tCommon = useTranslations('common');
+
   return (
     <div className='space-y-5'>
       <SurvaiPanel>
         <SurvaiPanelHeader
           tone='brand'
           icon={<Icons.account className='size-3.5' />}
-          title='Organization'
-          subtitle='Account identity for your workspace.'
+          title={tAccount('organization')}
+          subtitle={tAccount('orgIdentitySubtitle')}
         />
         <SurvaiPanelBody>
           <div className='flex flex-col gap-4 sm:flex-row sm:items-center'>
@@ -443,7 +486,7 @@ function ProfileSection({
                   {user.organizationName || user.fullName}
                 </h3>
                 <Badge className='rounded-full border-transparent bg-brand text-[10px] text-brand-foreground'>
-                  Organization
+                  {tAccount('organizationBadge')}
                 </Badge>
               </div>
               <p className='text-muted-foreground text-sm'>{user.email}</p>
@@ -457,14 +500,15 @@ function ProfileSection({
           <SurvaiPanelHeader
             tone='brand'
             icon={<Icons.edit className='size-3.5' />}
-            title='Details'
-            subtitle='Organization name, website, contact, and about.'
+            title={tAccount('detailsTitle')}
+            subtitle={tAccount('detailsSubtitle')}
           />
           <SurvaiPanelBody className='space-y-4'>
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>
                 <Label htmlFor='organizationName'>
-                  Organization Name <span className='text-destructive'>*</span>
+                  {tAccount('orgName')}{' '}
+                  <span className='text-destructive'>*</span>
                 </Label>
                 <Input
                   id='organizationName'
@@ -482,7 +526,7 @@ function ProfileSection({
                 ) : null}
               </div>
               <div className='space-y-2'>
-                <Label htmlFor='email'>Email Address</Label>
+                <Label htmlFor='email'>{tAccount('emailAddress')}</Label>
                 <Input
                   id='email'
                   value={user.email}
@@ -490,14 +534,15 @@ function ProfileSection({
                   className='h-11 rounded-xl'
                 />
                 <p className='text-muted-foreground text-xs'>
-                  Contact support to change your email
+                  {tAccount('emailChangeHint')}
                 </p>
               </div>
             </div>
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>
                 <Label htmlFor='fullName'>
-                  Display Name <span className='text-destructive'>*</span>
+                  {tAccount('displayName')}{' '}
+                  <span className='text-destructive'>*</span>
                 </Label>
                 <Input
                   id='fullName'
@@ -515,7 +560,7 @@ function ProfileSection({
                 ) : null}
               </div>
               <div className='space-y-2'>
-                <Label htmlFor='phone'>Phone Number</Label>
+                <Label htmlFor='phone'>{tAccount('phone')}</Label>
                 <Input
                   id='phone'
                   {...registerProfile('phone')}
@@ -535,11 +580,11 @@ function ProfileSection({
             </div>
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>
-                <Label htmlFor='jobTitle'>Focus / Role label</Label>
+                <Label htmlFor='jobTitle'>{tAccount('focusRoleLabel')}</Label>
                 <Input
                   id='jobTitle'
                   {...registerProfile('jobTitle')}
-                  placeholder='e.g. M&E · Field research'
+                  placeholder={tAccount('focusRolePlaceholder')}
                   className={cn(
                     'h-11 rounded-xl',
                     profileErrors.jobTitle &&
@@ -553,7 +598,7 @@ function ProfileSection({
                 ) : null}
               </div>
               <div className='space-y-2'>
-                <Label htmlFor='website'>Website</Label>
+                <Label htmlFor='website'>{tAccount('website')}</Label>
                 <Input
                   id='website'
                   {...registerProfile('website')}
@@ -572,11 +617,11 @@ function ProfileSection({
               </div>
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='bio'>About</Label>
+              <Label htmlFor='bio'>{tAccount('description')}</Label>
               <Textarea
                 id='bio'
                 {...registerProfile('bio')}
-                placeholder='Short description of your organization…'
+                placeholder={tAccount('aboutPlaceholder')}
                 className={cn(
                   'min-h-[100px] rounded-xl',
                   profileErrors.bio &&
@@ -598,7 +643,7 @@ function ProfileSection({
           <SurvaiPanelFooter className='flex items-center justify-between gap-3'>
             {isProfileDirty ? (
               <p className='text-muted-foreground text-xs'>
-                You have unsaved changes
+                {tAccount('unsavedChanges')}
               </p>
             ) : (
               <span />
@@ -611,10 +656,10 @@ function ProfileSection({
               {isSaving ? (
                 <>
                   <Icons.spinner className='mr-2 size-4 animate-spin' />
-                  Saving…
+                  {tCommon('saving')}
                 </>
               ) : (
-                'Save Changes'
+                tAccount('saveChanges')
               )}
             </Button>
           </SurvaiPanelFooter>
@@ -645,18 +690,21 @@ function SecuritySection({
   onPasswordSubmit: (data: PasswordFormValues) => void;
   brandCtaClass: string;
 }) {
+  const tAccount = useTranslations('account');
+  const tCommon = useTranslations('common');
+
   return (
     <form onSubmit={handleSubmitPassword(onPasswordSubmit)}>
       <SurvaiPanel>
         <SurvaiPanelHeader
           tone='brand'
           icon={<Icons.lock className='size-3.5' />}
-          title='Change Password'
-          subtitle='Ensure your organization account stays secure.'
+          title={tAccount('changePassword')}
+          subtitle={tAccount('keepAccountSecure')}
         />
         <SurvaiPanelBody className='space-y-4'>
           <div className='space-y-2'>
-            <Label htmlFor='currentPassword'>Current Password</Label>
+            <Label htmlFor='currentPassword'>{tAccount('currentPassword')}</Label>
             <PasswordInput
               id='currentPassword'
               autoComplete='current-password'
@@ -675,7 +723,7 @@ function SecuritySection({
           </div>
           <div className='grid gap-4 sm:grid-cols-2'>
             <div className='space-y-2'>
-              <Label htmlFor='newPassword'>New Password</Label>
+              <Label htmlFor='newPassword'>{tAccount('newPassword')}</Label>
               <PasswordInput
                 id='newPassword'
                 autoComplete='new-password'
@@ -707,14 +755,13 @@ function SecuritySection({
                     ))}
                   </div>
                   <p className='text-muted-foreground text-xs'>
-                    {passwordStrength.label} — use 8+ characters with upper,
-                    lower, and numbers
+                    {passwordStrength.label} — {tAccount('passwordStrengthHint')}
                   </p>
                 </div>
               ) : null}
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='confirmPassword'>Confirm New Password</Label>
+              <Label htmlFor='confirmPassword'>{tAccount('confirmPassword')}</Label>
               <PasswordInput
                 id='confirmPassword'
                 autoComplete='new-password'
@@ -742,10 +789,10 @@ function SecuritySection({
             {isChangingPassword ? (
               <>
                 <Icons.spinner className='mr-2 size-4 animate-spin' />
-                Updating…
+                {tCommon('updating')}
               </>
             ) : (
-              'Update Password'
+              tAccount('updatePassword')
             )}
           </Button>
         </SurvaiPanelFooter>
@@ -763,6 +810,8 @@ function DangerSection({
   isDeleting: boolean;
   onDelete: () => void | Promise<void>;
 }) {
+  const tAccount = useTranslations('account');
+  const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [confirmName, setConfirmName] = useState('');
   const canDelete =
@@ -784,16 +833,18 @@ function DangerSection({
     <SurvaiPanel className='border-destructive/30'>
       <SurvaiPanelHeader
         icon={<Icons.logout className='size-3.5' />}
-        title='Danger Zone'
-        subtitle='Irreversible actions for your organization.'
+        title={tAccount('dangerZone')}
+        subtitle={tAccount('dangerSubtitle')}
         className='border-destructive/10 bg-destructive/5'
       />
       <div className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5'>
         <div className='min-w-0'>
-          <p className='text-sm font-medium'>Delete Organization</p>
+          <p className='text-sm font-medium'>{tAccount('deleteOrganization')}</p>
           <p className='text-muted-foreground text-xs'>
-            Permanently delete <strong>{organizationName}</strong> and all
-            associated surveys and data.
+            {tAccount.rich('deleteOrganizationDesc', {
+              name: organizationName,
+              strong: (chunks) => <strong>{chunks}</strong>
+            })}
           </p>
         </div>
         <AlertDialog open={open} onOpenChange={handleOpenChange}>
@@ -807,7 +858,7 @@ function DangerSection({
               />
             }
           >
-            {isDeleting ? 'Deleting…' : 'Delete Organization'}
+            {isDeleting ? tAccount('deleting') : tAccount('deleteOrganization')}
           </AlertDialogTrigger>
           <AlertDialogContent className='gap-5 overflow-hidden p-0 sm:max-w-md'>
             <div className='space-y-5 px-5 pt-5'>
@@ -817,24 +868,22 @@ function DangerSection({
                 </AlertDialogMedia>
                 <div className='space-y-1.5'>
                   <AlertDialogTitle className='text-lg font-semibold tracking-tight'>
-                    Delete this organization?
+                    {tAccount('deleteDialogTitle')}
                   </AlertDialogTitle>
                   <AlertDialogDescription className='text-pretty'>
-                    This cannot be undone. Everything belonging to{' '}
-                    <span className='text-foreground font-medium'>
-                      {organizationName}
-                    </span>{' '}
-                    will be permanently removed.
+                    {tAccount('deleteDialogDesc', { orgName: organizationName })}
                   </AlertDialogDescription>
                 </div>
               </AlertDialogHeader>
 
               <ul className='bg-destructive/5 text-muted-foreground ring-destructive/10 space-y-1.5 rounded-xl px-3.5 py-3 text-xs ring-1'>
-                {[
-                  'Organization account and profile',
-                  'Surveys, responses, and collected data',
-                  'Reports and analysis history'
-                ].map((item) => (
+                {(
+                  [
+                    tAccount('deleteBulletAccount'),
+                    tAccount('deleteBulletSurveys'),
+                    tAccount('deleteBulletReports')
+                  ] as const
+                ).map((item) => (
                   <li key={item} className='flex gap-2'>
                     <span
                       aria-hidden
@@ -850,11 +899,7 @@ function DangerSection({
                   htmlFor='confirm-org-name'
                   className='text-muted-foreground text-xs font-normal'
                 >
-                  Type{' '}
-                  <span className='text-foreground font-semibold'>
-                    {organizationName}
-                  </span>{' '}
-                  to confirm
+                  {tAccount('typeToConfirm', { orgName: organizationName })}
                 </Label>
                 <Input
                   id='confirm-org-name'
@@ -880,7 +925,7 @@ function DangerSection({
                 disabled={isDeleting}
                 className='rounded-xl'
               >
-                Cancel
+                {tCommon('cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
                 className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90 disabled:opacity-40'
@@ -893,10 +938,10 @@ function DangerSection({
                 {isDeleting ? (
                   <>
                     <Icons.spinner className='mr-2 size-4 animate-spin' />
-                    Deleting…
+                    {tAccount('deleting')}
                   </>
                 ) : (
-                  'Delete permanently'
+                  tAccount('deletePermanently')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

@@ -2,47 +2,26 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { AuthShell } from '@/features/auth/components/auth-shell';
-import {
-  AuthDivider,
-  GoogleSignInButton
-} from '@/features/auth/components/google-sign-in-button';
+import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/google-sign-in-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { IconMail } from '@/features/auth/components/survai-mark';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot
-} from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
+import { useTranslations } from 'next-intl';
 
-const passwordSchema = z
-  .object({
-    organizationName: z
-      .string()
-      .min(1, 'Organization name is required')
-      .min(2, 'At least 2 characters'),
-    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-    password: z
-      .string()
-      .min(1, 'Password is required')
-      .min(8, 'At least 8 characters')
-      .regex(/[A-Z]/, 'Include an uppercase letter')
-      .regex(/[0-9]/, 'Include a number'),
-    confirmPassword: z.string().min(1, 'Confirm your password')
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword']
-  });
-
-type PasswordValues = z.infer<typeof passwordSchema>;
+type PasswordValues = {
+  organizationName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
 
 const inputClass =
   'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
@@ -56,7 +35,29 @@ export default function SignUpViewPage() {
     isLoading
   } = useAuth();
   const router = useRouter();
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
   const searchParams = useSearchParams();
+  const passwordSchema = useMemo(
+    () =>
+      z
+        .object({
+          organizationName: z.string().min(1, t('orgNameRequired')).min(2, t('orgNameMin')),
+          email: z.string().min(1, t('emailRequired')).email(t('emailInvalid')),
+          password: z
+            .string()
+            .min(1, t('passwordRequired'))
+            .min(8, t('passwordMin'))
+            .regex(/[A-Z]/, t('passwordUppercase'))
+            .regex(/[0-9]/, t('passwordNumber')),
+          confirmPassword: z.string().min(1, t('confirmPasswordRequired'))
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t('passwordsMismatch'),
+          path: ['confirmPassword']
+        }),
+    [t]
+  );
   const deepLinkHandled = useRef(false);
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [pendingEmail, setPendingEmail] = useState('');
@@ -107,44 +108,33 @@ export default function SignUpViewPage() {
       setDevCode(result.dev_code ?? null);
       setOtp(result.dev_code ?? '');
       setStep('otp');
-      toast.success(
-        result.dev_code ? 'Dev mode — code ready' : 'Check your email',
-        {
-          description: result.dev_code
-            ? 'Email delivery is not configured; use the code shown on screen.'
-            : 'We sent a 6-digit verification code.'
-        }
-      );
+      toast.success(result.dev_code ? t('devModeCodeReady') : t('checkEmail'), {
+        description: result.dev_code ? t('devEmailNotConfigured') : t('verificationCodeSent')
+      });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Could not create your organization. Please try again.';
+      const message = err instanceof Error ? err.message : t('createOrgFailed');
       setServerError(message);
-      toast.error('Could not create workspace', { description: message });
+      toast.error(t('couldNotCreateWorkspace'), { description: message });
     }
   }
 
   async function onVerifyOtp() {
     if (otp.length !== 6) {
-      setServerError('Enter the 6-digit code from your email.');
+      setServerError(t('otpIncomplete'));
       return;
     }
     setServerError(null);
     setIsVerifying(true);
     try {
       await verifyEmail(pendingEmail, otp);
-      toast.success('Email verified', {
-        description: 'Your organization account is ready.'
+      toast.success(t('emailVerified'), {
+        description: t('orgReady')
       });
       router.push('/dashboard/overview');
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Invalid or expired code. Try again.';
+      const message = err instanceof Error ? err.message : t('invalidOrExpired');
       setServerError(message);
-      toast.error('Verification failed', { description: message });
+      toast.error(t('verificationFailed'), { description: message });
     } finally {
       setIsVerifying(false);
     }
@@ -157,14 +147,11 @@ export default function SignUpViewPage() {
       const result = await resendVerification(pendingEmail);
       setDevCode(result.dev_code ?? null);
       setOtp(result.dev_code ?? '');
-      toast.success(result.dev_code ? 'Dev code refreshed' : 'Code sent', {
-        description: result.dev_code
-          ? 'Email delivery is not configured; use the code shown on screen.'
-          : 'Check your inbox for a new verification code.'
+      toast.success(result.dev_code ? t('devCodeRefreshed') : t('codeSent'), {
+        description: result.dev_code ? t('devEmailNotConfigured') : t('resendInbox')
       });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Could not resend code.';
+      const message = err instanceof Error ? err.message : t('couldNotResend');
       setServerError(message);
     } finally {
       setIsResending(false);
@@ -175,12 +162,10 @@ export default function SignUpViewPage() {
     <AuthShell>
       <div className='mb-6'>
         <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
-          {step === 'otp' ? 'Verify your email' : 'Create your organization'}
+          {step === 'otp' ? t('verifyEmailTitle') : t('signUpTitle')}
         </h1>
         <p className='.5 text-[15px] text-muted-foreground'>
-          {step === 'otp'
-            ? `Enter the 6-digit code we sent to ${pendingEmail}.`
-            : 'One organization account to plan, build, collect, and analyze surveys.'}
+          {step === 'otp' ? t('otpSentTo', { email: pendingEmail }) : t('signUpBody')}
         </p>
       </div>
 
@@ -197,8 +182,8 @@ export default function SignUpViewPage() {
               mode='signup'
               onError={(message) => setServerError(message)}
               onSuccess={() => {
-                toast.success('Welcome', {
-                  description: 'Your organization workspace is ready.'
+                toast.success(t('welcome'), {
+                  description: t('workspaceReady')
                 });
                 router.push('/dashboard/overview');
               }}
@@ -211,11 +196,9 @@ export default function SignUpViewPage() {
           <div className='space-y-4'>
             {devCode ? (
               <div className='rounded-xl border border-[color-mix(in_srgb,var(--gold)_50%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_12%,var(--card))] px-3.5 py-2.5 text-sm'>
-                <p className='font-medium text-foreground'>
-                  Email is not configured yet
-                </p>
+                <p className='font-medium text-foreground'>{t('emailNotConfigured')}</p>
                 <p className='text-muted-foreground '>
-                  Dev code:{' '}
+                  {t('devCodeLabel')}{' '}
                   <span className='font-mono text-base font-semibold tracking-widest text-foreground'>
                     {devCode}
                   </span>
@@ -247,7 +230,7 @@ export default function SignUpViewPage() {
               className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
               onClick={() => void onVerifyOtp()}
             >
-              {isVerifying ? 'Verifying…' : 'Verify and continue'}
+              {isVerifying ? t('verifying') : t('verifyAndContinue')}
             </button>
 
             <button
@@ -257,7 +240,7 @@ export default function SignUpViewPage() {
               onClick={() => void onResend()}
             >
               <IconMail className='size-3.5' />
-              {isResending ? 'Sending…' : 'Resend code'}
+              {isResending ? t('sending') : t('resendCode')}
             </button>
 
             <button
@@ -269,18 +252,15 @@ export default function SignUpViewPage() {
                 setStep('form');
               }}
             >
-              Use a different email
+              {t('useDifferentEmail')}
             </button>
           </div>
         ) : (
-          <form
-            className='space-y-2'
-            onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
-          >
+          <form className='space-y-2' onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
             <input
-              placeholder='Organization name'
+              placeholder={t('organizationName')}
               autoComplete='organization'
-              aria-label='Organization name'
+              aria-label={t('organizationName')}
               className={inputClass}
               {...passwordForm.register('organizationName')}
             />
@@ -291,9 +271,9 @@ export default function SignUpViewPage() {
             ) : null}
             <input
               type='email'
-              placeholder='you@example.com'
+              placeholder={t('emailPlaceholder')}
               autoComplete='email'
-              aria-label='Email'
+              aria-label={t('email')}
               className={inputClass}
               {...passwordForm.register('email')}
             />
@@ -303,9 +283,9 @@ export default function SignUpViewPage() {
               </p>
             ) : null}
             <PasswordInput
-              placeholder='Password'
+              placeholder={t('password')}
               autoComplete='new-password'
-              aria-label='Password'
+              aria-label={t('password')}
               className={inputClass}
               {...passwordForm.register('password')}
             />
@@ -315,9 +295,9 @@ export default function SignUpViewPage() {
               </p>
             ) : null}
             <PasswordInput
-              placeholder='Confirm password'
+              placeholder={t('confirmPassword')}
               autoComplete='new-password'
-              aria-label='Confirm password'
+              aria-label={t('confirmPassword')}
               className={inputClass}
               {...passwordForm.register('confirmPassword')}
             />
@@ -331,21 +311,16 @@ export default function SignUpViewPage() {
               disabled={passwordForm.formState.isSubmitting}
               className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
             >
-              {passwordForm.formState.isSubmitting
-                ? 'Sending code…'
-                : 'Continue'}
+              {passwordForm.formState.isSubmitting ? t('sendingCode') : tCommon('continue')}
             </button>
           </form>
         )}
 
         {step === 'form' ? (
           <p className='text-center text-[13px] text-muted-foreground'>
-            Already have a workspace?{' '}
-            <Link
-              href='/auth/sign-in'
-              className='font-semibold text-foreground hover:underline'
-            >
-              Sign in
+            {t('alreadyHaveWorkspace')}{' '}
+            <Link href='/auth/sign-in' className='font-semibold text-foreground hover:underline'>
+              {t('signIn')}
             </Link>
           </p>
         ) : null}

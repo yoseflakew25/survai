@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
@@ -43,6 +43,7 @@ class UserMeUpdate(BaseModel):
     organization_name: str | None = Field(default=None, min_length=1, max_length=255)
     organization_description: str | None = Field(default=None, max_length=2000)
     organization_website: str | None = Field(default=None, max_length=255)
+    ui_locale: Literal["en", "am"] | None = None
 
 
 class PasswordChangeRequest(BaseModel):
@@ -68,6 +69,7 @@ class UserPublic(BaseModel):
     job_title: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    ui_locale: str = "en"
     created_at: datetime
     updated_at: datetime
     # Present when the access token is an admin impersonation session.
@@ -96,6 +98,7 @@ class UserPublic(BaseModel):
                 "job_title": data.job_title,
                 "bio": data.bio,
                 "avatar_url": data.avatar_url,
+                "ui_locale": getattr(data, "ui_locale", "en") or "en",
                 "created_at": data.created_at,
                 "updated_at": data.updated_at,
                 "impersonation": bool(getattr(data, "_impersonation", False)),

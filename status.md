@@ -1,14 +1,11 @@
 # Codebase Progress — SurvAI / AI Survey Copilot
 
 > Living snapshot of what is implemented vs mock vs next.
-> Last updated: **11 November 2026** — Plan → Reports live; Org Assistant + SSE;
-> **multi-seat orgs** (Owner / Researcher / Viewer); collection quota + share
-> pack; donor ZIP export; baseline/endline compare; **skip/branch logic
-> (BLD-08)**; **saved analysis views** + crosstab `chart_config`; report
-> **`?reportId=`** deep-links; **plan interview chat** at `/surveys/new`;
-> **CfA Bedrock primary + Gemini backup** AI gateway; **Operate brand chrome**
-> (teal `#103344` + bold green `#22f187` panel headers / CTAs); Bearer +
-> sessionStorage refresh auth hardening.
+> Last updated: **16 November 2026** — **Amharic + English bilingual** (UI
+> chrome, public collect, per-survey AI `content_language`, emails /
+> notifications / PDF·DOCX / assistant); Plan → Reports live; Org Assistant +
+> SSE; multi-seat orgs; collection quota + share pack; donor ZIP; skip/branch;
+> saved analyses; CfA + Gemini AI gateway; Operate brand chrome.
 
 Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 
@@ -88,7 +85,14 @@ Architectural source of truth: `plan.md`. Stack gates: `plan.md` §2a.
 - **Saved analyses:** `GET`/`POST`/`DELETE /surveys/{id}/saved-analyses`; optional `chart_config` (crosstab axes);
   report create accepts `saved_analysis_id` and freezes filtered metrics in `metrics_snapshot`.
 - **Report deep-link:** `GET /reports/{id}`; `notify_report_ready` href includes `?reportId=`.
-- **Alembic:** through **`0019_saved_analysis_chart_config`** (includes 0017 + 0018).
+- **Alembic:** through **`0023_i18n_locales`** (`content_language` on plans/surveys;
+  `users.ui_locale`; earlier 0016–0022 still apply).
+- **i18n (Amharic + English):**
+  - UI locale: cookie `NEXT_LOCALE` (`en` default); language switcher; Noto Sans Ethiopic when `am`
+  - Content language: plan/survey `content_language` (`en`|`am`) → AI prompt clause + publish snapshot
+  - Emails (OTP / invite / lifecycle) + notification key+params catalogs follow `ui_locale`
+  - Report PDF/DOCX chrome labels follow survey `content_language` (Ethiopic TTF when available)
+  - Org Assistant + report chat reply language = requester `ui_locale`
 - Pytest: `test_dicdo_features` (invite / quota / donor pack) + `test_branching_and_reports`
   (skip-on-submit, saved-view filters/delete, GET by id, Owner→Researcher dogfood) + plan interview + assistant suites.
 
@@ -115,6 +119,8 @@ uvicorn app.main:app --reload --port 8000
 
 ## 4. Frontend — done (live API)
 
+- **i18n:** `next-intl` (`localePrefix: never`), `messages/{en,am}.json`, switcher in
+  header / auth / public collect; content-language picker on plan create/editor/interview.
 - Auth UI (email/OTP + Google); Plans → Builder → Review → Collect → Respondents → Analytics → Reports.
 - Overview KPIs + activity; survey activity modal; pill nav.
 - **New survey / plan chat** (`/dashboard/surveys/new` → `PlanGeneratorWorkspace`):
@@ -142,6 +148,20 @@ uvicorn app.main:app --reload --port 8000
 
 - Playwright: set `PLAYWRIGHT_BASE_URL`, `E2E_*`, and on newer Ubuntu hosts `PLAYWRIGHT_CHANNEL=chrome` (bundled browsers unsupported).
 - Optional polish: server-side plan interview draft persistence (today: localStorage).
+- Optional leftovers: activity-script stage prose, some API-sourced labels, demo/billing pages.
+
+### Amharic support checklist
+
+- [x] EN/AM UI toggle persists (`NEXT_LOCALE`) and syncs `users.ui_locale` when signed in
+- [x] Public `/s/...` respondent chrome follows UI locale; question body from survey payload
+- [x] Plan/survey **Survey language** picker → AI generations in Amharic when `am`
+- [x] OTP / invite / lifecycle emails bilingual by `ui_locale`
+- [x] In-app notifications re-render from message keys by current `ui_locale`
+- [x] Report narrative + export labels follow survey `content_language`
+- [x] Assistant answers in UI locale; cited survey text keeps content language
+- [x] Dashboard lifecycle chrome wired: plan, builder, review, collect, respondents, analytics, reports
+- [x] Overview, account/security, team, notifications, survey pill-nav + list columns
+- [x] Catalogs `messages/{en,am}.json` kept key-synced (~1k keys)
 
 ---
 
@@ -156,9 +176,9 @@ uvicorn app.main:app --reload --port 8000
 
 ## 7. Files that matter
 
-**Backend:** `app/api/v1/routes/{plans,assistant,notifications,reports,...}.py`, `services/{plan,assistant,collection,conditional_logic,knowledge_index,notification,report,...}.py`, `ai/{client,embeddings,prompts/{assistant_v1,planner_interview_v1}.py}` (CfA+Gemini gateway), `core/config.py` (`CFA_SANDBOX_*` / `GEMINI_*`), `models/assistant.py`, `alembic/versions/0016_org_assistant.py` … `0019_saved_analysis_chart_config.py`, `scripts/pilot_{smoke,full_path}.py`, `tests/test_{assistant,branching_and_reports,dicdo_features,plans}.py`
+**Backend:** `app/api/v1/routes/{plans,assistant,notifications,reports,...}.py`, `services/{plan,assistant,collection,conditional_logic,knowledge_index,notification,report,email,...}.py`, `ai/{client,embeddings,prompts/{assistant_v1,planner_interview_v1}.py}` (CfA+Gemini gateway), `core/{config,i18n,notification_i18n}.py`, `models/assistant.py`, `alembic/versions/…` through `0023_i18n_locales.py`, `scripts/pilot_{smoke,full_path}.py`, `tests/test_{assistant,branching_and_reports,dicdo_features,plans}.py`
 
-**Frontend:** `components/survai-panel.tsx`, `styles/themes/vercel.css`, `lib/api.ts` / `auth-context.tsx`, `features/plans/components/plan-generator-workspace.tsx`, `features/plans/lib/interview-draft.ts`, `features/assistant/**`, `features/builder/**`, `features/analytics/**`, `features/team/**`, `features/profile/**`, `features/overview/components/lifecycle-funnel.tsx`, `components/chat-markdown.tsx`, `config/nav-config.ts`, `features/{reports,notifications,surveys}/**`, `e2e/smoke.spec.ts`
+**Frontend:** `messages/{en,am}.json`, `src/i18n/*`, `components/language-switcher.tsx`, `components/content-language-picker.tsx`, `components/survai-panel.tsx`, `lib/api.ts` / `auth-context.tsx` / `locale-sync.ts`, `features/plans/components/plan-generator-workspace.tsx`, `features/assistant/**`, `features/builder/**`, `features/collection/**`, `config/nav-config.ts`, `features/{reports,notifications,surveys}/**`, `e2e/smoke.spec.ts`
 
 **Do not commit:** `CFA_SANDBOX_API_KEY`, `GEMINI_API_KEY`, DB/SMTP/Resend secrets, `SMOKE_*` / `E2E_*`.
 

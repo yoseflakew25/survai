@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { planByIdOptions } from '../api/queries';
 import { PlanEditor } from './plan-editor';
@@ -23,19 +24,12 @@ export function PlanDetailView({ planId, surveyId }: PlanDetailViewProps) {
   );
 }
 
-function PlanDetailContent({
-  planId,
-  surveyId
-}: {
-  planId: string;
-  surveyId?: string;
-}) {
+function PlanDetailContent({ planId, surveyId }: { planId: string; surveyId?: string }) {
+  const t = useTranslations('plan');
   const { data: plan, refetch } = useSuspenseQuery(planByIdOptions(planId));
 
   if (!plan) {
-    const reviewHref = surveyId
-      ? `/dashboard/surveys/${surveyId}/review`
-      : '/dashboard/surveys';
+    const reviewHref = surveyId ? `/dashboard/surveys/${surveyId}/review` : '/dashboard/surveys';
     return (
       <div className='mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16 text-center'>
         <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
@@ -43,24 +37,21 @@ function PlanDetailContent({
         </div>
         <div className='space-y-1.5'>
           <h2 className='font-display text-xl font-extrabold tracking-tight'>
-            Plan not found
+            {t('planNotFound')}
           </h2>
-          <p className='text-muted-foreground text-sm leading-relaxed'>
-            This research plan is missing or no longer accessible. You can still
-            work on the survey questionnaire.
-          </p>
+          <p className='text-muted-foreground text-sm leading-relaxed'>{t('planNotFoundDesc')}</p>
         </div>
         <Button
           nativeButton={false}
           render={
             <Link
               href={reviewHref}
-              aria-label={surveyId ? 'Go to survey review' : 'Back to surveys'}
+              aria-label={surveyId ? t('goToReviewAria') : t('backToSurveysAria')}
             />
           }
           className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
-          {surveyId ? 'Go to Review' : 'Back to Surveys'}
+          {surveyId ? t('goToReview') : t('backToSurveys')}
           <Icons.arrowRight className='ml-1.5 size-4' />
         </Button>
       </div>

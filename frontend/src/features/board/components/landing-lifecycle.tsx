@@ -1,158 +1,90 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
-const STEPS = [
-  {
-    id: 'plan',
-    label: 'Plan',
-    title: 'Start with the decision',
-    body: 'Describe what you need to learn. Survai turns that into clear objectives, audiences, and sections — so you stop writing questions before you know why.',
-    preview: {
-      eyebrow: 'Your plan',
-      lines: [
-        'Goal: Understand barriers to program uptake',
-        'Audience: Youth beneficiaries, ages 18–35',
-        'Sections: Access · Experience · Next steps'
-      ]
-    }
-  },
-  {
-    id: 'build',
-    label: 'Build',
-    title: 'Get a first draft in minutes',
-    body: 'AI proposes questions you can keep, edit, or replace. Build manually anytime — you never lose control of the survey.',
-    preview: {
-      eyebrow: 'Draft question',
-      lines: [
-        'Q3 · Single choice · Required',
-        'What made it hard to attend sessions?',
-        '□ Distance  □ Timing  □ Cost  □ Other'
-      ]
-    }
-  },
-  {
-    id: 'review',
-    label: 'Review',
-    title: 'Catch weak questions early',
-    body: 'Spot leading wording, double-barreled asks, and surveys that run too long — before respondents ever see them.',
-    preview: {
-      eyebrow: 'Quality check',
-      lines: [
-        'Flag: Leading phrasing',
-        '“Don’t you agree the training was useful?”',
-        'Suggestion: Ask how useful — neutrally'
-      ]
-    }
-  },
-  {
-    id: 'collect',
-    label: 'Collect',
-    title: 'Share a link. Get answers.',
-    body: 'Publish once, share a link or QR, and collect on phone or laptop. Respondents need no account.',
-    preview: {
-      eyebrow: 'Live collection',
-      lines: [
-        'Status: Open · Round 1',
-        'Share link · Print QR',
-        '128 responses this week'
-      ]
-    }
-  },
-  {
-    id: 'analyze',
-    label: 'Analyze',
-    title: 'See what the data actually says',
-    body: 'Distributions, filters, and comparisons calculated from real responses — so you spend time interpreting, not wrestling spreadsheets.',
-    preview: {
-      eyebrow: 'Key result',
-      lines: [
-        '128 complete responses',
-        'Distance cited by 41% as a barrier',
-        'Ready to explore by gender · location'
-      ]
-    }
-  },
-  {
-    id: 'report',
-    label: 'Report',
-    title: 'Turn findings into a story',
-    body: 'Generate a structured report for donors, boards, or your team — then chat with it to pull the right takeaway for each audience.',
-    preview: {
-      eyebrow: 'Report draft',
-      lines: [
-        'Executive summary · Key findings',
-        'Recommendations tied to results',
-        'Tone: Donor · Internal · Leadership'
-      ]
-    }
-  }
+const STEP_IDS = [
+  'plan',
+  'build',
+  'review',
+  'collect',
+  'analyze',
+  'report'
 ] as const;
 
+const LINE_KEYS = ['line1', 'line2', 'line3'] as const;
+
+function hl(chunks: ReactNode) {
+  return <span className='hl'>{chunks}</span>;
+}
+
 export function LandingLifecycle() {
+  const t = useTranslations('landing');
   const [active, setActive] = useState(0);
-  const step = STEPS[active];
+  const step = STEP_IDS[active];
 
   return (
     <section
       id='lifecycle'
       className='landing-section scroll-mt-24 pt-16 sm:pt-20'
     >
-        <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
-        From “we need to learn” to <span className='hl'>“here’s what to do”</span>
-        </h2>
-        <p className='mx-auto mt-2 max-w-lg text-center text-sm leading-relaxed text-muted-foreground'>
-        One continuous journey — no more jumping between docs, form tools,
-        spreadsheets, and Word.
+      <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground sm:text-[2.1rem]'>
+        {t.rich('lifecycle.title', { hl })}
+      </h2>
+      <p className='mx-auto mt-2 max-w-lg text-center text-sm leading-relaxed text-muted-foreground'>
+        {t('lifecycle.subtitle')}
       </p>
 
       <div
         role='tablist'
-        aria-label='Survey lifecycle stages'
+        aria-label={t('stages.aria')}
         className='mt-7 flex gap-1 overflow-x-auto rounded-full border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-[3px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       >
-        {STEPS.map((s, i) => {
+        {STEP_IDS.map((id, i) => {
           const isActive = i === active;
           return (
             <button
-              key={s.id}
+              key={id}
               type='button'
               role='tab'
               aria-selected={isActive}
-              id={`lifecycle-tab-${s.id}`}
+              id={`lifecycle-tab-${id}`}
               aria-controls='lifecycle-panel'
               onClick={() => setActive(i)}
               onMouseEnter={() => setActive(i)}
               className={cn(
                 'h-9 shrink-0 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors',
                 isActive
-                  ? 'bg-[var(--gold)] font-semibold text-[var(--primary)] shadow-sm'
+                  ? 'bg-[var(--gold)] font-semibold text-[var(--brand-foreground)] shadow-sm'
                   : 'text-primary-foreground/70 hover:text-[var(--gold)]'
               )}
             >
-              {s.label}
+              {t(`stages.${id}`)}
             </button>
           );
         })}
       </div>
 
       <div
-        key={step.id}
+        key={step}
         id='lifecycle-panel'
         role='tabpanel'
-        aria-labelledby={`lifecycle-tab-${step.id}`}
+        aria-labelledby={`lifecycle-tab-${step}`}
         className='landing-panel-swap mt-5 grid gap-4 sm:grid-cols-[1fr_1.05fr] sm:items-stretch'
       >
         <div className='flex flex-col justify-center rounded-2xl border border-[color-mix(in_srgb,var(--gold)_30%,transparent)] bg-[var(--primary)] p-5 shadow-sm sm:p-6'>
           <p className='font-mono text-[11px] font-medium tracking-wide text-[var(--gold)] uppercase'>
-            Stage {active + 1} of {STEPS.length}
+            {t('lifecycle.stageOf', {
+              current: active + 1,
+              total: STEP_IDS.length
+            })}
           </p>
           <h3 className='font-display text-xl font-extrabold tracking-tight text-primary-foreground'>
-            {step.title}
+            {t(`lifecycle.steps.${step}.title`)}
           </h3>
           <p className='mt-2 text-sm leading-relaxed text-primary-foreground/70'>
-            {step.body}
+            {t(`lifecycle.steps.${step}.body`)}
           </p>
         </div>
 
@@ -172,15 +104,15 @@ export function LandingLifecycle() {
           />
           <div className='relative space-y-3 p-5 sm:p-6'>
             <p className='font-mono text-[11px] font-semibold tracking-wide text-brand-foreground/70 uppercase'>
-              {step.preview.eyebrow}
+              {t(`lifecycle.steps.${step}.eyebrow`)}
             </p>
             <ul className='space-y-2'>
-              {step.preview.lines.map((line) => (
+              {LINE_KEYS.map((line) => (
                 <li
-                  key={line}
+                  key={`${step}-${line}`}
                   className='rounded-xl border border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] bg-card/90 px-3.5 py-2.5 text-sm font-medium text-foreground shadow-sm'
                 >
-                  {line}
+                  {t(`lifecycle.steps.${step}.${line}`)}
                 </li>
               ))}
             </ul>

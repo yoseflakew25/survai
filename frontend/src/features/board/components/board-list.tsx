@@ -9,7 +9,7 @@ import { BoardProduct, formatEtb } from '@/features/board/data';
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
-      <span className='grid size-7 shrink-0 place-items-center rounded-full bg-gold font-mono text-xs font-medium text-[#111210] shadow-[inset_0_-2px_0_rgba(0,0,0,0.15)]'>
+      <span className='grid size-7 shrink-0 place-items-center rounded-full bg-gold font-mono text-xs font-medium text-brand-foreground shadow-[inset_0_-2px_0_color-mix(in_srgb,var(--foreground)_15%,transparent)]'>
         1
       </span>
     );

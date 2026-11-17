@@ -24,6 +24,18 @@ import type {
 } from '../api/types';
 import { QUESTION_TYPES, getQuestionTypeMeta } from '../api/types';
 import { PendingConditionalBanner } from './pending-conditional-banner';
+import { useTranslations } from 'next-intl';
+
+const QUESTION_TYPE_KEY: Record<QuestionType, string> = {
+  short_text: 'shortText',
+  long_text: 'longText',
+  single_choice: 'singleChoice',
+  multiple_choice: 'multipleChoice',
+  dropdown: 'dropdown',
+  rating_scale: 'ratingScale',
+  number: 'number',
+  date: 'date'
+};
 
 type SkipOp = ConditionalRule['op'];
 
@@ -75,6 +87,8 @@ export function QuestionEditor({
   onDraftPendingLogic,
   onClearConditionalLogic
 }: QuestionEditorProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [promptText, setPromptText] = useState(question?.promptText ?? '');
   const [helpText, setHelpText] = useState(question?.helpText ?? '');
   const [isRequired, setIsRequired] = useState(question?.isRequired ?? false);
@@ -122,11 +136,11 @@ export function QuestionEditor({
   const handleAddOption = useCallback(() => {
     const newOpt: QuestionOption = {
       id: `opt_${++optionIdCounter}`,
-      label: `Option ${options.length + 1}`,
+      label: t('optionN', { n: options.length + 1 }),
       value: `option_${options.length + 1}`
     };
     setOptions([...options, newOpt]);
-  }, [options]);
+  }, [options, t]);
 
   const handleUpdateOption = useCallback(
     (index: number, label: string) => {
@@ -214,10 +228,10 @@ export function QuestionEditor({
       <SheetContent side='right' className='sm:max-w-md'>
         <SheetHeader>
           <SheetTitle>
-            {question ? 'Edit Question' : 'New Question'}
+            {question ? t('editQuestion') : t('newQuestion')}
           </SheetTitle>
           <SheetDescription>
-            Configure the question text, type, and options
+            {t('editorDescription')}
           </SheetDescription>
         </SheetHeader>
 
@@ -232,27 +246,27 @@ export function QuestionEditor({
           ) : null}
 
           <Field>
-            <FieldLabel>Question Text *</FieldLabel>
+            <FieldLabel>{t('questionTextLabel')}</FieldLabel>
             <Textarea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              placeholder='Enter your question...'
+              placeholder={t('questionTextPlaceholder')}
               rows={3}
               className='resize-none'
             />
           </Field>
 
           <Field>
-            <FieldLabel>Help Text</FieldLabel>
+            <FieldLabel>{t('helpTextLabel')}</FieldLabel>
             <Input
               value={helpText}
               onChange={(e) => setHelpText(e.target.value)}
-              placeholder='Optional guidance for respondents'
+              placeholder={t('helpGuidancePlaceholder')}
             />
           </Field>
 
           <Field>
-            <FieldLabel>Question Type</FieldLabel>
+            <FieldLabel>{t('questionType')}</FieldLabel>
             <div className='grid grid-cols-2 gap-1.5'>
               {QUESTION_TYPES.map((qt) => {
                 const Icon = Icons[qt.icon as keyof typeof Icons] ?? Icons.forms;
@@ -271,7 +285,7 @@ export function QuestionEditor({
                     }`}
                   >
                     <Icon className='h-3.5 w-3.5 shrink-0' />
-                    <span>{qt.label}</span>
+                    <span>{t(QUESTION_TYPE_KEY[qt.type])}</span>
                   </button>
                 );
               })}
@@ -279,13 +293,13 @@ export function QuestionEditor({
           </Field>
 
           <div className='flex items-center justify-between'>
-            <FieldLabel>Required</FieldLabel>
+            <FieldLabel>{t('required')}</FieldLabel>
             <Switch checked={isRequired} onCheckedChange={setIsRequired} />
           </div>
 
           {hasOptions && (
             <Field>
-              <FieldLabel>Options</FieldLabel>
+              <FieldLabel>{t('options')}</FieldLabel>
               <div className='space-y-2'>
                 {options.map((opt, i) => (
                   <div key={opt.id} className='flex items-center gap-2'>
@@ -313,7 +327,7 @@ export function QuestionEditor({
                   className='w-full'
                 >
                   <Icons.add className='mr-1 h-3 w-3' />
-                  Add Option
+                  {t('addOption')}
                 </Button>
               </div>
             </Field>
@@ -323,9 +337,9 @@ export function QuestionEditor({
             <div className='space-y-3 rounded-xl border border-border p-3'>
               <div className='flex items-start justify-between gap-2'>
                 <div className='min-w-0'>
-                  <p className='text-xs font-semibold'>Skip logic</p>
+                  <p className='text-xs font-semibold'>{t('skipLogic')}</p>
                   <p className='text-muted-foreground text-[11px]'>
-                    Show this question when the rules match. Draft, then confirm.
+                    {t('skipLogicHint')}
                   </p>
                 </div>
                 <div className='flex shrink-0 rounded-lg border border-border p-0.5'>
@@ -341,7 +355,7 @@ export function QuestionEditor({
                       )}
                       onClick={() => setLogicOperator(op)}
                     >
-                      {op}
+                      {op === 'AND' ? t('and') : t('or')}
                     </button>
                   ))}
                 </div>
@@ -360,8 +374,13 @@ export function QuestionEditor({
                     >
                       <div className='flex items-center justify-between gap-2'>
                         <p className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'>
-                          Rule {index + 1}
-                          {index > 0 ? ` · ${logicOperator}` : ''}
+                          {index > 0
+                            ? t('ruleWithOp', {
+                                index: index + 1,
+                                operator:
+                                  logicOperator === 'AND' ? t('and') : t('or')
+                              })
+                            : t('rule', { index: index + 1 })}
                         </p>
                         {draftRules.length > 1 ? (
                           <Button
@@ -375,7 +394,7 @@ export function QuestionEditor({
                               )
                             }
                           >
-                            Remove
+                            {tCommon('remove')}
                           </Button>
                         ) : null}
                       </div>
@@ -395,7 +414,7 @@ export function QuestionEditor({
                       >
                         {priorQuestions.map((q) => (
                           <option key={q.id} value={q.id}>
-                            {q.promptText.slice(0, 60) || 'Untitled'}
+                            {q.promptText.slice(0, 60) || tCommon('untitled')}
                           </option>
                         ))}
                       </select>
@@ -412,11 +431,11 @@ export function QuestionEditor({
                             );
                           }}
                         >
-                          <option value='eq'>equals</option>
-                          <option value='neq'>not equals</option>
-                          <option value='gt'>greater than</option>
-                          <option value='lt'>less than</option>
-                          <option value='contains'>contains</option>
+                          <option value='eq'>{t('opEquals')}</option>
+                          <option value='neq'>{t('opNotEquals')}</option>
+                          <option value='gt'>{t('opGreaterThan')}</option>
+                          <option value='lt'>{t('opLessThan')}</option>
+                          <option value='contains'>{t('opContains')}</option>
                         </select>
                         {priorChoices.length > 0 &&
                         (rule.op === 'eq' || rule.op === 'neq') ? (
@@ -432,7 +451,7 @@ export function QuestionEditor({
                               );
                             }}
                           >
-                            <option value=''>Select value…</option>
+                            <option value=''>{t('selectValue')}</option>
                             {priorChoices.map((opt) => (
                               <option key={opt.id} value={opt.value}>
                                 {opt.label}
@@ -451,7 +470,7 @@ export function QuestionEditor({
                                 )
                               );
                             }}
-                            placeholder='Value'
+                            placeholder={t('valuePlaceholder')}
                           />
                         )}
                       </div>
@@ -474,7 +493,7 @@ export function QuestionEditor({
                   }
                 >
                   <Icons.add className='mr-1 size-3' />
-                  Add rule
+                  {t('addRule')}
                 </Button>
                 <Button
                   type='button'
@@ -483,7 +502,7 @@ export function QuestionEditor({
                   disabled={!canDraftLogic || busyLogic}
                   onClick={handleDraftFromEditor}
                 >
-                  Draft skip logic
+                  {t('draftSkipLogic')}
                 </Button>
               </div>
             </div>
@@ -492,9 +511,9 @@ export function QuestionEditor({
           {question?.conditionalLogic ? (
             <div className='flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2'>
               <p className='text-muted-foreground text-[11px]'>
-                Live skip logic (
-                {question.conditionalLogic.rules.length} rule
-                {question.conditionalLogic.rules.length === 1 ? '' : 's'}).
+                {t('liveSkipLogic', {
+                  count: question.conditionalLogic.rules.length
+                })}
               </p>
               {onClearConditionalLogic ? (
                 <Button
@@ -505,7 +524,7 @@ export function QuestionEditor({
                   disabled={busyLogic}
                   onClick={() => void handleClearLogic()}
                 >
-                  Clear
+                  {tCommon('clear')}
                 </Button>
               ) : null}
             </div>
@@ -513,10 +532,10 @@ export function QuestionEditor({
 
           <div className='flex items-center gap-2 pt-2'>
             <Button onClick={handleSave} disabled={!promptText.trim()}>
-              Save Question
+              {t('saveQuestion')}
             </Button>
             <Button variant='ghost' onClick={() => onOpenChange(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
           </div>
         </div>

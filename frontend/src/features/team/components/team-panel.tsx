@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 
 import {
   AlertDialog,
@@ -36,15 +37,17 @@ import {
   type OrgMember
 } from '../api/service';
 
-function roleLabel(role: string): string {
-  if (role === 'organization') return 'Owner';
-  if (role === 'researcher') return 'Researcher';
-  if (role === 'viewer') return 'Viewer';
-  return role;
-}
-
 export function TeamPanel() {
+  const tTeam = useTranslations('team');
+  const tCommon = useTranslations('common');
   const { user } = useAuth();
+
+  function roleLabel(role: string): string {
+    if (role === 'organization') return tTeam('roleOwner');
+    if (role === 'researcher') return tTeam('roleResearcher');
+    if (role === 'viewer') return tTeam('roleViewer');
+    return role;
+  }
   const owner = isOrgOwner(user?.role);
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
@@ -72,12 +75,14 @@ export function TeamPanel() {
       await removeMember(memberToRemove.id);
       setMemberToRemove(null);
       await refresh();
-      toast.success('Member removed', {
-        description: `${memberToRemove.fullName} no longer has access.`
+      toast.success(tTeam('memberRemoved'), {
+        description: tTeam('memberRemovedDesc', {
+          name: memberToRemove.fullName
+        })
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not remove member'
+        err instanceof Error ? err.message : tTeam('couldNotRemoveMember')
       );
     } finally {
       setRemoving(false);
@@ -91,12 +96,14 @@ export function TeamPanel() {
       await revokeInvite(inviteToRevoke.id);
       setInviteToRevoke(null);
       await refresh();
-      toast.success('Invite revoked', {
-        description: `${inviteToRevoke.email} can no longer accept this invite.`
+      toast.success(tTeam('inviteRevoked'), {
+        description: tTeam('inviteRevokedDesc', {
+          email: inviteToRevoke.email
+        })
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not revoke invite'
+        err instanceof Error ? err.message : tTeam('couldNotRevokeInvite')
       );
     } finally {
       setRevoking(false);
@@ -108,14 +115,16 @@ export function TeamPanel() {
       <SurvaiPanel>
         <SurvaiPanelHeader
           tone='brand'
-          title='Team'
-          subtitle='Organization seats'
+          title={tTeam('title')}
+          subtitle={tTeam('orgSeatsSubtitle')}
         />
         <SurvaiPanelBody>
           <p className='text-muted-foreground text-sm'>
-            Only the organization owner can manage invites. Your role:{' '}
+            {tTeam('ownerOnlyHint')}{' '}
             <Badge variant='secondary' className='ml-1'>
-              {user?.role === 'researcher' ? 'Researcher' : 'Viewer'}
+              {user?.role === 'researcher'
+                ? tTeam('roleResearcher')
+                : tTeam('roleViewer')}
             </Badge>
           </p>
         </SurvaiPanelBody>
@@ -130,8 +139,8 @@ export function TeamPanel() {
     <SurvaiPanel>
       <SurvaiPanelHeader
         tone='brand'
-        title='Team'
-        subtitle='Invite researchers and viewers to your organization'
+        title={tTeam('title')}
+        subtitle={tTeam('inviteSubtitle')}
       />
       <SurvaiPanelBody className='space-y-6'>
         <form
@@ -146,17 +155,19 @@ export function TeamPanel() {
                 setEmail('');
                 await refresh();
                 if (result.devInviteUrl) {
-                  toast.success('Invite created (dev link)', {
+                  toast.success(tTeam('inviteCreatedDev'), {
                     description: result.devInviteUrl
                   });
                 } else {
-                  toast.success('Invite sent', {
-                    description: `Invitation emailed to ${result.invite.email}`
+                  toast.success(tTeam('invited'), {
+                    description: tTeam('inviteSentDesc', {
+                      email: result.invite.email
+                    })
                   });
                 }
               } catch (err) {
                 toast.error(
-                  err instanceof Error ? err.message : 'Could not invite'
+                  err instanceof Error ? err.message : tTeam('couldNotInvite')
                 );
               } finally {
                 setSending(false);
@@ -165,40 +176,40 @@ export function TeamPanel() {
           }}
         >
           <div className='min-w-0 flex-1 space-y-1.5'>
-            <Label htmlFor='invite-email'>Email</Label>
+            <Label htmlFor='invite-email'>{tTeam('email')}</Label>
             <Input
               id='invite-email'
               type='email'
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder='colleague@org.org'
+              placeholder={tTeam('emailPlaceholder')}
               required
             />
           </div>
           <div className='space-y-1.5'>
-            <Label htmlFor='invite-role'>Role</Label>
+            <Label htmlFor='invite-role'>{tTeam('role')}</Label>
             <select
               id='invite-role'
               className='border-input bg-background h-9 w-full rounded-md border px-3 text-sm sm:w-40'
               value={role}
               onChange={(e) => setRole(e.target.value as InviteRole)}
             >
-              <option value='researcher'>Researcher</option>
-              <option value='viewer'>Viewer</option>
+              <option value='researcher'>{tTeam('roleResearcher')}</option>
+              <option value='viewer'>{tTeam('roleViewer')}</option>
             </select>
           </div>
           <Button type='submit' disabled={sending || !email.trim()}>
             {sending ? (
               <Icons.spinner className='size-4 animate-spin' />
             ) : (
-              'Invite'
+              tTeam('invite')
             )}
           </Button>
         </form>
 
         <div className='space-y-2'>
           <p className='text-xs font-semibold tracking-wide text-muted-foreground uppercase'>
-            Members
+            {tTeam('members')}
           </p>
           <ul className='divide-y divide-border rounded-xl border border-border'>
             {members.map((m) => (
@@ -224,7 +235,7 @@ export function TeamPanel() {
                       className='text-destructive h-8'
                       onClick={() => setMemberToRemove(m)}
                     >
-                      Remove
+                      {tTeam('remove')}
                     </Button>
                   ) : null}
                 </div>
@@ -242,25 +253,22 @@ export function TeamPanel() {
           <AlertDialogContent className='gap-0 overflow-hidden p-0 sm:max-w-md'>
             <AlertDialogHeader className='gap-0 border-b border-border bg-brand-soft px-5 py-4 text-left sm:place-items-start sm:text-left'>
               <AlertDialogTitle className='text-base font-semibold tracking-tight'>
-                Remove team member?
+                {tTeam('removeMemberTitle')}
               </AlertDialogTitle>
             </AlertDialogHeader>
             <AlertDialogDescription className='text-pretty px-5 py-4'>
-              {memberToRemove ? (
-                <>
-                  <span className='text-foreground font-medium'>
-                    {memberToRemove.fullName}
-                  </span>{' '}
-                  ({memberToRemove.email}) will lose access to this organization
-                  as a {roleLabel(memberToRemove.role)}. You can invite them
-                  again later if needed.
-                </>
-              ) : null}
+              {memberToRemove
+                ? tTeam('removeMemberDesc', {
+                    name: memberToRemove.fullName,
+                    email: memberToRemove.email,
+                    role: roleLabel(memberToRemove.role)
+                  })
+                : null}
             </AlertDialogDescription>
 
             <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
               <AlertDialogCancel disabled={removing} className='rounded-xl'>
-                Cancel
+                {tCommon('cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
                 className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
@@ -273,10 +281,10 @@ export function TeamPanel() {
                 {removing ? (
                   <>
                     <Icons.spinner className='mr-2 size-4 animate-spin' />
-                    Removing…
+                    {tTeam('removing')}
                   </>
                 ) : (
-                  'Remove member'
+                  tTeam('removeMember')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -286,7 +294,7 @@ export function TeamPanel() {
         {invites.length > 0 ? (
           <div className='space-y-2'>
             <p className='text-xs font-semibold tracking-wide text-muted-foreground uppercase'>
-              Pending invites
+              {tTeam('pending')}
             </p>
             <ul className='divide-y divide-border rounded-xl border border-border'>
               {invites.map((i) => (
@@ -297,7 +305,7 @@ export function TeamPanel() {
                   <div className='min-w-0'>
                     <p className='truncate font-medium'>{i.email}</p>
                     <p className='text-muted-foreground text-xs capitalize'>
-                      {i.role} · expires{' '}
+                      {i.role} · {tTeam('expires')}{' '}
                       {new Date(i.expiresAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -308,7 +316,7 @@ export function TeamPanel() {
                     className='text-destructive h-8'
                     onClick={() => setInviteToRevoke(i)}
                   >
-                    Revoke
+                    {tTeam('revoke')}
                   </Button>
                 </li>
               ))}
@@ -325,28 +333,21 @@ export function TeamPanel() {
           <AlertDialogContent className='gap-0 overflow-hidden p-0 sm:max-w-md'>
             <AlertDialogHeader className='gap-0 border-b border-border bg-brand-soft px-5 py-4 text-left sm:place-items-start sm:text-left'>
               <AlertDialogTitle className='text-base font-semibold tracking-tight'>
-                Revoke invite?
+                {tTeam('revokeInviteTitle')}
               </AlertDialogTitle>
             </AlertDialogHeader>
             <AlertDialogDescription className='text-pretty px-5 py-4'>
-              {inviteToRevoke ? (
-                <>
-                  The pending{' '}
-                  <span className='text-foreground font-medium'>
-                    {roleLabel(inviteToRevoke.role)}
-                  </span>{' '}
-                  invite for{' '}
-                  <span className='text-foreground font-medium'>
-                    {inviteToRevoke.email}
-                  </span>{' '}
-                  will stop working. You can send a new invite later if needed.
-                </>
-              ) : null}
+              {inviteToRevoke
+                ? tTeam('revokeInviteDesc', {
+                    role: roleLabel(inviteToRevoke.role),
+                    email: inviteToRevoke.email
+                  })
+                : null}
             </AlertDialogDescription>
 
             <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
               <AlertDialogCancel disabled={revoking} className='rounded-xl'>
-                Cancel
+                {tCommon('cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
                 className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
@@ -359,10 +360,10 @@ export function TeamPanel() {
                 {revoking ? (
                   <>
                     <Icons.spinner className='mr-2 size-4 animate-spin' />
-                    Revoking…
+                    {tTeam('revoking')}
                   </>
                 ) : (
-                  'Revoke invite'
+                  tTeam('revokeInvite')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

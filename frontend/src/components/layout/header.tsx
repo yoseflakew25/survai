@@ -4,6 +4,7 @@ import { Separator } from '../ui/separator';
 import { Breadcrumbs } from '../breadcrumbs';
 import SearchInput from '../search-input';
 import { ThemeModeToggle } from '../themes/theme-mode-toggle';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { NotificationCenter } from '@/features/notifications/components/notification-center';
 
 export default function Header() {
@@ -19,6 +20,7 @@ export default function Header() {
         <div className='hidden md:flex'>
           <SearchInput />
         </div>
+        <LanguageSwitcher />
         <ThemeModeToggle />
         <NotificationCenter />
       </div>

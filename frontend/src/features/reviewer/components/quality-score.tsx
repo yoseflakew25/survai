@@ -1,7 +1,6 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import type { ScoreCriterion } from '../api/types';
 import {
@@ -9,6 +8,9 @@ import {
   SurvaiPanelBody,
   SurvaiPanelHeader
 } from '@/components/survai-panel';
+import { useTranslations } from 'next-intl';
+
+type ScoreTier = 'excellent' | 'good' | 'fair' | 'needsWork' | 'poor';
 
 interface QualityScoreProps {
   score: number;
@@ -18,14 +20,14 @@ interface QualityScoreProps {
 }
 
 function getScoreTone(score: number): {
-  label: string;
+  tier: ScoreTier;
   text: string;
   chip: string;
   bar: string;
 } {
   if (score >= 4.0) {
     return {
-      label: score >= 4.5 ? 'Excellent' : 'Good',
+      tier: score >= 4.5 ? 'excellent' : 'good',
       text: 'text-brand-strong',
       chip: 'border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground',
       bar: 'bg-brand'
@@ -33,14 +35,14 @@ function getScoreTone(score: number): {
   }
   if (score >= 3.0) {
     return {
-      label: score >= 3.5 ? 'Fair' : 'Needs work',
-      text: 'text-[color-mix(in_srgb,var(--gold)_80%,var(--foreground))]',
-      chip: 'border-[color-mix(in_srgb,var(--gold)_45%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_16%,var(--card))] text-foreground',
-      bar: 'bg-[var(--gold)]'
+      tier: score >= 3.5 ? 'fair' : 'needsWork',
+      text: 'text-amber-700 dark:text-amber-300',
+      chip: 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200',
+      bar: 'bg-amber-500'
     };
   }
   return {
-    label: 'Poor',
+    tier: 'poor',
     text: 'text-destructive',
     chip: 'border-destructive/30 bg-destructive/10 text-destructive',
     bar: 'bg-destructive'
@@ -53,14 +55,16 @@ export function QualityScore({
   estimatedMinutes,
   requiredQuestionCount
 }: QualityScoreProps) {
+  const t = useTranslations('review');
+  const tCommon = useTranslations('common');
   const tone = getScoreTone(score);
 
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
         // icon={<Icons.analytics className='size-3.5' />}
-        title='Quality assessment'
-        subtitle='Advisory score from the latest AI review'
+        title={t('qualityAssessment')}
+        subtitle={t('qualitySubtitle')}
         badge={
           <Badge
             variant='secondary'
@@ -69,7 +73,7 @@ export function QualityScore({
               tone.chip
             )}
           >
-            {tone.label}
+            {t(tone.tier)}
           </Badge>
         }
       />
@@ -89,21 +93,21 @@ export function QualityScore({
               </span>
             </p>
             <p className='text-muted-foreground  text-xs leading-relaxed'>
-              Overall advisory quality
+              {t('overallAdvisory')}
             </p>
           </div>
           <div className='flex gap-2'>
             <div className='rounded-xl border border-border bg-secondary/70 px-2.5 py-2 text-right'>
               <p className='font-display text-sm font-bold tracking-tight tabular-nums'>
-                {estimatedMinutes}m
+                {t('minutesShort', { count: estimatedMinutes })}
               </p>
-              <p className='text-muted-foreground text-[10px]'>Est. time</p>
+              <p className='text-muted-foreground text-[10px]'>{t('estTime')}</p>
             </div>
             <div className='rounded-xl border border-border bg-secondary/70 px-2.5 py-2 text-right'>
               <p className='font-display text-sm font-bold tracking-tight tabular-nums'>
                 {requiredQuestionCount}
               </p>
-              <p className='text-muted-foreground text-[10px]'>Required</p>
+              <p className='text-muted-foreground text-[10px]'>{tCommon('required')}</p>
             </div>
           </div>
         </div>
@@ -112,7 +116,7 @@ export function QualityScore({
           variant='secondary'
           className='rounded-full border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft text-[10px] font-medium text-foreground'
         >
-          Advisory only — not a certification
+          {t('advisoryBadge')}
         </Badge>
 
         <div className='overflow-hidden rounded-xl border border-border'>

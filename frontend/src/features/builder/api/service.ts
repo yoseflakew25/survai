@@ -7,6 +7,7 @@ import {
   apiFetch,
   toUserFacingError
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 import type {
   ConditionalLogic,
@@ -59,6 +60,7 @@ type ApiSurvey = {
   title: string;
   description: string | null;
   status: Survey['status'];
+  content_language?: 'en' | 'am';
   anonymous_collection: boolean;
   current_version_id: string | null;
   response_quota?: number | null;
@@ -175,6 +177,7 @@ function mapSurvey(s: ApiSurvey): Survey {
     title: s.title,
     description: s.description,
     status: s.status,
+    contentLanguage: s.content_language === 'am' ? 'am' : 'en',
     anonymousCollection: s.anonymous_collection,
     currentVersionId: s.current_version_id,
     responseQuota: s.response_quota ?? null,
@@ -191,7 +194,7 @@ function mapSurvey(s: ApiSurvey): Survey {
 
 export async function getSurveys(): Promise<SurveyListResponse> {
   const res = await apiFetch('/surveys?page=1&limit=100');
-  if (!res.ok) await readError(res, 'Could not load surveys');
+  if (!res.ok) await readError(res, serviceMsg('surveys', 'loadError'));
   const data = (await res.json()) as { surveys: ApiSurvey[]; total: number };
   return {
     surveys: (data.surveys ?? []).map(mapSurvey),
@@ -202,7 +205,7 @@ export async function getSurveys(): Promise<SurveyListResponse> {
 export async function getSurveyById(id: string): Promise<Survey | null> {
   const res = await apiFetch(`/surveys/${id}`);
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not load survey');
+  if (!res.ok) await readError(res, serviceMsg('review', 'loadFailed'));
   return mapSurvey((await res.json()) as ApiSurvey);
 }
 
@@ -226,7 +229,9 @@ export async function createSurveyFromPlan(
     },
     AI_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'Could not create survey from plan');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'couldNotCreateFromPlan'));
+  }
   const payload = (await res.json()) as ApiGenerateResponse;
   return mapSurvey(payload.survey);
 }
@@ -240,7 +245,7 @@ export async function updateSurveyTitle(
     body: JSON.stringify({ title })
   });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not update survey title');
+  if (!res.ok) await readError(res, serviceMsg('builder', 'couldNotUpdateTitle'));
   return mapSurvey((await res.json()) as ApiSurvey);
 }
 
@@ -248,7 +253,7 @@ export async function updateSurveyTitle(
 export async function deleteSurvey(id: string): Promise<boolean> {
   const res = await apiFetch(`/surveys/${id}`, { method: 'DELETE' });
   if (res.status === 404) return false;
-  if (!res.ok) await readError(res, 'Could not delete survey');
+  if (!res.ok) await readError(res, serviceMsg('review', 'deleteFailed'));
   return true;
 }
 
@@ -261,7 +266,9 @@ export async function updateSurveyDescription(
     body: JSON.stringify({ description })
   });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not update survey description');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'couldNotUpdateDescription'));
+  }
   return mapSurvey((await res.json()) as ApiSurvey);
 }
 
@@ -288,7 +295,9 @@ export async function updateCollectionSettings(
     body: JSON.stringify(body)
   });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not update collection settings');
+  if (!res.ok) {
+    await readError(res, serviceMsg('collect', 'settingsSaveFailed'));
+  }
   return mapSurvey((await res.json()) as ApiSurvey);
 }
 
@@ -296,7 +305,7 @@ export async function duplicateAsEndline(surveyId: string): Promise<Survey> {
   const res = await apiFetch(`/surveys/${surveyId}/duplicate-as-endline`, {
     method: 'POST'
   });
-  if (!res.ok) await readError(res, 'Could not duplicate as endline');
+  if (!res.ok) await readError(res, serviceMsg('analytics', 'duplicateFailed'));
   return mapSurvey((await res.json()) as ApiSurvey);
 }
 
@@ -334,7 +343,9 @@ export async function compareSurveys(
   const res = await apiFetch(
     `/surveys/${surveyId}/compare?other_id=${encodeURIComponent(otherId)}`
   );
-  if (!res.ok) await readError(res, 'Could not compare surveys');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'couldNotCompareSurveys'));
+  }
   const data = (await res.json()) as {
     family_id: string;
     baseline: {
@@ -401,7 +412,7 @@ export async function addSection(
       description: description ?? null
     })
   });
-  if (!res.ok) await readError(res, 'Could not add section');
+  if (!res.ok) await readError(res, serviceMsg('builder', 'failedAddSection'));
   return mapSection((await res.json()) as ApiSection);
 }
 
@@ -418,7 +429,7 @@ export async function updateSection(
     body: JSON.stringify(body)
   });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not update section');
+  if (!res.ok) await readError(res, serviceMsg('builder', 'couldNotUpdateSection'));
   return mapSection((await res.json()) as ApiSection);
 }
 
@@ -430,7 +441,7 @@ export async function deleteSection(
     method: 'DELETE'
   });
   if (res.status === 404) return false;
-  if (!res.ok) await readError(res, 'Could not delete section');
+  if (!res.ok) await readError(res, serviceMsg('builder', 'couldNotDeleteSection'));
   return true;
 }
 
@@ -442,7 +453,9 @@ export async function reorderSections(
     method: 'POST',
     body: JSON.stringify({ section_ids: sectionIds })
   });
-  if (!res.ok) await readError(res, 'Could not reorder sections');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'couldNotReorderSections'));
+  }
 }
 
 export async function addQuestion(
@@ -470,7 +483,7 @@ export async function addQuestion(
       options
     })
   });
-  if (!res.ok) await readError(res, 'Could not add question');
+  if (!res.ok) await readError(res, serviceMsg('builder', 'failedAddQuestion'));
   return mapQuestion((await res.json()) as ApiQuestion);
 }
 
@@ -524,7 +537,7 @@ export async function updateQuestion(
     body: JSON.stringify(body)
   });
   if (res.status === 404) return null;
-  if (!res.ok) await readError(res, 'Could not update question');
+  if (!res.ok) await readError(res, serviceMsg('review', 'updateQuestionFailed'));
   return mapQuestion((await res.json()) as ApiQuestion);
 }
 
@@ -536,7 +549,9 @@ export async function deleteQuestion(
     method: 'DELETE'
   });
   if (res.status === 404) return false;
-  if (!res.ok) await readError(res, 'Could not delete question');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'couldNotDeleteQuestion'));
+  }
   return true;
 }
 
@@ -552,7 +567,9 @@ export async function reorderQuestions(
       question_ids: questionIds
     })
   });
-  if (!res.ok) await readError(res, 'Could not reorder questions');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'couldNotReorderQuestions'));
+  }
 }
 
 /** Hard-replace all sections/questions from the linked plan (BLD-01). */
@@ -562,7 +579,9 @@ export async function generateSurveyDraft(surveyId: string): Promise<Survey> {
     { method: 'POST' },
     AI_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'AI could not generate the survey draft');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'aiGenerateDraftFailed'));
+  }
   const payload = (await res.json()) as ApiGenerateResponse;
   return mapSurvey(payload.survey);
 }
@@ -577,7 +596,9 @@ export async function regenerateSection(
     { method: 'POST' },
     AI_TIMEOUT_MS
   );
-  if (!res.ok) await readError(res, 'AI could not regenerate the section');
+  if (!res.ok) {
+    await readError(res, serviceMsg('builder', 'aiRegenerateSectionFailed'));
+  }
   const payload = (await res.json()) as ApiGenerateResponse;
   return mapSurvey(payload.survey);
 }

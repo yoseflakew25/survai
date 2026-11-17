@@ -10,49 +10,53 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { overviewQueryOptions } from '@/features/overview/api/queries';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 function kindMeta(kind: string): {
-  label: string;
+  labelKey: 'staleReport' | 'readyForReport' | 'needsResponses' | 'draft' | 'planReady';
   icon: typeof Icons.warning;
   className: string;
 } {
   if (kind === 'stale_report') {
     return {
-      label: 'Stale report',
+      labelKey: 'staleReport',
       icon: Icons.warning,
       className: 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
     };
   }
   if (kind === 'ready_for_report') {
     return {
-      label: 'Ready for report',
+      labelKey: 'readyForReport',
       icon: Icons.report,
       className: 'bg-brand text-brand-foreground'
     };
   }
   if (kind === 'no_responses') {
     return {
-      label: 'Needs responses',
+      labelKey: 'needsResponses',
       icon: Icons.collect,
       className: 'bg-muted text-muted-foreground'
     };
   }
   if (kind === 'draft') {
     return {
-      label: 'Draft',
+      labelKey: 'draft',
       icon: Icons.review,
       className: 'bg-brand-soft text-primary'
     };
   }
   return {
-    label: 'Plan ready',
+    labelKey: 'planReady',
     icon: Icons.plan,
     className: 'bg-brand-soft text-primary'
   };
 }
 
 export function NeedsAttention() {
+  const t = useTranslations('overview');
+  const tCommon = useTranslations('common');
+  const tSurveys = useTranslations('surveys');
   const { data, isLoading, isError } = useQuery(overviewQueryOptions());
 
   if (isLoading) {
@@ -60,8 +64,8 @@ export function NeedsAttention() {
       <SurvaiPanel className='flex h-full flex-col'>
         <SurvaiPanelHeader
           icon={<Icons.warning className='size-3.5' />}
-          title='Needs attention'
-          subtitle='Loading…'
+          title={t('needsAttention')}
+          subtitle={tCommon('loading')}
         />
         <SurvaiPanelBody className='space-y-2'>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -77,11 +81,11 @@ export function NeedsAttention() {
       <SurvaiPanel>
         <SurvaiPanelHeader
           icon={<Icons.warning className='size-3.5' />}
-          title='Needs attention'
-          subtitle='Could not load items'
+          title={t('needsAttention')}
+          subtitle={t('attentionLoadError')}
         />
         <SurvaiPanelBody>
-          <p className='text-sm text-destructive'>Refresh and try again.</p>
+          <p className='text-sm text-destructive'>{t('refreshRetry')}</p>
         </SurvaiPanelBody>
       </SurvaiPanel>
     );
@@ -92,11 +96,11 @@ export function NeedsAttention() {
   return (
     <SurvaiPanel className='flex h-full flex-col'>
       <SurvaiPanelHeader
-        title='Needs attention'
+        title={t('needsAttention')}
         subtitle={
           items.length === 0
-            ? 'Nothing urgent — workspace looks healthy'
-            : `${items.length} item${items.length === 1 ? '' : 's'} to review`
+            ? t('attentionHealthy')
+            : t('itemsToReview', { count: items.length })
         }
         badge={
           items.length > 0 ? (
@@ -113,11 +117,10 @@ export function NeedsAttention() {
               <Icons.check className='size-5' strokeWidth={2.5} />
             </span>
             <p className='font-display text-sm font-bold tracking-tight text-foreground'>
-              All clear
+              {t('allClearHeading')}
             </p>
             <p className='text-muted-foreground mt-1 max-w-[16rem] text-xs leading-relaxed'>
-              No stale reports, empty live surveys, or unfinished drafts right
-              now.
+              {t('allClearBody')}
             </p>
           </div>
         ) : (
@@ -144,7 +147,9 @@ export function NeedsAttention() {
                       {item.title}
                     </p>
                     <span className='text-muted-foreground shrink-0 rounded-full bg-muted/70 px-2 py-0.5 text-[10px] font-semibold'>
-                      {meta.label}
+                      {meta.labelKey === 'draft'
+                        ? tSurveys('statusDraft')
+                        : t(meta.labelKey)}
                     </span>
                   </div>
                   <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>

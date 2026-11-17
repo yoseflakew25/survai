@@ -4,6 +4,7 @@ import {
   toUserFacingError,
   type TokenPairResponse
 } from '@/lib/api';
+import { serviceMsg } from '@/lib/service-messages';
 
 export type InviteRole = 'researcher' | 'viewer';
 
@@ -37,7 +38,7 @@ export async function fetchTeam(): Promise<{
   invites: OrgInvite[];
 }> {
   const res = await apiFetch('/org/team');
-  if (!res.ok) await readError(res, 'Could not load team');
+  if (!res.ok) await readError(res, serviceMsg('team', 'loadFailed'));
   const data = (await res.json()) as {
     members: Array<{
       id: string;
@@ -84,7 +85,7 @@ export async function createInvite(
     method: 'POST',
     body: JSON.stringify({ email, role })
   });
-  if (!res.ok) await readError(res, 'Could not send invite');
+  if (!res.ok) await readError(res, serviceMsg('team', 'inviteFailed'));
   const data = (await res.json()) as {
     invite: {
       id: string;
@@ -111,12 +112,12 @@ export async function createInvite(
 
 export async function revokeInvite(inviteId: string): Promise<void> {
   const res = await apiFetch(`/org/invites/${inviteId}`, { method: 'DELETE' });
-  if (!res.ok) await readError(res, 'Could not revoke invite');
+  if (!res.ok) await readError(res, serviceMsg('team', 'couldNotRevokeInvite'));
 }
 
 export async function removeMember(memberId: string): Promise<void> {
   const res = await apiFetch(`/org/members/${memberId}`, { method: 'DELETE' });
-  if (!res.ok) await readError(res, 'Could not remove member');
+  if (!res.ok) await readError(res, serviceMsg('team', 'couldNotRemoveMember'));
 }
 
 export async function acceptInvite(payload: {
@@ -132,6 +133,6 @@ export async function acceptInvite(payload: {
       password: payload.password
     })
   });
-  if (!res.ok) await readError(res, 'Could not accept invite');
+  if (!res.ok) await readError(res, serviceMsg('team', 'couldNotAcceptInvite'));
   return (await res.json()) as TokenPairResponse;
 }

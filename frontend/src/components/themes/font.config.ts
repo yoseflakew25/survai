@@ -1,4 +1,9 @@
-import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
+import {
+  Bricolage_Grotesque,
+  Geist,
+  Geist_Mono,
+  Noto_Sans_Ethiopic
+} from 'next/font/google';
 
 import { cn } from '@/lib/utils';
 
@@ -19,8 +24,16 @@ const fontDisplay = Bricolage_Grotesque({
   weight: ['600', '700', '800']
 });
 
+/** Fidel / Amharic glyphs — stacked after Geist via CSS font-family. */
+const fontEthiopic = Noto_Sans_Ethiopic({
+  subsets: ['ethiopic'],
+  variable: '--font-noto-ethiopic',
+  weight: ['400', '500', '600', '700']
+});
+
 export const fontVariables = cn(
   fontSans.variable,
   fontMono.variable,
-  fontDisplay.variable
+  fontDisplay.variable,
+  fontEthiopic.variable
 );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Sheet,
   SheetContent,
@@ -15,15 +16,35 @@ import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { QUESTION_TYPES, type QuestionType } from '../api/types';
 
+const TYPE_LABEL_KEY: Record<
+  QuestionType,
+  | 'shortText'
+  | 'longText'
+  | 'singleChoice'
+  | 'multipleChoice'
+  | 'dropdown'
+  | 'ratingScale'
+  | 'number'
+  | 'date'
+> = {
+  short_text: 'shortText',
+  long_text: 'longText',
+  single_choice: 'singleChoice',
+  multiple_choice: 'multipleChoice',
+  dropdown: 'dropdown',
+  rating_scale: 'ratingScale',
+  number: 'number',
+  date: 'date'
+};
+
 interface QuestionTypeSelectorProps {
   onSelect: (type: QuestionType, promptText: string) => void;
   disabled?: boolean;
 }
 
-export function QuestionTypeSelector({
-  onSelect,
-  disabled = false
-}: QuestionTypeSelectorProps) {
+export function QuestionTypeSelector({ onSelect, disabled = false }: QuestionTypeSelectorProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<QuestionType | null>(null);
   const [promptText, setPromptText] = useState('');
@@ -49,17 +70,15 @@ export function QuestionTypeSelector({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={<div />}>
-        <Button variant='outline'  disabled={disabled}>
+        <Button variant='outline' disabled={disabled}>
           <Icons.add className='mr-1 h-3.5 w-3.5' />
-          Add Question
+          {t('addQuestion')}
         </Button>
       </SheetTrigger>
       <SheetContent side='bottom' className='sm:max-w-lg'>
         <SheetHeader>
-          <SheetTitle>Add Question</SheetTitle>
-          <SheetDescription>
-            Choose a question type and enter the question text
-          </SheetDescription>
+          <SheetTitle>{t('addQuestion')}</SheetTitle>
+          <SheetDescription>{t('chooseTypeHint')}</SheetDescription>
         </SheetHeader>
 
         <div className='space-y-4 px-4 pb-4'>
@@ -67,7 +86,7 @@ export function QuestionTypeSelector({
           <Input
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
-            placeholder='Enter your question...'
+            placeholder={t('questionTextPlaceholder')}
             className='text-sm'
           />
 
@@ -87,7 +106,7 @@ export function QuestionTypeSelector({
                   )}
                 >
                   <Icon className='h-5 w-5' />
-                  <span className='text-xs font-medium'>{qt.label}</span>
+                  <span className='text-xs font-medium'>{t(TYPE_LABEL_KEY[qt.type])}</span>
                 </button>
               );
             })}
@@ -95,15 +114,11 @@ export function QuestionTypeSelector({
 
           {/* Confirm */}
           <div className='flex items-center gap-2'>
-            <Button
-              onClick={handleConfirm}
-              disabled={!selectedType || !promptText.trim()}
-              
-            >
-              Add Question
+            <Button onClick={handleConfirm} disabled={!selectedType || !promptText.trim()}>
+              {t('addQuestion')}
             </Button>
-            <Button variant='ghost'  onClick={handleClose}>
-              Cancel
+            <Button variant='ghost' onClick={handleClose}>
+              {tCommon('cancel')}
             </Button>
           </div>
         </div>

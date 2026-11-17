@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,8 @@ import { toast } from '@/lib/toast';
 export function UserNav() {
   const { user, logout, isLoggingOut } = useAuth();
   const router = useRouter();
+  const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const [busy, setBusy] = useState(false);
   const owner = isOrgOwner(user?.role);
 
@@ -33,13 +36,11 @@ export function UserNav() {
     setBusy(true);
     try {
       await logout();
-      toast.success('Signed out', {
-        description: 'See you next time.'
+      toast.success(t('signOut'), {
+        description: tCommon('success')
       });
     } catch {
-      toast.error('Could not sign out', {
-        description: 'Try again in a moment.'
-      });
+      toast.error(tCommon('errorGeneric'));
       setBusy(false);
     }
   }
@@ -81,14 +82,14 @@ export function UserNav() {
               disabled={signingOut}
               onClick={() => router.push('/dashboard/profile')}
             >
-              Account
+              {t('account')}
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem
             disabled={signingOut}
             onClick={() => router.push('/dashboard/security')}
           >
-            Security
+            {t('security')}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
@@ -103,7 +104,7 @@ export function UserNav() {
             ) : (
               <Icons.logout className='mr-2 size-4' />
             )}
-            {signingOut ? 'Signing out…' : 'Sign out'}
+            {signingOut ? t('signingOut') : t('signOut')}
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

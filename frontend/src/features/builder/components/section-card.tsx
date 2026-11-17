@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import {
-  Card,
-  CardContent,
-  CardHeader
-} from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +10,48 @@ import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import type { Section, Question, QuestionType } from '../api/types';
-import { getQuestionTypeMeta } from '../api/types';
+
+const TYPE_LABEL_KEY: Record<
+  QuestionType,
+  | 'shortText'
+  | 'longText'
+  | 'singleChoice'
+  | 'multipleChoice'
+  | 'dropdown'
+  | 'ratingScale'
+  | 'number'
+  | 'date'
+> = {
+  short_text: 'shortText',
+  long_text: 'longText',
+  single_choice: 'singleChoice',
+  multiple_choice: 'multipleChoice',
+  dropdown: 'dropdown',
+  rating_scale: 'ratingScale',
+  number: 'number',
+  date: 'date'
+};
+
+const TYPE_DESC_KEY: Record<
+  QuestionType,
+  | 'shortTextDesc'
+  | 'longTextDesc'
+  | 'singleChoiceDesc'
+  | 'multipleChoiceDesc'
+  | 'dropdownDesc'
+  | 'ratingScaleDesc'
+  | 'numberDesc'
+  | 'dateDesc'
+> = {
+  short_text: 'shortTextDesc',
+  long_text: 'longTextDesc',
+  single_choice: 'singleChoiceDesc',
+  multiple_choice: 'multipleChoiceDesc',
+  dropdown: 'dropdownDesc',
+  rating_scale: 'ratingScaleDesc',
+  number: 'numberDesc',
+  date: 'dateDesc'
+};
 import { QuestionCard } from './question-card';
 import {
   DndContext,
@@ -45,7 +83,10 @@ interface SectionCardProps {
   onUpdate: (data: { title?: string; description?: string }) => void;
   onDelete: () => void;
   onAddQuestion: (type: QuestionType) => void;
-  onUpdateQuestion: (questionId: string, data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>) => void;
+  onUpdateQuestion: (
+    questionId: string,
+    data: Partial<Pick<Question, 'promptText' | 'helpText' | 'isRequired' | 'type' | 'options'>>
+  ) => void;
   onDeleteQuestion: (questionId: string) => void;
   onReorderQuestions: (questionIds: string[]) => void;
 }
@@ -62,6 +103,8 @@ export function SectionCard({
   onDeleteQuestion,
   onReorderQuestions
 }: SectionCardProps) {
+  const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(section.title);
   const [editDescription, setEditDescription] = useState(section.description ?? '');
@@ -119,7 +162,7 @@ export function SectionCard({
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   className='h-8 font-semibold'
-                  placeholder='Section title'
+                  placeholder={t('sectionTitlePlaceholder')}
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveEdit();
@@ -130,14 +173,14 @@ export function SectionCard({
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   className='min-h-[60px] resize-none text-xs'
-                  placeholder='Section description (optional)'
+                  placeholder={t('sectionDescriptionPlaceholder')}
                 />
                 <div className='flex gap-2'>
                   <Button size='sm' onClick={handleSaveEdit}>
-                    Save
+                    {tCommon('save')}
                   </Button>
                   <Button size='sm' variant='ghost' onClick={() => setIsEditing(false)}>
-                    Cancel
+                    {tCommon('cancel')}
                   </Button>
                 </div>
               </div>
@@ -145,22 +188,21 @@ export function SectionCard({
               <div>
                 <h3 className='font-semibold'>{section.title}</h3>
                 {section.description && (
-                  <p className='text-muted-foreground  text-sm'>
-                    {section.description}
-                  </p>
+                  <p className='text-muted-foreground  text-sm'>{section.description}</p>
                 )}
               </div>
             )}
           </div>
           <div className='flex items-center gap-1'>
             <Badge variant='secondary' className='text-xs'>
-              {section.questions.length} questions
+              {t('questionCount', { count: section.questions.length })}
             </Badge>
             {!readOnly && !isEditing ? (
               <Button
                 variant='ghost'
                 size='icon-sm'
                 onClick={() => setIsEditing(true)}
+                aria-label={t('editSection')}
               >
                 <Icons.edit className='h-3.5 w-3.5' />
               </Button>
@@ -170,6 +212,7 @@ export function SectionCard({
                 variant='ghost'
                 size='icon-sm'
                 onClick={onDelete}
+                aria-label={t('deleteSection')}
                 className='text-muted-foreground hover:text-destructive'
               >
                 <Icons.trash className='h-3.5 w-3.5' />
@@ -182,11 +225,9 @@ export function SectionCard({
         {section.questions.length === 0 ? (
           <div className='flex flex-col items-center justify-center rounded-lg border border-dashed py-8 text-center'>
             <Icons.forms className='text-muted-foreground/40 mb-2 h-8 w-8' />
-            <p className='text-muted-foreground text-sm'>No questions yet</p>
+            <p className='text-muted-foreground text-sm'>{t('noQuestionsShort')}</p>
             <p className='text-muted-foreground/60  text-xs'>
-              {readOnly
-                ? 'Questions are locked for this survey'
-                : 'Add questions to this section'}
+              {readOnly ? t('questionsLocked') : t('addQuestionsHint')}
             </p>
           </div>
         ) : (
@@ -195,10 +236,7 @@ export function SectionCard({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext
-              items={questionIds}
-              strategy={verticalListSortingStrategy}
-            >
+            <SortableContext items={questionIds} strategy={verticalListSortingStrategy}>
               <div className='space-y-2'>
                 {section.questions.map((question, qIndex) => (
                   <QuestionCard
@@ -218,9 +256,11 @@ export function SectionCard({
         {!readOnly ? (
           <div className='mt-3'>
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant='outline' size='sm' className='w-full border-dashed' />}>
+              <DropdownMenuTrigger
+                render={<Button variant='outline' size='sm' className='w-full border-dashed' />}
+              >
                 <Icons.add className='mr-2 h-3.5 w-3.5' />
-                Add Question
+                {t('addQuestion')}
               </DropdownMenuTrigger>
               <DropdownMenuContent align='start' className='w-56'>
                 {[
@@ -233,7 +273,6 @@ export function SectionCard({
                   { type: 'number' as QuestionType, icon: 'code' },
                   { type: 'date' as QuestionType, icon: 'calendar' }
                 ].map(({ type, icon }) => {
-                  const meta = getQuestionTypeMeta(type);
                   const IconComponent = Icons[icon as keyof typeof Icons];
                   return (
                     <DropdownMenuItem
@@ -243,8 +282,8 @@ export function SectionCard({
                     >
                       {IconComponent && <IconComponent className='text-muted-foreground h-4 w-4' />}
                       <div>
-                        <p className='text-sm font-medium'>{meta.label}</p>
-                        <p className='text-muted-foreground text-xs'>{meta.description}</p>
+                        <p className='text-sm font-medium'>{t(TYPE_LABEL_KEY[type])}</p>
+                        <p className='text-muted-foreground text-xs'>{t(TYPE_DESC_KEY[type])}</p>
                       </div>
                     </DropdownMenuItem>
                   );

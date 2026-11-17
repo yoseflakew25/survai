@@ -2,10 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
-import {
-  displaySurveyDescription,
-  displaySurveyTitle
-} from '@/lib/survey-display';
+import { displaySurveyDescription, displaySurveyTitle } from '@/lib/survey-display';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface CollectionCompleteProps {
   title: string;
@@ -17,8 +15,8 @@ interface CollectionCompleteProps {
   onReset: () => void;
 }
 
-function formatSubmittedAt(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', {
+function formatSubmittedAt(iso: string, locale: string): string {
+  return new Date(iso).toLocaleString(locale === 'am' ? 'am-ET' : 'en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -36,6 +34,8 @@ export function CollectionComplete({
   collectsIdentity = true,
   onReset
 }: CollectionCompleteProps) {
+  const t = useTranslations('publicCollect');
+  const locale = useLocale();
   const displayTitle = displaySurveyTitle(title);
   const displayDescription = displaySurveyDescription(title, description);
 
@@ -61,7 +61,7 @@ export function CollectionComplete({
           <div className='relative flex flex-col items-center px-6 py-10 text-center sm:px-10 sm:py-12'>
             <p className='mb-5 inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-brand-foreground uppercase'>
               <span className='size-1.5 animate-pulse rounded-full bg-brand-foreground' />
-              Response recorded
+              {t('responseRecorded')}
             </p>
 
             <div className='relative mb-6 flex items-center justify-center'>
@@ -72,14 +72,11 @@ export function CollectionComplete({
             </div>
 
             <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground sm:text-[1.75rem]'>
-              Thank you for your response
+              {t('thankYou')}
             </h1>
             <p className='mt-2 max-w-md text-sm leading-relaxed text-brand-foreground/80'>
-              Your answers to{' '}
-              <span className='font-semibold text-brand-foreground'>
-                {displayTitle}
-              </span>{' '}
-              have been recorded successfully.
+              {t('thankYouHint')}{' '}
+              <span className='font-semibold text-brand-foreground'>{displayTitle}</span>
             </p>
             {displayDescription ? (
               <p className='text-brand-foreground/65 .5 line-clamp-2 max-w-sm text-xs leading-relaxed'>
@@ -90,11 +87,14 @@ export function CollectionComplete({
             <div className='mt-7 flex flex-wrap items-center justify-center gap-2'>
               <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-brand-foreground'>
                 <Icons.circleCheck className='size-3 opacity-80' />
-                {answeredCount} of {totalQuestions} answered
+                {t('answeredOf', {
+                  answered: answeredCount,
+                  total: totalQuestions
+                })}
               </span>
               <span className='inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-brand-foreground'>
                 <Icons.clock className='size-3 opacity-80' />
-                {formatSubmittedAt(submittedAt)}
+                {formatSubmittedAt(submittedAt, locale)}
               </span>
             </div>
           </div>
@@ -108,12 +108,10 @@ export function CollectionComplete({
             </div>
             <div className='min-w-0'>
               <p className='font-display text-sm font-bold tracking-tight text-foreground'>
-                {collectsIdentity ? 'Details received' : 'Submitted securely'}
+                {collectsIdentity ? t('detailsReceived') : t('submittedSecurely')}
               </p>
               <p className='text-muted-foreground  text-xs leading-relaxed'>
-                {collectsIdentity
-                  ? 'Contact details are visible only to the survey organizer and are used for this research only.'
-                  : 'No identifying details were collected with this response.'}
+                {collectsIdentity ? t('detailsReceivedHint') : t('submittedSecurelyHint')}
               </p>
             </div>
           </div>
@@ -124,13 +122,13 @@ export function CollectionComplete({
               className='w-full rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand font-semibold text-brand-foreground shadow-none hover:brightness-105'
             >
               <Icons.forms className='mr-1.5 size-3.5' />
-              Submit another response
+              {t('submitAnother')}
             </Button>
           </div>
         </div>
 
         <p className='text-muted-foreground mt-6 flex items-center justify-center gap-1.5 text-center text-[11px]'>
-          Powered by
+          {t('poweredBy')}
           <span className='inline-flex items-center gap-1 font-medium text-foreground'>
             <Icons.sparkles className='size-3 text-[color:var(--brand-strong)]' />
             Survai

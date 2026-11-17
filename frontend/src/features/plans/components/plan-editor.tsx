@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { ContentLanguagePicker } from '@/components/content-language-picker';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
-import type { Plan, ProposedSection } from '../api/types';
+import type { ContentLanguage, Plan, ProposedSection } from '../api/types';
 import { approvePlan, generatePlanWithAI, updatePlan } from '../api/service';
 import {
   createSurveyFromPlan,
@@ -21,6 +22,7 @@ import {
 import { reviewerKeys } from '@/features/reviewer/api/queries';
 import { SurveyGenerationProgress } from '@/features/builder/components/survey-generation-progress';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { EditableList } from './editable-list';
 import { ProposedSectionsEditor } from './proposed-sections-editor';
 import { PlanGenerationProgress } from './plan-generation-progress';
@@ -44,6 +46,7 @@ import {
   displaySurveyTitle,
   parseResearchGoalParts
 } from '@/lib/survey-display';
+import { canEditOrg, useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
 interface PlanEditorProps {
@@ -84,20 +87,30 @@ interface PlanState {
 }
 
 export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
+  const t = useTranslations('plan');
+  const tCommon = useTranslations('common');
+  const tSurveys = useTranslations('surveys');
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEdit = canEditOrg(user?.role);
   const { data: linkedSurvey } = useQuery({
     ...surveyByIdOptions(surveyId ?? ''),
     enabled: Boolean(surveyId)
   });
   const hasExistingQuestions = surveyHasQuestions(linkedSurvey?.sections);
   const isLocked = plan.isLocked || hasExistingQuestions;
+  /** Plan content edits — locked plans and viewers are read-only. */
+  const editLocked = isLocked || !canEdit;
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingSurvey, setIsCreatingSurvey] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [localPlan, setLocalPlan] = useState(plan);
-  
+  const [contentLanguage, setContentLanguage] = useState<ContentLanguage>(
+    plan.contentLanguage === 'am' ? 'am' : 'en'
+  );
+
   // Track last saved state to detect unsaved changes
   const lastSavedRef = useRef<string>('');
 
@@ -127,27 +140,39 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
   // Initialize last saved state on mount
   useEffect(() => {
-    lastSavedRef.current = JSON.stringify(initialState);
+    lastSavedRef.current = JSON.stringify({
+      ...initialState,
+      contentLanguage: plan.contentLanguage === 'am' ? 'am' : 'en'
+    });
   }, []);
 
   // Check for unsaved changes
   const hasUnsavedChanges = useCallback(() => {
     const currentState = JSON.stringify({
       researchGoal,
+      contentLanguage,
       objectives,
       researchQuestions,
       targetRespondents,
       proposedSections
     });
     return currentState !== lastSavedRef.current;
-  }, [researchGoal, objectives, researchQuestions, targetRespondents, proposedSections]);
+  }, [
+    researchGoal,
+    contentLanguage,
+    objectives,
+    researchQuestions,
+    targetRespondents,
+    proposedSections
+  ]);
 
   const handleSave = useCallback(async () => {
-    if (isLocked) return;
+    if (editLocked) return;
     setIsSaving(true);
     try {
       const updated = await updatePlan(localPlan.id, {
         researchGoal,
+        contentLanguage,
         objectives,
         researchQuestions,
         targetRespondents,
@@ -155,39 +180,45 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
       });
       if (updated) {
         setLocalPlan(updated);
+        setContentLanguage(
+          updated.contentLanguage === 'am' ? 'am' : 'en'
+        );
         onPlanUpdate(updated);
         // Update last saved state
         lastSavedRef.current = JSON.stringify({
           researchGoal,
+          contentLanguage: updated.contentLanguage,
           objectives,
           researchQuestions,
           targetRespondents,
           proposedSections
         });
-        toast.success('Plan saved', {
-          description: 'Your changes have been saved.'
+        toast.success(t('saved'), {
+          description: t('savedDesc')
         });
       }
     } catch {
-      toast.error('Failed to save', {
-        description: 'Please try again.'
+      toast.error(t('saveFailed'), {
+        description: t('saveFailedDesc')
       });
     } finally {
       setIsSaving(false);
     }
   }, [
-    isLocked,
+    editLocked,
     localPlan.id,
     researchGoal,
+    contentLanguage,
     objectives,
     researchQuestions,
     targetRespondents,
     proposedSections,
-    onPlanUpdate
+    onPlanUpdate,
+    t
   ]);
 
   useEffect(() => {
-    if (isLocked) return;
+    if (editLocked) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -209,20 +240,25 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, undo, redo, isLocked]);
+  }, [handleSave, undo, redo, editLocked]);
 
   const handleAIGenerate = useCallback(async () => {
+    if (!canEdit) {
+      toast.error(t('viewOnlyToast'), {
+        description: t('viewOnlyToastDesc')
+      });
+      return;
+    }
     if (isLocked) {
-      toast.error('Plan locked', {
-        description:
-          'Survey questions already exist. This plan can no longer be regenerated.'
+      toast.error(t('locked'), {
+        description: t('lockedDesc')
       });
       return;
     }
     const goal = researchGoal.trim();
     if (!goal) {
-      toast.error('Research goal required', {
-        description: 'Enter a research goal before generating with AI.'
+      toast.error(t('goalRequired'), {
+        description: t('goalRequiredDesc')
       });
       return;
     }
@@ -232,7 +268,8 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
       // Single request: update goal + hard-replace all AI fields on the server.
       const { plan: refreshed, output } = await generatePlanWithAI(
         localPlan.id,
-        goal
+        goal,
+        contentLanguage
       );
 
       // Deep-copy from the persisted plan only — no merge with previous editor state.
@@ -248,39 +285,62 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
       };
       // Wipe undo/redo so old AI content cannot resurface via Undo.
       replacePlanState(nextState);
-      lastSavedRef.current = JSON.stringify(nextState);
+      lastSavedRef.current = JSON.stringify({
+        ...nextState,
+        contentLanguage: refreshed.contentLanguage
+      });
       setLocalPlan(refreshed);
+      setContentLanguage(
+        refreshed.contentLanguage === 'am' ? 'am' : 'en'
+      );
       onPlanUpdate(refreshed);
 
-      toast.success('Plan regenerated', {
-        description:
-          output.notes ??
-          'Previous plan content was replaced with a fresh AI draft.'
+      toast.success(t('regenerated'), {
+        description: output.notes ?? t('regeneratedDesc')
       });
     } catch {
-      toast.error('Generation failed', {
-        description: 'AI could not generate the plan. Please try again.'
+      toast.error(t('regenFailed'), {
+        description: t('regenFailedDesc')
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [isLocked, localPlan.id, researchGoal, replacePlanState, onPlanUpdate]);
+  }, [
+    canEdit,
+    isLocked,
+    localPlan.id,
+    researchGoal,
+    contentLanguage,
+    replacePlanState,
+    onPlanUpdate,
+    t
+  ]);
 
   const proceedToBuilder = useCallback(
     async (saveChanges: boolean) => {
       setShowUnsavedDialog(false);
 
-      // Questions already exist — open Review only (plan is immutable).
-      if (isLocked) {
+      const openReviewOnly = () => {
         const targetSurveyId =
           surveyId ?? linkedSurvey?.id ?? localPlan.linkedSurveyId;
         if (targetSurveyId) {
           router.push(`/dashboard/surveys/${targetSurveyId}/review`);
           return;
         }
-        toast.error('Survey not found', {
-          description: 'Could not open Review for this plan.'
+        toast.error(t('surveyNotFound'), {
+          description: t('surveyNotFoundDesc')
         });
+      };
+
+      // Viewers never mutate — navigate to Review when a survey exists.
+      if (!canEdit) {
+        openReviewOnly();
+        return;
+      }
+
+      // Questions already exist — open Review only (plan is immutable).
+      if (isLocked) {
+        openReviewOnly();
         return;
       }
 
@@ -322,23 +382,23 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           ? await generateSurveyDraft(surveyId)
           : await createSurveyFromPlan(
               localPlan.id,
-              displaySurveyTitle(researchGoal) || 'Untitled survey'
+              displaySurveyTitle(researchGoal) || tSurveys('untitledSurvey')
             );
 
         queryClient.setQueryData(surveyKeys.detail(survey.id), survey);
         // Hard-replace clears reviewer reports on the API — don't keep stale findings.
         queryClient.setQueryData(reviewerKeys.latest(survey.id), null);
 
-        toast.success('Survey draft ready', {
-          description: 'Review and edit questions before publishing.'
+        toast.success(t('draftReady'), {
+          description: t('draftReadyDesc')
         });
         router.push(`/dashboard/surveys/${survey.id}/review`);
       } catch (err) {
-        toast.error('Failed to generate survey', {
+        toast.error(t('generateSurveyFailed'), {
           description:
             err instanceof Error && err.message
               ? err.message
-              : 'Please try again.'
+              : t('saveFailedDesc')
         });
       } finally {
         setIsCreatingSurvey(false);
@@ -353,13 +413,16 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
       targetRespondents,
       proposedSections,
       hasUnsavedChanges,
+      canEdit,
       isLocked,
       linkedSurvey?.id,
       localPlan.linkedSurveyId,
       onPlanUpdate,
       router,
       surveyId,
-      queryClient
+      queryClient,
+      t,
+      tSurveys
     ]
   );
 
@@ -381,30 +444,30 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
   const readiness = [
     {
       id: 'goal',
-      label: 'Research goal',
+      label: t('researchGoal'),
       done: researchGoal.trim().length >= 10
     },
     {
       id: 'objectives',
-      label: 'Objectives',
+      label: t('objectives'),
       done: objectives.length > 0,
       count: objectives.length
     },
     {
       id: 'questions',
-      label: 'Research questions',
+      label: t('researchQuestions'),
       done: researchQuestions.length > 0,
       count: researchQuestions.length
     },
     {
       id: 'respondents',
-      label: 'Target respondents',
+      label: t('targetRespondents'),
       done: targetRespondents.length > 0,
       count: targetRespondents.length
     },
     {
       id: 'sections',
-      label: 'Proposed sections',
+      label: t('proposedSections'),
       done: proposedSections.length > 0,
       count: proposedSections.length
     }
@@ -433,30 +496,39 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               title={
                 <div className='min-w-0'>
                   <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                    Research plan
+                    {t('researchPlan')}
                   </h3>
                   <p className='text-sm leading-snug text-brand-foreground/70'>
-                    What this survey is trying to learn
+                    {t('whatLearning')}
                   </p>
                 </div>
               }
               badge={
                 <span className='font-mono text-[11px] tabular-nums text-brand-foreground/75'>
-                  {surveyGoal.trim().length.toLocaleString()} chars
+                  {t('charCount', {
+                    count: surveyGoal.trim().length.toLocaleString()
+                  })}
                 </span>
               }
             />
             <SurvaiPanelBody className='space-y-4'>
+              <ContentLanguagePicker
+                value={contentLanguage}
+                onChange={setContentLanguage}
+                disabled={editLocked}
+                className='max-w-xs'
+              />
+
               <div className='space-y-2'>
                 <label
                   htmlFor='plan-survey-title'
                   className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'
                 >
-                  Survey title
+                  {t('surveyTitle')}
                 </label>
-                {isLocked ? (
+                {editLocked ? (
                   <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-3 text-sm font-semibold text-foreground sm:text-base'>
-                    {surveyTitle.trim() || 'Untitled survey'}
+                    {surveyTitle.trim() || tSurveys('untitledSurvey')}
                   </p>
                 ) : (
                   <Input
@@ -466,7 +538,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                       updateResearchParts(e.target.value, surveyGoal)
                     }
                     className='border-border h-11 rounded-xl border-2 text-base font-semibold text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))]'
-                    placeholder='e.g. Urban E-Waste Recycling Awareness Survey'
+                    placeholder={t('titlePlaceholder')}
                   />
                 )}
               </div>
@@ -476,11 +548,11 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                   htmlFor='plan-research-goal'
                   className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'
                 >
-                  Research goal
+                  {t('researchGoal')}
                 </label>
-                {isLocked ? (
+                {editLocked ? (
                   <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-4 text-sm font-medium leading-relaxed text-foreground sm:text-[0.9375rem]'>
-                    {surveyGoal.trim() || 'No research goal recorded.'}
+                    {surveyGoal.trim() || t('noGoalRecorded')}
                   </p>
                 ) : (
                   <Textarea
@@ -491,23 +563,21 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                     }
                     rows={5}
                     className='border-border min-h-[8rem] resize-none rounded-xl border-2 text-base font-medium leading-relaxed text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))] sm:text-[0.975rem]'
-                    placeholder='Describe the purpose of your survey…'
+                    placeholder={t('goalPlaceholder')}
                   />
                 )}
               </div>
 
               <p className='text-muted-foreground text-sm leading-relaxed'>
-                A clear title and goal guide objectives, questions, audiences,
-                and sections. Regenerate with AI after edits if you want a fresh
-                draft.
+                {t('goalHint')}
               </p>
             </SurvaiPanelBody>
           </SurvaiPanel>
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              title='Objectives'
-              subtitle='Outcomes this survey should achieve'
+              title={t('objectives')}
+              subtitle={t('objectivesSubtitle')}
               badge={<CountBadge count={objectives.length} />}
             />
             <SurvaiPanelBody>
@@ -519,18 +589,18 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                     objectives: newObjectives
                   }))
                 }
-                placeholder='e.g. Understand primary health concerns…'
-                addLabel='Add objective'
-                emptyMessage='No objectives yet'
-                disabled={isLocked}
+                placeholder={t('objectivePlaceholder')}
+                addLabel={t('addObjective')}
+                emptyMessage={t('noObjectives')}
+                disabled={editLocked}
               />
             </SurvaiPanelBody>
           </SurvaiPanel>
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              title='Research questions'
-              subtitle='Questions the survey should answer'
+              title={t('researchQuestions')}
+              subtitle={t('researchQuestionsSubtitle')}
               badge={<CountBadge count={researchQuestions.length} />}
             />
             <SurvaiPanelBody>
@@ -542,18 +612,18 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                     researchQuestions: newQuestions
                   }))
                 }
-                placeholder='e.g. What conditions do households report most?'
-                addLabel='Add question'
-                emptyMessage='No research questions yet'
-                disabled={isLocked}
+                placeholder={t('questionPlaceholder')}
+                addLabel={t('addQuestion')}
+                emptyMessage={t('noQuestions')}
+                disabled={editLocked}
               />
             </SurvaiPanelBody>
           </SurvaiPanel>
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              title='Target respondents'
-              subtitle='Who should take this survey'
+              title={t('targetRespondents')}
+              subtitle={t('targetRespondentsSubtitle')}
               badge={<CountBadge count={targetRespondents.length} />}
             />
             <SurvaiPanelBody>
@@ -565,18 +635,18 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                     targetRespondents: newRespondents
                   }))
                 }
-                placeholder='e.g. Household heads aged 18–65…'
-                addLabel='Add audience'
-                emptyMessage='No target respondents yet'
-                disabled={isLocked}
+                placeholder={t('audiencePlaceholder')}
+                addLabel={t('addAudience')}
+                emptyMessage={t('noAudiences')}
+                disabled={editLocked}
               />
             </SurvaiPanelBody>
           </SurvaiPanel>
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              title='Proposed sections'
-              subtitle='How questions will be grouped in the survey'
+              title={t('proposedSections')}
+              subtitle={t('proposedSectionsSubtitle')}
               badge={<CountBadge count={proposedSections.length} />}
             />
             <SurvaiPanelBody>
@@ -588,7 +658,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                     proposedSections: newSections
                   }))
                 }
-                disabled={isLocked}
+                disabled={editLocked}
               />
             </SurvaiPanelBody>
           </SurvaiPanel>
@@ -598,14 +668,22 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] sm:p-5'>
             <div>
               <p className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {isLocked ? 'Plan locked' : canGenerateSurvey ? 'Ready when you are' : 'Finish the brief'}
+                {!canEdit
+                  ? t('viewOnlyTitle')
+                  : isLocked
+                    ? t('locked')
+                    : canGenerateSurvey
+                      ? t('readyWhenYouAre')
+                      : t('finishBrief')}
               </p>
               <p className='mt-1 text-sm leading-relaxed text-brand-foreground/75'>
-                {isLocked
-                  ? 'Questions already exist for this plan. Continue on Review to edit them.'
-                  : canGenerateSurvey
-                    ? 'AI will draft survey questions from this plan. You can edit everything next.'
-                    : 'Add a goal plus at least one list item before generating questions.'}
+                {!canEdit
+                  ? t('viewerSeatsBody')
+                  : isLocked
+                    ? t('lockedContinueBody')
+                    : canGenerateSurvey
+                      ? t('readyGenerateBody')
+                      : t('finishBriefBody')}
               </p>
             </div>
 
@@ -648,48 +726,69 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
               ))}
             </ul>
 
-            <Button
-              type='button'
-              className={primaryCtaClass}
-              onClick={handleProceedToBuilder}
-              disabled={isCreatingSurvey || (!isLocked && !canGenerateSurvey)}
-            >
-              {isCreatingSurvey ? (
-                <>
-                  <Icons.spinner className='size-4 animate-spin' />
-                  Generating…
-                </>
-              ) : isLocked ? (
-                <>
-                  <Icons.review className='size-4' />
-                  Continue to Review
-                  <Icons.arrowRight className='ml-auto size-4' />
-                </>
-              ) : (
-                <>
-                  <Icons.sparkles className='size-4' />
-                  Generate survey questions
-                  <Icons.arrowRight className='ml-auto size-4' />
-                </>
-              )}
-            </Button>
+            {canEdit || isLocked || surveyId ? (
+              <Button
+                type='button'
+                className={primaryCtaClass}
+                onClick={handleProceedToBuilder}
+                disabled={
+                  isCreatingSurvey ||
+                  (!canEdit && !(isLocked || surveyId)) ||
+                  (canEdit && !isLocked && !canGenerateSurvey)
+                }
+              >
+                {isCreatingSurvey ? (
+                  <>
+                    <Icons.spinner className='size-4 animate-spin' />
+                    {tCommon('generating')}
+                  </>
+                ) : !canEdit || isLocked ? (
+                  <>
+                    <Icons.review className='size-4' />
+                    {t('continueToReview')}
+                    <Icons.arrowRight className='ml-auto size-4' />
+                  </>
+                ) : (
+                  <>
+                    <Icons.sparkles className='size-4' />
+                    {t('generateQuestions')}
+                    <Icons.arrowRight className='ml-auto size-4' />
+                  </>
+                )}
+              </Button>
+            ) : null}
           </div>
 
-          <PlanQuickActions
-            canUndo={canUndo}
-            canRedo={canRedo}
-            pastCount={pastCount}
-            futureCount={futureCount}
-            onUndo={undo}
-            onRedo={redo}
-            onSave={() => void handleSave()}
-            onRegenerate={() => void handleAIGenerate()}
-            isSaving={isSaving}
-            isGenerating={isGenerating}
-            hasUnsavedChanges={unsaved}
-            canRegenerate={Boolean(researchGoal.trim())}
-            locked={isLocked}
-          />
+          {canEdit ? (
+            <PlanQuickActions
+              canUndo={canUndo}
+              canRedo={canRedo}
+              pastCount={pastCount}
+              futureCount={futureCount}
+              onUndo={undo}
+              onRedo={redo}
+              onSave={() => void handleSave()}
+              onRegenerate={() => void handleAIGenerate()}
+              isSaving={isSaving}
+              isGenerating={isGenerating}
+              hasUnsavedChanges={unsaved}
+              canRegenerate={Boolean(researchGoal.trim())}
+              locked={isLocked}
+            />
+          ) : (
+            <SurvaiPanel>
+              <SurvaiPanelHeader
+                icon={<Icons.eye className='size-3.5' />}
+                title={t('viewOnlyTitle')}
+                subtitle={t('viewOnlySubtitle')}
+              />
+              <SurvaiPanelBody className='p-4'>
+                <p className='text-muted-foreground text-sm leading-relaxed'>
+                  {t('viewOnlyBody')}
+                </p>
+              </SurvaiPanelBody>
+            </SurvaiPanel>
+          )}
         </div>
       </div>
 
@@ -703,7 +802,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           className='sm:max-w-md gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0'
           showCloseButton={false}
         >
-          <DialogTitle className='sr-only'>Generating survey plan</DialogTitle>
+          <DialogTitle className='sr-only'>{t('generatingPlanTitle')}</DialogTitle>
           <PlanGenerationProgress
             active={isGenerating}
             goalPreview={researchGoal}
@@ -722,7 +821,7 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
           showCloseButton={false}
         >
           <DialogTitle className='sr-only'>
-            Generating survey questions
+            {t('generatingQuestionsTitle')}
           </DialogTitle>
           <SurveyGenerationProgress
             active={isCreatingSurvey}
@@ -734,24 +833,23 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
       <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
         <DialogContent className='sm:max-w-md gap-0 overflow-hidden p-0'>
           <DialogHeader className={dialogHeaderSoftClass}>
-            <DialogTitle>Save your changes?</DialogTitle>
+            <DialogTitle>{t('saveChangesTitle')}</DialogTitle>
           </DialogHeader>
           <div className='px-4 pt-4 pb-2'>
             <p className='text-muted-foreground text-sm leading-relaxed'>
-              You have unsaved changes to your survey plan. Save them before
-              generating questions, or discard and continue.
+              {t('saveChangesBody')}
             </p>
           </div>
           <Separator />
           <div className='flex items-center justify-end gap-2 px-4 py-3'>
             <Button variant='outline' onClick={() => proceedToBuilder(false)}>
-              Discard changes
+              {t('discardChanges')}
             </Button>
             <Button
               className='bg-foreground text-background hover:bg-foreground/90'
               onClick={() => proceedToBuilder(true)}
             >
-              Save & proceed
+              {t('saveAndProceed')}
             </Button>
           </div>
         </DialogContent>

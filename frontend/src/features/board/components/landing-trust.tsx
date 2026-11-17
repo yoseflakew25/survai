@@ -1,29 +1,23 @@
-const CLAIMS = [
-  {
-    title: 'Faster from goal to draft',
-    body: 'Stop starting from a blank page. Describe what you need to learn and get a clear plan and first-draft survey you can reshape in minutes.',
-    mark: '01'
-  },
-  {
-    title: 'Findings you can stand behind',
-    body: 'Every chart and percentage comes from your collected responses — not from an AI guessing. Reports stay tied to real results.',
-    mark: '02'
-  },
-  {
-    title: 'You approve before it ships',
-    body: 'AI suggests, drafts, and explains. You edit, reject, or accept before anything goes live or lands in a donor report.',
-    mark: '03'
-  }
-] as const;
+import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
+
+const CLAIM_IDS = ['speed', 'evidence', 'approval'] as const;
+
+function gold(chunks: ReactNode) {
+  return (
+    <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
+      {chunks}
+    </span>
+  );
+}
 
 export function LandingTrust() {
+  const t = useTranslations('landing');
+
   return (
-    <section
-      id='trust'
-      className='landing-section scroll-mt-24 pt-16 sm:pt-24'
-    >
+    <section id='trust' className='landing-section scroll-mt-24 pt-16 sm:pt-24'>
       <div className='landing-shell overflow-hidden'>
-        <div className='relative border-b border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[var(--primary)] px-5 py-8 sm:px-8 '>
+        <div className='relative border-b border-[color-mix(in_srgb,var(--gold)_35%,transparent)] bg-[var(--primary)] px-5 py-8 sm:px-8'>
           <div
             className='dot-grid absolute inset-0 opacity-40'
             aria-hidden='true'
@@ -34,35 +28,34 @@ export function LandingTrust() {
           />
           <div className='relative max-w-xl'>
             <h2 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-primary-foreground sm:text-[2.1rem]'>
-              Evidence you can{' '}
-              <span className='text-[var(--gold)] underline decoration-[var(--gold)] decoration-2 underline-offset-4'>
-                act on
-              </span>
+              {t.rich('trust.title', { gold })}
             </h2>
             <p className='text-sm leading-relaxed text-primary-foreground/75'>
-              Built for program, research, and policy teams who need answers —
-              not another pile of responses with no clear next step.
+              {t('trust.subtitle')}
             </p>
           </div>
         </div>
 
         <ul>
-          {CLAIMS.map((claim) => (
+          {CLAIM_IDS.map((id, i) => (
             <li
-              key={claim.title}
+              key={id}
               className='group grid gap-4 border-b border-border px-5 py-6 last:border-b-0 sm:grid-cols-[5.5rem_minmax(0,14rem)_1fr] sm:items-start sm:gap-6 sm:px-8 sm:py-8'
             >
               <span className='font-display text-4xl leading-none font-extrabold tracking-[-0.04em] text-foreground/10 transition-colors group-hover:text-brand sm:pt-0.5'>
-                {claim.mark}
+                {String(i + 1).padStart(2, '0')}
               </span>
               <div className='flex items-start gap-3'>
-                <span className='landing-rail .5 hidden h-10 sm:block' aria-hidden='true' />
-                <h3 className='font-display text-2xl  font-extrabold tracking-tight text-foreground'>
-                  {claim.title}
+                <span
+                  className='landing-rail .5 hidden h-10 sm:block'
+                  aria-hidden='true'
+                />
+                <h3 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+                  {t(`trust.claims.${id}.title`)}
                 </h3>
               </div>
               <p className='text-sm leading-relaxed text-muted-foreground sm:pt-1'>
-                {claim.body}
+                {t(`trust.claims.${id}.body`)}
               </p>
             </li>
           ))}

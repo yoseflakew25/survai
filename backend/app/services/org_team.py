@@ -126,6 +126,7 @@ class OrgTeamService:
                     role=role.value,
                     invite_url=invite_url,
                     invited_by_name=user.full_name,
+                    locale=getattr(user, "ui_locale", None),
                 )
                 delivered = True
             except Exception:
