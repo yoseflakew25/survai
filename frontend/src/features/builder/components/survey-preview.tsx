@@ -157,6 +157,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
                           ) : (
                             <input
                               className='border-input bg-background h-8 w-full rounded-md border px-2 text-xs'
+                              aria-label={t('previewAnswerPlaceholder')}
                               placeholder={t('previewAnswerPlaceholder')}
                               value={
                                 typeof answers[question.id] === 'string' ||
