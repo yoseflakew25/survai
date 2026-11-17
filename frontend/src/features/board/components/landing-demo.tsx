@@ -153,6 +153,7 @@ export function LandingDemo() {
               value={openText}
               onChange={(e) => setOpenText(e.target.value)}
               rows={3}
+              aria-label={t('demo.placeholder')}
               placeholder={t('demo.placeholder')}
               className='w-full resize-none rounded-xl border border-border bg-background px-3.5 py-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus:border-foreground/40 focus:outline-none'
             />
