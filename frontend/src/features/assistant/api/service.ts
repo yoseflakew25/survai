@@ -235,6 +235,7 @@ export async function sendMessageStream(
 }
 
 export async function reindexKnowledge(): Promise<{
+  organization_profile?: number;
   surveys: number;
   reports: number;
   reviews: number;
@@ -246,6 +247,7 @@ export async function reindexKnowledge(): Promise<{
     await readError(res, serviceMsg('assistant', 'couldNotReindexKnowledge'));
   }
   return (await res.json()) as {
+    organization_profile?: number;
     surveys: number;
     reports: number;
     reviews: number;

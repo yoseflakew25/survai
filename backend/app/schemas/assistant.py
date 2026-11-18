@@ -56,6 +56,7 @@ class AssistantSendResponse(BaseModel):
 
 
 class KnowledgeReindexResponse(BaseModel):
+    organization_profile: int = 0
     surveys: int
     reports: int
     reviews: int

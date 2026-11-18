@@ -27,6 +27,7 @@ class KnowledgeSourceType(str, enum.Enum):
     survey = "survey"
     report = "report"
     review = "review"
+    cso_profile = "cso_profile"
 
 
 class AssistantThread(Base):

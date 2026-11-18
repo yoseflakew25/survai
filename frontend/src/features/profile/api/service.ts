@@ -9,6 +9,7 @@ export type ProfileUpdatePayload = {
   organization_name?: string;
   organization_description?: string | null;
   organization_website?: string | null;
+  organization_cso_profile?: Record<string, unknown> | null;
 };
 
 export async function fetchMe(): Promise<ApiUser> {
@@ -47,6 +48,32 @@ export async function changePassword(input: {
     const data = await res.json().catch(() => ({}));
     throw new Error(apiErrorMessage(data, serviceMsg('account', 'passwordFailed')));
   }
+}
+
+export type CsoProfileExtractResponse = {
+  organization_name: string | null;
+  organization_description: string | null;
+  organization_cso_profile: Record<string, unknown>;
+  source_filename: string;
+  characters_extracted: number;
+};
+
+export async function extractOrganizationProfileFromDocument(
+  file: File
+): Promise<CsoProfileExtractResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiFetch('/users/me/organization-profile/from-document', {
+    method: 'POST',
+    body: form
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      apiErrorMessage(data, serviceMsg('account', 'csoDocumentExtractFailed'))
+    );
+  }
+  return data as CsoProfileExtractResponse;
 }
 
 export async function deleteMyAccount(): Promise<void> {

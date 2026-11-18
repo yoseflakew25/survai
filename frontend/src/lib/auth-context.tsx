@@ -55,6 +55,7 @@ export interface AuthUser {
   organizationName: string | null;
   organizationDescription: string | null;
   organizationWebsite: string | null;
+  organizationCsoProfile: Record<string, unknown> | null;
   phone: string | null;
   jobTitle: string | null;
   bio: string | null;
@@ -115,6 +116,7 @@ function mapUser(u: ApiUser): AuthUser {
     organizationName: u.organization_name,
     organizationDescription: u.organization_description ?? null,
     organizationWebsite: u.organization_website ?? null,
+    organizationCsoProfile: u.organization_cso_profile ?? null,
     phone: u.phone ?? null,
     jobTitle: u.job_title ?? null,
     bio: u.bio ?? null,

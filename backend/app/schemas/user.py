@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.models.user import UserRole
+from app.schemas.cso_profile import OrganizationCsoProfile
 
 
 class UserBase(BaseModel):
@@ -43,6 +44,7 @@ class UserMeUpdate(BaseModel):
     organization_name: str | None = Field(default=None, min_length=1, max_length=255)
     organization_description: str | None = Field(default=None, max_length=2000)
     organization_website: str | None = Field(default=None, max_length=255)
+    organization_cso_profile: OrganizationCsoProfile | None = None
     ui_locale: Literal["en", "am"] | None = None
 
 
@@ -65,6 +67,7 @@ class UserPublic(BaseModel):
     organization_name: str | None = None
     organization_description: str | None = None
     organization_website: str | None = None
+    organization_cso_profile: OrganizationCsoProfile | None = None
     phone: str | None = None
     job_title: str | None = None
     bio: str | None = None
@@ -94,6 +97,11 @@ class UserPublic(BaseModel):
                 "organization_name": org.name if org is not None else None,
                 "organization_description": org.description if org is not None else None,
                 "organization_website": org.website if org is not None else None,
+                "organization_cso_profile": (
+                    org.cso_profile
+                    if org is not None and org.cso_profile
+                    else None
+                ),
                 "phone": data.phone,
                 "job_title": data.job_title,
                 "bio": data.bio,

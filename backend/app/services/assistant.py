@@ -31,6 +31,7 @@ from app.repositories.assistant import (
     AssistantMessageRepository,
     AssistantThreadRepository,
 )
+from app.repositories.organization import OrganizationRepository
 from app.repositories.report import ReportRepository, SavedAnalysisRepository
 from app.repositories.survey import SurveyRepository
 from app.schemas.assistant import (
@@ -43,6 +44,7 @@ from app.schemas.assistant import (
     KnowledgeReindexResponse,
 )
 from app.services.analytics import AnalyticsService
+from app.services.cso_profile_knowledge import organization_context_payload
 from app.services.knowledge_index import KnowledgeIndexService
 
 logger = logging.getLogger(__name__)
@@ -226,9 +228,12 @@ class AssistantService:
             for m in prior[-6:]
         ]
 
+        org_row = await OrganizationRepository(self.session).get_by_id(org_id)
+        organization_profile = organization_context_payload(org_row)
+
         yield ("status", {"stage": "retrieving"})
         retrieved = await self.knowledge.retrieve(
-            organization_id=org_id, query=question, top_k=6
+            organization_id=org_id, query=question, top_k=8
         )
         chunk_payload = [
             {
@@ -277,6 +282,7 @@ class AssistantService:
                 chunks=chunk_payload,
                 surveys=catalog,
                 history=history,
+                organization_profile=organization_profile,
             ),
             schema=AssistantPlanOutput,
             user_id=user.id,
@@ -317,6 +323,7 @@ class AssistantService:
                 chunks=chunk_payload,
                 tool_payload=tool_payload,
                 history=history,
+                organization_profile=organization_profile,
             ),
             schema=AssistantAnswerOutput,
             user_id=user.id,
@@ -566,7 +573,9 @@ class AssistantService:
             if chunk is None:
                 continue
             href = None
-            if chunk.get("survey_id"):
+            if chunk.get("source_type") == "cso_profile":
+                href = "/dashboard/profile"
+            elif chunk.get("survey_id"):
                 if chunk.get("source_type") == "report":
                     href = f"/dashboard/surveys/{chunk['survey_id']}/reports"
                 elif chunk.get("source_type") == "review":

@@ -16,6 +16,7 @@ export type ApiUser = {
   organization_name: string | null;
   organization_description: string | null;
   organization_website: string | null;
+  organization_cso_profile?: Record<string, unknown> | null;
   phone: string | null;
   job_title: string | null;
   bio: string | null;
@@ -212,7 +213,11 @@ export async function apiFetch(
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  if (init.body && !headers.has('Content-Type')) {
+  if (
+    init.body &&
+    !headers.has('Content-Type') &&
+    !(init.body instanceof FormData)
+  ) {
     headers.set('Content-Type', 'application/json');
   }
   if (memoryAccessToken && !headers.has('Authorization')) {
@@ -242,7 +247,11 @@ export async function apiFetch(
       const pair = await refreshApiSession();
       if (pair) {
         const retryHeaders = new Headers(init.headers);
-        if (init.body && !retryHeaders.has('Content-Type')) {
+        if (
+          init.body &&
+          !retryHeaders.has('Content-Type') &&
+          !(init.body instanceof FormData)
+        ) {
           retryHeaders.set('Content-Type', 'application/json');
         }
         retryHeaders.set('Authorization', `Bearer ${pair.access_token}`);
