@@ -13,13 +13,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.embeddings import embed_texts
 from app.models.assistant import KnowledgeSourceType, OrgKnowledgeChunk
+from app.models.organization import Organization
 from app.models.reviewer import ReviewerReport
 from app.models.survey import Survey
 from app.repositories.assistant import KnowledgeChunkRepository
+from app.repositories.organization import OrganizationRepository
 from app.repositories.report import ReportRepository
 from app.repositories.reviewer import ReviewerReportRepository
 from app.repositories.survey import SurveyRepository
 from app.repositories.survey_plan import SurveyPlanRepository
+from app.services.cso_profile_knowledge import build_cso_profile_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +63,7 @@ class KnowledgeIndexService:
         self.plans = SurveyPlanRepository(session)
         self.reports = ReportRepository(session)
         self.reviewer_reports = ReviewerReportRepository(session)
+        self.organizations = OrganizationRepository(session)
 
     async def upsert_chunk(
         self,
@@ -227,8 +231,40 @@ class KnowledgeIndexService:
             body=body,
         )
 
+    async def index_organization_profile(self, org: Organization) -> int:
+        """Embed CSO / org profile sections for tailored assistant retrieval."""
+        from sqlalchemy import delete
+
+        await self.session.execute(
+            delete(OrgKnowledgeChunk).where(
+                OrgKnowledgeChunk.organization_id == org.id,
+                OrgKnowledgeChunk.source_type == KnowledgeSourceType.cso_profile.value,
+            )
+        )
+        await self.session.flush()
+        indexed = 0
+        for _key, source_id, title, body in build_cso_profile_chunks(org):
+            row = await self.upsert_chunk(
+                organization_id=org.id,
+                source_type=KnowledgeSourceType.cso_profile,
+                source_id=source_id,
+                survey_id=None,
+                title=title,
+                body=body,
+            )
+            if row is not None:
+                indexed += 1
+        return indexed
+
     async def reindex_organization(self, *, organization_id: UUID) -> dict[str, int]:
-        """Backfill chunks for all surveys/reports/reviews in an org."""
+        """Backfill chunks for org profile, surveys, reports, and reviews."""
+        profile_n = 0
+        org = await self.organizations.get_by_id(organization_id)
+        if org is not None:
+            try:
+                profile_n = await self.index_organization_profile(org)
+            except Exception:
+                logger.exception("reindex org profile failed org=%s", organization_id)
         surveys = await self.surveys.list_for_org(
             organization_id=organization_id,
             require_plan=False,
@@ -277,4 +313,9 @@ class KnowledgeIndexService:
                 logger.exception("reindex review failed %s", rev.id)
 
         await self.session.commit()
-        return {"surveys": survey_n, "reports": report_n, "reviews": review_n}
+        return {
+            "organization_profile": profile_n,
+            "surveys": survey_n,
+            "reports": report_n,
+            "reviews": review_n,
+        }

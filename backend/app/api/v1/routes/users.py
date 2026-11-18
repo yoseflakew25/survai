@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, File, Query, Response, UploadFile, status
 
 from app.api.cookies import clear_auth_cookies
-from app.api.deps import AdminUser, CurrentUser, UserServiceDep
+from app.api.deps import AdminUser, CurrentUser, DbSession, OrgOwner, UserServiceDep
+from app.schemas.cso_profile import CsoProfileDocumentExtractResponse
 from app.schemas.user import (
     PasswordChangeRequest,
     UserCreate,
@@ -14,6 +15,7 @@ from app.schemas.user import (
     UserPublic,
     UserUpdate,
 )
+from app.services.cso_document import extract_cso_profile_from_document
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -21,6 +23,25 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get("/me", response_model=UserPublic)
 async def read_me(current_user: CurrentUser) -> UserPublic:
     return UserPublic.model_validate(current_user)
+
+
+@router.post(
+    "/me/organization-profile/from-document",
+    response_model=CsoProfileDocumentExtractResponse,
+)
+async def extract_organization_profile_from_document(
+    current_user: OrgOwner,
+    session: DbSession,
+    file: UploadFile = File(...),
+) -> CsoProfileDocumentExtractResponse:
+    raw = await file.read()
+    payload = await extract_cso_profile_from_document(
+        user=current_user,
+        filename=file.filename or "document",
+        data=raw,
+        session=session,
+    )
+    return CsoProfileDocumentExtractResponse.model_validate(payload)
 
 
 @router.patch("/me", response_model=UserPublic)

@@ -31,6 +31,10 @@ class Organization(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     website: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Rich CSO metadata for assistant / knowledge grounding (see schemas/cso_profile.py).
+    cso_profile: Mapped[dict[str, Any]] = mapped_column(
+        JsonType, nullable=False, default=lambda: {}
+    )
     # Platform admin controls
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, index=True

@@ -24,8 +24,10 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.prompts import (
+    assistant_v1,
     builder_v1,
     chat_v1,
+    cso_profile_extract_v1,
     planner_interview_v1,
     planner_v1,
     report_v1,
@@ -54,8 +56,9 @@ _FEATURE_PROMPT_VERSIONS: dict[str, str] = {
     "reviewer": reviewer_v1.PROMPT_VERSION,
     "report": report_v1.PROMPT_VERSION,
     "report_chat": chat_v1.PROMPT_VERSION,
-    "assistant_plan": "assistant_v1",
-    "assistant_answer": "assistant_v1",
+    "assistant_plan": assistant_v1.PROMPT_VERSION,
+    "assistant_answer": assistant_v1.PROMPT_VERSION,
+    "cso_profile_extract": cso_profile_extract_v1.PROMPT_VERSION,
 }
 
 
@@ -73,7 +76,7 @@ def _max_tokens_for(feature: str) -> int:
     if feature == "planner_interview":
         # Keep interview turns short — Amharic models otherwise loop.
         return 512
-    if feature.startswith("assistant"):
+    if feature.startswith("assistant") or feature == "cso_profile_extract":
         return 768
     if feature == "report_chat":
         return _CHAT_MAX_OUTPUT_TOKENS
@@ -87,7 +90,7 @@ def _temperature_for(feature: str) -> float:
         return 0.2
     if feature == "planner_interview":
         return 0.2
-    if feature in ("assistant_plan", "assistant_answer"):
+    if feature in ("assistant_plan", "assistant_answer", "cso_profile_extract"):
         return 0.25
     return 0.4
 
@@ -134,6 +137,7 @@ def _cfa_model_for(feature: str) -> str:
         "report_chat": settings.cfa_sandbox_model_chat,
         "assistant_plan": settings.cfa_sandbox_model_assistant,
         "assistant_answer": settings.cfa_sandbox_model_assistant,
+        "cso_profile_extract": settings.cfa_sandbox_model_assistant,
     }
     return mapping.get(feature, settings.cfa_sandbox_model_planner)
 
@@ -150,6 +154,7 @@ def _gemini_model_for(feature: str) -> str:
         "report_chat": settings.gemini_model_chat,
         "assistant_plan": settings.gemini_model_assistant,
         "assistant_answer": settings.gemini_model_assistant,
+        "cso_profile_extract": settings.gemini_model_assistant,
     }
     return mapping.get(feature, settings.gemini_model_planner)
 

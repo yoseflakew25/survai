@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect, useMemo, useState } from 'react';
@@ -42,15 +42,19 @@ import {
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { TeamPanel } from '@/features/team/components/team-panel';
 import { toast } from '@/lib/toast';
-
-type ProfileFormValues = {
-  organizationName: string;
-  fullName: string;
-  phone?: string;
-  jobTitle?: string;
-  bio?: string;
-  website?: string;
-};
+import {
+  csoProfileFromApi,
+  csoProfileSchema,
+  csoProfileToApi,
+  EMPTY_CSO_PROFILE,
+  mergeProfileText
+} from '@/features/profile/cso-profile-schema';
+import { CsoProfileFields } from '@/features/profile/components/cso-profile-fields';
+import {
+  CsoProfileDocumentImport,
+  type CsoDocumentApplyPayload
+} from '@/features/profile/components/cso-profile-document-import';
+import type { OrganizationProfileFormValues } from '@/features/profile/components/organization-profile-form-types';
 
 type PasswordFormValues = {
   currentPassword: string;
@@ -107,11 +111,17 @@ export default function ProfileViewPage() {
           .refine((val) => !val || val.length <= 100, {
             message: tAccount('validationJobTitleMax')
           }),
-        bio: z
+        personalBio: z
           .string()
           .optional()
           .refine((val) => !val || val.length <= 500, {
             message: tAccount('validationBioMax')
+          }),
+        organizationDescription: z
+          .string()
+          .optional()
+          .refine((val) => !val || val.length <= 2000, {
+            message: tAccount('validationOrgDescMax')
           }),
         website: z
           .string()
@@ -122,7 +132,8 @@ export default function ProfileViewPage() {
               /^https?:\/\/.+/i.test(val) ||
               /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(val),
             { message: tAccount('validationWebsite') }
-          )
+          ),
+        cso: csoProfileSchema
       }),
     [tAccount]
   );
@@ -193,16 +204,19 @@ export default function ProfileViewPage() {
     handleSubmit: handleSubmitProfile,
     formState: { errors: profileErrors, isDirty: isProfileDirty },
     watch: watchProfile,
-    reset: resetProfile
-  } = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+    reset: resetProfile,
+    setValue: setProfileValue
+  } = useForm<OrganizationProfileFormValues>({
+    resolver: zodResolver(profileSchema) as Resolver<OrganizationProfileFormValues>,
     defaultValues: {
       organizationName: '',
       fullName: '',
       phone: '',
       jobTitle: '',
-      bio: '',
-      website: ''
+      personalBio: '',
+      organizationDescription: '',
+      website: '',
+      cso: EMPTY_CSO_PROFILE
     }
   });
 
@@ -228,8 +242,10 @@ export default function ProfileViewPage() {
       fullName: user.fullName || '',
       phone: user.phone || '',
       jobTitle: user.jobTitle || '',
-      bio: user.bio || '',
-      website: user.organizationWebsite || ''
+      personalBio: user.bio || '',
+      organizationDescription: user.organizationDescription || '',
+      website: user.organizationWebsite || '',
+      cso: csoProfileFromApi(user.organizationCsoProfile)
     });
   }, [user, resetProfile]);
 
@@ -268,7 +284,29 @@ export default function ProfileViewPage() {
     .toUpperCase()
     .slice(0, 2);
 
-  const onProfileSubmit = async (data: ProfileFormValues) => {
+  const handleCsoDocumentApply = (
+    payload: CsoDocumentApplyPayload,
+    mode: 'empty' | 'all'
+  ) => {
+    const cur = watchProfile();
+    const organizationName = mergeProfileText(
+      cur.organizationName,
+      payload.organizationName,
+      mode
+    );
+    const organizationDescription = mergeProfileText(
+      cur.organizationDescription,
+      payload.organizationDescription,
+      mode
+    );
+    setProfileValue('organizationName', organizationName, { shouldDirty: true });
+    setProfileValue('organizationDescription', organizationDescription, {
+      shouldDirty: true
+    });
+    setProfileValue('cso', payload.cso, { shouldDirty: true });
+  };
+
+  const onProfileSubmit = async (data: OrganizationProfileFormValues) => {
     setIsSaving(true);
     try {
       const updated = await updateMe({
@@ -276,8 +314,10 @@ export default function ProfileViewPage() {
         full_name: data.fullName,
         phone: data.phone?.trim() || null,
         job_title: data.jobTitle?.trim() || null,
-        bio: data.bio?.trim() || null,
-        organization_website: normalizeWebsite(data.website)
+        bio: data.personalBio?.trim() || null,
+        organization_description: data.organizationDescription?.trim() || null,
+        organization_website: normalizeWebsite(data.website),
+        organization_cso_profile: csoProfileToApi(data.cso)
       });
       setUserFromApi(updated);
       resetProfile({
@@ -285,8 +325,10 @@ export default function ProfileViewPage() {
         fullName: updated.full_name,
         phone: updated.phone || '',
         jobTitle: updated.job_title || '',
-        bio: updated.bio || '',
-        website: updated.organization_website || ''
+        personalBio: updated.bio || '',
+        organizationDescription: updated.organization_description || '',
+        website: updated.organization_website || '',
+        cso: csoProfileFromApi(updated.organization_cso_profile)
       });
       toast.success(tAccount('saved'), {
         description: tAccount('profileSavedDesc')
@@ -349,7 +391,7 @@ export default function ProfileViewPage() {
   }
 
   return (
-    <div className='mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
+    <div className='mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
       <header className='mb-6'>
         <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
           {tNav('account')}
@@ -407,6 +449,7 @@ export default function ProfileViewPage() {
             watchProfile={watchProfile}
             isSaving={isSaving}
             onProfileSubmit={onProfileSubmit}
+            onCsoDocumentApply={handleCsoDocumentApply}
             brandCtaClass={brandCtaClass}
           />
         )}
@@ -448,17 +491,26 @@ function ProfileSection({
   watchProfile,
   isSaving,
   onProfileSubmit,
+  onCsoDocumentApply,
   brandCtaClass
 }: {
   user: AuthUser;
   initials: string;
-  registerProfile: ReturnType<typeof useForm<ProfileFormValues>>['register'];
-  handleSubmitProfile: ReturnType<typeof useForm<ProfileFormValues>>['handleSubmit'];
-  profileErrors: ReturnType<typeof useForm<ProfileFormValues>>['formState']['errors'];
+  registerProfile: ReturnType<typeof useForm<OrganizationProfileFormValues>>['register'];
+  handleSubmitProfile: ReturnType<
+    typeof useForm<OrganizationProfileFormValues>
+  >['handleSubmit'];
+  profileErrors: ReturnType<
+    typeof useForm<OrganizationProfileFormValues>
+  >['formState']['errors'];
   isProfileDirty: boolean;
-  watchProfile: ReturnType<typeof useForm<ProfileFormValues>>['watch'];
+  watchProfile: ReturnType<typeof useForm<OrganizationProfileFormValues>>['watch'];
   isSaving: boolean;
-  onProfileSubmit: (data: ProfileFormValues) => void;
+  onProfileSubmit: (data: OrganizationProfileFormValues) => void;
+  onCsoDocumentApply: (
+    payload: CsoDocumentApplyPayload,
+    mode: 'empty' | 'all'
+  ) => void;
   brandCtaClass: string;
 }) {
   const tAccount = useTranslations('account');
@@ -495,13 +547,13 @@ function ProfileSection({
         </SurvaiPanelBody>
       </SurvaiPanel>
 
-      <form onSubmit={handleSubmitProfile(onProfileSubmit)}>
+      <form onSubmit={handleSubmitProfile(onProfileSubmit)} className='space-y-5'>
         <SurvaiPanel>
           <SurvaiPanelHeader
             tone='brand'
             icon={<Icons.edit className='size-3.5' />}
-            title={tAccount('detailsTitle')}
-            subtitle={tAccount('detailsSubtitle')}
+            title={tAccount('basicsTitle')}
+            subtitle={tAccount('basicsSubtitle')}
           />
           <SurvaiPanelBody className='space-y-4'>
             <div className='grid gap-4 sm:grid-cols-2'>
@@ -617,29 +669,60 @@ function ProfileSection({
               </div>
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='bio'>{tAccount('description')}</Label>
+              <Label htmlFor='organizationDescription'>
+                {tAccount('orgShortDescription')}
+              </Label>
               <Textarea
-                id='bio'
-                {...registerProfile('bio')}
+                id='organizationDescription'
+                {...registerProfile('organizationDescription')}
                 placeholder={tAccount('aboutPlaceholder')}
                 className={cn(
                   'min-h-[100px] rounded-xl',
-                  profileErrors.bio &&
+                  profileErrors.organizationDescription &&
                     'border-destructive focus-visible:ring-destructive/20'
                 )}
               />
               <div className='flex items-center justify-between'>
-                {profileErrors.bio ? (
+                {profileErrors.organizationDescription ? (
                   <p className='text-destructive text-xs'>
-                    {profileErrors.bio.message}
+                    {profileErrors.organizationDescription.message}
                   </p>
                 ) : null}
                 <p className='text-muted-foreground ml-auto font-mono text-xs tabular-nums'>
-                  {watchProfile('bio')?.length || 0}/500
+                  {watchProfile('organizationDescription')?.length || 0}/2000
                 </p>
               </div>
             </div>
+            <div className='space-y-2 border-t border-border/60 pt-4'>
+              <Label htmlFor='personalBio'>{tAccount('personalBio')}</Label>
+              <Textarea
+                id='personalBio'
+                {...registerProfile('personalBio')}
+                placeholder={tAccount('personalBioPlaceholder')}
+                className={cn(
+                  'min-h-[80px] rounded-xl',
+                  profileErrors.personalBio &&
+                    'border-destructive focus-visible:ring-destructive/20'
+                )}
+              />
+              <p className='text-muted-foreground ml-auto text-right font-mono text-xs tabular-nums'>
+                {watchProfile('personalBio')?.length || 0}/500
+              </p>
+            </div>
           </SurvaiPanelBody>
+        </SurvaiPanel>
+
+        <CsoProfileDocumentImport
+          currentCso={watchProfile('cso')}
+          onApply={onCsoDocumentApply}
+        />
+
+        <CsoProfileFields
+          register={registerProfile}
+          errors={profileErrors}
+        />
+
+        <SurvaiPanel>
           <SurvaiPanelFooter className='flex items-center justify-between gap-3'>
             {isProfileDirty ? (
               <p className='text-muted-foreground text-xs'>

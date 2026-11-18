@@ -114,7 +114,6 @@ export function AssistantWorkspace() {
 
   const threadsQuery = useQuery(assistantThreadsOptions());
   const threads = threadsQuery.data?.threads ?? [];
-  const activeThread = threads.find((row) => row.id === activeId) ?? null;
 
   useEffect(() => {
     if (!activeId && threads.length > 0) {
@@ -269,12 +268,6 @@ export function AssistantWorkspace() {
     [activeId, input, sending, creatingThread, queryClient, refreshThreads]
   );
 
-  const chatTitle = creatingThread
-    ? tAssistant('newChat')
-    : activeThread && activeThread.title !== 'New chat'
-      ? activeThread.title
-      : tAssistant('orgTitle');
-
   return (
     <div className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
       <SurvaiPanel className='flex h-full w-full min-h-0 flex-1 flex-col overflow-hidden'>
@@ -282,7 +275,7 @@ export function AssistantWorkspace() {
           <div className='relative flex flex-wrap items-start justify-between gap-3'>
             <div className='min-w-0 flex-1'>
               <h2 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {chatTitle}
+                {tAssistant('title')}
               </h2>
               <p className='text-sm leading-relaxed text-brand-foreground/70'>
                 {tAssistant('subtitle')}
@@ -290,26 +283,21 @@ export function AssistantWorkspace() {
             </div>
             <Button
               type='button'
-              size='sm'
               onClick={handleNewThread}
               disabled={creatingThread || sending}
               aria-busy={creatingThread}
               aria-label={
-                creatingThread
-                  ? tAssistant('creating')
-                  : isBlankActiveChat
-                    ? tAssistant('newChat')
-                    : tAssistant('newChat')
+                creatingThread ? tAssistant('creating') : tAssistant('newChat')
               }
               className={cn(
                 primaryCtaClass,
-                'h-8 shrink-0 gap-1.5 rounded-xl px-3 text-xs'
+                'h-11 min-w-[9.5rem] shrink-0 gap-2 rounded-xl px-6 text-sm font-semibold'
               )}
             >
               {creatingThread ? (
-                <Icons.spinner className='size-3.5 animate-spin' />
+                <Icons.spinner className='size-4 animate-spin' />
               ) : (
-                <Icons.add className='size-3.5' />
+                <Icons.add className='size-4' />
               )}
               {creatingThread ? tAssistant('creating') : tAssistant('newChat')}
             </Button>

@@ -3,8 +3,9 @@ import { Metadata } from 'next';
 import { AssistantWorkspace } from '@/features/assistant/components/assistant-workspace';
 
 export const metadata: Metadata = {
-  title: 'Assistant',
-  description: 'Ask questions across your surveys, reports, and reviews'
+  title: 'Knowledge base chat',
+  description:
+    'Chat with your organization knowledge base across surveys, reports, and reviews'
 };
 
 export default function AssistantPage() {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from sqlalchemy import update
@@ -15,6 +16,8 @@ from app.repositories.organization import OrganizationRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
 from app.schemas.user import PasswordChangeRequest, UserCreate, UserMeUpdate, UserUpdate
+
+logger = logging.getLogger(__name__)
 
 # Soft cap for MVP data-URL avatars (≈300KB binary after base64 overhead)
 _MAX_AVATAR_CHARS = 400_000
@@ -103,9 +106,11 @@ class UserService:
         org_name_set = "organization_name" in payload
         org_description_set = "organization_description" in payload
         org_website_set = "organization_website" in payload
+        org_cso_set = "organization_cso_profile" in payload
         organization_name = payload.pop("organization_name", None)
         organization_description = payload.pop("organization_description", None)
         organization_website = payload.pop("organization_website", None)
+        organization_cso_profile = payload.pop("organization_cso_profile", None)
         avatar_url = payload.get("avatar_url")
 
         if avatar_url is not None and len(avatar_url) > _MAX_AVATAR_CHARS:
@@ -129,8 +134,12 @@ class UserService:
         if password:
             user.hashed_password = hash_password(password)
 
+        org_to_index: Organization | None = None
         if (
-            org_name_set or org_description_set or org_website_set
+            org_name_set
+            or org_description_set
+            or org_website_set
+            or org_cso_set
         ) and user.organization_id is not None:
             org = user.organization
             if org is None:
@@ -144,12 +153,32 @@ class UserService:
                 if org_website_set:
                     site = (organization_website or "").strip()
                     org.website = site or None
+                if org_cso_set and organization_cso_profile is not None:
+                    from app.schemas.cso_profile import OrganizationCsoProfile
+
+                    org.cso_profile = OrganizationCsoProfile.model_validate(
+                        organization_cso_profile
+                    ).model_dump()
                 user.organization = org
+                org_to_index = org
 
         await self.users.session.commit()
+        if org_to_index is not None:
+            await self._index_org_profile_for_assistant(org_to_index)
         refreshed = await self.users.get_by_id(user.id)
         assert refreshed is not None
         return refreshed
+
+    async def _index_org_profile_for_assistant(self, org: Organization) -> None:
+        try:
+            from app.services.knowledge_index import KnowledgeIndexService
+
+            await KnowledgeIndexService(self.users.session).index_organization_profile(
+                org
+            )
+            await self.users.session.commit()
+        except Exception:
+            logger.exception("assistant org profile index failed org=%s", org.id)
 
     async def ensure_first_superuser(self) -> User | None:
         """Ensure the configured system admin exists without touching org seats.
