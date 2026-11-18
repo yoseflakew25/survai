@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.schemas import ReviewerOutput
 from app.ai.services.reviewer import review_survey
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.rbac import require_org_editor
 from app.models.reviewer import ReviewerFinding, ReviewerFindingStatus, ReviewerReport
 from app.models.survey import Question, Survey
 from app.models.survey_plan import SurveyPlan
@@ -51,6 +52,7 @@ class ReviewerService:
     async def run_review(
         self, *, user: User, survey_id: UUID
     ) -> ReviewerReportPublic:
+        require_org_editor(user)
         survey = await self._get_owned_survey(user, survey_id)
         if not survey.sections or not any(
             (s.questions or []) for s in survey.sections
@@ -201,6 +203,7 @@ class ReviewerService:
     async def update_finding_status(
         self, *, user: User, finding_id: UUID, body: FindingStatusUpdate
     ) -> ReviewerFindingPublic:
+        require_org_editor(user)
         org_id = _require_org(user)
         finding = await self.findings.get_for_org_survey(
             finding_id=finding_id, organization_id=org_id

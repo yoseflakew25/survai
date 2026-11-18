@@ -117,7 +117,7 @@ class AuthService:
                 if delivered
                 else "Email delivery is not configured — use the code shown below (dev)."
             ),
-            dev_code=None if delivered else code,
+            dev_code=None if delivered or settings.is_production else code,
         )
 
     async def verify_email(self, *, email: str, code: str) -> TokenPairResponse:
@@ -179,7 +179,7 @@ class AuthService:
                 else "Email delivery is not configured — use the code shown below (dev)."
             ),
             # Only echo OTP when mail is not actually delivered (local/dev).
-            dev_code=None if delivered else code,
+            dev_code=None if delivered or settings.is_production else code,
         )
 
     def _touch_presence(self, user: User, *, country_code: str | None) -> None:

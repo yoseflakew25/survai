@@ -16,9 +16,13 @@
 // ============================================================
 
 import { fakeUsers } from '@/constants/mock-api-users';
+import { rejectMockApiInProduction } from '@/lib/dev-only-api';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  const blocked = rejectMockApiInProduction();
+  if (blocked) return blocked;
+
   const { searchParams } = request.nextUrl;
 
   const page = Number(searchParams.get('page') ?? 1);
@@ -39,6 +43,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = rejectMockApiInProduction();
+  if (blocked) return blocked;
+
   const body = await request.json();
   const data = await fakeUsers.createUser(body);
   return NextResponse.json(data, { status: 201 });

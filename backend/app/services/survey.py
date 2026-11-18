@@ -321,6 +321,7 @@ class SurveyService:
         return _survey_public(survey)
 
     async def create_survey(self, *, user: User, body: SurveyCreate) -> SurveyPublic:
+        require_org_editor(user)
         _require_org(user)
         assert user.organization_id is not None
         plan_id = body.plan_id
@@ -375,6 +376,7 @@ class SurveyService:
 
         Returns (payload, created_new).
         """
+        require_org_editor(user)
         _require_org(user)
         assert user.organization_id is not None
         plan = await self._get_owned_plan(user, body.plan_id)
@@ -497,6 +499,7 @@ class SurveyService:
         return await self.get_survey(user=user, survey_id=survey_id)
 
     async def delete_survey(self, *, user: User, survey_id: UUID) -> None:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         if survey.status in _QUESTIONS_LOCKED_STATUSES:
             raise BadRequestError(
@@ -510,6 +513,7 @@ class SurveyService:
         self, *, user: User, survey_id: UUID
     ) -> SurveyGenerateResponse:
         """Hard-replace all sections/questions from the linked approved plan (BLD-01)."""
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         if survey.plan_id is None:
@@ -600,6 +604,7 @@ class SurveyService:
         self, *, user: User, survey_id: UUID, section_id: UUID
     ) -> SurveyGenerateResponse:
         """Hard-replace questions in one section; leave others untouched (BLD-02)."""
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         if survey.plan_id is None:
@@ -679,6 +684,7 @@ class SurveyService:
     async def add_section(
         self, *, user: User, survey_id: UUID, body: SectionCreate
     ) -> SectionPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         order = body.order_index
@@ -706,6 +712,7 @@ class SurveyService:
         section_id: UUID,
         body: SectionUpdate,
     ) -> SectionPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
@@ -731,6 +738,7 @@ class SurveyService:
     async def delete_section(
         self, *, user: User, survey_id: UUID, section_id: UUID
     ) -> None:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
@@ -745,6 +753,7 @@ class SurveyService:
     async def reorder_sections(
         self, *, user: User, survey_id: UUID, body: SectionReorder
     ) -> SurveyPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         by_id = {s.id: s for s in (survey.sections or [])}
@@ -758,6 +767,7 @@ class SurveyService:
     async def add_question(
         self, *, user: User, survey_id: UUID, body: QuestionCreate
     ) -> QuestionPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(
@@ -797,6 +807,7 @@ class SurveyService:
         question_id: UUID,
         body: QuestionUpdate,
     ) -> QuestionPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         question = await self.questions.get_for_survey(
@@ -843,6 +854,7 @@ class SurveyService:
     async def delete_question(
         self, *, user: User, survey_id: UUID, question_id: UUID
     ) -> None:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         question = await self.questions.get_for_survey(
@@ -857,6 +869,7 @@ class SurveyService:
     async def reorder_questions(
         self, *, user: User, survey_id: UUID, body: QuestionReorder
     ) -> SurveyPublic:
+        require_org_editor(user)
         survey = await self._get_owned(user, survey_id)
         _assert_questions_editable(survey)
         section = await self.sections.get_for_survey(

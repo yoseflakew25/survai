@@ -98,6 +98,10 @@ export const DEFAULT_TIMEOUT_MS = 90_000;
 
 const REFRESH_STORAGE_KEY = 'survai:refresh_v1';
 
+/** Production refresh must stay in httpOnly cookies — never sessionStorage. */
+const persistRefreshInSessionStorage =
+  process.env.NODE_ENV !== 'production';
+
 /**
  * In-memory access JWT for Authorization: Bearer.
  * Cookies alone are unreliable cross-origin (localhost:3000 → :8000); AuthProvider
@@ -123,6 +127,10 @@ export function setApiRefreshToken(token: string | null) {
   memoryRefreshToken = token;
   try {
     if (typeof sessionStorage === 'undefined') return;
+    if (!persistRefreshInSessionStorage) {
+      sessionStorage.removeItem(REFRESH_STORAGE_KEY);
+      return;
+    }
     if (token) sessionStorage.setItem(REFRESH_STORAGE_KEY, token);
     else sessionStorage.removeItem(REFRESH_STORAGE_KEY);
   } catch {
@@ -132,6 +140,7 @@ export function setApiRefreshToken(token: string | null) {
 
 export function getApiRefreshToken() {
   if (memoryRefreshToken) return memoryRefreshToken;
+  if (!persistRefreshInSessionStorage) return null;
   try {
     if (typeof sessionStorage === 'undefined') return null;
     memoryRefreshToken = sessionStorage.getItem(REFRESH_STORAGE_KEY);

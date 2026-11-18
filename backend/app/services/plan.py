@@ -112,6 +112,7 @@ class PlanService:
         return await self._to_public_with_lock(user=user, plan=plan)
 
     async def create_plan(self, *, user: User, body: PlanCreate) -> PlanPublic:
+        require_org_editor(user)
         _require_org(user)
         plan = SurveyPlan(
             created_by=user.id,
@@ -132,6 +133,7 @@ class PlanService:
     async def update_plan(
         self, *, user: User, plan_id, body: PlanUpdate
     ) -> PlanPublic:
+        require_org_editor(user)
         plan = await self._get_owned(user, plan_id)
         await self._ensure_unlocked(user=user, plan=plan)
         data = body.model_dump(exclude_unset=True)
@@ -156,6 +158,7 @@ class PlanService:
         return await self._to_public_with_lock(user=user, plan=plan)
 
     async def approve_plan(self, *, user: User, plan_id) -> PlanPublic:
+        require_org_editor(user)
         plan = await self._get_owned(user, plan_id)
         await self._ensure_unlocked(user=user, plan=plan)
         if not (plan.objectives and plan.research_questions and plan.proposed_sections):
@@ -176,6 +179,7 @@ class PlanService:
         content_language: str | None = None,
     ) -> SurveyPlanGenerateResponse:
         """Hard-replace AI fields on the plan — never merge with prior content."""
+        require_org_editor(user)
         plan = await self._get_owned(user, plan_id)
         await self._ensure_unlocked(user=user, plan=plan)
         from app.core.feature_flags import assert_org_flag
@@ -244,6 +248,7 @@ class PlanService:
         self, *, user: User, body: PlanCreate
     ) -> SurveyPlanGenerateResponse:
         """Create a draft plan then immediately run the planner (New Survey flow)."""
+        require_org_editor(user)
         created = await self.create_plan(user=user, body=body)
         return await self.generate(user=user, plan_id=created.id)
 

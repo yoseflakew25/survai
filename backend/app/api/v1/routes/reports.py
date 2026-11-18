@@ -67,6 +67,7 @@ async def create_report(
             str(survey_id),
             body.audience,
             body.title,
+            owner_user_id=current_user.id,
         )
         if job_id:
             response.status_code = status.HTTP_202_ACCEPTED
@@ -161,6 +162,7 @@ async def export_report(
             str(current_user.id),
             str(report_id),
             body.type,
+            owner_user_id=current_user.id,
         )
         if job_id:
             response.status_code = status.HTTP_202_ACCEPTED

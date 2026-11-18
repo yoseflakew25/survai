@@ -279,6 +279,7 @@ class ReportService:
     async def update_report(
         self, *, user: User, report_id: UUID, body: ReportUpdateRequest
     ) -> ReportPublic:
+        require_org_editor(user)
         org_id = _require_org(user)
         report = await self.reports.get_for_org(
             report_id=report_id, organization_id=org_id
@@ -317,6 +318,7 @@ class ReportService:
         self, *, user: User, report_id: UUID, section_id: str
     ) -> ReportPublic:
         """Re-run full report generation but keep same metrics_snapshot (§9)."""
+        require_org_editor(user)
         org_id = _require_org(user)
         report = await self.reports.get_for_org(
             report_id=report_id, organization_id=org_id
@@ -379,6 +381,7 @@ class ReportService:
     async def chat(
         self, *, user: User, report_id: UUID, body: ReportChatRequest
     ) -> ReportChatResponse:
+        require_org_editor(user)
         org_id = _require_org(user)
         report = await self.reports.get_for_org(
             report_id=report_id, organization_id=org_id
@@ -643,6 +646,7 @@ class ReportService:
     async def export_analytics_csv(
         self, *, user: User, survey_id: UUID
     ) -> ExportPublic:
+        require_org_editor(user)
         survey = await self._owned_survey(user, survey_id)
         if survey.current_version_id is None:
             raise BadRequestError("Publish the survey before exporting analytics.")
@@ -711,6 +715,7 @@ class ReportService:
     async def create_saved_analysis(
         self, *, user: User, survey_id: UUID, body: SavedAnalysisCreate
     ) -> SavedAnalysisPublic:
+        require_org_editor(user)
         survey = await self._owned_survey(user, survey_id)
         row = SavedAnalysis(
             survey_id=survey.id,
@@ -736,6 +741,7 @@ class ReportService:
     async def delete_saved_analysis(
         self, *, user: User, survey_id: UUID, analysis_id: UUID
     ) -> None:
+        require_org_editor(user)
         survey = await self._owned_survey(user, survey_id)
         row = await self.saved.get_by_id(analysis_id)
         if row is None or row.survey_id != survey.id:

@@ -20,6 +20,7 @@ from app.ai.prompts.assistant_v1 import (
 )
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.i18n import content_language_instruction, normalize_locale
+from app.core.rbac import require_org_editor
 from app.models.assistant import (
     AssistantMessage,
     AssistantMessageRole,
@@ -363,6 +364,7 @@ class AssistantService:
         )
 
     async def reindex_org(self, *, user: User) -> KnowledgeReindexResponse:
+        require_org_editor(user)
         org_id = _require_org(user)
         stats = await self.knowledge.reindex_organization(organization_id=org_id)
         return KnowledgeReindexResponse(**stats)
