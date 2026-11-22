@@ -1,7 +1,5 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Icons } from '@/components/icons';
 import type { PublicQuestion, AnswerValue } from '../api/types';
@@ -25,29 +23,25 @@ export function PublicQuestionInput({
 }: PublicQuestionInputProps) {
   const tCommon = useTranslations('common');
   return (
-    <div id={`collection-q-${question.id}`} className='scroll-mt-24 space-y-3'>
-      <div className='flex items-start gap-3'>
-        <span className='text-muted-foreground w-5 shrink-0 pt-0.5 text-right text-sm font-semibold tabular-nums'>
-          {questionNumber}.
-        </span>
+    <div id={`collection-q-${question.id}`} className='collect-q'>
+      <div className='collect-q-head'>
+        <span className='collect-q-num'>{questionNumber}.</span>
         <div className='min-w-0 flex-1'>
-          <p className='text-foreground text-[15px] leading-snug font-medium'>
+          <p className='collect-q-prompt'>
             {question.promptText}
             {question.isRequired ? (
-              <span className='text-destructive ml-0.5'>*</span>
+              <span className='collect-q-req'>*</span>
             ) : (
-              <span className='text-muted-foreground ml-1.5 text-xs font-normal'>
-                ({tCommon('optional')})
-              </span>
+              <span className='collect-q-opt'>({tCommon('optional')})</span>
             )}
           </p>
-          {question.helpText && (
-            <p className='text-muted-foreground  text-xs'>{question.helpText}</p>
-          )}
+          {question.helpText ? (
+            <p className='collect-q-help'>{question.helpText}</p>
+          ) : null}
         </div>
       </div>
 
-      <div className='pl-8'>
+      <div className='collect-q-body'>
         {question.type === 'short_text' && (
           <ShortTextInput
             value={(value as string) ?? ''}
@@ -119,18 +113,16 @@ export function PublicQuestionInput({
           />
         )}
 
-        {error && (
-          <p className='text-destructive .5 flex items-center gap-1.5 text-xs font-medium'>
-            <Icons.alertCircle className='size-3.5 shrink-0' />
+        {error ? (
+          <p className='collect-q-error'>
+            <Icons.alertCircle />
             {error}
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );
 }
-
-// ---- Individual renderers ----
 
 function ShortTextInput({
   value,
@@ -143,12 +135,12 @@ function ShortTextInput({
 }) {
   const t = useTranslations('publicCollect');
   return (
-    <Input
+    <input
+      className='collect-input'
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={t('typeAnswer')}
       aria-invalid={!!error}
-      className={cn('h-11 border-border/80 bg-background text-sm shadow-none', error && 'border-destructive')}
     />
   );
 }
@@ -166,33 +158,28 @@ function LongTextInput({
 }) {
   const t = useTranslations('publicCollect');
   return (
-    <div className='space-y-1.5'>
-      <Textarea
+    <div>
+      <textarea
+        className='collect-textarea'
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t('typeAnswer')}
         rows={5}
         maxLength={maxLength}
-        className={cn(
-          'resize-none border-border/80 bg-background text-sm leading-relaxed shadow-none',
-          error && 'border-destructive'
-        )}
         aria-invalid={!!error}
       />
-      <div className='flex items-center justify-between'>
-        <p className='text-muted-foreground text-[11px]'>
-          {maxLength ? t('longTextDetailed') : t('shareThoughts')}
-        </p>
-        {maxLength && (
+      <div className='collect-textarea-meta'>
+        <p>{maxLength ? t('longTextDetailed') : t('shareThoughts')}</p>
+        {maxLength ? (
           <p
             className={cn(
-              'text-muted-foreground text-[10px] tabular-nums',
-              value.length >= (maxLength ?? 0) && 'text-destructive font-medium'
+              'collect-textarea-count',
+              value.length >= maxLength && 'is-max'
             )}
           >
             {value.length}/{maxLength}
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -223,8 +210,8 @@ function RatingScaleInput({
   const showMidpoint = count === 5;
 
   return (
-    <div className='space-y-2' role='radiogroup' aria-invalid={!!error}>
-      <div className='flex items-center gap-1.5 sm:gap-2'>
+    <div role='radiogroup' aria-invalid={!!error}>
+      <div className='collect-rating-row'>
         {Array.from({ length: count }, (_, i) => {
           const n = min + i;
           const isSelected = value === n;
@@ -233,14 +220,8 @@ function RatingScaleInput({
             <button
               key={n}
               type='button'
+              className='collect-rating'
               onClick={() => onChange(n)}
-              className={cn(
-                'flex h-12 flex-1 items-center justify-center rounded-lg border text-base font-semibold transition-all',
-                'hover:border-primary/50 hover:bg-primary/5',
-                isSelected
-                  ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                  : 'border-border/80 bg-background text-foreground'
-              )}
               role='radio'
               aria-checked={isSelected}
               aria-label={`${n} — ${label ?? ''}`}
@@ -251,11 +232,11 @@ function RatingScaleInput({
           );
         })}
       </div>
-      <div className='flex items-start justify-between px-1 text-[10px] text-muted-foreground'>
+      <div className='collect-rating-labels'>
         <span>{ratingLabels[min] ?? `${min}`}</span>
-        {showMidpoint && ratingLabels[3] && (
+        {showMidpoint && ratingLabels[3] ? (
           <span className='hidden sm:inline'>{ratingLabels[3]}</span>
-        )}
+        ) : null}
         <span>{ratingLabels[max] ?? `${max}`}</span>
       </div>
     </div>
@@ -274,32 +255,19 @@ function SingleChoiceInput({
   error?: string;
 }) {
   return (
-    <div className='space-y-2' role='radiogroup' aria-invalid={!!error}>
+    <div className='collect-choice-list' role='radiogroup' aria-invalid={!!error}>
       {options.map((opt) => {
         const isSelected = value === opt.value;
         return (
           <button
             key={opt.id}
             type='button'
+            className='collect-choice'
             onClick={() => onChange(opt.value)}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-lg border bg-background px-3.5 py-3 text-left text-sm transition-colors',
-              'hover:border-primary/40 hover:bg-primary/5',
-              isSelected
-                ? 'border-primary bg-primary/5 font-medium'
-                : 'border-border/80'
-            )}
             role='radio'
             aria-checked={isSelected}
           >
-            <span
-              className={cn(
-                'flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                isSelected ? 'border-primary' : 'border-muted-foreground/40'
-              )}
-            >
-              {isSelected && <span className='size-2 rounded-full bg-primary' />}
-            </span>
+            <span className='collect-choice-mark' aria-hidden='true' />
             <span className='min-w-0'>{opt.label}</span>
           </button>
         );
@@ -326,33 +294,20 @@ function MultipleChoiceInput({
   };
 
   return (
-    <div className='space-y-2' role='group'>
+    <div className='collect-choice-list' role='group'>
       {options.map((opt) => {
         const isChecked = value.includes(opt.value);
         return (
           <button
             key={opt.id}
             type='button'
+            className='collect-choice'
             onClick={() => toggle(opt.value)}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-lg border bg-background px-3.5 py-3 text-left text-sm transition-colors',
-              'hover:border-primary/40 hover:bg-primary/5',
-              isChecked
-                ? 'border-primary bg-primary/5 font-medium'
-                : 'border-border/80'
-            )}
             role='checkbox'
             aria-checked={isChecked}
           >
-            <span
-              className={cn(
-                'flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors',
-                isChecked
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-muted-foreground/40'
-              )}
-            >
-              {isChecked && <Icons.check className='size-3' />}
+            <span className='collect-choice-mark' aria-hidden='true'>
+              {isChecked ? <Icons.check /> : null}
             </span>
             <span className='min-w-0'>{opt.label}</span>
           </button>
@@ -375,17 +330,12 @@ function DropdownInput({
 }) {
   const t = useTranslations('publicCollect');
   return (
-    <div className='relative'>
+    <div className='collect-select-wrap'>
       <select
+        className={cn('collect-select', !value && 'is-empty')}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={!!error}
-        className={cn(
-          'h-11 w-full cursor-pointer appearance-none rounded-lg border border-border/80 bg-background pr-9 pl-3 text-sm shadow-none',
-          'focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none',
-          !value && 'text-muted-foreground',
-          error && 'border-destructive'
-        )}
       >
         <option value='' disabled>
           {t('selectOption')}
@@ -396,7 +346,7 @@ function DropdownInput({
           </option>
         ))}
       </select>
-      <Icons.chevronsUpDown className='text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2' />
+      <Icons.chevronsUpDown />
     </div>
   );
 }
@@ -416,7 +366,8 @@ function NumberInput({
 }) {
   const t = useTranslations('publicCollect');
   return (
-    <Input
+    <input
+      className='collect-input collect-input-narrow'
       type='number'
       inputMode='numeric'
       value={value ?? ''}
@@ -428,7 +379,6 @@ function NumberInput({
       max={max}
       placeholder={t('enterNumber')}
       aria-invalid={!!error}
-      className={cn('h-11 w-full max-w-[240px] border-border/80 bg-background text-sm shadow-none', error && 'border-destructive')}
     />
   );
 }
@@ -443,12 +393,12 @@ function DateInput({
   error?: string;
 }) {
   return (
-    <Input
+    <input
+      className='collect-input collect-input-narrow'
       type='date'
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-invalid={!!error}
-      className={cn('h-11 w-full max-w-[260px] border-border/80 bg-background text-sm shadow-none', error && 'border-destructive')}
     />
   );
 }

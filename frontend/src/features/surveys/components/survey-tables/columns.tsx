@@ -27,16 +27,6 @@ const STATUS_CLASS: Record<SurveyStatus, string> = {
   archived: 'border-border bg-muted/60 text-muted-foreground'
 };
 
-function surveyInitials(title: string) {
-  return title
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 export function useSurveyColumns(): ColumnDef<SurveyListItem>[] {
   const t = useTranslations('surveys');
   const tCommon = useTranslations('common');
@@ -93,13 +83,7 @@ export function useSurveyColumns(): ColumnDef<SurveyListItem>[] {
         cell: ({ row }) => {
           const survey = row.original;
           return (
-            <div className='flex min-w-0 items-center gap-3'>
-              <div
-                className='bg-brand-soft text-foreground flex size-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold tracking-wide shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
-                aria-hidden
-              >
-                {surveyInitials(survey.title)}
-              </div>
+            <div className='flex min-w-0 items-center'>
               <div className='min-w-0 max-w-[18rem] sm:max-w-[22rem] lg:max-w-[28rem]'>
                 <div className='flex min-w-0 items-center gap-2'>
                   <p className='truncate text-sm font-semibold tracking-tight text-foreground group-hover/row:underline group-hover/row:decoration-foreground/25 group-hover/row:underline-offset-2'>
@@ -108,7 +92,7 @@ export function useSurveyColumns(): ColumnDef<SurveyListItem>[] {
                   {survey.waveLabel ? (
                     <Badge
                       variant='secondary'
-                      className='shrink-0 capitalize text-[10px]'
+                      className='shrink-0 capitalize text-xs'
                     >
                       {survey.waveLabel}
                     </Badge>

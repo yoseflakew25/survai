@@ -238,7 +238,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
             subtitle={t('responseSummarySubtitle')}
             badge={
               summary.surveyVersionId ? (
-                <Badge className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] font-mono text-[10px] text-brand-foreground'>
+                <Badge className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] font-mono text-xs text-brand-foreground'>
                   {t('versionChip', {
                     id: summary.surveyVersionId.slice(0, 8)
                   })}
@@ -296,7 +296,7 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                 {crosstabAxes.length >= 2 ? (
                   <>
                     <select
-                      className='border-input bg-background h-7 max-w-[9rem] rounded-md border px-1.5 text-[10px]'
+                      className='border-input bg-background h-7 max-w-[9rem] rounded-md border px-1.5 text-xs'
                       value={questionAId}
                       onChange={(e) => {
                         setActiveAnalysisId(null);
@@ -310,9 +310,9 @@ function AnalyticsContent({ surveyId }: { surveyId: string }) {
                         </option>
                       ))}
                     </select>
-                    <span className='text-muted-foreground text-[10px]'>×</span>
+                    <span className='text-muted-foreground text-xs'>×</span>
                     <select
-                      className='border-input bg-background h-7 max-w-[9rem] rounded-md border px-1.5 text-[10px]'
+                      className='border-input bg-background h-7 max-w-[9rem] rounded-md border px-1.5 text-xs'
                       value={questionBId}
                       onChange={(e) => {
                         setActiveAnalysisId(null);

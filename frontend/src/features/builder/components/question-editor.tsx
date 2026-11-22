@@ -348,7 +348,7 @@ export function QuestionEditor({
                       key={op}
                       type='button'
                       className={cn(
-                        'rounded-md px-2 py-1 text-[10px] font-semibold transition-colors',
+                        'rounded-md px-2 py-1 text-xs font-semibold transition-colors',
                         logicOperator === op
                           ? 'bg-brand-soft text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
@@ -373,7 +373,7 @@ export function QuestionEditor({
                       className='space-y-2 rounded-lg border border-border/80 bg-muted/20 p-2.5'
                     >
                       <div className='flex items-center justify-between gap-2'>
-                        <p className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'>
+                        <p className='text-muted-foreground text-xs font-semibold tracking-wide uppercase'>
                           {index > 0
                             ? t('ruleWithOp', {
                                 index: index + 1,
@@ -387,7 +387,7 @@ export function QuestionEditor({
                             type='button'
                             variant='ghost'
                             size='sm'
-                            className='text-destructive h-6 px-1.5 text-[10px]'
+                            className='text-destructive h-6 px-1.5 text-xs'
                             onClick={() =>
                               setDraftRules((prev) =>
                                 prev.filter((_, i) => i !== index)

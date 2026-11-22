@@ -52,43 +52,42 @@ export function CollectionQr({ url, className }: CollectionQrProps) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-5 sm:flex-row sm:items-center',
+        'grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4',
         className
       )}
     >
-      <div className='mx-auto shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-2.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] sm:mx-0'>
-        <div className='overflow-hidden rounded-xl bg-white p-2'>
-          <Image
-            src={previewSrc}
-            alt={t('qrImageAlt')}
-            width={140}
-            height={140}
-            unoptimized
-            className='size-[140px]'
-          />
-        </div>
+      <div className='shrink-0 rounded-none border border-foreground/15 bg-background p-1.5'>
+        <Image
+          src={previewSrc}
+          alt={t('qrImageAlt')}
+          width={112}
+          height={112}
+          unoptimized
+          className='size-28'
+        />
       </div>
 
-      <div className='min-w-0 flex-1 space-y-3 text-center sm:text-left'>
-        <div className='space-y-1'>
+      <div className='min-w-0 space-y-2 pt-0.5'>
+        <div>
           <p className='text-sm font-semibold tracking-tight text-foreground'>
             {t('scanToOpen')}
           </p>
-          <p className='text-muted-foreground text-xs leading-relaxed'>
+          <p className='text-muted-foreground mt-0.5 text-xs leading-snug'>
             {t('scanHint')}
           </p>
         </div>
         <Button
           type='button'
           variant='outline'
+          size='sm'
           onClick={() => void handleDownload()}
           disabled={isDownloading}
-          className='h-10 rounded-xl border-border'
+          className='h-9 rounded-none'
         >
           {isDownloading ? (
-            <Icons.spinner className='mr-2 size-4 animate-spin' />
+            <Icons.spinner className='mr-1.5 size-3.5 animate-spin' />
           ) : (
-            <Icons.upload className='mr-2 size-4' />
+            <Icons.upload className='mr-1.5 size-3.5' />
           )}
           {t('downloadQr')}
         </Button>

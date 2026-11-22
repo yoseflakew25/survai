@@ -39,10 +39,7 @@ export function ContentLanguagePicker({
         <span className='sr-only'>{t('contentLanguage')}</span>
       ) : (
         <p
-          className={cn(
-            'text-[10px] font-semibold tracking-wide uppercase',
-            onBrand ? 'text-brand-foreground/70' : 'text-muted-foreground'
-          )}
+          className='text-muted-foreground text-xs font-semibold tracking-wide uppercase'
         >
           {t('contentLanguage')}
         </p>
@@ -52,10 +49,10 @@ export function ContentLanguagePicker({
         role='group'
         aria-label={t('contentLanguage')}
         className={cn(
-          'flex gap-1 rounded-xl p-1',
+          'flex gap-0.5 rounded-none p-0.5',
           onBrand
-            ? 'border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)]'
-            : 'bg-muted/40'
+            ? 'border border-foreground/15 bg-card/70'
+            : 'border border-border bg-muted/40'
         )}
       >
         {(['en', 'am'] as const).map((code) => {
@@ -68,14 +65,14 @@ export function ContentLanguagePicker({
               aria-pressed={selected}
               onClick={() => onChange(code)}
               className={cn(
-                'rounded-lg px-2.5 text-xs font-semibold transition-colors',
+                'rounded-none px-2.5 font-mono text-xs font-semibold uppercase tracking-[0.04em] transition-colors',
                 compact ? 'h-8 min-w-[4.5rem] flex-none' : 'flex-1 py-1.5',
                 selected
                   ? onBrand
-                    ? 'bg-brand-foreground text-brand shadow-sm'
-                    : 'bg-card text-foreground shadow-sm'
+                    ? 'bg-primary text-primary-foreground shadow-none'
+                    : 'bg-primary text-primary-foreground shadow-none'
                   : onBrand
-                    ? 'text-brand-foreground/70 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] hover:text-brand-foreground'
+                    ? 'text-foreground/70 hover:bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] hover:text-foreground'
                     : 'text-muted-foreground hover:text-foreground',
                 disabled && 'cursor-not-allowed opacity-50'
               )}
@@ -90,7 +87,7 @@ export function ContentLanguagePicker({
         <p
           className={cn(
             'text-[11px] leading-snug',
-            onBrand ? 'text-brand-foreground/65' : 'text-muted-foreground'
+            'text-muted-foreground'
           )}
         >
           {hint}

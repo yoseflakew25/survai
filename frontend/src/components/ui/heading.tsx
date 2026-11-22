@@ -11,7 +11,7 @@ export function Heading({ title, description, infoContent }: HeadingProps) {
   return (
     <div>
       <div className='flex items-center gap-2'>
-        <h2 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+        <h2 className='font-display text-3xl font-bold tracking-[-0.035em] text-foreground'>
           {title}
         </h2>
         {infoContent && (
@@ -20,7 +20,7 @@ export function Heading({ title, description, infoContent }: HeadingProps) {
           </div>
         )}
       </div>
-      <p className='text-muted-foreground text-sm'>{description}</p>
+      <p className='text-muted-foreground mt-1 text-base font-medium'>{description}</p>
     </div>
   );
 }

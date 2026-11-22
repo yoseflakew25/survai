@@ -23,9 +23,6 @@ type PasswordValues = {
   confirmPassword: string;
 };
 
-const inputClass =
-  'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
-
 export default function SignUpViewPage() {
   const {
     register: registerUser,
@@ -160,21 +157,17 @@ export default function SignUpViewPage() {
 
   return (
     <AuthShell>
-      <div className='mb-6'>
-        <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
+      <div className='auth-head'>
+        <h1 className='auth-title'>
           {step === 'otp' ? t('verifyEmailTitle') : t('signUpTitle')}
         </h1>
-        <p className='.5 text-[15px] text-muted-foreground'>
+        <p className='auth-subtitle'>
           {step === 'otp' ? t('otpSentTo', { email: pendingEmail }) : t('signUpBody')}
         </p>
       </div>
 
-      <div className='space-y-4'>
-        {serverError ? (
-          <div className='rounded-xl border border-destructive/50 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive'>
-            {serverError}
-          </div>
-        ) : null}
+      <div className='auth-stack'>
+        {serverError ? <div className='auth-alert'>{serverError}</div> : null}
 
         {step === 'form' ? (
           <>
@@ -193,19 +186,16 @@ export default function SignUpViewPage() {
         ) : null}
 
         {step === 'otp' ? (
-          <div className='space-y-4'>
+          <div className='auth-stack'>
             {devCode ? (
-              <div className='rounded-xl border border-[color-mix(in_srgb,var(--gold)_50%,var(--border))] bg-[color-mix(in_srgb,var(--gold)_12%,var(--card))] px-3.5 py-2.5 text-sm'>
-                <p className='font-medium text-foreground'>{t('emailNotConfigured')}</p>
-                <p className='text-muted-foreground '>
-                  {t('devCodeLabel')}{' '}
-                  <span className='font-mono text-base font-semibold tracking-widest text-foreground'>
-                    {devCode}
-                  </span>
+              <div className='auth-notice'>
+                <p>{t('emailNotConfigured')}</p>
+                <p>
+                  {t('devCodeLabel')} <span className='auth-mono'>{devCode}</span>
                 </p>
               </div>
             ) : null}
-            <div className='flex justify-center'>
+            <div className='auth-otp'>
               <InputOTP
                 maxLength={6}
                 value={otp}
@@ -214,12 +204,12 @@ export default function SignUpViewPage() {
                 autoFocus
               >
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} className='size-11 text-base' />
-                  <InputOTPSlot index={1} className='size-11 text-base' />
-                  <InputOTPSlot index={2} className='size-11 text-base' />
-                  <InputOTPSlot index={3} className='size-11 text-base' />
-                  <InputOTPSlot index={4} className='size-11 text-base' />
-                  <InputOTPSlot index={5} className='size-11 text-base' />
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -227,7 +217,7 @@ export default function SignUpViewPage() {
             <button
               type='button'
               disabled={isVerifying || otp.length !== 6}
-              className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
+              className='auth-btn'
               onClick={() => void onVerifyOtp()}
             >
               {isVerifying ? t('verifying') : t('verifyAndContinue')}
@@ -236,7 +226,7 @@ export default function SignUpViewPage() {
             <button
               type='button'
               disabled={isResending}
-              className='flex w-full items-center justify-center gap-1.5 text-center text-[13px] text-muted-foreground hover:text-foreground disabled:opacity-70'
+              className='auth-btn-ghost'
               onClick={() => void onResend()}
             >
               <IconMail className='size-3.5' />
@@ -245,7 +235,7 @@ export default function SignUpViewPage() {
 
             <button
               type='button'
-              className='w-full text-center text-[13px] text-muted-foreground hover:text-foreground'
+              className='auth-btn-ghost'
               onClick={() => {
                 setServerError(null);
                 setOtp('');
@@ -256,60 +246,74 @@ export default function SignUpViewPage() {
             </button>
           </div>
         ) : (
-          <form className='space-y-2' onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
-            <input
-              placeholder={t('organizationName')}
-              autoComplete='organization'
-              aria-label={t('organizationName')}
-              className={inputClass}
-              {...passwordForm.register('organizationName')}
-            />
-            {passwordForm.formState.errors.organizationName ? (
-              <p className='text-sm text-destructive'>
-                {passwordForm.formState.errors.organizationName.message}
-              </p>
-            ) : null}
-            <input
-              type='email'
-              placeholder={t('emailPlaceholder')}
-              autoComplete='email'
-              aria-label={t('email')}
-              className={inputClass}
-              {...passwordForm.register('email')}
-            />
-            {passwordForm.formState.errors.email ? (
-              <p className='text-sm text-destructive'>
-                {passwordForm.formState.errors.email.message}
-              </p>
-            ) : null}
-            <PasswordInput
-              placeholder={t('password')}
-              autoComplete='new-password'
-              aria-label={t('password')}
-              className={inputClass}
-              {...passwordForm.register('password')}
-            />
-            {passwordForm.formState.errors.password ? (
-              <p className='text-sm text-destructive'>
-                {passwordForm.formState.errors.password.message}
-              </p>
-            ) : null}
-            <PasswordInput
-              placeholder={t('confirmPassword')}
-              autoComplete='new-password'
-              aria-label={t('confirmPassword')}
-              className={inputClass}
-              {...passwordForm.register('confirmPassword')}
-            />
-            {passwordForm.formState.errors.confirmPassword ? (
-              <p className='text-sm text-destructive'>
-                {passwordForm.formState.errors.confirmPassword.message}
-              </p>
-            ) : null}
+          <form className='auth-fields' onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
+            <div className='auth-field'>
+              <label htmlFor='sign-up-org' className='auth-label'>
+                {t('organizationName')}
+              </label>
+              <input
+                id='sign-up-org'
+                placeholder={t('organizationName')}
+                autoComplete='organization'
+                className='auth-input'
+                {...passwordForm.register('organizationName')}
+              />
+              {passwordForm.formState.errors.organizationName ? (
+                <p className='auth-error-text'>
+                  {passwordForm.formState.errors.organizationName.message}
+                </p>
+              ) : null}
+            </div>
+            <div className='auth-field'>
+              <label htmlFor='sign-up-email' className='auth-label'>
+                {t('email')}
+              </label>
+              <input
+                id='sign-up-email'
+                type='email'
+                placeholder={t('emailPlaceholder')}
+                autoComplete='email'
+                className='auth-input'
+                {...passwordForm.register('email')}
+              />
+              {passwordForm.formState.errors.email ? (
+                <p className='auth-error-text'>{passwordForm.formState.errors.email.message}</p>
+              ) : null}
+            </div>
+            <div className='auth-field'>
+              <label htmlFor='sign-up-password' className='auth-label'>
+                {t('password')}
+              </label>
+              <PasswordInput
+                id='sign-up-password'
+                placeholder={t('password')}
+                autoComplete='new-password'
+                {...passwordForm.register('password')}
+              />
+              {passwordForm.formState.errors.password ? (
+                <p className='auth-error-text'>{passwordForm.formState.errors.password.message}</p>
+              ) : null}
+            </div>
+            <div className='auth-field'>
+              <label htmlFor='sign-up-confirm' className='auth-label'>
+                {t('confirmPassword')}
+              </label>
+              <PasswordInput
+                id='sign-up-confirm'
+                placeholder={t('confirmPassword')}
+                autoComplete='new-password'
+                {...passwordForm.register('confirmPassword')}
+              />
+              {passwordForm.formState.errors.confirmPassword ? (
+                <p className='auth-error-text'>
+                  {passwordForm.formState.errors.confirmPassword.message}
+                </p>
+              ) : null}
+            </div>
             <button
               type='submit'
               disabled={passwordForm.formState.isSubmitting}
-              className='btn-back h-11 w-full text-[15px] disabled:opacity-70'
+              className='auth-btn'
             >
               {passwordForm.formState.isSubmitting ? t('sendingCode') : tCommon('continue')}
             </button>
@@ -317,9 +321,9 @@ export default function SignUpViewPage() {
         )}
 
         {step === 'form' ? (
-          <p className='text-center text-[13px] text-muted-foreground'>
+          <p className='auth-foot-note'>
             {t('alreadyHaveWorkspace')}{' '}
-            <Link href='/auth/sign-in' className='font-semibold text-foreground hover:underline'>
+            <Link href='/auth/sign-in' className='auth-link'>
               {t('signIn')}
             </Link>
           </p>

@@ -26,7 +26,7 @@ export function SurveyActivityCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent),0_24px_48px_-24px_color-mix(in_srgb,var(--foreground)_40%,transparent)]',
+        'relative overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent),0_24px_48px_-24px_color-mix(in_srgb,var(--foreground)_40%,transparent)]',
         className
       )}
       role='status'
@@ -49,7 +49,7 @@ export function SurveyActivityCard({
 
       <div className='relative px-5 pt-6 pb-5 sm:px-6'>
         <div className='flex flex-col items-center text-center'>
-          <p className='mb-4 font-mono text-[10px] font-semibold tracking-[0.16em] text-brand-foreground/70 uppercase'>
+          <p className='mb-4 font-mono text-xs font-semibold tracking-[0.16em] text-brand-foreground/70 uppercase'>
             {eyebrow}
           </p>
 
@@ -63,7 +63,7 @@ export function SurveyActivityCard({
           </p>
         </div>
 
-        <div className='mt-6 rounded-xl border border-foreground/12 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-4 py-3.5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'>
+        <div className='mt-6 rounded-none border border-foreground/12 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-4 py-3.5 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'>
           <SurveyActivityProgress
             active={active}
             stages={script.stages}

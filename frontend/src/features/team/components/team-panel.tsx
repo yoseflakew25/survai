@@ -211,7 +211,7 @@ export function TeamPanel() {
           <p className='text-xs font-semibold tracking-wide text-muted-foreground uppercase'>
             {tTeam('members')}
           </p>
-          <ul className='divide-y divide-border rounded-xl border border-border'>
+          <ul className='divide-y divide-border rounded-none border border-border'>
             {members.map((m) => (
               <li
                 key={m.id}
@@ -267,11 +267,11 @@ export function TeamPanel() {
             </AlertDialogDescription>
 
             <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
-              <AlertDialogCancel disabled={removing} className='rounded-xl'>
+              <AlertDialogCancel disabled={removing} className='rounded-none'>
                 {tCommon('cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
-                className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
+                className='rounded-none bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
                 disabled={removing}
                 onClick={(e) => {
                   e.preventDefault();
@@ -296,7 +296,7 @@ export function TeamPanel() {
             <p className='text-xs font-semibold tracking-wide text-muted-foreground uppercase'>
               {tTeam('pending')}
             </p>
-            <ul className='divide-y divide-border rounded-xl border border-border'>
+            <ul className='divide-y divide-border rounded-none border border-border'>
               {invites.map((i) => (
                 <li
                   key={i.id}
@@ -346,11 +346,11 @@ export function TeamPanel() {
             </AlertDialogDescription>
 
             <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
-              <AlertDialogCancel disabled={revoking} className='rounded-xl'>
+              <AlertDialogCancel disabled={revoking} className='rounded-none'>
                 {tCommon('cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
-                className='rounded-xl bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
+                className='rounded-none bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90'
                 disabled={revoking}
                 onClick={(e) => {
                   e.preventDefault();

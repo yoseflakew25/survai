@@ -51,7 +51,7 @@ export function SavedAnalyses({
           {activeFilters.map((f) => (
             <span
               key={`${f.questionId}-${f.op}-${String(f.value)}`}
-              className='rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px]'
+              className='rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs'
             >
               {f.op} {String(f.value)}
             </span>
@@ -60,7 +60,7 @@ export function SavedAnalyses({
             type='button'
             variant='ghost'
             size='sm'
-            className='h-6 px-2 text-[10px]'
+            className='h-6 px-2 text-xs'
             onClick={onClear}
           >
             {tCommon('clear')}

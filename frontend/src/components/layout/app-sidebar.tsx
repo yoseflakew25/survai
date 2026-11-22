@@ -78,7 +78,7 @@ function NavCollapsibleItem({
           <SidebarMenuButton tooltip={label} isActive={isActive} />
         }
       >
-        {IconComponent ? <IconComponent className='size-4 shrink-0' /> : null}
+        {IconComponent ? <IconComponent className='size-[1.125rem] shrink-0' /> : null}
         <span className='flex-1 group-data-[collapsible=icon]:hidden'>
           {label}
         </span>
@@ -119,7 +119,7 @@ export default function AppSidebar() {
   return (
     <Sidebar collapsible='icon'>
       {/* Logo */}
-      <SidebarHeader className='flex h-16 shrink-0 justify-center border-b border-sidebar-border px-2 md:h-14 group-data-[collapsible=icon]:px-0'>
+      <SidebarHeader className='flex h-[var(--header-height)] shrink-0 justify-center border-b border-sidebar-border px-2 group-data-[collapsible=icon]:px-0'>
         <SidebarMenu className='w-full justify-center'>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -129,11 +129,10 @@ export default function AppSidebar() {
               aria-label='Survai'
             >
               {isCollapsed ? (
-                <SurvaiMark className='mx-auto size-8' />
+                <SurvaiMark className='mx-auto size-9' />
               ) : (
                 <SurvaiLogo
-                  className='w-full justify-start gap-2.5 text-[1.65rem] leading-none tracking-[-0.05em] text-primary md:text-[1.5rem]'
-                  markClassName='h-[1.1em] w-auto'
+                  className='w-full justify-start text-[1.85rem] font-bold leading-none tracking-[-0.06em] text-foreground md:text-[1.75rem]'
                 />
               )}
             </SidebarMenuButton>
@@ -176,7 +175,9 @@ export default function AppSidebar() {
                       tooltip={label}
                       isActive={isNavActive(pathname, item.url)}
                     >
-                      {IconComponent && <IconComponent className='size-4 shrink-0' />}
+                      {IconComponent && (
+                        <IconComponent className='size-[1.125rem] shrink-0' />
+                      )}
                       <span className='flex-1 group-data-[collapsible=icon]:hidden'>{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

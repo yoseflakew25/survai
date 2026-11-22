@@ -5,9 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { SurvaiLoadingInline } from '@/components/hippie-loading-screen';
 import { AuthShell } from '@/features/auth/components/auth-shell';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { acceptInvite } from '@/features/team/api/service';
@@ -26,14 +24,12 @@ function AcceptInviteForm() {
   const [busy, setBusy] = useState(false);
 
   if (!token) {
-    return (
-      <p className='text-sm text-destructive'>{t('missingInviteOpenEmail')}</p>
-    );
+    return <p className='auth-error-text'>{t('missingInviteOpenEmail')}</p>;
   }
 
   return (
     <form
-      className='space-y-4'
+      className='auth-fields'
       onSubmit={(e) => {
         e.preventDefault();
         void (async () => {
@@ -44,27 +40,30 @@ function AcceptInviteForm() {
             toast.success(t('welcomeToTeam'));
             router.replace('/dashboard');
           } catch (err) {
-            toast.error(
-              err instanceof Error ? err.message : t('couldNotAcceptInvite')
-            );
+            toast.error(err instanceof Error ? err.message : t('couldNotAcceptInvite'));
           } finally {
             setBusy(false);
           }
         })();
       }}
     >
-      <div className='space-y-1.5'>
-        <Label htmlFor='full-name'>{t('yourName')}</Label>
-        <Input
+      <div className='auth-field'>
+        <label htmlFor='full-name' className='auth-label'>
+          {t('yourName')}
+        </label>
+        <input
           id='full-name'
+          className='auth-input'
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
           minLength={2}
         />
       </div>
-      <div className='space-y-1.5'>
-        <Label htmlFor='password'>{t('choosePassword')}</Label>
+      <div className='auth-field'>
+        <label htmlFor='password' className='auth-label'>
+          {t('choosePassword')}
+        </label>
         <PasswordInput
           id='password'
           value={password}
@@ -73,12 +72,12 @@ function AcceptInviteForm() {
           minLength={8}
         />
       </div>
-      <Button type='submit' className='w-full' disabled={busy}>
+      <button type='submit' className='auth-btn' disabled={busy}>
         {busy ? t('joining') : t('joinOrganization')}
-      </Button>
-      <p className='text-muted-foreground text-center text-xs'>
+      </button>
+      <p className='auth-foot-note'>
         {tAuth('alreadyHaveAccount')}{' '}
-        <Link href='/auth/sign-in' className='underline'>
+        <Link href='/auth/sign-in' className='auth-link'>
           {tAuth('signIn')}
         </Link>
       </p>
@@ -88,7 +87,7 @@ function AcceptInviteForm() {
 
 function AcceptInviteFallback() {
   const t = useTranslations('common');
-  return <p className='text-sm'>{t('loading')}</p>;
+  return <SurvaiLoadingInline className='auth-status' message={t('loading')} />;
 }
 
 export default function AcceptInvitePage() {
@@ -96,17 +95,13 @@ export default function AcceptInvitePage() {
 
   return (
     <AuthShell>
-      <div className='space-y-6'>
-        <div className='space-y-1'>
-          <h1 className='font-display text-2xl font-extrabold tracking-tight'>
-            {t('acceptInviteHeading')}
-          </h1>
-          <p className='text-muted-foreground text-sm'>{t('acceptInviteBody')}</p>
-        </div>
-        <Suspense fallback={<AcceptInviteFallback />}>
-          <AcceptInviteForm />
-        </Suspense>
+      <div className='auth-head'>
+        <h1 className='auth-title'>{t('acceptInviteHeading')}</h1>
+        <p className='auth-subtitle'>{t('acceptInviteBody')}</p>
       </div>
+      <Suspense fallback={<AcceptInviteFallback />}>
+        <AcceptInviteForm />
+      </Suspense>
     </AuthShell>
   );
 }

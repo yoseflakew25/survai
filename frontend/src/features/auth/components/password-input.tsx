@@ -24,12 +24,12 @@ export function PasswordInput({
   const [visible, setVisible] = useState(false);
 
   return (
-    <div className='relative'>
+    <div className='auth-password'>
       <input
         {...props}
         disabled={disabled}
         type={visible ? 'text' : 'password'}
-        className={cn('pr-11', className)}
+        className={cn('auth-input', className)}
       />
       <button
         type='button'
@@ -38,7 +38,7 @@ export function PasswordInput({
         aria-label={visible ? hideLabel : showLabel}
         aria-pressed={visible}
         onClick={() => setVisible((v) => !v)}
-        className='text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-50'
+        className='auth-password-toggle'
       >
         {visible ? (
           <Icons.eyeOff className='size-4 shrink-0' strokeWidth={1.75} />

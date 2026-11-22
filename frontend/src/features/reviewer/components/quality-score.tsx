@@ -28,8 +28,8 @@ function getScoreTone(score: number): {
   if (score >= 4.0) {
     return {
       tier: score >= 4.5 ? 'excellent' : 'good',
-      text: 'text-brand-strong',
-      chip: 'border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-foreground',
+      text: 'text-[var(--survai-mint-strong,#0f9f5c)]',
+      chip: 'border-foreground/20 bg-brand-soft text-foreground',
       bar: 'bg-brand'
     };
   }
@@ -62,14 +62,13 @@ export function QualityScore({
   return (
     <SurvaiPanel>
       <SurvaiPanelHeader
-        // icon={<Icons.analytics className='size-3.5' />}
         title={t('qualityAssessment')}
         subtitle={t('qualitySubtitle')}
         badge={
           <Badge
             variant='secondary'
             className={cn(
-              'rounded-full border text-[10px] font-semibold',
+              'rounded-none border font-mono text-[11px] font-semibold tracking-[0.05em] uppercase',
               tone.chip
             )}
           >
@@ -83,7 +82,7 @@ export function QualityScore({
           <div>
             <p
               className={cn(
-                'font-display text-4xl font-extrabold tracking-tight tabular-nums',
+                'text-4xl font-bold tracking-[-0.04em] tabular-nums',
                 tone.text
               )}
             >
@@ -92,34 +91,38 @@ export function QualityScore({
                 / 5
               </span>
             </p>
-            <p className='text-muted-foreground  text-xs leading-relaxed'>
+            <p className='text-muted-foreground text-xs leading-relaxed'>
               {t('overallAdvisory')}
             </p>
           </div>
           <div className='flex gap-2'>
-            <div className='rounded-xl border border-border bg-secondary/70 px-2.5 py-2 text-right'>
-              <p className='font-display text-sm font-bold tracking-tight tabular-nums'>
+            <div className='border border-border bg-secondary/70 px-2.5 py-2 text-right'>
+              <p className='font-mono text-sm font-bold tracking-tight tabular-nums'>
                 {t('minutesShort', { count: estimatedMinutes })}
               </p>
-              <p className='text-muted-foreground text-[10px]'>{t('estTime')}</p>
+              <p className='text-muted-foreground font-mono text-[10px] uppercase tracking-[0.04em]'>
+                {t('estTime')}
+              </p>
             </div>
-            <div className='rounded-xl border border-border bg-secondary/70 px-2.5 py-2 text-right'>
-              <p className='font-display text-sm font-bold tracking-tight tabular-nums'>
+            <div className='border border-border bg-secondary/70 px-2.5 py-2 text-right'>
+              <p className='font-mono text-sm font-bold tracking-tight tabular-nums'>
                 {requiredQuestionCount}
               </p>
-              <p className='text-muted-foreground text-[10px]'>{tCommon('required')}</p>
+              <p className='text-muted-foreground font-mono text-[10px] uppercase tracking-[0.04em]'>
+                {tCommon('required')}
+              </p>
             </div>
           </div>
         </div>
 
         <Badge
           variant='secondary'
-          className='rounded-full border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft text-[10px] font-medium text-foreground'
+          className='rounded-none border border-foreground/15 bg-brand-soft font-mono text-[11px] font-medium tracking-[0.04em] text-foreground uppercase'
         >
           {t('advisoryBadge')}
         </Badge>
 
-        <div className='overflow-hidden rounded-xl border border-border'>
+        <div className='overflow-hidden border border-border'>
           {criteria.map((criterion, i) => {
             const cTone = getScoreTone(criterion.score);
             return (
@@ -137,17 +140,17 @@ export function QualityScore({
                   </span>
                   <span
                     className={cn(
-                      'font-display text-sm font-extrabold tabular-nums',
+                      'font-mono text-sm font-bold tabular-nums',
                       cTone.text
                     )}
                   >
                     {criterion.score.toFixed(1)}
                   </span>
                 </div>
-                <div className='bg-secondary h-1.5 w-full overflow-hidden rounded-full'>
+                <div className='bg-secondary h-1.5 w-full overflow-hidden'>
                   <div
                     className={cn(
-                      'h-full rounded-full transition-[width] duration-700 ease-out',
+                      'h-full transition-[width] duration-700 ease-out',
                       cTone.bar
                     )}
                     style={{ width: `${(criterion.score / 5) * 100}%` }}

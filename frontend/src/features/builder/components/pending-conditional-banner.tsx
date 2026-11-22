@@ -38,7 +38,7 @@ export function PendingConditionalBanner({
           <p className='text-muted-foreground  text-[11px] leading-relaxed'>
             {t('pendingLogicHint')}
           </p>
-          <p className=' font-mono text-[10px] break-all text-foreground/80'>
+          <p className=' font-mono text-xs break-all text-foreground/80'>
             {t('showWhen', { summary: summary || '—' })}
           </p>
         </div>

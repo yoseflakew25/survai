@@ -1,0 +1,219 @@
+/* Survai loading — quiet paper field. No card, grid, stage theater, or mint blob. */
+
+.sv-load {
+  --ink: #232323;
+  --paper: #ffffff;
+  --mint: #a1ffcb;
+  --mint-strong: #0f9f5c;
+  --muted: color-mix(in srgb, var(--ink) 55%, transparent);
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
+  --sans: var(--font-sans);
+  --ease: cubic-bezier(0.19, 1, 0.22, 1);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  font-weight: 450;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.sv-load--compact {
+  min-height: 100%;
+}
+
+.sv-load *,
+.sv-load *::before,
+.sv-load *::after {
+  box-sizing: border-box;
+}
+
+.sv-load-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 85% 75% at 50% 48%,
+    #fff 0%,
+    color-mix(in srgb, var(--ink) 4%, #fff) 100%
+  );
+}
+
+.sv-load-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 48px 24px;
+}
+
+.sv-load-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: min(100%, 280px);
+}
+
+.sv-load-mark {
+  font-size: clamp(2.25rem, 6vw, 3rem) !important;
+  overflow: hidden;
+  animation: sv-load-in 0.7s var(--ease) both;
+}
+
+.sv-load-word {
+  display: inline-flex;
+  animation: sv-load-rise 0.85s var(--ease) both;
+}
+
+.sv-load-word > span:last-child {
+  display: inline-block;
+  animation: sv-load-ai 2.2s var(--ease) 0.85s infinite;
+}
+
+.sv-load-track {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+  overflow: hidden;
+  animation: sv-load-in 0.7s var(--ease) 0.12s both;
+}
+
+.sv-load-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--ink) 18%,
+    var(--ink) 78%,
+    var(--mint) 100%
+  );
+  animation: sv-load-sweep 1.35s var(--ease) infinite;
+}
+
+.sv-load-message {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 0.9375rem;
+  font-weight: 450;
+  letter-spacing: -0.015em;
+  text-align: center;
+  text-transform: none;
+  color: var(--muted);
+  animation: sv-load-in 0.7s var(--ease) 0.2s both;
+}
+
+/* ---- Inline (auth shell, embedded) ---- */
+.sv-load-inline {
+  --ink: #232323;
+  --mint: #a1ffcb;
+  --mint-strong: #0f9f5c;
+  --muted: color-mix(in srgb, var(--ink) 55%, transparent);
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
+  --ease: cubic-bezier(0.19, 1, 0.22, 1);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  padding: 40px 0;
+  text-align: center;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.sv-load-inline .sv-load-track {
+  width: min(180px, 100%);
+  animation: none;
+  opacity: 1;
+}
+
+.sv-load-inline .sv-load-message {
+  max-width: 28ch;
+  line-height: 1.45;
+  text-align: center;
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes sv-load-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sv-load-rise {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes sv-load-ai {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes sv-load-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-load-mark,
+  .sv-load-word,
+  .sv-load-word > span:last-child,
+  .sv-load-track,
+  .sv-load-bar,
+  .sv-load-message {
+    animation: none !important;
+  }
+
+  .sv-load-mark,
+  .sv-load-track,
+  .sv-load-message {
+    opacity: 1;
+  }
+
+  .sv-load-word {
+    transform: none;
+  }
+
+  .sv-load-bar {
+    width: 42%;
+    left: 29%;
+    transform: none;
+  }
+}

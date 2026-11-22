@@ -393,7 +393,7 @@ export default function ProfileViewPage() {
   return (
     <div className='mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pt-2 pb-8 md:px-6 md:pt-4'>
       <header className='mb-6'>
-        <h1 className='font-display text-2xl font-extrabold tracking-tight text-foreground'>
+        <h1 className='font-display text-2xl font-semibold tracking-[-0.03em] text-foreground'>
           {tNav('account')}
         </h1>
         <p className='text-muted-foreground  text-sm'>{tAccount('subtitle')}</p>
@@ -402,7 +402,7 @@ export default function ProfileViewPage() {
       <div
         role='tablist'
         aria-label={tAccount('sectionsAria')}
-        className='mb-6 flex flex-wrap gap-1 rounded-full bg-brand-soft p-1'
+        className='mb-6 flex flex-wrap gap-0 border border-foreground/15 bg-background p-0'
       >
         {navItems.map((item) => {
           const Icon = Icons[item.icon];
@@ -417,11 +417,11 @@ export default function ProfileViewPage() {
               aria-selected={isActive}
               onClick={() => setActiveSection(item.id)}
               className={cn(
-                'inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors',
-                isActive && !isDanger && 'bg-card text-foreground shadow-sm',
+                'inline-flex items-center gap-2 border-r border-foreground/10 px-3.5 py-2.5 text-sm font-medium transition-colors last:border-r-0',
+                isActive && !isDanger && 'bg-[color-mix(in_srgb,var(--brand)_36%,var(--background))] text-foreground',
                 isActive &&
                   isDanger &&
-                  'bg-destructive/10 text-destructive shadow-sm',
+                  'bg-destructive/10 text-destructive',
                 !isActive &&
                   !isDanger &&
                   'text-muted-foreground hover:text-foreground',
@@ -537,7 +537,7 @@ function ProfileSection({
                 <h3 className='font-display text-2xl  font-extrabold tracking-tight'>
                   {user.organizationName || user.fullName}
                 </h3>
-                <Badge className='rounded-full border-transparent bg-brand text-[10px] text-brand-foreground'>
+                <Badge className='rounded-full border-transparent bg-brand text-xs text-brand-foreground'>
                   {tAccount('organizationBadge')}
                 </Badge>
               </div>

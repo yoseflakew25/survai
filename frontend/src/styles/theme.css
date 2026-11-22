@@ -6,14 +6,21 @@ body {
 }
 
 :root {
-  --header-height: calc(var(--spacing, 0.25rem) * 12 + 1px);
-  /* Landing fonts — used app-wide (same as / board) */
-  --font-sans: var(--font-geist-sans), Geist, var(--font-noto-ethiopic),
-    'Noto Sans Ethiopic', ui-sans-serif, sans-serif;
-  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
-  --font-display: var(--font-bricolage), 'Bricolage Grotesque',
-    var(--font-noto-ethiopic), 'Noto Sans Ethiopic', var(--font-sans);
-  --font-serif: Georgia, serif;
+  --header-height: 60px;
+  --survai-ink: #232323;
+  --survai-paper: #ffffff;
+  --survai-mint: #a1ffcb;
+  /* Text-on-paper mint — brighter fill is too light on white */
+  --survai-mint-strong: #0f9f5c;
+  --survai-grey: #d9d9d9;
+  --survai-line: #232323;
+  --survai-ease: cubic-bezier(0.19, 1, 0.22, 1);
+  /* IBM Plex Sans + Mono everywhere; Ethiopic fallback for Amharic */
+  --font-sans: var(--font-plex-sans), var(--font-noto-ethiopic), 'Noto Sans Ethiopic',
+    ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-sans);
+  --font-serif: var(--font-sans);
 }
 
 body {

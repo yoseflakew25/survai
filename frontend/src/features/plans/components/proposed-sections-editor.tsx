@@ -30,13 +30,15 @@ interface ProposedSectionsEditorProps {
   onChange: (sections: ProposedSection[]) => void;
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 export function ProposedSectionsEditor({
   sections,
   onChange,
   disabled = false,
-  className
+  className,
+  compact = false
 }: ProposedSectionsEditorProps) {
   const t = useTranslations('plan');
   const [newTitle, setNewTitle] = useState('');
@@ -105,11 +107,16 @@ export function ProposedSectionsEditor({
   );
 
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn(compact ? 'space-y-2' : 'space-y-3', className)}>
       {sections.length === 0 ? (
-        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/40 px-4 py-8 text-center'>
-          <div className='flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
-            <Icons.kanban className='size-4' />
+        <div
+          className={cn(
+            'flex flex-col items-center justify-center gap-1.5 rounded-none border border-dashed border-border bg-muted/25 text-center',
+            compact ? 'px-3 py-5' : 'px-4 py-8'
+          )}
+        >
+          <div className='flex size-8 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'>
+            <Icons.kanban className='size-3.5' />
           </div>
           <p className='text-sm font-semibold text-foreground'>{t('noSections')}</p>
           <p className='text-muted-foreground max-w-xs text-xs leading-relaxed'>
@@ -142,7 +149,7 @@ export function ProposedSectionsEditor({
       )}
 
       {!disabled ? (
-        <div className='space-y-2.5 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/30 p-3.5'>
+        <div className='space-y-2 rounded-none border border-dashed border-border bg-muted/20 p-3'>
           <p className='text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase'>
             <Icons.add className='size-3.5' />
             {t('newSectionLabel')}
@@ -152,7 +159,7 @@ export function ProposedSectionsEditor({
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder={t('sectionTitlePlaceholder')}
-            className='h-10 rounded-xl border-border bg-card font-medium'
+            className='h-9 rounded-none border-border bg-background text-sm font-medium'
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newTitle.trim()) {
                 e.preventDefault();
@@ -165,11 +172,11 @@ export function ProposedSectionsEditor({
             onChange={(e) => setNewRationale(e.target.value)}
             placeholder={t('rationaleOptional')}
             rows={2}
-            className='resize-none rounded-xl border-border bg-card text-sm'
+            className='resize-none rounded-none border-border bg-background text-sm'
           />
           <Button
             type='button'
-            className='h-9 w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] bg-foreground font-semibold text-background hover:bg-foreground/90'
+            className='h-9 w-full rounded-none border border-foreground/20 bg-foreground text-sm font-semibold text-background hover:bg-foreground/90'
             onClick={handleAdd}
             disabled={!newTitle.trim()}
           >

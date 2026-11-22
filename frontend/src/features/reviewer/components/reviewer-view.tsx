@@ -7,6 +7,7 @@ import { surveyListKeys } from '@/features/surveys/api/queries';
 import { latestReviewOptions, reviewerKeys } from '../api/queries';
 import { triggerReview } from '../api/service';
 import type { ReviewerFinding, ReviewerReport } from '../api/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,9 +60,14 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelHeader,
+  SurvaiBrandCard,
+  SurvaiRailRow,
   brandCtaClass,
   dialogHeaderSoftClass,
   panelHeaderToneClass,
+  questionMetaBadgeRowClass,
+  questionOptionChipClass,
+  sectionIndexClass,
   primaryCtaClass
 } from '@/components/survai-panel';
 import {
@@ -558,7 +564,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
               </div>
             }
             badge={
-              <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold capitalize text-brand-foreground'>
+              <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-xs font-semibold capitalize text-brand-foreground'>
                 {statusLabel}
                 {questionsLocked ? t('lockedSuffix') : ''}
               </span>
@@ -629,7 +635,7 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold text-brand-foreground'>
+                <span className='rounded-full border border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-0.5 text-xs font-semibold text-brand-foreground'>
                   {tCommon('viewOnly')}
                 </span>
               )
@@ -689,66 +695,42 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
         </div>
 
         <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] sm:p-5'>
-            <div>
-              <p className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {questionsLocked ? t('collectingResponses') : t('readyToCollect')}
-              </p>
-              <p className='mt-1 text-sm leading-relaxed text-brand-foreground/75'>
-                {questionsLocked
-                  ? t('lockedCollectHint')
-                  : t('readyCollectHint')}
-              </p>
-            </div>
+          <SurvaiBrandCard
+            title={
+              questionsLocked ? t('collectingResponses') : t('readyToCollect')
+            }
+            description={
+              questionsLocked ? t('lockedCollectHint') : t('readyCollectHint')
+            }
+          >
             <ul className='space-y-1.5'>
-              <li className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'>
-                <span className='flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
-                  <Icons.forms className='size-3.5' />
-                </span>
-                <span className='min-w-0 flex-1 text-sm font-medium text-foreground'>
-                  {t('questionsAcross', {
-                    questions: questionCount,
-                    sections: sectionCount
-                  })}
-                </span>
-              </li>
-              <li className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'>
-                <span
-                  className={cn(
-                    'flex size-6 shrink-0 items-center justify-center rounded-lg',
-                    report
-                      ? openFindingCount > 0
-                        ? 'bg-muted text-foreground'
-                        : 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {report && openFindingCount === 0 ? (
+              <SurvaiRailRow icon={<Icons.forms className='size-3.5' />}>
+                {t('questionsAcross', {
+                  questions: questionCount,
+                  sections: sectionCount
+                })}
+              </SurvaiRailRow>
+              <SurvaiRailRow
+                active={Boolean(report) && openFindingCount === 0}
+                icon={
+                  report && openFindingCount === 0 ? (
                     <Icons.check className='size-3.5' strokeWidth={2.5} />
                   ) : (
                     <Icons.review className='size-3.5' />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    'min-w-0 flex-1 text-sm',
-                    report
-                      ? 'font-medium text-foreground'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {report
-                    ? t('findingsSummary', {
-                        open: openFindingCount,
-                        accepted: acceptedFindingCount
-                      })
-                    : t('reviewNotRun')}
-                </span>
-              </li>
+                  )
+                }
+              >
+                {report
+                  ? t('findingsSummary', {
+                      open: openFindingCount,
+                      accepted: acceptedFindingCount
+                    })
+                  : t('reviewNotRun')}
+              </SurvaiRailRow>
             </ul>
             <div className='space-y-2'>
               {report && !questionsLocked ? (
-                <p className='text-center font-mono text-[11px] font-semibold tracking-wide text-brand-foreground/80 tabular-nums'>
+                <p className='text-center font-mono text-[11px] font-semibold tracking-[0.06em] text-foreground/70 uppercase tabular-nums'>
                   {t('findingsSummary', {
                     open: openFindingCount,
                     accepted: acceptedFindingCount
@@ -764,14 +746,14 @@ function ReviewerContent({ surveyId }: { surveyId: string }) {
                 <Icons.arrowRight className='size-4' />
               </Button>
               {report && !questionsLocked ? (
-                <p className='text-center text-[11px] leading-relaxed text-brand-foreground/70'>
+                <p className='text-center text-[11px] leading-relaxed text-foreground/65'>
                   {openFindingCount > 0
                     ? t('openFindingsReminder')
                     : t('noOpenFindingsReady')}
                 </p>
               ) : null}
             </div>
-          </div>
+          </SurvaiBrandCard>
 
           {report?.overallQualityScore != null ? (
             <QualityScore
@@ -824,10 +806,10 @@ function SectionReviewCard({
         )}
       >
         <div className='min-w-0 flex-1'>
-          <h2 className='text-sm font-semibold tracking-tight text-foreground sm:text-[0.95rem]'>
+          <h2 className='text-base font-bold tracking-tight text-foreground'>
             {section.title}
           </h2>
-          <p className='text-[11px] leading-snug text-muted-foreground'>
+          <p className='mt-0.5 text-sm font-medium leading-snug text-muted-foreground'>
             {section.description?.trim() ||
               (requiredCount > 0
                 ? t('sectionMetaRequired', {
@@ -837,9 +819,9 @@ function SectionReviewCard({
                 : t('sectionMeta', { count: questionCount }))}
           </p>
         </div>
-        <span className='text-muted-foreground font-mono text-[10px] tabular-nums'>
+        <Badge variant='outline' className='shrink-0 tabular-nums'>
           {questionCount}
-        </span>
+        </Badge>
       </div>
 
       <div className='divide-y divide-border'>
@@ -910,23 +892,12 @@ function QuestionReviewItem({
   const showOptionsEditor = isEditing && isOptionsType(editType);
   const canRemoveOption = editOptions.length > 2;
 
-  const sourceBadge =
+  const sourceBadgeLabel =
     question.source === 'ai_generated'
-      ? {
-          label: t('sourceAi'),
-          className:
-            'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft text-foreground'
-        }
+      ? t('sourceAi')
       : question.source === 'ai_edited'
-        ? {
-            label: t('sourceAiEdited'),
-            className:
-              'border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft text-foreground'
-          }
-        : {
-            label: t('sourceManual'),
-            className: 'border-border bg-muted/60 text-muted-foreground'
-          };
+        ? t('sourceAiEdited')
+        : t('sourceManual');
 
   const hasChanges =
     editPrompt !== question.promptText ||
@@ -1128,64 +1099,52 @@ function QuestionReviewItem({
         )}
       >
         <span
-          className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-brand-soft font-mono text-[10px] font-semibold tabular-nums text-primary'
+          className={cn(sectionIndexClass, 'mt-0.5')}
           aria-label={t('questionAria', { index: index + 1 })}
         >
           {index + 1}
         </span>
 
-        <div className='min-w-0 flex-1 space-y-2'>
+        <div className='min-w-0 flex-1 space-y-2.5'>
           <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4'>
             <div className='min-w-0 flex-1'>
-              <p className='text-[0.95rem] font-medium leading-snug text-foreground sm:text-base'>
+              <p className='text-base font-semibold leading-snug tracking-tight text-foreground'>
                 {question.promptText}
               </p>
               {question.helpText ? (
-                <p className='mt-1 text-xs leading-relaxed text-muted-foreground'>
+                <p className='mt-1 text-sm font-medium leading-relaxed text-muted-foreground'>
                   {question.helpText}
                 </p>
               ) : null}
             </div>
 
-            <div className='flex w-full flex-col gap-1.5 sm:w-auto sm:max-w-[14rem] sm:items-end'>
-              <div className='flex flex-wrap items-center gap-1.5 sm:justify-end'>
-                {openFindingCount > 0 ? (
-                  <span className='rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground'>
-                    {t('openCount', { count: openFindingCount })}
-                  </span>
+            <div className={questionMetaBadgeRowClass}>
+              {openFindingCount > 0 ? (
+                <Badge variant='destructive' className='h-8 px-3 font-sans normal-case tracking-normal'>
+                  {t('openCount', { count: openFindingCount })}
+                </Badge>
+              ) : null}
+              <Badge variant='meta' className='gap-1.5 text-foreground'>
+                {ReadTypeIcon ? (
+                  <ReadTypeIcon className='size-3.5 shrink-0 opacity-60' />
                 ) : null}
-                <span className='inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground'>
-                  {ReadTypeIcon ? <ReadTypeIcon className='size-3' /> : null}
-                  {tBuilder(QUESTION_TYPE_KEY[question.type])}
-                </span>
-                <span
-                  className={cn(
-                    'rounded-md px-2 py-0.5 text-[10px] font-medium',
-                    question.isRequired
-                      ? 'bg-brand-soft text-primary'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {question.isRequired ? tCommon('required') : tCommon('optional')}
-                </span>
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium',
-                    sourceBadge.className
-                  )}
-                >
-                  {question.source !== 'manual' ? (
-                    <Icons.sparkles className='size-2.5' />
-                  ) : null}
-                  {sourceBadge.label}
-                </span>
-              </div>
+                {tBuilder(QUESTION_TYPE_KEY[question.type])}
+              </Badge>
+              <Badge variant={question.isRequired ? 'accent' : 'meta'}>
+                {question.isRequired ? tCommon('required') : tCommon('optional')}
+              </Badge>
+              {question.source !== 'manual' ? (
+                <Badge variant='soft' className='gap-1'>
+                  <Icons.sparkles className='size-3 shrink-0 opacity-80' />
+                  {sourceBadgeLabel}
+                </Badge>
+              ) : null}
               {!readOnly ? (
                 <Button
                   type='button'
-                  variant='ghost'
+                  variant='outline'
                   size='sm'
-                  className='h-7 w-fit rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground'
+                  className='h-8 px-2.5'
                   onClick={startEditing}
                 >
                   <Icons.edit className='size-3.5' />
@@ -1198,10 +1157,7 @@ function QuestionReviewItem({
           {question.options && question.options.length > 0 ? (
             <ul className='flex flex-wrap gap-1.5'>
               {question.options.map((opt) => (
-                <li
-                  key={opt.id}
-                  className='inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 text-[11px] text-foreground'
-                >
+                <li key={opt.id} className={questionOptionChipClass}>
                   <span
                     className={cn(
                       'size-1.5 shrink-0 bg-primary/70',
@@ -1233,7 +1189,7 @@ function QuestionReviewItem({
               ).map((n) => (
                 <span
                   key={n}
-                  className='flex size-6 items-center justify-center rounded-md border border-border bg-muted/40 font-mono text-[10px] tabular-nums text-muted-foreground'
+                  className='flex size-6 items-center justify-center rounded-md border border-border bg-muted/40 font-mono text-xs tabular-nums text-muted-foreground'
                 >
                   {n}
                 </span>
@@ -1355,7 +1311,7 @@ function QuestionReviewItem({
                   <p className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
                     {tBuilder('options')}
                   </p>
-                  <span className='font-mono text-[10px] text-muted-foreground tabular-nums'>
+                  <span className='font-mono text-xs text-muted-foreground tabular-nums'>
                     {editOptions.length}
                   </span>
                 </div>
@@ -1368,7 +1324,7 @@ function QuestionReviewItem({
                     >
                       <span
                         className={cn(
-                          'flex size-7 shrink-0 items-center justify-center border text-[10px] font-semibold',
+                          'flex size-7 shrink-0 items-center justify-center border text-xs font-semibold',
                           editType === 'multiple_choice'
                             ? 'rounded-md border-border bg-muted/50 text-muted-foreground'
                             : 'rounded-full border-border bg-muted/50 text-muted-foreground'

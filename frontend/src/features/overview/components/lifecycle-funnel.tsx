@@ -56,7 +56,7 @@ export function LifecycleFunnel() {
         />
         <SurvaiPanelBody className='flex flex-1 flex-col gap-2'>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className='h-12 rounded-xl' />
+            <Skeleton key={i} className='h-12 rounded-none' />
           ))}
         </SurvaiPanelBody>
       </SurvaiPanel>
@@ -100,7 +100,7 @@ export function LifecycleFunnel() {
             <Link
               key={stage.key}
               href={href}
-              className='group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card px-3 py-2.5 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/40'
+              className='group relative flex items-center gap-3 overflow-hidden rounded-none border border-border bg-card px-3 py-2.5 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/40'
             >
               <div
                 className='pointer-events-none absolute inset-y-0 left-0 bg-brand/20 transition-all'

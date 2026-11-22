@@ -1,5 +1,8 @@
-import { HippieLoadingScreen } from '@/components/hippie-loading-screen';
+import { getTranslations } from 'next-intl/server';
 
-export default function Loading() {
-  return <HippieLoadingScreen message='Loading your workspace' />;
+import { SurvaiLoadingScreen } from '@/components/hippie-loading-screen';
+
+export default async function Loading() {
+  const t = await getTranslations('common');
+  return <SurvaiLoadingScreen message={t('loadingWorkspace')} />;
 }

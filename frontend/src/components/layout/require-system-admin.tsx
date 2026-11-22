@@ -2,12 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, startTransition } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/lib/auth-context';
-import { HippieLoadingScreen } from '@/components/hippie-loading-screen';
+import { SurvaiLoadingScreen } from '@/components/hippie-loading-screen';
 import { RequireAuth } from '@/components/layout/require-auth';
 
 function SystemAdminGate({ children }: { children: React.ReactNode }) {
+  const tAuth = useTranslations('auth');
+  const tCommon = useTranslations('common');
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -24,11 +27,11 @@ function SystemAdminGate({ children }: { children: React.ReactNode }) {
   }, [isLoading, user]);
 
   if (isLoading || !user) {
-    return <HippieLoadingScreen message='Checking admin access' />;
+    return <SurvaiLoadingScreen message={tAuth('checkingAdminAccess')} />;
   }
 
   if (user.role !== 'system_admin') {
-    return <HippieLoadingScreen message='Redirecting' />;
+    return <SurvaiLoadingScreen message={tCommon('redirecting')} />;
   }
 
   return <>{children}</>;

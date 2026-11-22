@@ -12,6 +12,7 @@ import { AuthDivider, GoogleSignInButton } from '@/features/auth/components/goog
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
+import { SurvaiLoadingInline } from '@/components/hippie-loading-screen';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -20,9 +21,6 @@ type PasswordValues = {
   email: string;
   password: string;
 };
-
-const inputClass =
-  'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function SignInViewPage() {
   const { login, isSignedIn, isLoading, user } = useAuth();
@@ -83,40 +81,27 @@ export default function SignInViewPage() {
     }
   }
 
-  // Stable gate — avoids flashing the form while session hydrates / redirects
   if (isLoading || isSignedIn) {
     return (
       <AuthShell>
-        <div
-          className='flex flex-col items-center justify-center gap-3 py-16'
-          role='status'
-          aria-live='polite'
-          aria-busy='true'
-        >
-          <Icons.spinner className='text-muted-foreground size-5 animate-spin' />
-          <p className='text-muted-foreground text-sm' suppressHydrationWarning>
-            {isSignedIn ? tCommon('loading') : t('checkingSession')}
-          </p>
-        </div>
+        <SurvaiLoadingInline
+          className='auth-status'
+          message={isSignedIn ? tCommon('loading') : t('checkingSession')}
+        />
       </AuthShell>
     );
   }
 
   return (
     <AuthShell>
-      <div className='mb-6'>
-        <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
-          {t('signInTitle')}
-        </h1>
-        <p className='text-muted-foreground .5 text-[15px]'>{t('signInSubtitle')}</p>
+      <div className='auth-head'>
+        <h1 className='auth-title'>{t('signInTitle')}</h1>
+        <p className='auth-subtitle'>{t('signInSubtitle')}</p>
       </div>
 
-      <div className='space-y-4'>
+      <div className='auth-stack'>
         {serverError ? (
-          <div
-            role='alert'
-            className='border-destructive/50 bg-destructive/10 text-destructive rounded-xl border px-3.5 py-2.5 text-sm'
-          >
+          <div role='alert' className='auth-alert'>
             {serverError}
           </div>
         ) : null}
@@ -134,14 +119,14 @@ export default function SignInViewPage() {
         <AuthDivider />
 
         <form
-          className='space-y-3'
+          className='auth-fields'
           onSubmit={(event) => {
             void form.handleSubmit(onSubmit)(event);
           }}
           noValidate
         >
-          <div className='space-y-1.5'>
-            <label htmlFor='sign-in-email' className='text-foreground/80 text-[13px] font-medium'>
+          <div className='auth-field'>
+            <label htmlFor='sign-in-email' className='auth-label'>
               {t('email')}
             </label>
             <input
@@ -154,11 +139,7 @@ export default function SignInViewPage() {
               spellCheck={false}
               disabled={isSubmitting}
               aria-invalid={!!form.formState.errors.email}
-              className={cn(
-                inputClass,
-                form.formState.errors.email &&
-                  'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-              )}
+              className={cn('auth-input', form.formState.errors.email && 'is-invalid')}
               {...form.register('email', {
                 onChange: () => {
                   if (serverError) setServerError(null);
@@ -166,22 +147,16 @@ export default function SignInViewPage() {
               })}
             />
             {form.formState.errors.email ? (
-              <p className='text-destructive text-sm'>{form.formState.errors.email.message}</p>
+              <p className='auth-error-text'>{form.formState.errors.email.message}</p>
             ) : null}
           </div>
 
-          <div className='space-y-1.5'>
-            <div className='flex items-center justify-between gap-2'>
-              <label
-                htmlFor='sign-in-password'
-                className='text-foreground/80 text-[13px] font-medium'
-              >
+          <div className='auth-field'>
+            <div className='auth-label-row'>
+              <label htmlFor='sign-in-password' className='auth-label'>
                 {t('password')}
               </label>
-              <Link
-                href='/auth/forgot-password'
-                className='text-muted-foreground hover:text-foreground text-[12px] font-medium hover:underline'
-              >
+              <Link href='/auth/forgot-password' className='auth-link'>
                 {t('forgotPassword')}
               </Link>
             </div>
@@ -191,11 +166,7 @@ export default function SignInViewPage() {
               autoComplete='current-password'
               disabled={isSubmitting}
               aria-invalid={!!form.formState.errors.password}
-              className={cn(
-                inputClass,
-                form.formState.errors.password &&
-                  'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-              )}
+              className={cn(form.formState.errors.password && 'is-invalid')}
               {...form.register('password', {
                 onChange: () => {
                   if (serverError) setServerError(null);
@@ -203,15 +174,11 @@ export default function SignInViewPage() {
               })}
             />
             {form.formState.errors.password ? (
-              <p className='text-destructive text-sm'>{form.formState.errors.password.message}</p>
+              <p className='auth-error-text'>{form.formState.errors.password.message}</p>
             ) : null}
           </div>
 
-          <button
-            type='submit'
-            disabled={isSubmitting}
-            className='btn-back h-11 w-full text-[15px] disabled:pointer-events-none disabled:opacity-70'
-          >
+          <button type='submit' disabled={isSubmitting} className='auth-btn'>
             {isSubmitting ? (
               <>
                 <Icons.spinner className='size-4 animate-spin' />
@@ -223,9 +190,9 @@ export default function SignInViewPage() {
           </button>
         </form>
 
-        <p className='text-muted-foreground text-center text-[13px]'>
+        <p className='auth-foot-note'>
           {t('newOrganization')}{' '}
-          <Link href='/auth/sign-up' className='text-foreground font-semibold hover:underline'>
+          <Link href='/auth/sign-up' className='auth-link'>
             {t('createWorkspace')}
           </Link>
         </p>

@@ -1,0 +1,120 @@
+/* App shell — editorial chrome on top of shadcn tokens */
+
+.app-v2-root {
+  letter-spacing: -0.02em;
+}
+
+.app-v2-root ::selection {
+  background: var(--survai-mint);
+  color: var(--survai-ink);
+}
+
+/* Sidebar shell: single hairline — avoid stacking with border-r on the container */
+.app-v2-root [data-sidebar='sidebar'] {
+  border-right: none;
+}
+
+.app-v2-root [data-slot='sidebar-container'][data-side='left'] {
+  border-right: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.app-v2-root [data-slot='sidebar-container'][data-side='right'] {
+  border-left: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.app-v2-root [data-slot='sidebar-inset'] {
+  background: var(--background);
+}
+
+.app-v2-root [data-slot='card'],
+.app-v2-root [data-slot='alert-dialog-content'],
+.app-v2-root [cmdk-root],
+.app-v2-root [data-slot='popover-content'],
+.app-v2-root [data-slot='dropdown-menu-content'],
+.app-v2-root [data-slot='dialog-content'] {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-v2-root [data-slot='card'] {
+  border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
+}
+
+.app-v2-root input:not([type='checkbox']):not([type='radio']),
+.app-v2-root textarea,
+.app-v2-root [data-slot='input'],
+.app-v2-root [data-slot='textarea'] {
+  border-radius: 0;
+}
+
+.app-v2-root input:not([type='checkbox']):not([type='radio']):focus-visible,
+.app-v2-root textarea:focus-visible,
+.app-v2-root [data-slot='input']:focus-visible,
+.app-v2-root [data-slot='textarea']:focus-visible {
+  background: color-mix(in srgb, var(--brand) 14%, var(--background));
+}
+
+.app-v2-root .legal-prose h2 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* Survey workspace subnav */
+.app-v2-root .survey-workspace-subnav {
+  top: var(--header-height);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  background: var(--background);
+}
+
+/* Data tables — outer chrome owns the border; keep container square */
+.app-v2-root [data-slot='table-container'] {
+  border-radius: 0;
+}
+
+.app-v2-root [data-slot='table-header'] {
+  background: var(--brand);
+}
+
+.app-v2-root [data-slot='table-head'] {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+/* Card / section headers — one shared mint wash (matches SurvaiPanel soft) */
+.app-v2-root [data-slot='card-header'].bg-brand-soft,
+.app-v2-root [data-slot='card-header'].bg-brand,
+.app-v2-root .bg-brand-soft.border-b {
+  background: color-mix(in srgb, var(--brand) 72%, var(--background)) !important;
+  color: var(--foreground);
+}
+
+.app-v2-root [data-slot='select-trigger'],
+.app-v2-root [data-slot='tabs-list'] {
+  border-radius: 0;
+}
+
+.app-v2-root [data-slot='badge'] {
+  border-radius: 0;
+}
+
+/* Kbar / command palette */
+.app-v2-root [data-slot='command-input'] {
+  border-radius: 0;
+}
+
+/* Reduce decorative shadows app-wide (keep popover ring) */
+.app-v2-root .shadow-sm,
+.app-v2-root .shadow-xs {
+  box-shadow: none;
+}
+
+.app-v2-root [data-slot='dropdown-menu-content'],
+.app-v2-root [data-slot='popover-content'] {
+  border: 1px solid color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+
+/* Skeleton blocks */
+.app-v2-root [data-slot='skeleton'] {
+  border-radius: 0;
+}

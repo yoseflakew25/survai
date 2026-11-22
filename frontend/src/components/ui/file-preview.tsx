@@ -114,13 +114,13 @@ export const FilePreview: FC<FilePreviewProps> = ({
   if (files.length === 0) return null;
 
   return (
-    <div className={cn('flex w-full flex-col gap-2 rounded-xl p-2', className)}>
+    <div className={cn('flex w-full flex-col gap-2 rounded-none p-2', className)}>
       <div className='flex w-full flex-wrap gap-2'>
         {files.map((file) => (
           <div
             key={file.id}
             className={cn(
-              'group/file relative flex items-center rounded-xl transition-all',
+              'group/file relative flex items-center rounded-none transition-all',
               isInverted
                 ? 'bg-primary-foreground/15 hover:bg-primary-foreground/20'
                 : 'bg-muted hover:bg-muted/80',
@@ -130,7 +130,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
             )}
           >
             {file.isUploading && (
-              <div className='absolute inset-0 flex items-center justify-center rounded-xl bg-black/30'>
+              <div className='absolute inset-0 flex items-center justify-center rounded-none bg-black/30'>
                 <Icons.spinner size={20} className='animate-spin text-white' />
               </div>
             )}
@@ -164,7 +164,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
               <>
                 <div
                   className={cn(
-                    'mr-3 flex h-10 w-10 items-center justify-center rounded-lg',
+                    'mr-3 flex h-10 w-10 items-center justify-center rounded-none',
                     isInverted ? 'bg-primary-foreground/10' : 'bg-muted-foreground/10'
                   )}
                 >

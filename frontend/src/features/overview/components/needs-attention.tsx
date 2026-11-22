@@ -69,7 +69,7 @@ export function NeedsAttention() {
         />
         <SurvaiPanelBody className='space-y-2'>
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className='h-16 rounded-xl' />
+            <Skeleton key={i} className='h-16 rounded-none' />
           ))}
         </SurvaiPanelBody>
       </SurvaiPanel>
@@ -104,7 +104,7 @@ export function NeedsAttention() {
         }
         badge={
           items.length > 0 ? (
-            <span className='rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-brand-foreground'>
+            <span className='rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-brand-foreground'>
               {items.length}
             </span>
           ) : null
@@ -112,8 +112,8 @@ export function NeedsAttention() {
       />
       <SurvaiPanelBody className='flex flex-1 flex-col gap-2'>
         {items.length === 0 ? (
-          <div className='flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/40 px-4 py-10 text-center'>
-            <span className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-brand text-brand-foreground shadow-sm'>
+          <div className='flex flex-1 flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/40 px-4 py-10 text-center'>
+            <span className='mb-3 flex size-11 items-center justify-center rounded-none bg-brand text-brand-foreground shadow-none'>
               <Icons.check className='size-5' strokeWidth={2.5} />
             </span>
             <p className='font-display text-sm font-bold tracking-tight text-foreground'>
@@ -131,11 +131,11 @@ export function NeedsAttention() {
               <Link
                 key={item.id}
                 href={item.href}
-                className='group flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/50'
+                className='group flex items-start gap-3 rounded-none border border-border bg-card px-3 py-3 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/50'
               >
                 <span
                   className={cn(
-                    ' flex size-8 shrink-0 items-center justify-center rounded-xl',
+                    ' flex size-8 shrink-0 items-center justify-center rounded-none',
                     meta.className
                   )}
                 >
@@ -146,7 +146,7 @@ export function NeedsAttention() {
                     <p className='line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-foreground'>
                       {item.title}
                     </p>
-                    <span className='text-muted-foreground shrink-0 rounded-full bg-muted/70 px-2 py-0.5 text-[10px] font-semibold'>
+                    <span className='text-muted-foreground shrink-0 rounded-full bg-muted/70 px-2 py-0.5 text-xs font-semibold'>
                       {meta.labelKey === 'draft'
                         ? tSurveys('statusDraft')
                         : t(meta.labelKey)}

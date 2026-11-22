@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "/home/jovi/Documents/Github/survai/frontend/src/features/landing-v2/landing-v2.css"
+        ],
+        "createdAt": "2026-11-19T18:46:51.204Z",
+        "reason": "Landing v2 ported from ui template; Inter is the designed typeface"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "/home/jovi/Documents/Github/survai/frontend/src/styles/survai-v2-tokens.css"
+        ],
+        "createdAt": "2026-11-20T13:21:08.494Z",
+        "reason": "Product-wide v2 system matches landing-v2 and auth-v2 Inter/Plex Mono"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "/home/jovi/Documents/Github/survai/frontend/src/styles/theme.css"
+        ],
+        "createdAt": "2026-11-20T13:21:22.608Z",
+        "reason": "Product v2 typography aligned with landing-v2 and auth-v2"
+      }
+    ]
+  }
+}

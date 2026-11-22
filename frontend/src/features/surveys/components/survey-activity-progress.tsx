@@ -90,7 +90,7 @@ export function SurveyActivityProgress({
       >
         {previewText?.trim() ? (
           <div className='border-b border-foreground/10 pb-3'>
-            <p className='font-mono text-[10px] font-semibold tracking-[0.14em] text-foreground/55 uppercase'>
+            <p className='font-mono text-xs font-semibold tracking-[0.14em] text-foreground/55 uppercase'>
               {resolvedPreviewLabel}
             </p>
             <p className=' line-clamp-2 text-sm leading-relaxed text-foreground/80'>
@@ -178,7 +178,7 @@ export function SurveyActivityProgress({
         </ol>
 
         {footer ? (
-          <p className='pt-1 text-center font-mono text-[10px] tracking-wide text-foreground/45 uppercase'>
+          <p className='pt-1 text-center font-mono text-xs tracking-wide text-foreground/45 uppercase'>
             {footer}
           </p>
         ) : null}
@@ -198,7 +198,7 @@ export function SurveyActivityProgress({
       ) : null}
 
       {previewText?.trim() ? (
-        <div className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft/50 px-3.5 py-2.5'>
+        <div className='rounded-none border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft/50 px-3.5 py-2.5'>
           <p className='text-[11px] font-semibold tracking-wide text-foreground/70 uppercase'>
             {resolvedPreviewLabel}
           </p>
@@ -238,7 +238,7 @@ export function SurveyActivityProgress({
             <li
               key={stage.id}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+                'flex items-center gap-3 rounded-none px-2.5 py-2 text-sm transition-colors',
                 currentStage && 'bg-primary/10 text-foreground',
                 done && 'text-foreground',
                 pending && 'text-muted-foreground'
@@ -257,7 +257,7 @@ export function SurveyActivityProgress({
                 ) : currentStage ? (
                   <Icons.spinner className='size-3.5 animate-spin' />
                 ) : (
-                  <span className='text-[10px] font-semibold tabular-nums'>
+                  <span className='text-xs font-semibold tabular-nums'>
                     {i + 1}
                   </span>
                 )}

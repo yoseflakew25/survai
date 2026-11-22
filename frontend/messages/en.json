@@ -2,6 +2,12 @@
   "common": {
     "appName": "Survai",
     "loading": "Loading…",
+    "openingSurvai": "Opening Survai",
+    "loadingWorkspace": "Loading your workspace",
+    "redirecting": "Redirecting…",
+    "openingSurvai": "Opening Survai",
+    "loadingWorkspace": "Loading your workspace",
+    "redirecting": "Redirecting…",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -111,6 +117,7 @@
     "alreadyHaveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
     "checkingSession": "Checking session…",
+    "checkingAdminAccess": "Checking admin access…",
     "redirectingSignIn": "Redirecting to sign in…",
     "signInTitle": "Welcome back",
     "signInSubtitle": "Sign in to continue your survey work",
@@ -198,7 +205,7 @@
     "resendResetInbox": "Check your inbox for a new reset code.",
     "devCode": "Dev code",
     "showcaseEyebrow": "Survey Copilot · M&E ready",
-    "showcaseHeadline": "From first question to final report — without inventing a single number.",
+    "showcaseHeadline": "From first question to final report\nwithout inventing a single number.",
     "showcasePlan": "Plan",
     "showcasePlanMeta": "Research design drafted with AI",
     "showcaseQuestions": "questions",
@@ -376,6 +383,8 @@
   },
   "plan": {
     "researchPlan": "Research plan",
+    "planBlueprint": "Research blueprint",
+    "planBlueprintSubtitle": "Objectives, questions, audiences, and proposed sections",
     "researchGoal": "Research goal",
     "surveyTitle": "Survey title",
     "objectives": "Objectives",
@@ -1810,16 +1819,28 @@
       "home": "Survai home",
       "sections": "Product sections",
       "lifecycle": "Lifecycle",
-      "why": "Why Survai",
-      "tryIt": "Try it",
-      "faq": "FAQ",
+      "about": "About",
+      "trust": "Why Survai",
       "principles": "Principles",
+      "collect": "Collection",
+      "audience": "Teams",
+      "faq": "FAQ",
+      "why": "About",
+      "tryIt": "Demo",
+      "howItWorks": "How it works",
+      "reliability": "Why Survai",
       "switchToLight": "Switch to light mode",
       "switchToDark": "Switch to dark mode",
       "lightMode": "Light mode",
       "darkMode": "Dark mode",
-      "launch": "Launch",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "createAccount": "Create survey",
+      "howItWorksNav": "How it works",
+      "launch": "Create account",
+      "getStarted": "Create account",
+      "skipToContent": "Skip to content",
+      "menu": "Menu",
+      "menuClose": "Close"
     },
     "stages": {
       "plan": "Plan",
@@ -1828,80 +1849,56 @@
       "collect": "Collect",
       "analyze": "Analyze",
       "report": "Report",
-      "aria": "Survey lifecycle stages"
+      "aria": "Survey workflow stages"
     },
     "hero": {
       "badgeName": "Survai",
-      "badgeTagline": "design · collect · decide",
-      "titleBefore": "Design smarter surveys.",
-      "titleAfter": "Make better <hl>decisions</hl>.",
-      "subtitle": "From research goal to donor-ready report — plan, build, collect, analyze, and write in one place. AI helps you draft; you stay in control of every finding.",
-      "placeholder": "What do you need to learn — and decide?",
-      "inputLabel": "Survey goal or research question",
-      "start": "Start planning",
-      "suggestion1": "How did our training change community practice?",
-      "suggestion2": "What barriers keep youth from joining the program?",
-      "suggestion3": "Which services do beneficiaries need most next quarter?",
-      "footnote": "Shaped with Ethiopian civil society · built to scale",
-      "dashboard": "Already have a survey underway? Open the dashboard"
+      "badgeTagline": "For CSOs",
+      "welcomeTo": "Welcome to",
+      "titleBefore": "All your survey work,",
+      "titleAfter": "in <hl>one app</hl>.",
+      "title": "All your survey work,",
+      "titleLine2": "in one platform.",
+      "subtitle": "Run the survey and hand donors a report that still matches the raw responses.",
+      "placeholder": "e.g. What changed after last year’s training?",
+      "inputLabel": "Research goal",
+      "start": "Plan survey",
+      "suggestion1": "What changed after our community training?",
+      "suggestion2": "Why do youth drop out of the program?",
+      "suggestion3": "What services should we fund next quarter?",
+      "getStarted": "Create account",
+      "seeHow": "How it works",
+      "videoTopLabel": "Screen recording",
+      "videoBottomLabel": "Workflow overview",
+      "footnote": "Built with Ethiopian CSOs",
+      "dashboard": "Continue in dashboard"
     },
-    "lifecycle": {
-      "title": "From “we need to learn” to <hl>“here’s what to do”</hl>",
-      "subtitle": "One continuous journey — no more jumping between docs, form tools, spreadsheets, and Word.",
-      "stageOf": "Stage {current} of {total}",
-      "steps": {
-        "plan": {
-          "title": "Start with the decision",
-          "body": "Describe what you need to learn. Survai turns that into clear objectives, audiences, and sections — so you stop writing questions before you know why.",
-          "eyebrow": "Your plan",
-          "line1": "Goal: Understand barriers to program uptake",
-          "line2": "Audience: Youth beneficiaries, ages 18–35",
-          "line3": "Sections: Access · Experience · Next steps"
-        },
-        "build": {
-          "title": "Get a first draft in minutes",
-          "body": "AI proposes questions you can keep, edit, or replace. Build manually anytime — you never lose control of the survey.",
-          "eyebrow": "Draft question",
-          "line1": "Q3 · Single choice · Required",
-          "line2": "What made it hard to attend sessions?",
-          "line3": "□ Distance  □ Timing  □ Cost  □ Other"
-        },
-        "review": {
-          "title": "Catch weak questions early",
-          "body": "Spot leading wording, double-barreled asks, and surveys that run too long — before respondents ever see them.",
-          "eyebrow": "Quality check",
-          "line1": "Flag: Leading phrasing",
-          "line2": "“Don’t you agree the training was useful?”",
-          "line3": "Suggestion: Ask how useful — neutrally"
-        },
-        "collect": {
-          "title": "Share a link. Get answers.",
-          "body": "Publish once, share a link or QR, and collect on phone or laptop. Respondents need no account.",
-          "eyebrow": "Live collection",
-          "line1": "Status: Open · Round 1",
-          "line2": "Share link · Print QR",
-          "line3": "128 responses this week"
-        },
-        "analyze": {
-          "title": "See what the data actually says",
-          "body": "Distributions, filters, and comparisons calculated from real responses — so you spend time interpreting, not wrestling spreadsheets.",
-          "eyebrow": "Key result",
-          "line1": "128 complete responses",
-          "line2": "Distance cited by 41% as a barrier",
-          "line3": "Ready to explore by gender · location"
-        },
-        "report": {
-          "title": "Turn findings into a story",
-          "body": "Generate a structured report for donors, boards, or your team — then chat with it to pull the right takeaway for each audience.",
-          "eyebrow": "Report draft",
-          "line1": "Executive summary · Key findings",
-          "line2": "Recommendations tied to results",
-          "line3": "Tone: Donor · Internal · Leadership"
-        }
-      }
+    "aboutUs": {
+      "label": "About us",
+      "title": "Built with Ethiopian",
+      "titleLine2": "civil society.",
+      "lead": "Survai is survey software for CSOs—program teams, M&E staff, and leadership who need evidence they can show a board or donor. One thread from research question to published findings, without retyping tables into slides.",
+      "mission": "We co-built the first version with Ethiopian civil society groups who ran evaluations across too many apps. They wanted rigor without the admin tax: fewer exports, clearer methods, reports that still match the raw data.",
+      "audience": "Program leads, M&E staff, researchers, and executives use it when a board or donor will ask “show your work.” Scroll down for the same job done with scattered tools vs. Survai."
+    },
+    "challenge": {
+      "label": "Compare",
+      "title": "Same goal. Two workflows.",
+      "body": "Hover or tap a column—fragmented stack on the left, Survai on the right.",
+      "currentLabel": "The old way",
+      "withLabel": "Survai",
+      "current1": "Plan in a doc, build in a form app, chart in a spreadsheet",
+      "current2": "Rewrite the donor narrative by hand every cycle",
+      "current3": "Lots of responses, weak line to the next decision",
+      "with1": "One pipeline: plan → build → collect → analyze → report",
+      "with2": "Report drafts in minutes, every stat traced to responses",
+      "with3": "Ask questions of your results before the steering meeting",
+      "word": "Gap",
+      "currentVerdict": "Five tools, five handoffs",
+      "withVerdict": "One workspace"
     },
     "contrast": {
-      "title": "Stop stitching tools. Start shipping <hl>answers</hl>",
+      "title": "Stop stitching tools. <hl>Start shipping answers</hl>",
       "subtitle": "Same research goal. Two ways of working. Hover or tap a side to see the difference.",
       "fragmented": {
         "label": "The old way",
@@ -1918,81 +1915,109 @@
         "point3": "Chat with findings to brief donors, boards, or your team"
       }
     },
-    "trust": {
-      "title": "Evidence you can <gold>act on</gold>",
-      "subtitle": "Built for program, research, and policy teams who need answers — not another pile of responses with no clear next step.",
-      "claims": {
-        "speed": {
-          "title": "Faster from goal to draft",
-          "body": "Stop starting from a blank page. Describe what you need to learn and get a clear plan and first-draft survey you can reshape in minutes."
+    "lifecycle": {
+      "label": "Lifecycle",
+      "title": "From research question to <hl>next step</hl>",
+      "subtitle": "Six stages, one dataset. Change a goal and the downstream survey, charts, and report stay connected.",
+      "aside": "Stages 1–6 below—scroll the stack on the right.",
+      "stageOf": "Stage {current} of {total}",
+      "leadPlan": "Start with the decision",
+      "steps": {
+        "plan": {
+          "title": "Plan",
+          "body": "Describe what you need to learn. Survai turns that into clear objectives, audiences, and sections — so you stop writing questions before you know why.",
+          "eyebrow": "Your plan",
+          "line1": "Goal: Understand barriers to program uptake",
+          "line2": "Audience: Youth beneficiaries, ages 18–35",
+          "line3": "Sections: Access · Experience · Next steps"
         },
-        "evidence": {
-          "title": "Findings you can stand behind",
-          "body": "Every chart and percentage comes from your collected responses — not from an AI guessing. Reports stay tied to real results."
+        "build": {
+          "title": "Build",
+          "body": "Generate a draft questionnaire, or build manually. Every question remains fully editable.",
+          "eyebrow": "Draft question",
+          "line1": "Q3 · Single choice · Required",
+          "line2": "What made it hard to attend sessions?",
+          "line3": "□ Distance  □ Timing  □ Cost  □ Other"
         },
-        "approval": {
-          "title": "You approve before it ships",
-          "body": "AI suggests, drafts, and explains. You edit, reject, or accept before anything goes live or lands in a donor report."
+        "review": {
+          "title": "Review",
+          "body": "Identify leading, ambiguous, and double-barreled questions before the survey is published.",
+          "eyebrow": "Quality check",
+          "line1": "Flag: Leading phrasing",
+          "line2": "“Don’t you agree the training was useful?”",
+          "line3": "Suggestion: Ask how useful — neutrally"
+        },
+        "collect": {
+          "title": "Collect",
+          "body": "Share a link or QR code. Respondents can answer on any device without creating an account.",
+          "eyebrow": "Live collection",
+          "line1": "Status: Open · Round 1",
+          "line2": "Share link · Print QR",
+          "line3": "128 responses this week"
+        },
+        "analyze": {
+          "title": "Analyze",
+          "body": "View counts, percentages, filters, and cross-tabulations calculated directly from collected responses.",
+          "eyebrow": "Key result",
+          "line1": "128 complete responses",
+          "line2": "Distance cited by 41% as a barrier",
+          "line3": "Ready to explore by gender · location"
+        },
+        "report": {
+          "title": "Report",
+          "body": "Generate an editable report that presents your findings and recommendations. Use built-in chat to explore results with your team.",
+          "eyebrow": "Report draft",
+          "line1": "Executive summary · Key findings",
+          "line2": "Recommendations tied to results",
+          "line3": "Tone: Board · Partners · Leadership"
         }
       }
     },
-    "demo": {
-      "title": "See how respondents will answer <hl>your questions</hl>",
-      "subtitle": "Try a few question types — the same clear experience your community gets on a phone or laptop.",
-      "types": {
-        "single": "Single choice",
-        "rating": "Rating",
-        "open": "Open text"
-      },
-      "sample": "Sample question",
-      "qSingle": "What was the main reason you joined this program?",
-      "qRating": "How useful was the training for your daily work?",
-      "qOpen": "What would make it easier for you to participate next time?",
-      "choiceAria": "Device choice",
-      "choices": {
-        "skill": "Learn a new skill",
-        "community": "Support my community",
-        "work": "Find work opportunities",
-        "other": "Something else"
-      },
-      "ratingAria": "Confidence rating from 1 to 5",
-      "notUseful": "Not useful",
-      "veryUseful": "Very useful",
-      "placeholder": "Type a short answer…",
-      "note": "Demo only · nothing is saved",
-      "cta": "Build your first survey"
-    },
-    "collect": {
-      "title": "Collect in the field without the <hl>chaos</hl>",
-      "subtitle": "Publish when ready, share a link or QR, and close the round when outreach ends — no orphaned open forms.",
-      "beats": {
-        "draft": {
-          "label": "Draft",
-          "detail": "Shape questions privately until the survey feels right.",
-          "hint": "Private"
+    "trust": {
+      "title": "Outcomes you can <gold>defend</gold>",
+      "subtitle": "For teams judged on evidence—not on how many rows they exported.",
+      "label": "Why Survai",
+      "claims": {
+        "speed": {
+          "title": "Goal to first draft, fast",
+          "body": "Describe the decision you need. Get a structured plan and questionnaire draft you can edit before anyone sees it."
         },
-        "publish": {
-          "label": "Publish",
-          "detail": "Go live when you’re ready — respondents see a clear, stable form.",
-          "hint": "Live"
+        "evidence": {
+          "title": "Numbers that match the database",
+          "body": "Charts and percentages come from collected responses. AI explains; it does not invent statistics."
         },
-        "share": {
-          "label": "Share",
-          "detail": "Send a link or print a QR. No account needed to answer.",
-          "hint": "Anywhere"
-        },
-        "close": {
-          "label": "Close",
-          "detail": "End collection when outreach wraps. Your responses stay safe.",
-          "hint": "Done"
+        "approval": {
+          "title": "Nothing ships without you",
+          "body": "Publish surveys and sign reports only after your team reviews. AI proposes—you approve."
         }
       },
-      "cta": "Start collecting"
+      "headline": "Outcomes you can defend"
+    },
+    "reliability": {
+      "label": "Why Survai",
+      "title": "Outcomes you can defend",
+      "body": "For teams judged on evidence—not on how many rows they exported.",
+      "items": {
+        "speed": {
+          "title": "Goal to first draft, fast",
+          "body": "Describe the decision you need. Get a structured plan and questionnaire draft you can edit before anyone sees it."
+        },
+        "evidence": {
+          "title": "Numbers that match the database",
+          "body": "Charts and percentages come from collected responses. AI explains; it does not invent statistics."
+        },
+        "approval": {
+          "title": "Nothing ships without you",
+          "body": "Publish surveys and sign reports only after your team reviews. AI proposes—you approve."
+        }
+      },
+      "word": "Trust"
     },
     "principles": {
-      "title": "How we earn your trust",
-      "body": "The same standards we’d want if our own program evidence were on the line — for boards, donors, and communities.",
-      "badge": "Human-controlled by design",
+      "title": "How the product is built",
+      "body": "Human judgment first—especially when communities and donors are in the room.",
+      "badge": "You stay in control",
+      "label": "Principles",
       "items": {
         "decide": {
           "title": "AI assists — you decide",
@@ -2012,9 +2037,65 @@
         }
       }
     },
+    "demo": {
+      "title": "What respondents <hl>actually see</hl>",
+      "subtitle": "Tap through question types—the mobile-friendly form your field teams will share.",
+      "sample": "Sample question",
+      "qSingle": "What was the main reason you joined this program?",
+      "qRating": "How useful was the training for your daily work?",
+      "qOpen": "What would make it easier to stay involved?",
+      "types": {
+        "single": "Single choice",
+        "rating": "Rating",
+        "open": "Open text"
+      },
+      "choices": {
+        "skill": "Learn a new skill",
+        "community": "Support my community",
+        "work": "Find work opportunities",
+        "other": "Something else"
+      },
+      "choiceAria": "Sample answer choices",
+      "ratingAria": "Sample rating scale",
+      "notUseful": "Not useful",
+      "veryUseful": "Very useful",
+      "placeholder": "Type an answer like your respondents would…",
+      "note": "Demo only · nothing is saved",
+      "cta": "Build your first survey"
+    },
+    "collect": {
+      "label": "Collection",
+      "headline": "Field collection, under control",
+      "subtitle": "Draft privately, publish when the instrument is ready, share link or QR, close the round when outreach ends.",
+      "cta": "Create account",
+      "beats": {
+        "draft": {
+          "hint": "Private",
+          "label": "Draft",
+          "detail": "Shape questions privately until the survey feels right."
+        },
+        "publish": {
+          "hint": "Live",
+          "label": "Publish",
+          "detail": "Go live when you’re ready — respondents see a clear, stable form."
+        },
+        "share": {
+          "hint": "Anywhere",
+          "label": "Share",
+          "detail": "Send a link or print a QR. No account needed to answer."
+        },
+        "close": {
+          "hint": "Done",
+          "label": "Close",
+          "detail": "End collection when outreach wraps. Your responses stay safe."
+        }
+      }
+    },
     "audience": {
-      "title": "Built for teams who turn surveys into <hl>decisions</hl>",
-      "subtitle": "Shaped with Ethiopian civil society organizations — designed for research and program teams everywhere.",
+      "label": "Teams",
+      "word": "For",
+      "headline": "Who gets the most from Survai",
+      "subtitle": "From community programs to policy units—anyone running surveys under scrutiny.",
       "items": {
         "me": {
           "title": "Program & M&E officers",
@@ -2035,12 +2116,18 @@
           "title": "Leaders & managers",
           "body": "Skip the raw tables. Get concise summaries and recommendations you can use in the next meeting.",
           "tag": "Quick clarity"
+        },
+        "policy": {
+          "title": "Leaders & managers",
+          "body": "Skip the raw tables. Get concise summaries and recommendations you can use in the next meeting.",
+          "tag": "Quick clarity"
         }
       }
     },
     "faq": {
-      "title": "Good questions before you <gold>start</gold>",
-      "subtitle": "What Survai is for, how AI fits in, and what respondents experience.",
+      "label": "FAQ",
+      "headline": "Questions teams ask first",
+      "lead": "Scope, AI, respondents, and rollout—answered directly.",
       "count": "{count} common questions",
       "items": {
         "problem": {
@@ -2049,41 +2136,56 @@
         },
         "numbers": {
           "q": "Will AI invent numbers in my reports?",
-          "a": "No. AI helps with planning, question wording, review suggestions, and narrative writing. Every count and percentage comes from your collected responses — or it isn’t shown."
+          "a": "No. Counts, percentages, and charts are calculated from your collected responses. AI helps draft and explain the narrative — it does not fabricate statistics."
         },
         "account": {
           "q": "Do respondents need an account?",
-          "a": "No. You publish a survey and share a link or QR. People answer on phone or laptop without signing up. You can close the round when collection ends."
+          "a": "No. Share a link or QR code. People answer on a phone or laptop without signing up."
         },
         "who": {
           "q": "Who is Survai for?",
-          "a": "Program and M&E officers, CSOs and NGOs, researchers, and policy teams — anyone who needs clearer surveys and reports they can take to donors, boards, or partners."
+          "a": "Program and M&E teams, CSOs and NGOs, researchers, and leaders who need defensible evidence and clear next steps — not another pile of raw responses."
         },
         "ready": {
           "q": "Is Survai ready to use?",
-          "a": "Survai is in active development, shaped with Ethiopian civil society organizations. Core flows from planning through collection are live; analysis and reporting continue to deepen with pilot partners."
+          "a": "Planning, building, reviewing, and collecting are available today. Analysis, reporting, and AI assistance continue to improve with pilot partners."
+        },
+        "types": {
+          "q": "What types of surveys does Survai support?",
+          "a": "Training evaluations, needs assessments, beneficiary feedback, baselines, and other program or research surveys."
+        },
+        "status": {
+          "q": "What is the current status of the platform?",
+          "a": "Planning, survey building, and data collection are available now. Analysis and reporting are being refined with pilot partners."
+        },
+        "languages": {
+          "q": "Which languages are supported?",
+          "a": "The product UI supports English and Amharic. Survey content can be authored in the language you choose for each project."
         }
-      }
+      },
+      "word": "Ask"
     },
     "cta": {
-      "title": "Ready to turn a research goal into a decision?",
-      "subtitle": "Design smarter surveys. Generate better insights. Make better decisions — starting with your next question.",
+      "title": "Ready to run your\nnext survey in one place?",
+      "subtitle": "Free account to plan and collect. Open the dashboard if your team is already in the field.",
       "create": "Create account",
       "dashboard": "Open dashboard"
     },
     "footer": {
-      "tagline": "Design smarter surveys. Generate better insights. Make better decisions — from research goal to actionable report.",
-      "stagesAria": "Lifecycle stages",
-      "shaped": "Shaped with Ethiopian CSOs",
+      "backToTop": "Back to top",
+      "tagline": "Survey lifecycle software—from research question to report your funders can read.",
+      "shaped": "Built with Ethiopian CSOs",
+      "stagesAria": "Survey lifecycle stages",
       "onThisPage": "On this page",
       "product": "Product",
-      "getStarted": "Get started",
-      "dashboard": "Dashboard",
+      "getStarted": "Create account",
       "legal": "Legal",
-      "privacy": "Privacy",
-      "terms": "Terms",
+      "dashboard": "Dashboard",
+      "ctaNote": "AI drafts. Humans approve. Data stays yours.",
+      "control": "AI drafts. Humans approve. <em>Data stays yours.</em>",
       "copyright": "© {year} Survai. All rights reserved.",
-      "control": "An AI-assisted survey lifecycle — <em>you stay in control.</em>"
+      "privacy": "Privacy",
+      "terms": "Terms"
     }
   },
   "kbar": {

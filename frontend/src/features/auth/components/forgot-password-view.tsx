@@ -12,6 +12,7 @@ import { PasswordInput } from '@/features/auth/components/password-input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from '@/lib/toast';
+import { SurvaiLoadingInline } from '@/components/hippie-loading-screen';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -23,9 +24,6 @@ type ResetValues = {
   password: string;
   confirmPassword: string;
 };
-
-const inputClass =
-  'h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3.5 text-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50';
 
 export default function ForgotPasswordViewPage() {
   const { requestPasswordReset, confirmPasswordReset, isSignedIn, isLoading } = useAuth();
@@ -154,26 +152,18 @@ export default function ForgotPasswordViewPage() {
   if (isLoading || isSignedIn) {
     return (
       <AuthShell>
-        <div
-          className='flex flex-col items-center justify-center gap-3 py-16'
-          role='status'
-          aria-live='polite'
-          aria-busy='true'
-        >
-          <Icons.spinner className='text-muted-foreground size-5 animate-spin' />
-          <p className='text-muted-foreground text-sm'>{t('checkingSession')}</p>
-        </div>
+        <SurvaiLoadingInline className='auth-status' message={t('checkingSession')} />
       </AuthShell>
     );
   }
 
   return (
     <AuthShell>
-      <div className='mb-6'>
-        <h1 className='font-display text-3xl font-extrabold tracking-[-0.03em]'>
+      <div className='auth-head'>
+        <h1 className='auth-title'>
           {done ? t('passwordUpdated') : step === 'otp' ? t('enterResetCode') : t('forgotTitle')}
         </h1>
-        <p className='text-muted-foreground .5 text-[15px]'>
+        <p className='auth-subtitle'>
           {done
             ? t('passwordUpdatedHint')
             : step === 'otp'
@@ -182,29 +172,23 @@ export default function ForgotPasswordViewPage() {
         </p>
       </div>
 
-      <div className='space-y-4'>
+      <div className='auth-stack'>
         {serverError ? (
-          <div
-            role='alert'
-            className='border-destructive/50 bg-destructive/10 text-destructive rounded-xl border px-3.5 py-2.5 text-sm'
-          >
+          <div role='alert' className='auth-alert'>
             {serverError}
           </div>
         ) : null}
 
         {done ? (
-          <Link
-            href='/auth/sign-in'
-            className='btn-back flex h-11 w-full items-center justify-center text-[15px]'
-          >
+          <Link href='/auth/sign-in' className='auth-btn'>
             {t('continueToSignIn')}
           </Link>
         ) : null}
 
         {!done && step === 'email' ? (
-          <form className='space-y-3' onSubmit={emailForm.handleSubmit(onEmailSubmit)} noValidate>
-            <div className='space-y-1.5'>
-              <label htmlFor='forgot-email' className='text-foreground/80 text-[13px] font-medium'>
+          <form className='auth-fields' onSubmit={emailForm.handleSubmit(onEmailSubmit)} noValidate>
+            <div className='auth-field'>
+              <label htmlFor='forgot-email' className='auth-label'>
                 {t('email')}
               </label>
               <input
@@ -217,11 +201,7 @@ export default function ForgotPasswordViewPage() {
                 spellCheck={false}
                 disabled={emailForm.formState.isSubmitting}
                 aria-invalid={!!emailForm.formState.errors.email}
-                className={cn(
-                  inputClass,
-                  emailForm.formState.errors.email &&
-                    'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-                )}
+                className={cn('auth-input', emailForm.formState.errors.email && 'is-invalid')}
                 {...emailForm.register('email', {
                   onChange: () => {
                     if (serverError) setServerError(null);
@@ -229,16 +209,14 @@ export default function ForgotPasswordViewPage() {
                 })}
               />
               {emailForm.formState.errors.email ? (
-                <p className='text-destructive text-sm'>
-                  {emailForm.formState.errors.email.message}
-                </p>
+                <p className='auth-error-text'>{emailForm.formState.errors.email.message}</p>
               ) : null}
             </div>
 
             <button
               type='submit'
               disabled={emailForm.formState.isSubmitting}
-              className='btn-back h-11 w-full text-[15px] disabled:pointer-events-none disabled:opacity-70'
+              className='auth-btn'
             >
               {emailForm.formState.isSubmitting ? (
                 <>
@@ -253,43 +231,42 @@ export default function ForgotPasswordViewPage() {
         ) : null}
 
         {!done && step === 'otp' ? (
-          <form className='space-y-4' onSubmit={resetForm.handleSubmit(onResetSubmit)} noValidate>
+          <form className='auth-fields' onSubmit={resetForm.handleSubmit(onResetSubmit)} noValidate>
             {devCode ? (
-              <div className='border-border bg-card rounded-xl border px-3.5 py-3 text-sm'>
-                <p className='font-medium'>{t('devCode')}</p>
-                <p className='text-muted-foreground  font-mono text-lg tracking-widest'>
-                  {devCode}
+              <div className='auth-notice'>
+                <p>{t('devCode')}</p>
+                <p>
+                  <span className='auth-mono'>{devCode}</span>
                 </p>
               </div>
             ) : null}
 
-            <div className='space-y-2'>
-              <p id='reset-code-label' className='text-foreground/80 text-[13px] font-medium'>
+            <div className='auth-field'>
+              <p id='reset-code-label' className='auth-label'>
                 {t('resetCode')}
               </p>
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                aria-label={t('resetCode')}
-                aria-labelledby='reset-code-label'
-                onChange={(value) => {
-                  setOtp(value);
-                  if (serverError) setServerError(null);
-                }}
-              >
-                <InputOTPGroup>
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <InputOTPSlot key={i} index={i} />
-                  ))}
-                </InputOTPGroup>
-              </InputOTP>
+              <div className='auth-otp'>
+                <InputOTP
+                  maxLength={6}
+                  value={otp}
+                  aria-label={t('resetCode')}
+                  aria-labelledby='reset-code-label'
+                  onChange={(value) => {
+                    setOtp(value);
+                    if (serverError) setServerError(null);
+                  }}
+                >
+                  <InputOTPGroup>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
             </div>
 
-            <div className='space-y-1.5'>
-              <label
-                htmlFor='reset-password'
-                className='text-foreground/80 text-[13px] font-medium'
-              >
+            <div className='auth-field'>
+              <label htmlFor='reset-password' className='auth-label'>
                 {t('newPassword')}
               </label>
               <PasswordInput
@@ -298,11 +275,7 @@ export default function ForgotPasswordViewPage() {
                 autoComplete='new-password'
                 disabled={resetForm.formState.isSubmitting}
                 aria-invalid={!!resetForm.formState.errors.password}
-                className={cn(
-                  inputClass,
-                  resetForm.formState.errors.password &&
-                    'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-                )}
+                className={cn(resetForm.formState.errors.password && 'is-invalid')}
                 {...resetForm.register('password', {
                   onChange: () => {
                     if (serverError) setServerError(null);
@@ -310,14 +283,12 @@ export default function ForgotPasswordViewPage() {
                 })}
               />
               {resetForm.formState.errors.password ? (
-                <p className='text-destructive text-sm'>
-                  {resetForm.formState.errors.password.message}
-                </p>
+                <p className='auth-error-text'>{resetForm.formState.errors.password.message}</p>
               ) : null}
             </div>
 
-            <div className='space-y-1.5'>
-              <label htmlFor='reset-confirm' className='text-foreground/80 text-[13px] font-medium'>
+            <div className='auth-field'>
+              <label htmlFor='reset-confirm' className='auth-label'>
                 {t('confirmPassword')}
               </label>
               <PasswordInput
@@ -326,15 +297,11 @@ export default function ForgotPasswordViewPage() {
                 autoComplete='new-password'
                 disabled={resetForm.formState.isSubmitting}
                 aria-invalid={!!resetForm.formState.errors.confirmPassword}
-                className={cn(
-                  inputClass,
-                  resetForm.formState.errors.confirmPassword &&
-                    'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-                )}
+                className={cn(resetForm.formState.errors.confirmPassword && 'is-invalid')}
                 {...resetForm.register('confirmPassword')}
               />
               {resetForm.formState.errors.confirmPassword ? (
-                <p className='text-destructive text-sm'>
+                <p className='auth-error-text'>
                   {resetForm.formState.errors.confirmPassword.message}
                 </p>
               ) : null}
@@ -343,7 +310,7 @@ export default function ForgotPasswordViewPage() {
             <button
               type='submit'
               disabled={resetForm.formState.isSubmitting || otp.length !== 6}
-              className='btn-back h-11 w-full text-[15px] disabled:pointer-events-none disabled:opacity-70'
+              className='auth-btn'
             >
               {resetForm.formState.isSubmitting ? (
                 <>
@@ -355,10 +322,10 @@ export default function ForgotPasswordViewPage() {
               )}
             </button>
 
-            <div className='flex flex-col gap-2 sm:flex-row'>
+            <div className='auth-row auth-row-split'>
               <button
                 type='button'
-                className='btn-back h-11 flex-1 text-[15px]'
+                className='auth-btn-ghost'
                 disabled={isResending}
                 onClick={() => void onResend()}
               >
@@ -366,7 +333,7 @@ export default function ForgotPasswordViewPage() {
               </button>
               <button
                 type='button'
-                className='text-muted-foreground h-11 flex-1 text-[13px] font-medium hover:underline'
+                className='auth-btn-ghost'
                 onClick={() => {
                   setStep('email');
                   setOtp('');
@@ -382,9 +349,9 @@ export default function ForgotPasswordViewPage() {
         ) : null}
 
         {!done ? (
-          <p className='text-muted-foreground text-center text-[13px]'>
+          <p className='auth-foot-note'>
             {t('rememberedIt')}{' '}
-            <Link href='/auth/sign-in' className='text-foreground font-semibold hover:underline'>
+            <Link href='/auth/sign-in' className='auth-link'>
               {t('backToSignIn')}
             </Link>
           </p>

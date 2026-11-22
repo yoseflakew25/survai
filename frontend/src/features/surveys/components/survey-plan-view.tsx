@@ -31,7 +31,7 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
   if (!survey) {
     return (
       <div className='mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16 text-center'>
-        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-none'>
           <Icons.survey className='size-5 text-foreground' />
         </div>
         <div className='space-y-1.5'>
@@ -43,7 +43,7 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
         <Button
           nativeButton={false}
           render={<Link href='/dashboard/surveys' aria-label={tReview('backToSurveysAria')} />}
-          className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
+          className='h-10 rounded-none border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
           {tReview('backToSurveys')}
           <Icons.arrowRight className='ml-1.5 size-4' />
@@ -55,7 +55,7 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
   if (!survey.planId) {
     return (
       <div className='mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16 text-center'>
-        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+        <div className='bg-brand-soft flex size-12 items-center justify-center rounded-none'>
           <Icons.plan className='size-5 text-foreground' />
         </div>
         <div className='space-y-1.5'>
@@ -69,7 +69,7 @@ function SurveyPlanContent({ surveyId }: { surveyId: string }) {
           render={
             <Link href={`/dashboard/surveys/${surveyId}/review`} aria-label={t('goToReviewAria')} />
           }
-          className='h-10 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
+          className='h-10 rounded-none border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-4 font-semibold text-brand-foreground'
         >
           {t('goToReview')}
           <Icons.arrowRight className='ml-1.5 size-4' />

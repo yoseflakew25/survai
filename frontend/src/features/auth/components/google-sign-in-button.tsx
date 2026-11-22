@@ -191,9 +191,9 @@ export function GoogleSignInButton({
   }
 
   return (
-    <div className={cn('relative w-full', className)}>
+    <div className={cn('auth-google-wrap relative w-full', className)}>
       {!ready || busy ? (
-        <div className='border-border bg-card text-muted-foreground flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm'>
+        <div className='auth-google-fallback'>
           <Icons.spinner className='size-4 animate-spin' />
           {busy ? t('signingInGoogle') : t('loadingGoogle')}
         </div>
@@ -201,7 +201,7 @@ export function GoogleSignInButton({
       <div
         ref={hostRef}
         className={cn(
-          'flex w-full justify-center overflow-hidden rounded-xl',
+          'auth-google-host',
           (!ready || busy) && 'pointer-events-none absolute inset-0 opacity-0'
         )}
         aria-hidden={!ready || busy}
@@ -215,13 +215,8 @@ export function AuthDivider({ label }: { label?: string }) {
   const text = label ?? t('or');
 
   return (
-    <div className='relative py-1'>
-      <div className='absolute inset-0 flex items-center' aria-hidden>
-        <div className='w-full border-t border-border' />
-      </div>
-      <div className='relative flex justify-center text-[12px]'>
-        <span className='bg-background px-2 text-muted-foreground'>{text}</span>
-      </div>
+    <div className='auth-divider'>
+      <span>{text}</span>
     </div>
   );
 }

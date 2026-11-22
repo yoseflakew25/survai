@@ -48,7 +48,7 @@ export function DataTableToolbar<TData>({
           <Button
             aria-label='Reset filters'
             variant='ghost'
-            className='h-9 rounded-xl text-xs'
+            className='h-9 rounded-none text-xs'
             onClick={onReset}
           >
             <Icons.close className='mr-1 size-3' />
@@ -85,7 +85,7 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
               aria-label={columnMeta.label ?? 'Filter'}
               value={(column.getFilterValue() as string) ?? ''}
               onChange={(event) => column.setFilterValue(event.target.value)}
-              className='h-9 w-40 rounded-xl border-border bg-card pl-9 lg:w-56'
+              className='h-9 w-40 rounded-none border-border bg-card pl-9 lg:w-56'
             />
           </div>
         );
@@ -101,7 +101,7 @@ function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<T
               value={(column.getFilterValue() as string) ?? ''}
               onChange={(event) => column.setFilterValue(event.target.value)}
               className={cn(
-                'h-9 w-[120px] rounded-xl border-border bg-card',
+                'h-9 w-[120px] rounded-none border-border bg-card',
                 columnMeta.unit && 'pr-8'
               )}
             />

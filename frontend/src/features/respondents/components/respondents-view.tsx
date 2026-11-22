@@ -141,7 +141,7 @@ function RespondentsViewContent({ surveyId }: RespondentsViewProps) {
                 <span className='font-semibold text-foreground'>
                   {data.activeFilter.answer}
                 </span>
-                <Badge variant='secondary' className='text-[10px]'>
+                <Badge variant='secondary' className='text-xs'>
                   {data.activeFilter.count.toLocaleString()}
                 </Badge>
                 <Button

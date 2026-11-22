@@ -40,14 +40,14 @@ function WelcomeCard() {
   return (
     <article
       className={cn(
-        'flex flex-col justify-center rounded-[1.125rem] border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4',
-        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_10%,transparent)]'
+        'flex flex-col justify-center rounded-none border border-border p-4',
+        'bg-[color-mix(in_srgb,var(--brand)_72%,var(--background))]'
       )}
     >
-      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-brand-foreground'>
+      <h1 className='font-display text-2xl font-extrabold tracking-[-0.03em] text-foreground'>
         {t('welcome')}
       </h1>
-      <p className='text-sm leading-relaxed text-brand-foreground/75'>
+      <p className='text-sm font-medium leading-relaxed text-muted-foreground'>
         {t('liveCounts')}
       </p>
     </article>
@@ -59,7 +59,7 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
   return (
     <article
       className={cn(
-        'rounded-[1.125rem] border border-border bg-card p-4 transition-colors duration-200',
+        'rounded-none border border-border bg-card p-4 transition-colors duration-200',
         'hover:bg-muted/30'
       )}
     >
@@ -71,13 +71,13 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
           <p className='font-display text-3xl font-extrabold tracking-tight tabular-nums text-primary'>
             {kpi.value}
           </p>
-          <p className='font-mono text-[10px] tracking-wide text-muted-foreground uppercase'>
+          <p className='font-mono text-xs tracking-wide text-muted-foreground uppercase'>
             {kpiHint(kpi.hint, t)}
           </p>
         </div>
         <Badge
           variant='secondary'
-          className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-foreground'
+          className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-2 py-0.5 text-xs font-semibold text-brand-foreground'
         >
           <TrendIcon trend={kpi.trend} />
           {kpi.delta}
@@ -89,7 +89,7 @@ function KpiCard({ kpi }: { kpi: OverviewKpi }) {
 
 function KpiSkeleton() {
   return (
-    <div className='rounded-[1.125rem] border border-border bg-card p-4'>
+    <div className='rounded-none border border-border bg-card p-4'>
       <Skeleton className='h-3 w-24' />
       <Skeleton className='mt-3 h-8 w-20' />
       <Skeleton className='mt-2 h-3 w-28' />
@@ -113,7 +113,7 @@ export function OverviewKpis() {
 
   if (isError || !data) {
     return (
-      <div className='rounded-[1.125rem] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
+      <div className='rounded-none border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
         {t('statsLoadError')}
       </div>
     );

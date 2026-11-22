@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,11 @@ import {
   SurvaiPanel,
   SurvaiPanelBody,
   SurvaiPanelHeader,
+  SurvaiBrandCard,
+  SurvaiRailRow,
   dialogHeaderSoftClass,
+  planFieldControlClass,
+  planFieldLabelClass,
   primaryCtaClass
 } from '@/components/survai-panel';
 import {
@@ -67,15 +71,46 @@ function CountBadge({ count }: { count: number }) {
   return (
     <span
       className={cn(
-        'inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums ring-1',
+        'inline-flex h-6 min-w-6 items-center justify-center rounded-none border px-1.5 font-mono text-[11px] font-semibold tabular-nums',
         count > 0
-          ? 'bg-primary text-primary-foreground ring-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))]'
-          : 'bg-card text-muted-foreground ring-border'
+          ? 'border-foreground/20 bg-primary text-primary-foreground'
+          : 'border-border bg-muted/50 text-muted-foreground'
       )}
     >
       {count}
     </span>
   );
+}
+
+function PlanSubsection({
+  title,
+  subtitle,
+  count,
+  children
+}: {
+  title: string;
+  subtitle?: string;
+  count: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className='space-y-2.5'>
+      <div className='flex items-start justify-between gap-3 border-b border-border pb-2'>
+        <div className='min-w-0'>
+          <h4 className='text-sm font-bold tracking-tight text-foreground'>{title}</h4>
+          {subtitle ? (
+            <p className='text-muted-foreground mt-0.5 text-xs leading-snug'>{subtitle}</p>
+          ) : null}
+        </div>
+        <CountBadge count={count} />
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function stripRedundantGoalPrefix(goal: string): string {
+  return goal.replace(/^Description:\s*/i, '').trimStart();
 }
 
 interface PlanState {
@@ -486,250 +521,237 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
     }));
   }
 
+  const goalCharCount = stripRedundantGoalPrefix(surveyGoal).length;
+  const goalForEdit = stripRedundantGoalPrefix(surveyGoal);
+
   return (
-    <div className='space-y-5'>
-      <div className='grid gap-6 lg:grid-cols-3'>
-        <div className='space-y-4 lg:col-span-2'>
+    <div className='space-y-4'>
+      <div className='grid gap-4 lg:grid-cols-12 xl:gap-5'>
+        <div className='min-w-0 space-y-4 lg:col-span-6 xl:col-span-7'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              tone='brand'
-              title={
-                <div className='min-w-0'>
-                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                    {t('researchPlan')}
-                  </h3>
-                  <p className='text-sm leading-snug text-brand-foreground/70'>
-                    {t('whatLearning')}
-                  </p>
+              tone='soft'
+              title={t('researchPlan')}
+              subtitle={t('whatLearning')}
+              actions={
+                <ContentLanguagePicker
+                  value={contentLanguage}
+                  onChange={setContentLanguage}
+                  disabled={editLocked}
+                  density='compact'
+                  className='shrink-0'
+                />
+              }
+            />
+            <SurvaiPanelBody compact className='space-y-3'>
+              <div className='grid gap-3'>
+                <div className='space-y-1.5'>
+                  <label htmlFor='plan-survey-title' className={planFieldLabelClass}>
+                    {t('surveyTitle')}
+                  </label>
+                  {editLocked ? (
+                    <p
+                      className={cn(
+                        planFieldControlClass,
+                        'px-3 py-2.5 text-base font-semibold leading-snug'
+                      )}
+                    >
+                      {surveyTitle.trim() || tSurveys('untitledSurvey')}
+                    </p>
+                  ) : (
+                    <Input
+                      id='plan-survey-title'
+                      value={surveyTitle}
+                      onChange={(e) =>
+                        updateResearchParts(e.target.value, surveyGoal)
+                      }
+                      className={cn(planFieldControlClass, 'h-10 text-base font-semibold')}
+                      placeholder={t('titlePlaceholder')}
+                    />
+                  )}
                 </div>
-              }
-              badge={
-                <span className='font-mono text-[11px] tabular-nums text-brand-foreground/75'>
-                  {t('charCount', {
-                    count: surveyGoal.trim().length.toLocaleString()
-                  })}
-                </span>
-              }
-            />
-            <SurvaiPanelBody className='space-y-4'>
-              <ContentLanguagePicker
-                value={contentLanguage}
-                onChange={setContentLanguage}
-                disabled={editLocked}
-                className='max-w-xs'
-              />
 
-              <div className='space-y-2'>
-                <label
-                  htmlFor='plan-survey-title'
-                  className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'
-                >
-                  {t('surveyTitle')}
-                </label>
-                {editLocked ? (
-                  <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-3 text-sm font-semibold text-foreground sm:text-base'>
-                    {surveyTitle.trim() || tSurveys('untitledSurvey')}
-                  </p>
-                ) : (
-                  <Input
-                    id='plan-survey-title'
-                    value={surveyTitle}
-                    onChange={(e) =>
-                      updateResearchParts(e.target.value, surveyGoal)
-                    }
-                    className='border-border h-11 rounded-xl border-2 text-base font-semibold text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))]'
-                    placeholder={t('titlePlaceholder')}
-                  />
-                )}
+                <div className='space-y-1.5'>
+                  <div className='flex items-baseline justify-between gap-2'>
+                    <label htmlFor='plan-research-goal' className={planFieldLabelClass}>
+                      {t('researchGoal')}
+                    </label>
+                    <span className='text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums'>
+                      {t('charCount', { count: goalCharCount.toLocaleString() })}
+                    </span>
+                  </div>
+                  {editLocked ? (
+                    <p
+                      className={cn(
+                        planFieldControlClass,
+                        'px-3 py-3 text-sm leading-relaxed'
+                      )}
+                    >
+                      {goalForEdit || t('noGoalRecorded')}
+                    </p>
+                  ) : (
+                    <Textarea
+                      id='plan-research-goal'
+                      value={goalForEdit}
+                      onChange={(e) =>
+                        updateResearchParts(surveyTitle, e.target.value)
+                      }
+                      rows={4}
+                      className={cn(
+                        planFieldControlClass,
+                        'min-h-[6.5rem] resize-y text-sm leading-relaxed'
+                      )}
+                      placeholder={t('goalPlaceholder')}
+                    />
+                  )}
+                </div>
+
+                <p className='text-muted-foreground text-xs leading-relaxed'>{t('goalHint')}</p>
               </div>
-
-              <div className='space-y-2'>
-                <label
-                  htmlFor='plan-research-goal'
-                  className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'
-                >
-                  {t('researchGoal')}
-                </label>
-                {editLocked ? (
-                  <p className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft px-4 py-4 text-sm font-medium leading-relaxed text-foreground sm:text-[0.9375rem]'>
-                    {surveyGoal.trim() || t('noGoalRecorded')}
-                  </p>
-                ) : (
-                  <Textarea
-                    id='plan-research-goal'
-                    value={surveyGoal}
-                    onChange={(e) =>
-                      updateResearchParts(surveyTitle, e.target.value)
-                    }
-                    rows={5}
-                    className='border-border min-h-[8rem] resize-none rounded-xl border-2 text-base font-medium leading-relaxed text-foreground focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--foreground))] sm:text-[0.975rem]'
-                    placeholder={t('goalPlaceholder')}
-                  />
-                )}
-              </div>
-
-              <p className='text-muted-foreground text-sm leading-relaxed'>
-                {t('goalHint')}
-              </p>
             </SurvaiPanelBody>
           </SurvaiPanel>
 
           <SurvaiPanel>
             <SurvaiPanelHeader
-              title={t('objectives')}
-              subtitle={t('objectivesSubtitle')}
-              badge={<CountBadge count={objectives.length} />}
+              tone='soft'
+              title={t('planBlueprint')}
+              subtitle={t('planBlueprintSubtitle')}
             />
-            <SurvaiPanelBody>
-              <EditableList
-                items={objectives}
-                onChange={(newObjectives) =>
-                  setPlanState((prev) => ({
-                    ...prev,
-                    objectives: newObjectives
-                  }))
-                }
-                placeholder={t('objectivePlaceholder')}
-                addLabel={t('addObjective')}
-                emptyMessage={t('noObjectives')}
-                disabled={editLocked}
-              />
-            </SurvaiPanelBody>
-          </SurvaiPanel>
+            <SurvaiPanelBody compact className='space-y-6'>
+              <PlanSubsection
+                title={t('objectives')}
+                subtitle={t('objectivesSubtitle')}
+                count={objectives.length}
+              >
+                <EditableList
+                  items={objectives}
+                  onChange={(newObjectives) =>
+                    setPlanState((prev) => ({
+                      ...prev,
+                      objectives: newObjectives
+                    }))
+                  }
+                  placeholder={t('objectivePlaceholder')}
+                  addLabel={t('addObjective')}
+                  emptyMessage={t('noObjectives')}
+                  disabled={editLocked}
+                  compact
+                />
+              </PlanSubsection>
 
-          <SurvaiPanel>
-            <SurvaiPanelHeader
-              title={t('researchQuestions')}
-              subtitle={t('researchQuestionsSubtitle')}
-              badge={<CountBadge count={researchQuestions.length} />}
-            />
-            <SurvaiPanelBody>
-              <EditableList
-                items={researchQuestions}
-                onChange={(newQuestions) =>
-                  setPlanState((prev) => ({
-                    ...prev,
-                    researchQuestions: newQuestions
-                  }))
-                }
-                placeholder={t('questionPlaceholder')}
-                addLabel={t('addQuestion')}
-                emptyMessage={t('noQuestions')}
-                disabled={editLocked}
-              />
-            </SurvaiPanelBody>
-          </SurvaiPanel>
+              <PlanSubsection
+                title={t('researchQuestions')}
+                subtitle={t('researchQuestionsSubtitle')}
+                count={researchQuestions.length}
+              >
+                <EditableList
+                  items={researchQuestions}
+                  onChange={(newQuestions) =>
+                    setPlanState((prev) => ({
+                      ...prev,
+                      researchQuestions: newQuestions
+                    }))
+                  }
+                  placeholder={t('questionPlaceholder')}
+                  addLabel={t('addQuestion')}
+                  emptyMessage={t('noQuestions')}
+                  disabled={editLocked}
+                  compact
+                />
+              </PlanSubsection>
 
-          <SurvaiPanel>
-            <SurvaiPanelHeader
-              title={t('targetRespondents')}
-              subtitle={t('targetRespondentsSubtitle')}
-              badge={<CountBadge count={targetRespondents.length} />}
-            />
-            <SurvaiPanelBody>
-              <EditableList
-                items={targetRespondents}
-                onChange={(newRespondents) =>
-                  setPlanState((prev) => ({
-                    ...prev,
-                    targetRespondents: newRespondents
-                  }))
-                }
-                placeholder={t('audiencePlaceholder')}
-                addLabel={t('addAudience')}
-                emptyMessage={t('noAudiences')}
-                disabled={editLocked}
-              />
-            </SurvaiPanelBody>
-          </SurvaiPanel>
+              <PlanSubsection
+                title={t('targetRespondents')}
+                subtitle={t('targetRespondentsSubtitle')}
+                count={targetRespondents.length}
+              >
+                <EditableList
+                  items={targetRespondents}
+                  onChange={(newRespondents) =>
+                    setPlanState((prev) => ({
+                      ...prev,
+                      targetRespondents: newRespondents
+                    }))
+                  }
+                  placeholder={t('audiencePlaceholder')}
+                  addLabel={t('addAudience')}
+                  emptyMessage={t('noAudiences')}
+                  disabled={editLocked}
+                  compact
+                />
+              </PlanSubsection>
 
-          <SurvaiPanel>
-            <SurvaiPanelHeader
-              title={t('proposedSections')}
-              subtitle={t('proposedSectionsSubtitle')}
-              badge={<CountBadge count={proposedSections.length} />}
-            />
-            <SurvaiPanelBody>
-              <ProposedSectionsEditor
-                sections={proposedSections}
-                onChange={(newSections) =>
-                  setPlanState((prev) => ({
-                    ...prev,
-                    proposedSections: newSections
-                  }))
-                }
-                disabled={editLocked}
-              />
+              <PlanSubsection
+                title={t('proposedSections')}
+                subtitle={t('proposedSectionsSubtitle')}
+                count={proposedSections.length}
+              >
+                <ProposedSectionsEditor
+                  sections={proposedSections}
+                  onChange={(newSections) =>
+                    setPlanState((prev) => ({
+                      ...prev,
+                      proposedSections: newSections
+                    }))
+                  }
+                  disabled={editLocked}
+                  compact
+                />
+              </PlanSubsection>
             </SurvaiPanelBody>
           </SurvaiPanel>
         </div>
 
-        <div className='sticky top-[4.5rem] self-start space-y-4'>
-          <div className='space-y-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)] sm:p-5'>
-            <div>
-              <p className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {!canEdit
-                  ? t('viewOnlyTitle')
-                  : isLocked
-                    ? t('locked')
-                    : canGenerateSurvey
-                      ? t('readyWhenYouAre')
-                      : t('finishBrief')}
-              </p>
-              <p className='mt-1 text-sm leading-relaxed text-brand-foreground/75'>
-                {!canEdit
-                  ? t('viewerSeatsBody')
-                  : isLocked
-                    ? t('lockedContinueBody')
-                    : canGenerateSurvey
-                      ? t('readyGenerateBody')
-                      : t('finishBriefBody')}
-              </p>
-            </div>
-
+        <div className='sticky top-[4.25rem] space-y-3 self-start lg:col-span-6 xl:col-span-5'>
+          <SurvaiBrandCard
+            title={
+              !canEdit
+                ? t('viewOnlyTitle')
+                : isLocked
+                  ? t('locked')
+                  : canGenerateSurvey
+                    ? t('readyWhenYouAre')
+                    : t('finishBrief')
+            }
+            description={
+              !canEdit
+                ? t('viewerSeatsBody')
+                : isLocked
+                  ? t('lockedContinueBody')
+                  : canGenerateSurvey
+                    ? t('readyGenerateBody')
+                    : t('finishBriefBody')
+            }
+          >
             <ul className='space-y-1.5'>
               {readiness.map((item) => (
-                <li
+                <SurvaiRailRow
                   key={item.id}
-                  className='flex items-center gap-2.5 rounded-xl bg-card/90 px-2.5 py-2 ring-1 ring-[color-mix(in_srgb,var(--foreground)_10%,transparent)]'
-                >
-                  <span
-                    className={cn(
-                      'flex size-6 shrink-0 items-center justify-center rounded-lg',
-                      item.done
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {item.done ? (
+                  active={item.done}
+                  icon={
+                    item.done ? (
                       <Icons.check className='size-3.5' strokeWidth={2.5} />
                     ) : (
-                      <span className='size-1.5 rounded-full bg-current opacity-50' />
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      'min-w-0 flex-1 text-sm',
-                      item.done
-                        ? 'font-medium text-foreground'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    {item.label}
-                  </span>
-                  {typeof item.count === 'number' ? (
-                    <span className='font-mono text-[10px] tabular-nums text-muted-foreground'>
-                      {item.count}
-                    </span>
-                  ) : null}
-                </li>
+                      <span className='size-1.5 bg-current opacity-50' />
+                    )
+                  }
+                  trailing={
+                    typeof item.count === 'number' ? (
+                      <span className='font-mono text-xs tabular-nums text-muted-foreground'>
+                        {item.count}
+                      </span>
+                    ) : undefined
+                  }
+                >
+                  {item.label}
+                </SurvaiRailRow>
               ))}
             </ul>
 
             {canEdit || isLocked || surveyId ? (
               <Button
                 type='button'
-                className={primaryCtaClass}
+                className={cn(primaryCtaClass, 'w-full justify-between')}
                 onClick={handleProceedToBuilder}
                 disabled={
                   isCreatingSurvey ||
@@ -746,18 +768,18 @@ export function PlanEditor({ plan, onPlanUpdate, surveyId }: PlanEditorProps) {
                   <>
                     <Icons.review className='size-4' />
                     {t('continueToReview')}
-                    <Icons.arrowRight className='ml-auto size-4' />
+                    <Icons.arrowRight className='size-4' />
                   </>
                 ) : (
                   <>
                     <Icons.sparkles className='size-4' />
                     {t('generateQuestions')}
-                    <Icons.arrowRight className='ml-auto size-4' />
+                    <Icons.arrowRight className='size-4' />
                   </>
                 )}
               </Button>
             ) : null}
-          </div>
+          </SurvaiBrandCard>
 
           {canEdit ? (
             <PlanQuickActions

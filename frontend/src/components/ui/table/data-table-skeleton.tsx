@@ -41,18 +41,18 @@ export function DataTableSkeleton({
         <div className='flex flex-1 items-center gap-2'>
           {filterCount > 0
             ? Array.from({ length: filterCount }).map((_, i) => (
-                <Skeleton key={i} className='h-9 w-40 rounded-xl' />
+                <Skeleton key={i} className='h-9 w-40 rounded-none' />
               ))
             : null}
         </div>
         {withViewOptions ? (
-          <Skeleton className='ml-auto hidden h-9 w-[4.5rem] rounded-xl lg:flex' />
+          <Skeleton className='ml-auto hidden h-9 w-[4.5rem] rounded-none lg:flex' />
         ) : null}
       </div>
 
-      <div className='overflow-hidden rounded-[1.125rem] border border-border bg-card shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
+      <div className='overflow-hidden rounded-none border border-foreground/15 bg-card shadow-none'>
         <Table>
-          <TableHeader className='border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft'>
+          <TableHeader className='border-b border-foreground/20 bg-brand'>
             {Array.from({ length: 1 }).map((_, i) => (
               <TableRow key={i} className='hover:bg-transparent'>
                 {Array.from({ length: columnCount }).map((_, j) => (
@@ -94,11 +94,11 @@ export function DataTableSkeleton({
           <div className='flex w-full items-center justify-between gap-3 border-t border-border px-3 py-2'>
             <Skeleton className='h-5 w-24 rounded' />
             <div className='flex items-center gap-2'>
-              <Skeleton className='hidden h-8 w-14 rounded-lg sm:block' />
-              <Skeleton className='h-5 w-20 rounded' />
-              <Skeleton className='size-8 rounded-lg' />
-              <Skeleton className='size-8 rounded-lg' />
-              <Skeleton className='hidden size-8 rounded-lg lg:block' />
+              <Skeleton className='hidden h-8 w-14 rounded-none sm:block' />
+              <Skeleton className='h-5 w-20 rounded-none' />
+              <Skeleton className='size-8 rounded-none' />
+              <Skeleton className='size-8 rounded-none' />
+              <Skeleton className='hidden size-8 rounded-none lg:block' />
             </div>
           </div>
         ) : null}

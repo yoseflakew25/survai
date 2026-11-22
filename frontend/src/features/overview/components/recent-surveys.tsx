@@ -47,16 +47,6 @@ function relativeTime(
   return date.toLocaleDateString();
 }
 
-function initials(title: string): string {
-  return title
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 function SurveyRow({ survey }: { survey: SurveyListItem }) {
   const t = useTranslations('overview');
   const tSurveys = useTranslations('surveys');
@@ -66,11 +56,8 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
   return (
     <Link
       href={`/dashboard/surveys/${survey.id}/review`}
-      className='group flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/50'
+      className='group flex items-start gap-2 rounded-none border border-border bg-card px-3 py-3 transition-colors hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-brand-soft/50'
     >
-      <div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft font-mono text-[11px] font-bold tracking-wide text-primary ring-1 ring-[color-mix(in_srgb,var(--brand)_28%,transparent)]'>
-        {initials(survey.title)}
-      </div>
       <div className='min-w-0 flex-1'>
         <div className='flex items-start justify-between gap-2'>
           <p className='line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-foreground'>
@@ -79,7 +66,7 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
           <Badge
             variant='secondary'
             className={cn(
-              'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+              'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold',
               statusClass
             )}
           >
@@ -104,8 +91,7 @@ function SurveyRow({ survey }: { survey: SurveyListItem }) {
 
 function SurveyRowSkeleton() {
   return (
-    <div className='flex items-start gap-3 rounded-xl border border-border px-3 py-3'>
-      <Skeleton className='size-10 rounded-xl' />
+    <div className='flex items-start gap-2 rounded-none border border-border px-3 py-3'>
       <div className='min-w-0 flex-1 space-y-2'>
         <Skeleton className='h-4 w-3/4' />
         <Skeleton className='h-3 w-1/3' />
@@ -132,12 +118,11 @@ export function RecentSurveys() {
   return (
     <SurvaiPanel className='flex h-full min-h-full flex-col'>
       <SurvaiPanelHeader
-        tone='brand'
         title={t('recentSurveys')}
         subtitle={subtitle}
         badge={
           !isLoading && recentSurveys.length > 0 ? (
-            <span className='rounded-full bg-card px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-foreground ring-1 ring-border'>
+            <span className='rounded-full bg-card px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-foreground ring-1 ring-border'>
               {recentSurveys.length}
             </span>
           ) : null
@@ -145,7 +130,7 @@ export function RecentSurveys() {
         actions={
           <Link
             href='/dashboard/surveys'
-            className='hidden text-xs font-medium text-brand-foreground/75 underline-offset-4 hover:text-brand-foreground hover:underline sm:inline'
+            className='hidden text-xs font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:inline'
           >
             {t('viewAll')}
           </Link>
@@ -159,8 +144,8 @@ export function RecentSurveys() {
             ))}
           </div>
         ) : recentSurveys.length === 0 ? (
-          <div className='flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/40 px-4 py-10 text-center'>
-            <span className='mb-3 flex size-11 items-center justify-center rounded-2xl bg-brand text-brand-foreground shadow-sm'>
+          <div className='flex flex-1 flex-col items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft/40 px-4 py-10 text-center'>
+            <span className='mb-3 flex size-11 items-center justify-center rounded-none bg-brand text-brand-foreground shadow-none'>
               <Icons.survey className='size-5' />
             </span>
             <p className='font-display text-sm font-bold tracking-tight text-foreground'>
@@ -180,7 +165,7 @@ export function RecentSurveys() {
             <div className='mt-auto border-t border-border pt-3'>
               <Link
                 href='/dashboard/surveys'
-                className='inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3 text-xs font-medium text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                className='inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3 text-xs font-medium text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground'
               >
                 {t('viewAllSurveys')}
                 <Icons.arrowRight className='size-3 shrink-0' />

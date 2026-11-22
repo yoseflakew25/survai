@@ -46,7 +46,7 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar collapsible='icon'>
-      <SidebarHeader className='flex h-16 shrink-0 justify-center border-b border-sidebar-border px-2 md:h-14 group-data-[collapsible=icon]:px-0'>
+      <SidebarHeader className='flex h-[var(--header-height)] shrink-0 justify-center border-b border-sidebar-border px-2 group-data-[collapsible=icon]:px-0'>
         <SidebarMenu className='w-full justify-center'>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -56,14 +56,13 @@ export default function AdminSidebar() {
               aria-label='Survai Admin'
             >
               {isCollapsed ? (
-                <SurvaiMark className='mx-auto size-8' />
+                <SurvaiMark className='mx-auto size-9' />
               ) : (
                 <div className='flex min-w-0 flex-col items-start gap-0.5'>
                   <SurvaiLogo
-                    className='w-full justify-start gap-2.5 text-[1.5rem] leading-none tracking-[-0.05em] text-primary'
-                    markClassName='h-[1.1em] w-auto'
+                    className='w-full justify-start text-[1.85rem] font-bold leading-none tracking-[-0.06em] text-foreground md:text-[1.75rem]'
                   />
-                  <span className='rounded-md bg-brand-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand'>
+                  <span className='rounded-none bg-brand-soft px-1.5 py-0.5 font-mono text-xs font-semibold uppercase tracking-wide text-foreground'>
                     Admin
                   </span>
                 </div>
@@ -77,7 +76,7 @@ export default function AdminSidebar() {
         {adminNavGroups.map((group) => (
           <SidebarGroup key={group.label || 'ungrouped'} className='py-1'>
             {group.label ? (
-              <p className='mb-1 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden'>
+              <p className='mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden'>
                 {group.label}
               </p>
             ) : null}
@@ -96,7 +95,7 @@ export default function AdminSidebar() {
                       isActive={isNavActive(pathname, item.url)}
                     >
                       {IconComponent ? (
-                        <IconComponent className='size-4 shrink-0' />
+                        <IconComponent className='size-[1.125rem] shrink-0' />
                       ) : null}
                       <span className='flex-1 group-data-[collapsible=icon]:hidden'>
                         {item.title}

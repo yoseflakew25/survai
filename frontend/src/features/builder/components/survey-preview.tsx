@@ -86,7 +86,7 @@ export function SurveyPreview({ title, sections }: SurveyPreviewProps) {
             {visibleBySection.map(({ section, questions }, i) => (
               <div key={section.id} className='space-y-2'>
                 <div className='flex items-center gap-2'>
-                  <span className='bg-primary text-primary-foreground flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold'>
+                  <span className='bg-primary text-primary-foreground flex h-5 w-5 items-center justify-center rounded text-xs font-bold'>
                     {i + 1}
                   </span>
                   <p className='text-xs font-medium'>{section.title}</p>

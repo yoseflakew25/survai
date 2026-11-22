@@ -1,4 +1,4 @@
-export { SurvaiMark, SurvaiLogo } from '@/components/survai-logo';
+export { SurvaiMark, SurvaiLogo, SurvaiLockup } from '@/components/survai-logo';
 
 export function IconMail({ className }: { className?: string }) {
   return (

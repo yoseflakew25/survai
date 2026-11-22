@@ -8,6 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import {
+  questionMetaBadgeRowClass,
+  questionOptionChipClass,
+  sectionIndexClass
+} from '@/components/survai-panel';
 import type { Question, QuestionType } from '../api/types';
 
 const TYPE_LABEL_KEY: Record<
@@ -45,6 +50,7 @@ export function SortableQuestionCard({
   onDelete
 }: SortableQuestionCardProps) {
   const t = useTranslations('builder');
+  const tCommon = useTranslations('common');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: question.id
   });
@@ -58,72 +64,80 @@ export function SortableQuestionCard({
     <div ref={setNodeRef} style={style}>
       <Card
         className={cn(
-          'group flex items-start gap-3 p-3 transition-shadow',
+          'group flex items-start gap-3 rounded-none border-border p-3 transition-shadow',
           isDragging && 'shadow-lg ring-2 ring-primary/20'
         )}
       >
         {/* Drag handle */}
         <button
-          className='text-muted-foreground hover:text-foreground  cursor-grab touch-none active:cursor-grabbing'
+          className='text-muted-foreground hover:text-foreground cursor-grab touch-none active:cursor-grabbing'
           {...attributes}
           {...listeners}
         >
           <Icons.gripVertical className='h-4 w-4' />
         </button>
 
-        {/* Question number */}
-        <span className='text-muted-foreground  w-5 shrink-0 text-center text-xs font-medium'>
+        <span className={cn(sectionIndexClass, 'mt-0.5')} aria-hidden>
           {index + 1}
         </span>
 
         {/* Content */}
-        <div className='min-w-0 flex-1 space-y-1'>
-          <div className='flex items-center gap-2'>
-            <p className='truncate text-sm font-medium'>{question.promptText}</p>
-            {question.isRequired && (
-              <Badge variant='destructive' className='shrink-0 text-[10px]'>
-                {t('required')}
+        <div className='min-w-0 flex-1 space-y-2'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3'>
+            <p className='text-base font-semibold leading-snug tracking-tight text-foreground'>
+              {question.promptText}
+            </p>
+            <div className={questionMetaBadgeRowClass}>
+              <Badge variant='meta' className='text-foreground'>
+                {t(TYPE_LABEL_KEY[question.type])}
               </Badge>
-            )}
+              <Badge variant={question.isRequired ? 'accent' : 'meta'}>
+                {question.isRequired ? t('required') : tCommon('optional')}
+              </Badge>
+              {question.source !== 'manual' ? (
+                <Badge variant='soft' className='gap-1'>
+                  <Icons.sparkles className='size-3 shrink-0 opacity-80' />
+                  {question.source === 'ai_edited' ? t('sourceAiPlus') : t('sourceAi')}
+                </Badge>
+              ) : null}
+            </div>
           </div>
 
-          <div className='flex items-center gap-2'>
-            <Badge variant='outline' className='text-[10px]'>
-              {t(TYPE_LABEL_KEY[question.type])}
-            </Badge>
-            {question.options && (
-              <span className='text-muted-foreground text-xs'>
-                {t('optionsCount', { count: question.options.length })}
-              </span>
-            )}
-            {question.helpText && (
-              <span className='text-muted-foreground text-xs'>· {t('hasHelpText')}</span>
-            )}
-            {question.source !== 'manual' && (
-              <Badge variant='secondary' className='text-[10px]'>
-                <Icons.sparkles className='mr-0.5 h-2.5 w-2.5' />
-                {t('sourceAi')}
-              </Badge>
-            )}
-          </div>
+          {(question.options || question.helpText) && (
+            <div className='text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium'>
+              {question.options ? (
+                <span>{t('optionsCount', { count: question.options.length })}</span>
+              ) : null}
+              {question.options && question.helpText ? (
+                <span aria-hidden>·</span>
+              ) : null}
+              {question.helpText ? <span>{t('hasHelpText')}</span> : null}
+            </div>
+          )}
 
           {/* Options preview for choice types */}
           {question.options && question.options.length > 0 && (
-            <div className='flex flex-wrap gap-1 pt-1'>
+            <ul className='flex flex-wrap gap-1.5 pt-0.5'>
               {question.options.slice(0, 4).map((opt) => (
-                <span
-                  key={opt.id}
-                  className='bg-muted inline-block rounded px-1.5 py-0.5 text-[10px]'
-                >
+                <li key={opt.id} className={questionOptionChipClass}>
+                  <span
+                    className={cn(
+                      'size-1.5 shrink-0 bg-muted-foreground/60',
+                      question.type === 'multiple_choice'
+                        ? 'rounded-[1px]'
+                        : 'rounded-full'
+                    )}
+                    aria-hidden
+                  />
                   {opt.label}
-                </span>
+                </li>
               ))}
               {question.options.length > 4 && (
-                <span className='text-muted-foreground text-[10px]'>
+                <span className='text-muted-foreground text-xs'>
                   {t('moreOptions', { count: question.options.length - 4 })}
                 </span>
               )}
-            </div>
+            </ul>
           )}
 
           {/* Scale preview */}
@@ -138,7 +152,7 @@ export function SortableQuestionCard({
               ).map((n) => (
                 <span
                   key={n}
-                  className='bg-muted flex size-6 items-center justify-center rounded text-[10px] font-medium'
+                  className='bg-muted flex size-6 items-center justify-center rounded text-xs font-medium'
                 >
                   {n}
                 </span>

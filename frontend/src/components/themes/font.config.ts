@@ -1,30 +1,24 @@
-import {
-  Bricolage_Grotesque,
-  Geist,
-  Geist_Mono,
-  Noto_Sans_Ethiopic
-} from 'next/font/google';
+import { IBM_Plex_Mono, IBM_Plex_Sans, Noto_Sans_Ethiopic } from 'next/font/google';
 
 import { cn } from '@/lib/utils';
 
-/** Loaded faces — keep names distinct from theme tokens so themes can reference them. */
-const fontSans = Geist({
+/** Platform sans — paired with Plex Mono across landing / auth / app. */
+const fontSans = IBM_Plex_Sans({
   subsets: ['latin'],
-  variable: '--font-geist-sans'
+  weight: 'variable',
+  variable: '--font-plex-sans',
+  display: 'swap'
 });
 
-const fontMono = Geist_Mono({
+/** Platform mono — labels, meta, tabular UI. */
+const fontMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  variable: '--font-geist-mono'
+  weight: ['400', '500', '600'],
+  variable: '--font-plex-mono',
+  display: 'swap'
 });
 
-const fontDisplay = Bricolage_Grotesque({
-  subsets: ['latin'],
-  variable: '--font-bricolage',
-  weight: ['600', '700', '800']
-});
-
-/** Fidel / Amharic glyphs — stacked after Geist via CSS font-family. */
+/** Fidel / Amharic glyphs — stacked after Plex via CSS font-family. */
 const fontEthiopic = Noto_Sans_Ethiopic({
   subsets: ['ethiopic'],
   variable: '--font-noto-ethiopic',
@@ -34,6 +28,5 @@ const fontEthiopic = Noto_Sans_Ethiopic({
 export const fontVariables = cn(
   fontSans.variable,
   fontMono.variable,
-  fontDisplay.variable,
   fontEthiopic.variable
 );

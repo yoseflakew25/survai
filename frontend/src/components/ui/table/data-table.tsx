@@ -49,7 +49,7 @@ export function DataTable<TData>({
       {children}
 
       {selectedCount > 0 && (
-        <div className='flex items-center gap-2 rounded-xl border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
+        <div className='flex items-center gap-2 rounded-none border border-border bg-brand-soft/60 px-3 py-2 text-sm'>
           <Icons.circleCheck className='size-4 text-foreground' />
           <span className='font-medium text-foreground'>
             <span className='tabular-nums'>{selectedCount}</span> selected
@@ -64,10 +64,10 @@ export function DataTable<TData>({
         </div>
       )}
 
-      <div className='overflow-hidden rounded-[1.125rem] border border-border bg-card shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent),0_6px_20px_-16px_color-mix(in_srgb,var(--foreground)_14%,transparent)]'>
+      <div className='overflow-hidden rounded-none border border-foreground/15 bg-card shadow-none'>
         <ScrollArea className='w-full'>
           <Table>
-            <TableHeader className='border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft'>
+            <TableHeader className='border-b border-foreground/20 bg-brand'>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                   key={headerGroup.id}
@@ -152,12 +152,12 @@ export function DataTable<TData>({
                   >
                     <div className='flex flex-col items-center justify-center gap-3 px-4 text-center'>
                       {emptyIcon ?? (
-                        <div className='bg-muted flex size-12 items-center justify-center rounded-2xl'>
+                        <div className='flex size-12 items-center justify-center rounded-none border border-foreground/12 bg-brand-soft'>
                           <Icons.forms className='text-muted-foreground size-5' />
                         </div>
                       )}
                       <div>
-                        <p className='font-display text-sm font-bold tracking-tight'>
+                        <p className='font-display text-sm font-semibold tracking-[-0.02em]'>
                           {emptyTitle ?? 'No surveys found'}
                         </p>
                         <p className='text-muted-foreground  max-w-xs text-xs leading-relaxed'>

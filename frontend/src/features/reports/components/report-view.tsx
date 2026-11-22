@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,6 +17,7 @@ import {
   primaryCtaClass,
   brandMetaChipClass,
   onBrandControlClass,
+  planFieldControlClass,
   quietActionClass,
   sectionIndexClass,
   softActionClass
@@ -52,6 +54,33 @@ function confidenceKey(c: ChatConfidence | null): string | null {
   if (c === 'partial') return 'confidencePartial';
   if (c === 'insufficient_data') return 'confidenceInsufficient';
   return null;
+}
+
+const METRIC_REF_LABELS: Record<string, string> = {
+  completion_rate: 'Completion rate',
+  total_responses: 'Total responses',
+  response_count: 'Response count'
+};
+
+function formatMetricRef(ref: string): string {
+  const normalized = ref.trim().toLowerCase();
+  if (METRIC_REF_LABELS[normalized]) return METRIC_REF_LABELS[normalized];
+  const qMatch = ref.match(/^q_[a-f0-9]+_(.+)$/i);
+  if (qMatch) {
+    const tail = qMatch[1].replace(/_/g, ' ');
+    return tail.length > 28 ? `${tail.slice(0, 26)}…` : tail;
+  }
+  const human = ref.replace(/_/g, ' ');
+  return human.length > 32 ? `${human.slice(0, 30)}…` : human;
+}
+
+function confidenceBadgeVariant(
+  c: ChatConfidence | null
+): 'soft' | 'meta' | 'destructive' | 'outline' {
+  if (c === 'grounded') return 'soft';
+  if (c === 'partial') return 'meta';
+  if (c === 'insufficient_data') return 'destructive';
+  return 'outline';
 }
 
 interface ReportViewProps {
@@ -843,31 +872,23 @@ export function ReportView({ surveyId }: ReportViewProps) {
         </div>
 
         <div className='flex min-h-0 flex-col lg:h-full'>
-          <SurvaiPanel className='flex min-h-0 flex-1 flex-col h-[70vh] lg:h-full'>
-            <div className={cn(panelHeaderToneClass.brand, 'shrink-0 px-4 py-4')}>
-              <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                {t('chatTitle')}
-              </h3>
-              <p className='text-xs leading-relaxed text-[color-mix(in_srgb,var(--primary)_72%,transparent)]'>
-                {t('chatSubtitle')}
-              </p>
-            </div>
+          <SurvaiPanel className='flex h-[70vh] min-h-0 flex-1 flex-col lg:h-full'>
+            <SurvaiPanelHeader
+              tone='soft'
+              className='py-3'
+              // icon={<Icons.chat className='size-3.5' />}
+              title={t('chatTitle')}
+              subtitle={t('chatSubtitle')}
+            />
 
             <div
               ref={messagesEndRef}
               aria-live='polite'
-              className='min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3.5 py-4'
-              style={{
-                backgroundImage: `
-                  radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
-                  radial-gradient(color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px)
-                `,
-                backgroundSize: 'auto, 16px 16px'
-              }}
+              className='min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain border-t border-border bg-muted/15 px-3 py-3'
             >
               {chatMessages.length === 0 && !isReplying ? (
-                <div className='space-y-3 px-1'>
-                  <p className='text-muted-foreground text-sm leading-relaxed'>
+                <div className='space-y-2.5'>
+                  <p className='text-muted-foreground text-sm leading-snug'>
                     {t('chatEmpty')}
                   </p>
                   <div className='flex flex-wrap gap-1.5'>
@@ -877,7 +898,7 @@ export function ReportView({ surveyId }: ReportViewProps) {
                         type='button'
                         disabled={isReplying}
                         onClick={() => void handleSendMessage(t(key))}
-                        className='rounded-full border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50'
+                        className='rounded-none border border-border bg-card px-2.5 py-1.5 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted/50'
                       >
                         {t(key)}
                       </button>
@@ -888,60 +909,59 @@ export function ReportView({ surveyId }: ReportViewProps) {
               {chatMessages.map((msg) => {
                 const confKey = confidenceKey(msg.confidence);
                 const conf = confKey ? t(confKey) : null;
+                const metricRefs = msg.metricRefs.slice(0, 6);
+                const extraMetrics = msg.metricRefs.length - metricRefs.length;
                 return (
                   <div
                     key={msg.id}
                     className={cn(
-                      'flex gap-2.5 animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both',
+                      'flex gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both',
                       msg.role === 'user' ? 'justify-end' : 'justify-start'
                     )}
                   >
                     {msg.role === 'assistant' ? (
-                      <div
-                        className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                      <span
+                        className='flex size-7 shrink-0 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'
                         aria-hidden
                       >
-                        <Icons.sparkles className='size-3.5' />
-                      </div>
+                        <Icons.sparkles className='size-3' />
+                      </span>
                     ) : null}
                     <div
                       className={cn(
-                        'max-w-[min(100%,26rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                        'max-w-[min(100%,100%)] space-y-1.5 text-sm leading-snug',
                         msg.role === 'user'
-                          ? 'rounded-br-md bg-primary text-primary-foreground'
-                          : 'rounded-bl-md border border-border bg-muted/70 text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                          ? 'rounded-none border border-foreground/15 bg-foreground px-3 py-2 text-background'
+                          : 'min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_22%,var(--background))] px-3 py-2 text-foreground'
                       )}
                     >
-                      <p className='whitespace-pre-wrap break-words'>
-                        {msg.content}
-                      </p>
+                      <p className='whitespace-pre-wrap break-words'>{msg.content}</p>
                       {msg.role === 'assistant' &&
-                      (conf || msg.metricRefs.length > 0) ? (
-                        <div className='flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-2'>
+                      (conf || metricRefs.length > 0) ? (
+                        <div className='flex flex-wrap items-center gap-1 border-t border-border/80 pt-1.5'>
                           {conf ? (
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase',
-                                msg.confidence === 'grounded' &&
-                                  'bg-muted text-muted-foreground',
-                                msg.confidence === 'partial' &&
-                                  'bg-muted text-foreground/80',
-                                msg.confidence === 'insufficient_data' &&
-                                  'bg-destructive/10 text-destructive'
-                              )}
+                            <Badge
+                              variant={confidenceBadgeVariant(msg.confidence)}
+                              className='h-6 px-2 text-[10px]'
                             >
                               {conf}
-                            </span>
+                            </Badge>
                           ) : null}
-                          {msg.metricRefs.slice(0, 4).map((ref) => (
-                            <span
+                          {metricRefs.map((ref) => (
+                            <Badge
                               key={ref}
-                              className='inline-flex max-w-full truncate rounded-full border border-border bg-background/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground'
+                              variant='meta'
+                              className='h-6 max-w-[11rem] truncate px-2 text-[10px] normal-case'
                               title={ref}
                             >
-                              {ref}
-                            </span>
+                              {formatMetricRef(ref)}
+                            </Badge>
                           ))}
+                          {extraMetrics > 0 ? (
+                            <span className='text-muted-foreground text-[10px] font-medium tabular-nums'>
+                              +{extraMetrics}
+                            </span>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -950,20 +970,20 @@ export function ReportView({ surveyId }: ReportViewProps) {
               })}
               {isReplying ? (
                 <div
-                  className='flex gap-2.5 animate-in fade-in duration-200'
+                  className='flex gap-2 animate-in fade-in duration-200'
                   aria-label={t('typingAria')}
                 >
                   <div
-                    className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                    className='flex size-7 shrink-0 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'
                     aria-hidden
                   >
-                    <Icons.sparkles className='size-3.5' />
+                    <Icons.sparkles className='size-3' />
                   </div>
-                  <div className='flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-muted/70 px-4 py-3'>
+                  <div className='flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_22%,var(--background))] px-3 py-2'>
                     {[0, 1, 2].map((dot) => (
                       <span
                         key={dot}
-                        className='size-1.5 animate-bounce rounded-full bg-foreground/45'
+                        className='size-1.5 animate-bounce rounded-full bg-muted-foreground/50'
                         style={{
                           animationDelay: `${dot * 140}ms`,
                           animationDuration: '900ms'
@@ -975,36 +995,37 @@ export function ReportView({ surveyId }: ReportViewProps) {
               ) : null}
             </div>
 
-            <div className='shrink-0 space-y-3 border-t border-border bg-brand-soft/70 px-3.5 py-3.5'>
-              <div className='relative'>
-                <Input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={
-                    isReplying ? t('typingPlaceholder') : t('askPlaceholder')
+            <div className='relative shrink-0 border-t border-border bg-background px-3 py-2.5'>
+              <Input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={
+                  isReplying ? t('typingPlaceholder') : t('askPlaceholder')
+                }
+                disabled={isReplying}
+                className={cn(
+                  planFieldControlClass,
+                  'h-9 pr-11 disabled:opacity-70'
+                )}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSendMessage();
                   }
-                  disabled={isReplying}
-                  className='border-border bg-card h-11 rounded-2xl border-2 pr-12 text-sm shadow-sm focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))] disabled:opacity-70'
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      void handleSendMessage();
-                    }
-                  }}
-                />
-                <Button
-                  size='icon'
-                  onClick={() => void handleSendMessage()}
-                  disabled={!chatInput.trim() || isReplying}
-                  aria-label={t('sendMessage')}
-                  className={cn(
-                    brandCtaClass,
-                    'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'
-                  )}
-                >
-                  <Icons.send className='size-3.5' />
-                </Button>
-              </div>
+                }}
+              />
+              <Button
+                size='icon-sm'
+                onClick={() => void handleSendMessage()}
+                disabled={!chatInput.trim() || isReplying}
+                aria-label={t('sendMessage')}
+                className={cn(
+                  brandCtaClass,
+                  'absolute top-1/2 right-4 size-8 -translate-y-1/2 rounded-none p-0'
+                )}
+              >
+                <Icons.send className='size-3.5' />
+              </Button>
             </div>
           </SurvaiPanel>
         </div>

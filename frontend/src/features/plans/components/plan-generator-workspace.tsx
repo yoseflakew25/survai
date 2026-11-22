@@ -21,10 +21,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
+  SurvaiBrandCard,
   SurvaiPanel,
   panelHeaderToneClass,
+  planFieldControlClass,
+  planFieldLabelClass,
   primaryCtaClass,
-  quietActionClass
+  quietActionClass,
+  softSectionHeaderClass
 } from '@/components/survai-panel';
 import { isAppLocale } from '@/i18n/config';
 import { canEditOrg, useAuth } from '@/lib/auth-context';
@@ -330,10 +334,10 @@ export function PlanGeneratorWorkspace() {
         >
           <div className='relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3'>
             <div className='min-w-0 flex-1 basis-[14rem]'>
-              <h2 className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
+              <h2 className='font-display text-xl font-bold tracking-[-0.035em] text-foreground sm:text-2xl'>
                 {brief.titleHint.trim() || t('newPlanTitle')}
               </h2>
-              <p className='text-sm leading-snug text-brand-foreground/70'>
+              <p className='text-sm font-medium leading-snug text-muted-foreground'>
                 {t('newPlanSubtitle')}
               </p>
             </div>
@@ -349,7 +353,7 @@ export function PlanGeneratorWorkspace() {
               <div className='flex items-center gap-1.5'>
                 <Link
                   href='/dashboard/surveys'
-                  className='inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-sm font-medium text-brand-foreground/75 transition-colors hover:bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] hover:text-brand-foreground'
+                  className='inline-flex h-9 items-center gap-1 rounded-none border border-foreground/15 bg-card/80 px-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-card'
                 >
                   <Icons.chevronLeft className='size-4' />
                   {tSurveys('title')}
@@ -360,7 +364,7 @@ export function PlanGeneratorWorkspace() {
                     variant='ghost'
                     disabled={sending || isGenerating}
                     onClick={handleStartOver}
-                    className='h-9 rounded-xl px-2.5 text-sm text-brand-foreground/75 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] hover:text-brand-foreground'
+                    className={cn(quietActionClass, 'h-9 px-2.5')}
                   >
                     {t('startOver')}
                   </Button>
@@ -371,7 +375,7 @@ export function PlanGeneratorWorkspace() {
                   onClick={() => void handleGenerate()}
                   className={cn(
                     primaryCtaClass,
-                    'h-9 shrink-0 gap-1.5 rounded-xl px-3.5 text-sm disabled:opacity-60'
+                    'h-9 shrink-0 gap-1.5 px-3.5 text-sm disabled:opacity-60'
                   )}
                 >
                   {isGenerating ? (
@@ -388,15 +392,15 @@ export function PlanGeneratorWorkspace() {
 
         <div className='flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row'>
           <aside className='flex max-h-[40vh] w-full shrink-0 flex-col overflow-hidden border-b border-border bg-card lg:max-h-none lg:h-full lg:w-[22rem] lg:border-r lg:border-b-0'>
-            <div className='shrink-0 border-b border-border bg-brand-soft px-4 py-3.5'>
+            <div className={cn(softSectionHeaderClass, 'shrink-0')}>
               <div className='flex items-start justify-between gap-3'>
                 <div className='min-w-0'>
                   <div className='flex items-center gap-2'>
-                    <div className='flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
+                    <div className='flex size-8 shrink-0 items-center justify-center rounded-none border border-foreground/20 bg-primary text-primary-foreground shadow-none'>
                       <Icons.plan className='size-3.5' />
                     </div>
                     <div className='min-w-0'>
-                      <p className='font-display text-sm font-extrabold tracking-tight text-foreground'>
+                      <p className='font-display text-sm font-bold tracking-tight text-foreground'>
                         {t('briefSoFar')}
                       </p>
                       <p className='text-muted-foreground text-[11px] leading-snug'>
@@ -406,14 +410,14 @@ export function PlanGeneratorWorkspace() {
                   </div>
                 </div>
                 {briefHasContent(brief) || researchGoalDraft.trim() ? (
-                  <div className='shrink-0 rounded-full bg-card px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-foreground shadow-sm ring-1 ring-border'>
+                  <div className='shrink-0 border border-foreground/15 bg-card px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-foreground shadow-none'>
                     {briefFilled}/{briefTotal}
                   </div>
                 ) : null}
               </div>
               {briefHasContent(brief) || researchGoalDraft.trim() ? (
                 <div
-                  className='mt-3 h-1.5 overflow-hidden rounded-full bg-card/70'
+                  className='mt-3 h-1.5 overflow-hidden rounded-none border border-foreground/10 bg-card/70'
                   role='progressbar'
                   aria-valuenow={briefFilled}
                   aria-valuemin={0}
@@ -421,7 +425,7 @@ export function PlanGeneratorWorkspace() {
                   aria-label={t('briefCompleteness')}
                 >
                   <div
-                    className='h-full rounded-full bg-primary transition-[width] duration-300 ease-out'
+                    className='h-full rounded-none bg-primary transition-[width] duration-300 ease-out'
                     style={{
                       width: `${Math.round((briefFilled / briefTotal) * 100)}%`
                     }}
@@ -499,19 +503,19 @@ export function PlanGeneratorWorkspace() {
                 </div>
               ) : (
                 <div className='flex h-full flex-col gap-3'>
-                  <div className='rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/50 px-3.5 py-4 text-center'>
-                    <div className='mx-auto mb-2.5 flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm'>
+                  <div className='rounded-none border border-dashed border-foreground/20 bg-background px-3.5 py-4 text-center'>
+                    <div className='mx-auto mb-2.5 flex size-10 items-center justify-center rounded-none border border-foreground/20 bg-primary text-primary-foreground shadow-none'>
                       <Icons.sparkles className='size-4' />
                     </div>
                     <p className='font-display text-sm font-bold tracking-tight text-foreground'>
                       {t('nothingCaptured')}
                     </p>
-                    <p className='text-muted-foreground mx-auto  max-w-[14rem] text-xs leading-relaxed'>
+                    <p className='text-muted-foreground mx-auto max-w-[14rem] text-xs leading-relaxed'>
                       {t('nothingCapturedHint')}
                     </p>
                   </div>
                   <div className='space-y-1.5'>
-                    <p className='text-muted-foreground px-0.5 text-[10px] font-semibold tracking-wide uppercase'>
+                    <p className={cn(planFieldLabelClass, 'px-0.5')}>
                       {t('starters')}
                     </p>
                     {STARTER_KEYS.map((starterKey, index) => (
@@ -520,9 +524,9 @@ export function PlanGeneratorWorkspace() {
                         type='button'
                         disabled={briefBusy}
                         onClick={() => void handleSend(t(starterKey))}
-                        className='group flex w-full items-start gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-left transition-colors hover:border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] hover:bg-brand-soft/60 disabled:opacity-60'
+                        className='group flex w-full items-start gap-2.5 rounded-none border border-foreground/15 bg-background px-2.5 py-2.5 text-left transition-colors hover:border-foreground/30 hover:bg-brand-soft/40 disabled:opacity-60'
                       >
-                        <span className=' flex size-5 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-[10px] font-bold text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground'>
+                        <span className='flex size-5 shrink-0 items-center justify-center rounded-none border border-foreground/15 bg-muted font-mono text-xs font-bold text-foreground transition-colors group-hover:border-foreground/20 group-hover:bg-primary group-hover:text-primary-foreground'>
                           {index + 1}
                         </span>
                         <span className='text-[11px] font-medium leading-snug text-foreground'>
@@ -538,16 +542,16 @@ export function PlanGeneratorWorkspace() {
             {briefHasContent(brief) || researchGoalDraft.trim() ? (
               <div className='shrink-0 border-t border-border bg-card px-3 py-3'>
                 {readyToGenerate || generateEnabled ? (
-                  <div className='rounded-xl border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-3 py-2.5'>
+                  <div className='rounded-none border border-foreground/15 bg-brand-soft px-3 py-2.5'>
                     <div className='flex items-start gap-2'>
-                      <div className=' flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
+                      <div className='flex size-6 shrink-0 items-center justify-center rounded-none border border-foreground/20 bg-primary text-primary-foreground'>
                         <Icons.circleCheck className='size-3.5' />
                       </div>
                       <div className='min-w-0'>
                         <p className='text-xs font-semibold text-foreground'>
                           {t('readyToGenerate')}
                         </p>
-                        <p className='text-muted-foreground  text-[11px] leading-relaxed'>
+                        <p className='text-muted-foreground text-[11px] leading-relaxed'>
                           {t('readyToGenerateHint')}
                         </p>
                       </div>
@@ -585,10 +589,10 @@ export function PlanGeneratorWorkspace() {
                   {msg.role === 'assistant' ? <AssistantAvatar /> : null}
                   <div
                     className={cn(
-                      'max-w-[min(100%,36rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                      'max-w-[min(100%,36rem)] space-y-2 rounded-none px-3.5 py-2.5 text-sm leading-relaxed shadow-none',
                       msg.role === 'user'
-                        ? 'rounded-br-md bg-primary text-primary-foreground'
-                        : 'rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft text-foreground'
                     )}
                   >
                     <p className='whitespace-pre-wrap break-words'>
@@ -606,7 +610,7 @@ export function PlanGeneratorWorkspace() {
                       type='button'
                       disabled={sending || isGenerating}
                       onClick={() => void handleSend(t(starterKey))}
-                      className='rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50'
+                      className='rounded-none border border-foreground/15 bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-brand-soft/50'
                     >
                       {t(starterKey)}
                     </button>
@@ -628,7 +632,7 @@ export function PlanGeneratorWorkspace() {
                   }
                 >
                   <AssistantAvatar />
-                  <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
+                  <div className='max-w-[min(100%,36rem)] space-y-2 rounded-none border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-none'>
                     {streamDraft ? (
                       <p className='whitespace-pre-wrap break-words'>
                         {streamDraft}
@@ -639,7 +643,7 @@ export function PlanGeneratorWorkspace() {
                           {[0, 1, 2].map((dot) => (
                             <span
                               key={dot}
-                              className='size-1.5 animate-bounce rounded-full bg-foreground/45'
+                              className='size-1.5 animate-bounce rounded-none bg-foreground/45'
                               style={{
                                 animationDelay: `${dot * 140}ms`,
                                 animationDuration: '900ms'
@@ -661,23 +665,20 @@ export function PlanGeneratorWorkspace() {
               ) : null}
 
               {readyToGenerate && !isGenerating && !sending ? (
-                <div className='mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 py-6 text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_14%,transparent)] sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-7 sm:py-7'>
-                  <div className='min-w-0'>
-                    <p className='font-display text-xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                      {t('readyWhenYouAre')}
-                    </p>
-                    <p className='max-w-md text-sm leading-relaxed text-brand-foreground/75 sm:text-[0.95rem]'>
-                      {t('readyBannerBody')}
-                    </p>
-                  </div>
+                <SurvaiBrandCard
+                  title={t('readyWhenYouAre')}
+                  description={t('readyBannerBody')}
+                  className='mx-auto w-full max-w-2xl'
+                >
                   <Button
                     type='button'
-                    className='h-11 shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] hover:brightness-110'
+                    className={cn(primaryCtaClass, 'h-11 w-full sm:w-auto')}
                     onClick={() => void handleGenerate()}
                   >
+                    <Icons.sparkles className='size-3.5' />
                     {t('generatePlan')}
                   </Button>
-                </div>
+                </SurvaiBrandCard>
               ) : null}
 
               <div ref={endRef} />
@@ -698,7 +699,10 @@ export function PlanGeneratorWorkspace() {
                       sending ? t('typing') : t('inputPlaceholder')
                     }
                     disabled={sending || isGenerating}
-                    className='h-11 rounded-2xl border border-border bg-card pr-12 text-sm shadow-sm focus-visible:border-ring disabled:opacity-70'
+                    className={cn(
+                      planFieldControlClass,
+                      'h-11 border-2 bg-card pr-12 disabled:opacity-70'
+                    )}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -713,7 +717,7 @@ export function PlanGeneratorWorkspace() {
                     aria-label={t('sendMessage')}
                     className={cn(
                       quietActionClass,
-                      'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'
+                      'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 p-0'
                     )}
                   >
                     <Icons.send className='size-3.5' />
@@ -749,7 +753,7 @@ export function PlanGeneratorWorkspace() {
 function AssistantAvatar() {
   return (
     <div
-      className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+      className='flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-none'
       aria-hidden
     >
       <Icons.sparkles className='size-3.5' />
@@ -772,7 +776,7 @@ function BriefSection({
         <p className='text-[11px] font-semibold tracking-wide text-foreground uppercase'>
           {label}
         </p>
-        <p className='text-muted-foreground text-[10px] leading-snug'>{hint}</p>
+        <p className='text-muted-foreground text-xs leading-snug'>{hint}</p>
       </div>
       <div className='space-y-2'>{children}</div>
     </section>
@@ -810,35 +814,33 @@ function EditableBriefField({
   return (
     <label
       className={cn(
-        'group block cursor-text rounded-xl border bg-brand-soft px-3 py-2.5 transition-[border-color,box-shadow,background-color]',
+        'group block cursor-text rounded-none border bg-background px-3 py-2.5 transition-[border-color,background-color] shadow-none',
         filled
-          ? 'border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'
-          : 'border-dashed border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]',
-        'focus-within:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] focus-within:bg-brand-soft focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_18%,transparent)]'
+          ? 'border-foreground/15'
+          : 'border-dashed border-foreground/20',
+        'focus-within:border-foreground/30 focus-within:bg-card'
       )}
     >
       <div className='mb-1.5 flex items-center justify-between gap-2'>
         <div className='flex items-center gap-1.5'>
           <span
             className={cn(
-              'flex size-5 items-center justify-center rounded-md transition-colors',
+              'flex size-5 items-center justify-center rounded-none border border-foreground/15 transition-colors',
               filled
-                ? 'bg-brand-soft text-primary'
+                ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground'
             )}
           >
             <Icon className='size-3' />
           </span>
-          <span className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'>
-            {label}
-          </span>
+          <span className={planFieldLabelClass}>{label}</span>
         </div>
         {filled ? (
-          <span className='bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums'>
+          <span className='border border-foreground/10 bg-muted px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-foreground'>
             {value.trim().length}
           </span>
         ) : (
-          <span className='text-muted-foreground/80 text-[9px] font-medium tracking-wide uppercase'>
+          <span className='text-muted-foreground/80 font-mono text-[9px] font-medium tracking-wide uppercase'>
             {t('empty')}
           </span>
         )}
@@ -900,29 +902,25 @@ function EditableChipList({
   return (
     <div
       className={cn(
-        'rounded-xl border bg-brand-soft px-3 py-2.5 transition-[border-color,box-shadow]',
-        filled
-          ? 'border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]'
-          : 'border-dashed border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]'
+        'rounded-none border bg-background px-3 py-2.5 shadow-none transition-[border-color]',
+        filled ? 'border-foreground/15' : 'border-dashed border-foreground/20'
       )}
     >
       <div className='mb-2 flex items-center justify-between gap-2'>
         <div className='flex items-center gap-1.5'>
           <span
             className={cn(
-              'flex size-5 items-center justify-center rounded-md',
+              'flex size-5 items-center justify-center rounded-none border border-foreground/15',
               filled
-                ? 'bg-brand-soft text-primary'
+                ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground'
             )}
           >
             <Icon className='size-3' />
           </span>
-          <p className='text-muted-foreground text-[10px] font-semibold tracking-wide uppercase'>
-            {label}
-          </p>
+          <p className={planFieldLabelClass}>{label}</p>
         </div>
-        <span className='bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums'>
+        <span className='border border-foreground/10 bg-muted px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-foreground'>
           {items.length}
         </span>
       </div>
@@ -933,9 +931,9 @@ function EditableChipList({
             <span
               key={item}
               className={cn(
-                'inline-flex max-w-full items-center gap-1 rounded-lg px-2 py-1 text-[11px] leading-snug font-medium text-foreground',
+                'inline-flex max-w-full items-center gap-1 rounded-none px-2 py-1 text-[11px] leading-snug font-medium text-foreground',
                 tone === 'brand'
-                  ? 'border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft'
+                  ? 'border border-foreground/15 bg-brand-soft'
                   : 'border border-border bg-muted/50'
               )}
             >
@@ -944,7 +942,7 @@ function EditableChipList({
                 type='button'
                 disabled={disabled}
                 aria-label={t('removeItem', { item })}
-                className='text-muted-foreground hover:text-destructive rounded-sm transition-colors disabled:opacity-50'
+                className='text-muted-foreground hover:text-destructive rounded-none transition-colors disabled:opacity-50'
                 onClick={() =>
                   onChange(items.filter((entry) => entry !== item))
                 }
@@ -965,7 +963,10 @@ function EditableChipList({
           value={draft}
           disabled={disabled}
           placeholder={t('addField', { label: singular })}
-          className='h-8 rounded-lg border-border bg-background pr-9 text-[11px] focus-visible:border-[color-mix(in_srgb,var(--brand)_55%,var(--border))]'
+          className={cn(
+            planFieldControlClass,
+            'h-8 pr-9 text-[11px]'
+          )}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -980,7 +981,7 @@ function EditableChipList({
           disabled={disabled || !draft.trim()}
           aria-label={t('addItem', { item: singular })}
           onClick={commitDraft}
-          className='absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity disabled:opacity-30'
+          className='absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-none border border-foreground/20 bg-primary text-primary-foreground transition-opacity disabled:opacity-30'
         >
           <Icons.add className='size-3' />
         </button>

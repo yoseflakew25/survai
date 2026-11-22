@@ -31,6 +31,8 @@ interface EditableListProps {
   emptyMessage?: string;
   disabled?: boolean;
   className?: string;
+  /** Tighter empty states and add row (plan blueprint). */
+  compact?: boolean;
 }
 
 export function EditableList({
@@ -40,7 +42,8 @@ export function EditableList({
   addLabel,
   emptyMessage,
   disabled = false,
-  className
+  className,
+  compact = false
 }: EditableListProps) {
   const t = useTranslations('plan');
   const resolvedPlaceholder = placeholder ?? t('enterItem');
@@ -120,14 +123,19 @@ export function EditableList({
   );
 
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn(compact ? 'space-y-2' : 'space-y-3', className)}>
       {items.length === 0 ? (
-        <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/40 px-4 py-8 text-center'>
-          <div className='flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm'>
-            <Icons.forms className='size-4' />
+        <div
+          className={cn(
+            'flex flex-col items-center justify-center gap-1.5 rounded-none border border-dashed border-border bg-muted/25 text-center',
+            compact ? 'px-3 py-5' : 'px-4 py-8'
+          )}
+        >
+          <div className='flex size-8 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'>
+            <Icons.forms className='size-3.5' />
           </div>
           <p className='text-sm font-semibold text-foreground'>{resolvedEmpty}</p>
-          <p className='text-muted-foreground max-w-[16rem] text-xs leading-relaxed'>
+          <p className='text-muted-foreground max-w-[18rem] text-xs leading-snug'>
             {disabled ? t('nothingCapturedSection') : t('addOrRegenerate')}
           </p>
         </div>
@@ -137,7 +145,7 @@ export function EditableList({
             items={items.map((_, i) => `item-${i}`)}
             strategy={verticalListSortingStrategy}
           >
-            <ul className='divide-border overflow-hidden rounded-xl border border-border divide-y'>
+            <ul className='divide-border overflow-hidden rounded-none border border-border divide-y'>
               {items.map((item, index) => (
                 <SortableItem
                   key={`item-${index}`}
@@ -215,12 +223,15 @@ export function EditableList({
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e)}
             placeholder={`${resolvedAddLabel}…`}
-            className='h-10 flex-1 rounded-xl border-dashed'
+            className={cn(
+              'h-9 flex-1 rounded-none border-dashed',
+              compact && 'h-9 text-sm'
+            )}
           />
           <Button
             type='button'
             variant='outline'
-            className='h-10 shrink-0 rounded-xl px-3 font-medium'
+            className='h-9 shrink-0 rounded-none px-3 text-sm font-medium'
             onClick={handleAdd}
             disabled={!newItem.trim()}
           >

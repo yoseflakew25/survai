@@ -122,7 +122,7 @@ export function RecentActivity() {
                   <p className='text-sm font-medium'>{item.title}</p>
                   <Badge
                     variant='outline'
-                    className={`rounded-full border-transparent text-[10px] ${config.badgeClass}`}
+                    className={`rounded-full border-transparent text-xs ${config.badgeClass}`}
                   >
                     {config.label}
                   </Badge>

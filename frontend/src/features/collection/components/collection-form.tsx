@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
+import { SurvaiLogo } from '@/components/survai-logo';
 import { toast } from '@/lib/toast';
 import type {
   PublicSurvey,
@@ -18,13 +17,9 @@ import {
   displaySurveyTitle
 } from '@/lib/survey-display';
 import { conditionIsActive } from '@/lib/conditional-logic';
-import {
-  brandMetaChipClass,
-  softSectionHeaderClass
-} from '@/components/survai-panel';
-import { cn } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import '../styles/collection-v2.css';
 
 interface CollectionFormProps {
   survey: PublicSurvey;
@@ -39,6 +34,13 @@ function isAnswered(value: AnswerValue): boolean {
 
 function estimateMinutes(questionCount: number): number {
   return Math.max(2, Math.round(questionCount * 0.4));
+}
+
+function questionVisible(
+  q: { conditionalLogic?: PublicSurvey['sections'][number]['questions'][number]['conditionalLogic'] },
+  answers: Record<string, AnswerValue>
+) {
+  return !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers);
 }
 
 export function CollectionForm({ survey }: CollectionFormProps) {
@@ -56,51 +58,52 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   const isLastSection = currentSectionIndex === sections.length - 1;
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
-  // ----- Derived -----
-  const { answeredCounts, totalRequired, totalAnsweredRequired } =
-    useMemo(() => {
-      const answered = sections.map(
-        (section) =>
-          section.questions.filter((q) => !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers) ? isAnswered(answers[q.id]) : true).length
-      );
-      const required = sections.map(
-        (section) =>
-          section.questions.filter((q) => !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers) ? q.isRequired : false).length
-      );
-      const answeredRequired = sections.reduce(
-        (sum, section) =>
-          sum +
-          section.questions.filter((q) =>
-            (!q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers)) &&
+  const { answeredCounts, totalRequired, totalAnsweredRequired } = useMemo(() => {
+    const answered = sections.map(
+      (section) =>
+        section.questions.filter((q) =>
+          questionVisible(q, answers) ? isAnswered(answers[q.id]) : true
+        ).length
+    );
+    const required = sections.map(
+      (section) =>
+        section.questions.filter((q) =>
+          questionVisible(q, answers) ? q.isRequired : false
+        ).length
+    );
+    const answeredRequired = sections.reduce(
+      (sum, section) =>
+        sum +
+        section.questions.filter(
+          (q) =>
+            questionVisible(q, answers) &&
             q.isRequired &&
             isAnswered(answers[q.id])
-          ).length,
-        0
-      );
-      return {
-        answeredCounts: answered,
-        totalRequired: required.reduce((a, b) => a + b, 0),
-        totalAnsweredRequired: answeredRequired
-      };
-    }, [sections, answers]);
+        ).length,
+      0
+    );
+    return {
+      answeredCounts: answered,
+      totalRequired: required.reduce((a, b) => a + b, 0),
+      totalAnsweredRequired: answeredRequired
+    };
+  }, [sections, answers]);
 
   const totalQuestions = sections.reduce(
-    (s, sec) => s + sec.questions.filter((q) => !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers)).length,
+    (s, sec) => s + sec.questions.filter((q) => questionVisible(q, answers)).length,
     0
   );
-
-  // ----- Handlers -----
 
   const scrollSectionIntoView = useCallback(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  // Scroll to the first invalid question whenever validation marks errors.
   useEffect(() => {
     const firstErrorId = Object.keys(errors)[0];
     if (!firstErrorId) return;
-    const el = document.getElementById(firstErrorId);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document
+      .getElementById(`collection-q-${firstErrorId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [errors]);
 
   const handleAnswerChange = useCallback((questionId: string, value: AnswerValue) => {
@@ -113,12 +116,11 @@ export function CollectionForm({ survey }: CollectionFormProps) {
     });
   }, []);
 
-  /** Validates one section; sets its error map and returns it for messaging. */
   const validateSection = useCallback(
     (section: PublicSection): Record<string, string> => {
       const newErrors: Record<string, string> = {};
       for (const q of section.questions) {
-        if (q.conditionalLogic && !conditionIsActive(q.conditionalLogic, answers)) continue;
+        if (!questionVisible(q, answers)) continue;
         if (!q.isRequired || isAnswered(answers[q.id])) continue;
         newErrors[q.id] = t('answerRequired');
       }
@@ -148,11 +150,10 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   }, [scrollSectionIntoView]);
 
   const handleSubmit = useCallback(async () => {
-    // Validate every required question across the whole survey.
     const buildErrorsFor = (section: PublicSection) => {
       const map: Record<string, string> = {};
       for (const q of section.questions) {
-        if (q.conditionalLogic && !conditionIsActive(q.conditionalLogic, answers)) continue;
+        if (!questionVisible(q, answers)) continue;
         if (q.isRequired && !isAnswered(answers[q.id])) {
           map[q.id] = t('answerRequired');
         }
@@ -166,7 +167,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       const section = sections[i];
       const invalid = section.questions.findIndex(
         (q) =>
-          (!q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers)) &&
+          questionVisible(q, answers) &&
           q.isRequired &&
           !isAnswered(answers[q.id])
       );
@@ -181,11 +182,7 @@ export function CollectionForm({ survey }: CollectionFormProps) {
       if (firstInvalidIndex !== currentSectionIndex) {
         setCurrentSectionIndex(firstInvalidIndex);
         setErrors({});
-        // Wait for the section card to mount, then flag its missing questions.
-        window.setTimeout(
-          () => setErrors(buildErrorsFor(invalidSection)),
-          100
-        );
+        window.setTimeout(() => setErrors(buildErrorsFor(invalidSection)), 100);
       } else {
         setErrors(buildErrorsFor(invalidSection));
       }
@@ -230,8 +227,9 @@ export function CollectionForm({ survey }: CollectionFormProps) {
         description={survey.description}
         answeredCount={sections.reduce(
           (sum, section) =>
-            sum + section.questions.filter((q) =>
-              !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers) ? isAnswered(answers[q.id]) : true
+            sum +
+            section.questions.filter((q) =>
+              questionVisible(q, answers) ? isAnswered(answers[q.id]) : true
             ).length,
           0
         )}
@@ -244,185 +242,141 @@ export function CollectionForm({ survey }: CollectionFormProps) {
   }
 
   const answeredInSection = answeredCounts[currentSectionIndex] ?? 0;
-  const totalInSection = currentSection.questions.filter((q) => !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers)).length;
+  const totalInSection = currentSection.questions.filter((q) =>
+    questionVisible(q, answers)
+  ).length;
   const sectionProgress =
     totalRequired > 0
       ? Math.round(Math.min(1, totalAnsweredRequired / totalRequired) * 100)
       : Math.round((totalAnsweredRequired / Math.max(1, totalQuestions)) * 100);
 
-  // Prepend the section number offset for continuous question numbering.
   let questionOffset = 0;
   for (let i = 0; i < currentSectionIndex; i++) {
-    questionOffset += sections[i].questions.filter((q) => !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers)).length;
+    questionOffset += sections[i].questions.filter((q) =>
+      questionVisible(q, answers)
+    ).length;
   }
 
-  return (
-    <div className='flex min-h-dvh flex-col bg-background' lang={locale}>
-      <div className='flex justify-end px-4 pt-3 sm:px-6'>
-        <LanguageSwitcher />
-      </div>
-      <main className='mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8'>
-        {/* Hero — Survai brand outline (matches SurvaiBrandCard) */}
-        <header className='relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)]'>
-          <div
-            className='pointer-events-none absolute inset-0 opacity-[0.32]'
-            aria-hidden
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px)',
-              backgroundSize: '22px 22px',
-              maskImage:
-                'linear-gradient(to right, transparent, black 25%, black 75%, transparent)',
-              WebkitMaskImage:
-                'linear-gradient(to right, transparent, black 25%, black 75%, transparent)'
-            }}
-          />
-          <div className='relative space-y-5 p-4 sm:p-6'>
-            <div>
-              <h1 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-[1.75rem] sm:leading-snug'>
-                {displaySurveyTitle(survey.title)}
-              </h1>
-              {displaySurveyDescription(survey.title, survey.description) ? (
-                <p className='max-w-2xl text-sm leading-relaxed text-brand-foreground/75'>
-                  {displaySurveyDescription(survey.title, survey.description)}
-                </p>
-              ) : null}
-            </div>
+  const description = displaySurveyDescription(survey.title, survey.description);
 
-            <div className='flex flex-wrap items-center gap-2'>
-              {[
-                {
-                  id: 'sections',
-                  icon: Icons.forms,
-                  label: t('sectionsCount', { count: sections.length })
-                },
-                {
-                  id: 'questions',
-                  icon: Icons.check,
-                  label: t('questionsCount', { count: totalQuestions })
-                },
-                {
-                  id: 'minutes',
-                  icon: Icons.clock,
-                  label: t('minutesEstimate', {
-                    count: estimateMinutes(totalQuestions)
-                  })
-                }
-              ].map((chip) => (
-                <span
-                  key={chip.id}
-                  className={cn(brandMetaChipClass, 'rounded-full px-2.5 font-medium')}
-                >
-                  <chip.icon className='size-3 opacity-90' />
-                  {chip.label}
-                </span>
-              ))}
-              {totalRequired > 0 ? (
-                <span className='ml-auto text-[11px] text-brand-foreground/70'>
-                  <span className='font-semibold text-brand-foreground'>*</span>{' '}
-                  {t('required')}
-                </span>
-              ) : null}
-            </div>
+  return (
+    <div className='collect-v2-root' lang={locale}>
+      <header className='collect-hdr'>
+        <SurvaiLogo />
+        <div className='collect-hdr-lang'>
+          <LanguageSwitcher />
+        </div>
+      </header>
+
+      <main className='collect-main'>
+        <header className='collect-hero'>
+          <h1 className='collect-hero-title'>{displaySurveyTitle(survey.title)}</h1>
+          {description ? <p className='collect-hero-desc'>{description}</p> : null}
+
+          <div className='collect-hero-meta'>
+            <span className='collect-chip'>
+              <Icons.forms />
+              {t('sectionsCount', { count: sections.length })}
+            </span>
+            <span className='collect-chip'>
+              <Icons.check />
+              {t('questionsCount', { count: totalQuestions })}
+            </span>
+            <span className='collect-chip'>
+              <Icons.clock />
+              {t('minutesEstimate', { count: estimateMinutes(totalQuestions) })}
+            </span>
+            {totalRequired > 0 ? (
+              <span className='collect-required-hint'>
+                <b>*</b> {t('required')}
+              </span>
+            ) : null}
           </div>
         </header>
 
-        {/* Section card */}
-        <div
-          ref={scrollAnchorRef}
-          className='mt-4 scroll-mt-6 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--brand)_18%,var(--border))] bg-card shadow-sm'
-        >
-          {/* Section header */}
-          <div className={cn(softSectionHeaderClass, 'px-5 py-4 sm:px-6')}>
-            <div className='flex items-start gap-3'>
-              <span className='flex size-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_12%,transparent)]'>
-                {currentSectionIndex + 1}
-              </span>
-              <div className='min-w-0 flex-1'>
-                <h2 className='text-base font-semibold tracking-tight text-foreground'>
-                  {currentSection.title}
-                </h2>
-                {currentSection.description && (
-                  <p className='text-xs leading-relaxed text-muted-foreground'>
-                    {currentSection.description}
-                  </p>
-                )}
-              </div>
-              <Badge className='shrink-0 rounded-full border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-card/80 text-[10px] font-semibold text-brand-foreground'>
-                {t('answeredOf', {
-                  answered: answeredInSection,
-                  total: totalInSection
-                })}
-              </Badge>
+        <div ref={scrollAnchorRef} className='collect-frame'>
+          <div className='collect-section-head'>
+            <span className='collect-section-index' aria-hidden='true'>
+              {currentSectionIndex + 1}
+            </span>
+            <div className='collect-section-copy'>
+              <h2 className='collect-section-title'>{currentSection.title}</h2>
+              {currentSection.description ? (
+                <p className='collect-section-desc'>{currentSection.description}</p>
+              ) : null}
             </div>
+            <span className='collect-section-stat'>
+              {t('answeredOf', {
+                answered: answeredInSection,
+                total: totalInSection
+              })}
+            </span>
           </div>
 
-          {/* Questions */}
-          <div className='px-5 py-6 sm:px-6'>
-            <div className='space-y-8'>
-              {currentSection.questions
-                .filter((q) => !q.conditionalLogic || conditionIsActive(q.conditionalLogic, answers))
-                .map((question, qIndex) => (
-                  <PublicQuestionInput
-                    key={question.id}
-                    question={question}
-                    questionNumber={questionOffset + qIndex + 1}
-                    value={answers[question.id] ?? null}
-                    onChange={(value) => handleAnswerChange(question.id, value)}
-                    error={errors[question.id]}
-                  />
-                ))}
-            </div>
+          <div className='collect-questions'>
+            {currentSection.questions
+              .filter((q) => questionVisible(q, answers))
+              .map((question, qIndex) => (
+                <PublicQuestionInput
+                  key={question.id}
+                  question={question}
+                  questionNumber={questionOffset + qIndex + 1}
+                  value={answers[question.id] ?? null}
+                  onChange={(value) => handleAnswerChange(question.id, value)}
+                  error={errors[question.id]}
+                />
+              ))}
           </div>
 
-          {/* Footer nav */}
-          <div className='flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3.5 sm:px-6'>
-            <Button
-              variant='outline'
+          <div className='collect-nav'>
+            <button
+              type='button'
+              className='collect-btn'
               onClick={handlePrev}
               disabled={currentSectionIndex === 0}
-              className='min-w-[7rem] bg-card shadow-none'
             >
-              <Icons.chevronLeft className='mr-1 size-4' />
+              <Icons.chevronLeft />
               {t('previous')}
-            </Button>
+            </button>
 
-            <p className='text-muted-foreground hidden text-xs sm:block'>
+            <p className='collect-progress'>
               {t('progress')}: {sectionProgress}%
             </p>
 
             {isLastSection ? (
-              <Button
+              <button
+                type='button'
+                className='collect-btn collect-btn-ink'
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className='min-w-[9rem] shadow-sm'
               >
                 {isSubmitting ? (
                   <>
-                    <Icons.spinner className='mr-2 size-4 animate-spin' />
+                    <Icons.spinner className='spin' />
                     {t('submitting')}
                   </>
                 ) : (
                   <>
                     {t('submit')}
-                    <Icons.send className='ml-2 size-3.5' />
+                    <Icons.send />
                   </>
                 )}
-              </Button>
+              </button>
             ) : (
-              <Button
+              <button
+                type='button'
+                className='collect-btn collect-btn-ink'
                 onClick={handleNext}
-                className='min-w-[7rem] shadow-sm'
               >
                 {t('next')}
-                <Icons.chevronRight className='ml-1 size-4' />
-              </Button>
+                <Icons.chevronRight />
+              </button>
             )}
           </div>
         </div>
 
-        <p className='text-muted-foreground mt-6 flex items-center justify-center gap-1.5 pb-2 text-center text-[11px]'>
-          <Icons.lock className='size-3' />
+        <p className='collect-privacy'>
+          <Icons.lock />
           {t('privacyNote')}
         </p>
       </main>

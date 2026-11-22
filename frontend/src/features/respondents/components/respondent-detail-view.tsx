@@ -5,12 +5,15 @@ import { useTranslations } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { SheetClose } from '@/components/ui/sheet';
 import { respondentDetailOptions } from '../api/queries';
 import type { RespondentAnswer } from '../api/types';
 import { cn } from '@/lib/utils';
 import { displaySurveyTitle } from '@/lib/survey-display';
 import type { ReactNode } from 'react';
 import {
+  panelWashClass,
   SurvaiPanel,
   SurvaiPanelHeader
 } from '@/components/survai-panel';
@@ -54,6 +57,7 @@ export function RespondentDetailView({
   variant = 'page'
 }: RespondentDetailViewProps) {
   const t = useTranslations('respondents');
+  const tCommon = useTranslations('common');
   const { data: detail } = useSuspenseQuery(
     respondentDetailOptions(surveyId, respondentId)
   );
@@ -123,65 +127,82 @@ export function RespondentDetailView({
   if (isDrawer) {
     return (
       <div className='flex flex-col'>
-        <header className='relative overflow-hidden border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand'>
+        <header className={cn(panelWashClass, 'relative shrink-0 overflow-hidden')}>
           <div
-            className='pointer-events-none absolute inset-0 opacity-[0.32]'
+            className='pointer-events-none absolute inset-0 opacity-[0.22]'
             aria-hidden
             style={{
               backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px)',
+                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
               backgroundSize: '18px 18px',
               maskImage:
-                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
+                'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
               WebkitMaskImage:
-                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)'
+                'linear-gradient(to right, transparent, black 12%, black 88%, transparent)'
             }}
           />
-          <div className='relative px-4 pt-4 pr-12 pb-4 sm:px-5'>
-            <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
-              <div className='min-w-0 flex-1'>
+          <div className='relative px-4 py-3.5 pr-12 sm:px-5 sm:pr-14'>
+            <div className='flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:items-center sm:gap-5'>
+              <div className='min-w-0'>
                 <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-                  <h1 className='font-display truncate text-2xl font-extrabold tracking-tight text-brand-foreground'>
+                  <h1 className='font-display truncate text-xl font-extrabold tracking-tight text-foreground sm:text-2xl'>
                     {detail.name}
                   </h1>
                   <Badge
-                    className={cn(
-                      'rounded-full border-transparent text-[10px] font-semibold',
-                      isComplete
-                        ? 'bg-brand-foreground text-brand'
-                        : 'border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground'
-                    )}
+                    variant={isComplete ? 'accent' : 'meta'}
+                    className='h-7 gap-1 px-2.5'
                   >
                     {isComplete ? (
-                      <Icons.circleCheck className='mr-1 size-3' />
+                      <Icons.circleCheck className='size-3 shrink-0' />
                     ) : (
-                      <Icons.clock className='mr-1 size-3' />
+                      <Icons.clock className='size-3 shrink-0' />
                     )}
                     {isComplete ? t('statusCompleted') : t('statusPartial')}
                   </Badge>
                 </div>
-                <p className='truncate text-xs text-brand-foreground/70'>
+                <p className='mt-0.5 truncate text-xs font-medium text-muted-foreground'>
                   {detail.email}
                 </p>
-                <p className='truncate font-mono text-[10px] tracking-wide text-brand-foreground/70 uppercase'>
+                <p className='truncate font-mono text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
                   {surveyLabel}
                 </p>
               </div>
 
-              <dl className='grid grid-cols-2 gap-2 sm:shrink-0'>
+              <dl className='grid w-full grid-cols-2 gap-2 min-[480px]:grid-cols-3 sm:min-w-0'>
                 <MetaStat
-                  icon={<Icons.calendar className='size-3' />}
+                  icon={<Icons.calendar className='size-3 shrink-0' />}
                   label={t('colSubmitted')}
                   value={formatDateTime(detail.submittedAt)}
                 />
                 <MetaStat
-                  icon={<Icons.check className='size-3' />}
+                  icon={<Icons.check className='size-3 shrink-0' />}
                   label={t('answeredLabel')}
                   value={`${answeredCount}/${totalQuestions}`}
                   mono
                 />
+                <MetaStat
+                  icon={<Icons.clock className='size-3 shrink-0' />}
+                  label={t('durationLabel')}
+                  value={formatDuration(detail.durationSeconds)}
+                  mono
+                  className='col-span-2 min-[480px]:col-span-1'
+                />
               </dl>
             </div>
+
+            <SheetClose
+              render={
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon-sm'
+                  className='absolute top-3.5 right-4 z-10 size-8 rounded-none border-border bg-background/90 text-foreground hover:bg-muted sm:right-5'
+                  aria-label={tCommon('close')}
+                />
+              }
+            >
+              <Icons.close className='size-4' />
+            </SheetClose>
           </div>
         </header>
 
@@ -220,7 +241,7 @@ export function RespondentDetailView({
               </h1>
               <Badge
                 className={cn(
-                  'rounded-full border-transparent text-[10px] font-semibold',
+                  'rounded-full border-transparent text-xs font-semibold',
                   isComplete
                     ? 'bg-brand-foreground text-brand'
                     : 'border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground'
@@ -280,22 +301,29 @@ function MetaStat({
   icon,
   label,
   value,
-  mono
+  mono,
+  className
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   mono?: boolean;
+  className?: string;
 }) {
   return (
-    <div className='min-w-0 rounded-xl border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-2 backdrop-blur-sm'>
-      <dt className='flex items-center gap-1 text-[10px] font-medium tracking-wide text-brand-foreground/70 uppercase'>
-        <span className='shrink-0'>{icon}</span>
+    <div
+      className={cn(
+        'flex min-h-[3.25rem] min-w-0 flex-col justify-center rounded-none border border-foreground/15 bg-background/80 px-2.5 py-2',
+        className
+      )}
+    >
+      <dt className='text-muted-foreground flex items-center gap-1 text-[10px] font-semibold tracking-wide uppercase'>
+        {icon}
         <span className='truncate'>{label}</span>
       </dt>
       <dd
         className={cn(
-          'truncate text-xs font-semibold text-brand-foreground',
+          'truncate text-xs font-semibold text-foreground',
           mono && 'font-mono tabular-nums'
         )}
       >
@@ -335,7 +363,7 @@ function SectionCard({
         badge={
           <span
             className={cn(
-              'rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums',
+              'rounded-full px-2 py-0.5 font-mono text-xs font-semibold tabular-nums',
               complete
                 ? 'bg-brand-soft text-foreground'
                 : 'bg-secondary text-muted-foreground'

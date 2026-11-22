@@ -1,49 +1,74 @@
-import './hippie-loading-screen.css';
+'use client';
 
-type HippieLoadingScreenProps = {
-  /** Short status under the brand. */
+import { SurvaiLogo } from '@/components/survai-logo';
+
+import './survai-loading-screen.css';
+
+type SurvaiLoadingScreenProps = {
+  /** Short status line (screen readers + visible). */
   message?: string;
-  /** Use when embedding inside a layout instead of full viewport. */
+  /** Embed inside a layout instead of full viewport. */
   compact?: boolean;
 };
 
 /**
- * Outline brand loading screen — stroke mark, paper wash, quiet motion.
+ * Full-screen loading — quiet paper field, brand mark, one motion.
  */
-export function HippieLoadingScreen({
-  message = 'Loading',
+export function SurvaiLoadingScreen({
+  message = 'Loading…',
   compact = false
-}: HippieLoadingScreenProps) {
+}: SurvaiLoadingScreenProps) {
   return (
     <div
-      className='hl-screen'
-      style={compact ? { minHeight: '100%' } : undefined}
+      className={compact ? 'sv-load sv-load--compact' : 'sv-load'}
       role='status'
       aria-live='polite'
       aria-busy='true'
       aria-label={message}
     >
-      <div className='hl-stage'>
-        <div className='hl-mark' aria-hidden='true'>
-          <svg viewBox='0 0 96 96' className='hl-svg'>
-            <circle className='hl-orbit' cx='48' cy='48' r='42' />
-            <rect
-              className='hl-box'
-              x='28'
-              y='28'
-              width='40'
-              height='40'
-              rx='10'
-            />
-            <path
-              className='hl-check'
-              d='M38 49.5 44.5 56 58.5 40'
-            />
-          </svg>
+      <div className='sv-load-wash' aria-hidden='true' />
+
+      <main className='sv-load-main'>
+        <div className='sv-load-cluster'>
+          <SurvaiLogo className='sv-load-mark' wordmarkClassName='sv-load-word' />
+          <div className='sv-load-track' aria-hidden='true'>
+            <span className='sv-load-bar' />
+          </div>
+          <p className='sv-load-message' suppressHydrationWarning>
+            {message}
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-export default HippieLoadingScreen;
+type SurvaiLoadingInlineProps = {
+  message: string;
+  className?: string;
+};
+
+/** Compact loader for auth shell and other in-layout waits. */
+export function SurvaiLoadingInline({ message, className }: SurvaiLoadingInlineProps) {
+  return (
+    <div
+      className={className ? `sv-load-inline ${className}` : 'sv-load-inline'}
+      role='status'
+      aria-live='polite'
+      aria-busy='true'
+      aria-label={message}
+    >
+      <div className='sv-load-track' aria-hidden='true'>
+        <span className='sv-load-bar' />
+      </div>
+      <p className='sv-load-message' suppressHydrationWarning>
+        {message}
+      </p>
+    </div>
+  );
+}
+
+/** @deprecated Use SurvaiLoadingScreen — kept for existing imports. */
+export const HippieLoadingScreen = SurvaiLoadingScreen;
+
+export default SurvaiLoadingScreen;

@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <SidebarInset
             id='main-content'
             tabIndex={-1}
-            className='scroll-6 bg-card'
+            className='scroll-6 bg-background'
           >
             <ImpersonationBanner />
             <Header />

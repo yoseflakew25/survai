@@ -73,7 +73,7 @@ export function CrossTabTable({ result }: CrossTabTableProps) {
                       )}
                     >
                       <div>{count}</div>
-                      <div className='text-muted-foreground text-[10px]'>
+                      <div className='text-muted-foreground text-xs'>
                         {percent.toFixed(1)}%
                       </div>
                     </td>

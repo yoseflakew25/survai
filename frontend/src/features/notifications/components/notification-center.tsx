@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icons } from '@/components/icons';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NotificationCard } from '@/components/ui/notification-card';
@@ -16,7 +17,11 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { panelHeaderToneClass } from '@/components/survai-panel';
+import {
+  panelWashClass,
+  quietActionClass,
+  SurvaiPanelHeader
+} from '@/components/survai-panel';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -92,7 +97,6 @@ export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotifTab>('all');
 
-  // Badge polls a cheap count; the full list only loads while the sheet is open.
   const unreadQuery = useQuery(unreadCountQueryOptions());
   const listQuery = useQuery(notificationsQueryOptions(open));
 
@@ -190,137 +194,131 @@ export function NotificationCenter() {
       <SheetContent
         side='right'
         showCloseButton
-        className='!w-full gap-0 overflow-hidden p-0 sm:!max-w-none md:!w-1/2'
+        className='flex !w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 sm:!max-w-none md:!w-[min(100%,42rem)]'
       >
-        <SheetHeader className={cn(panelHeaderToneClass.brand, 'relative shrink-0 space-y-0 overflow-hidden p-0 text-left')}>
-          <div
-            className='pointer-events-none absolute inset-0 opacity-35'
-            aria-hidden
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px)',
-              backgroundSize: '18px 18px',
-              maskImage:
-                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)',
-              WebkitMaskImage:
-                'linear-gradient(to right, transparent, black 20%, black 80%, transparent)'
-            }}
-          />
-          <div className='relative space-y-3 px-4 py-4 pr-12'>
-            <div className='flex flex-wrap items-start justify-between gap-3'>
-              <div className='min-w-0'>
-                <div className='flex flex-wrap items-center gap-2'>
-                  <SheetTitle className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-                    {t('title')}
-                  </SheetTitle>
-                  {count > 0 ? (
-                    <span className='rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground/15 px-2 py-0.5 font-mono text-[10px] font-bold text-brand-foreground'>
-                      {t('unreadCount', { count })}
-                    </span>
-                  ) : null}
-                </div>
-                <SheetDescription className=' text-brand-foreground/80'>
-                  {t('subtitle')}
-                </SheetDescription>
-              </div>
-              {count > 0 ? (
+        <SheetHeader className='sr-only'>
+          <SheetTitle>{t('title')}</SheetTitle>
+          <SheetDescription>{t('subtitle')}</SheetDescription>
+        </SheetHeader>
+
+        <div className={cn(panelWashClass, 'relative shrink-0 pr-12')}>
+          <SurvaiPanelHeader
+            tone='soft'
+            className='border-0 bg-transparent px-4 py-3.5 sm:px-5'
+            // icon={<Icons.notification className='size-4' />}
+            title={t('title')}
+            subtitle={t('subtitle')}
+            badge={
+              count > 0 ? (
+                <Badge variant='meta' className='tabular-nums'>
+                  {t('unreadCount', { count })}
+                </Badge>
+              ) : null
+            }
+            actions={
+              count > 0 ? (
                 <Button
+                  type='button'
                   variant='outline'
                   size='sm'
-                  className='shrink-0 rounded-xl border-[color-mix(in_srgb,var(--brand-foreground)_28%,transparent)] bg-brand-foreground/12 text-brand-foreground hover:bg-brand-foreground/18'
+                  className={cn(quietActionClass, 'h-9 shrink-0')}
                   disabled={markAllMutation.isPending}
                   onClick={() => markAllMutation.mutate()}
                 >
-                  <Icons.check className='mr-1.5 size-3.5' />
+                  <Icons.check className='size-3.5' />
                   {t('markAllRead')}
                 </Button>
-              ) : null}
-            </div>
+              ) : null
+            }
+          />
 
-            <div
-              role='tablist'
-              aria-label={t('filtersAria')}
-              className='flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-            >
-              {FILTER_TABS.map((tab) => {
-                const isActive = activeTab === tab;
-                const tabCount = getCount(tab);
-                const group = groupForTab(tab);
+          <div
+            role='tablist'
+            aria-label={t('filtersAria')}
+            className='flex flex-wrap gap-0 border-y border-foreground/12 bg-background/50 px-4 sm:px-5'
+          >
+            {FILTER_TABS.map((tab) => {
+              const isActive = activeTab === tab;
+              const tabCount = getCount(tab);
+              const group = groupForTab(tab);
 
-                return (
-                  <button
-                    key={tab}
-                    type='button'
-                    role='tab'
-                    aria-selected={isActive}
-                    data-group={group ?? undefined}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn(
-                      'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
-                      isActive
-                        ? 'bg-card text-brand-foreground shadow-sm'
-                        : 'bg-[color-mix(in_srgb,var(--brand-foreground)_12%,transparent)] text-brand-foreground/80 hover:bg-[color-mix(in_srgb,var(--brand-foreground)_18%,transparent)] hover:text-brand-foreground'
-                    )}
-                  >
-                    {filterLabel(tab)}
-                    {tabCount > 0 ? (
-                      <span
-                        className={cn(
-                          'rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums',
-                          isActive
-                            ? 'bg-brand text-brand-foreground'
-                            : 'bg-brand-foreground/15 text-brand-foreground/70'
-                        )}
-                      >
-                        {tabCount}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
+              return (
+                <button
+                  key={tab}
+                  type='button'
+                  role='tab'
+                  aria-selected={isActive}
+                  data-group={group ?? undefined}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-2 border-r border-foreground/10 px-3 py-2.5 text-sm font-medium transition-colors last:border-r-0',
+                    isActive
+                      ? 'bg-[color-mix(in_srgb,var(--brand)_32%,var(--background))] text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                  )}
+                >
+                  <span>{filterLabel(tab)}</span>
+                  {tabCount > 0 ? (
+                    <span
+                      className={cn(
+                        'min-w-[1.25rem] rounded-none border px-1.5 py-0.5 text-center font-mono text-[11px] font-semibold tabular-nums',
+                        isActive
+                          ? 'border-foreground/15 bg-card text-foreground'
+                          : 'border-transparent bg-muted/50 text-muted-foreground'
+                      )}
+                    >
+                      {tabCount}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
-        </SheetHeader>
+        </div>
 
-        <ScrollArea className='min-h-0 flex-1'>
+        <ScrollArea className='min-h-0 flex-1 bg-muted/10'>
           {listQuery.isLoading ? (
-            <div className='text-muted-foreground px-6 py-16 text-center text-sm'>
+            <div className='text-muted-foreground px-5 py-14 text-center text-sm'>
               {t('loading')}
             </div>
           ) : filtered.length === 0 ? (
-            <div className='flex flex-col items-center justify-center px-6 py-16 text-center'>
-              <div className='mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-foreground'>
+            <div className='flex flex-col items-center justify-center px-6 py-14 text-center'>
+              <div className='mb-3 flex size-11 items-center justify-center rounded-none border border-border bg-card text-foreground'>
                 <Icons.notification className='size-5' />
               </div>
-              <p className='font-display font-bold tracking-tight text-foreground'>
+              <p className='font-display text-base font-semibold tracking-tight text-foreground'>
                 {notifications.length === 0 ? t('allCaughtUp') : t('noMatches')}
               </p>
-              <p className='text-muted-foreground  max-w-xs text-sm'>
+              <p className='text-muted-foreground mt-1 max-w-sm text-sm leading-snug'>
                 {notifications.length === 0 ? t('emptyHint') : t('filterHint')}
               </p>
             </div>
           ) : (
-            <div className='divide-y divide-border'>
+            <ul className='divide-y divide-border border-b border-border bg-card'>
               {filtered.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  id={notification.id}
-                  title={notification.title}
-                  body={notification.body}
-                  status={notification.status}
-                  createdAt={notification.createdAt}
-                  actions={(() => {
-                    const actions = notificationActions(notification);
-                    if (!actions) return undefined;
-                    const label = actionLabel(notification.type);
-                    return actions.map((action) => ({ ...action, label }));
-                  })()}
-                  onMarkAsRead={(id) => markReadMutation.mutate(id)}
-                  onAction={(id) => handleAction(id)}
-                  onOpen={(id) => handleAction(id)}
-                />
+                <li key={notification.id}>
+                  <NotificationCard
+                    id={notification.id}
+                    title={notification.title}
+                    body={notification.body}
+                    status={notification.status}
+                    createdAt={notification.createdAt}
+                    category={notification.group}
+                    eventType={notification.type}
+                    compact
+                    actions={(() => {
+                      const actions = notificationActions(notification);
+                      if (!actions) return undefined;
+                      const label = actionLabel(notification.type);
+                      return actions.map((action) => ({ ...action, label }));
+                    })()}
+                    onMarkAsRead={(id) => markReadMutation.mutate(id)}
+                    onAction={(id) => handleAction(id)}
+                    onOpen={(id) => handleAction(id)}
+                  />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </ScrollArea>
       </SheetContent>

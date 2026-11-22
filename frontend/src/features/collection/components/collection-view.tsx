@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { publicSurveyOptions } from '../api/queries';
 import { CollectionForm } from './collection-form';
 import { Icons } from '@/components/icons';
-import { Skeleton } from '@/components/ui/skeleton';
+import { SurvaiLogo } from '@/components/survai-logo';
+import '../styles/collection-v2.css';
 
 interface CollectionViewProps {
   versionId: string;
@@ -21,21 +22,31 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
 
   if (!survey) {
     return (
-      <div className='flex min-h-dvh flex-col items-center justify-center bg-background px-4'>
-        <div className='w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-sm'>
-          <div className='mx-auto mb-5 flex size-14 items-center justify-center rounded-full bg-brand-soft'>
-            <Icons.lock className='size-6 text-brand-foreground' />
+      <div className='collect-v2-root'>
+        <header className='collect-hdr'>
+          <SurvaiLogo />
+        </header>
+        <main className='collect-done'>
+          <div className='collect-done-panel' style={{ marginTop: 0 }}>
+            <div className='collect-done-panel-body' style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px 28px' }}>
+              <div className='collect-done-panel-icon' aria-hidden='true'>
+                <Icons.lock />
+              </div>
+              <div className='min-w-0'>
+                <p className='collect-done-panel-title' style={{ fontSize: '1.125rem' }}>
+                  {t('unavailable')}
+                </p>
+                <p className='collect-done-panel-copy'>{t('unavailableHint')}</p>
+              </div>
+            </div>
           </div>
-          <h1 className='text-lg font-bold tracking-tight text-foreground'>{t('unavailable')}</h1>
-          <p className='text-muted-foreground text-sm leading-relaxed'>{t('unavailableHint')}</p>
-        </div>
-        <p className='mt-6 text-[11px] text-muted-foreground'>
-          {t('poweredBy')}{' '}
-          <span className='inline-flex items-center gap-1 font-medium text-foreground'>
-            <Icons.sparkles className='size-3 text-brand' />
-            Survai
-          </span>
-        </p>
+          <p className='collect-powered'>
+            {t('poweredBy')}{' '}
+            <span>
+              surv<span className='ai'>ai</span>
+            </span>
+          </p>
+        </main>
       </div>
     );
   }
@@ -45,70 +56,93 @@ function CollectionViewContent({ versionId }: { versionId: string }) {
 
 export function CollectionLoading() {
   return (
-    <div className='min-h-dvh bg-background'>
-      <div className='mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8'>
-        {/* Hero skeleton */}
-        <div className='rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8'>
-          <div className='flex items-center justify-between'>
-            <Skeleton className='h-4 w-28 rounded' />
-            <Skeleton className='h-5 w-24 rounded-full' />
-          </div>
-          <Skeleton className='mt-4 h-7 w-3/4 max-w-md rounded' />
-          <Skeleton className='mt-2 h-4 w-full max-w-xl rounded' />
-          <Skeleton className='mt-2 h-4 w-2/3 max-w-lg rounded' />
-          <div className='mt-5 flex gap-2'>
-            <Skeleton className='h-6 w-24 rounded-full' />
-            <Skeleton className='h-6 w-28 rounded-full' />
-            <Skeleton className='h-6 w-20 rounded-full' />
-          </div>
-        </div>
-
-        {/* Progress skeleton */}
-        <div className='mt-4 rounded-xl border border-border bg-card px-4 py-3'>
-          <div className='flex items-center justify-between'>
-            <Skeleton className='h-4 w-48 rounded' />
-            <Skeleton className='h-4 w-24 rounded' />
-          </div>
-          <Skeleton className='mt-2.5 h-1.5 w-full rounded-full' />
-          <div className='mt-3 flex gap-1.5'>
-            <Skeleton className='h-6 w-32 rounded-full' />
-            <Skeleton className='h-6 w-28 rounded-full' />
-            <Skeleton className='h-6 w-36 rounded-full' />
+    <div className='collect-v2-root'>
+      <header className='collect-hdr'>
+        <SurvaiLogo />
+      </header>
+      <main className='collect-main'>
+        <div className='collect-hero' aria-hidden='true'>
+          <div
+            style={{
+              height: 28,
+              width: '72%',
+              maxWidth: 320,
+              background: 'color-mix(in srgb, var(--ink) 12%, transparent)'
+            }}
+          />
+          <div
+            style={{
+              height: 14,
+              width: '90%',
+              maxWidth: 420,
+              marginTop: 14,
+              background: 'color-mix(in srgb, var(--ink) 8%, transparent)'
+            }}
+          />
+          <div className='collect-hero-meta'>
+            <span className='collect-chip' style={{ width: 88, height: 28 }} />
+            <span className='collect-chip' style={{ width: 96, height: 28 }} />
+            <span className='collect-chip' style={{ width: 72, height: 28 }} />
           </div>
         </div>
 
-        {/* Section skeleton */}
-        <div className='mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm'>
-          <div className='border-b border-border bg-card px-5 py-4 sm:px-6'>
-            <div className='flex items-center gap-3'>
-              <Skeleton className='size-7 rounded-full' />
-              <div className='flex-1 space-y-1.5'>
-                <Skeleton className='h-4 w-56 rounded' />
-                <Skeleton className='h-3 w-72 rounded' />
-              </div>
-              <Skeleton className='h-5 w-24 rounded-full' />
+        <div className='collect-frame'>
+          <div className='collect-section-head'>
+            <span className='collect-section-index' />
+            <div className='collect-section-copy' style={{ flex: 1 }}>
+              <div
+                style={{
+                  height: 16,
+                  width: '55%',
+                  background: 'color-mix(in srgb, var(--ink) 12%, transparent)'
+                }}
+              />
+              <div
+                style={{
+                  height: 12,
+                  width: '70%',
+                  marginTop: 8,
+                  background: 'color-mix(in srgb, var(--ink) 8%, transparent)'
+                }}
+              />
             </div>
           </div>
-          <div className='space-y-8 px-5 py-6 sm:px-6'>
+          <div className='collect-questions'>
             {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className='space-y-3'>
-                <div className='flex items-start gap-3'>
-                  <Skeleton className='h-4 w-5 rounded' />
-                  <div className='flex-1 space-y-1.5'>
-                    <Skeleton className='h-4 w-3/4 rounded' />
-                    <Skeleton className='h-3 w-1/2 rounded' />
+              <div key={i} className='collect-q'>
+                <div className='collect-q-head'>
+                  <span className='collect-q-num'>{i + 1}.</span>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        height: 14,
+                        width: '65%',
+                        background: 'color-mix(in srgb, var(--ink) 10%, transparent)'
+                      }}
+                    />
                   </div>
                 </div>
-                <Skeleton className='ml-8 h-11 w-full rounded-lg' />
+                <div className='collect-q-body'>
+                  <div
+                    style={{
+                      height: 48,
+                      width: '100%',
+                      border: '1px solid color-mix(in srgb, var(--ink) 14%, transparent)'
+                    }}
+                  />
+                </div>
               </div>
             ))}
           </div>
-          <div className='flex items-center justify-between border-t border-border bg-card px-4 py-3.5 sm:px-6'>
-            <Skeleton className='h-9 w-28 rounded-md' />
-            <Skeleton className='h-9 w-28 rounded-md' />
+          <div className='collect-nav'>
+            <span className='collect-btn' style={{ opacity: 0.35, pointerEvents: 'none' }} />
+            <span
+              className='collect-btn collect-btn-ink'
+              style={{ opacity: 0.35, pointerEvents: 'none' }}
+            />
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

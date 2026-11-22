@@ -32,7 +32,7 @@ export default async function AdminLayout({
           style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
         >
           <AdminSidebar />
-          <SidebarInset id='main-content' tabIndex={-1} className='bg-card'>
+          <SidebarInset id='main-content' tabIndex={-1} className='bg-background'>
             <ImpersonationBanner />
             <Header />
             {children}

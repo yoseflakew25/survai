@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { ChatMarkdown } from '@/components/chat-markdown';
 import { Icons } from '@/components/icons';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +15,8 @@ import {
   SurvaiPanel,
   brandCtaClass,
   panelHeaderToneClass,
+  panelWashClass,
+  planFieldControlClass,
   primaryCtaClass
 } from '@/components/survai-panel';
 import { toast } from '@/lib/toast';
@@ -65,9 +68,9 @@ function ThreadListSkeleton() {
   return (
     <div className='space-y-2 p-2'>
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className='space-y-1.5 rounded-xl px-2.5 py-2'>
-          <Skeleton className='h-3.5 w-3/4 rounded' />
-          <Skeleton className='h-3 w-1/3 rounded' />
+        <div key={i} className='space-y-1.5 rounded-none px-2.5 py-2'>
+          <Skeleton className='h-3.5 w-3/4 rounded-none' />
+          <Skeleton className='h-3 w-1/3 rounded-none' />
         </div>
       ))}
     </div>
@@ -274,7 +277,7 @@ export function AssistantWorkspace() {
         <div className={cn(panelHeaderToneClass.brand, 'relative shrink-0 px-4 py-4 sm:px-6')}>
           <div className='relative flex flex-wrap items-start justify-between gap-3'>
             <div className='min-w-0 flex-1'>
-              <h2 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
+              <h2 className='font-display text-2xl font-semibold tracking-[-0.03em] text-brand-foreground'>
                 {tAssistant('title')}
               </h2>
               <p className='text-sm leading-relaxed text-brand-foreground/70'>
@@ -291,7 +294,7 @@ export function AssistantWorkspace() {
               }
               className={cn(
                 primaryCtaClass,
-                'h-11 min-w-[9.5rem] shrink-0 gap-2 rounded-xl px-6 text-sm font-semibold'
+                'h-11 min-w-[9.5rem] shrink-0 gap-2 rounded-none px-6 text-sm font-semibold'
               )}
             >
               {creatingThread ? (
@@ -312,7 +315,7 @@ export function AssistantWorkspace() {
                 <ThreadListSkeleton />
               ) : threadsQuery.isError ? (
                 <div className='flex flex-col items-center px-4 py-10 text-center'>
-                  <div className='mb-3 flex size-10 items-center justify-center rounded-2xl bg-destructive/10 text-destructive'>
+                  <div className='mb-3 flex size-10 items-center justify-center rounded-none bg-destructive/10 text-destructive'>
                     <Icons.alertCircle className='size-4' />
                   </div>
                   <p className='font-display text-sm font-bold tracking-tight'>
@@ -325,7 +328,7 @@ export function AssistantWorkspace() {
                     type='button'
                     variant='outline'
                     size='sm'
-                    className='mt-3 rounded-xl'
+                    className='mt-3 rounded-none'
                     onClick={() => void threadsQuery.refetch()}
                   >
                     {tCommon('retry')}
@@ -333,7 +336,7 @@ export function AssistantWorkspace() {
                 </div>
               ) : threads.length === 0 && !creatingThread ? (
                 <div className='flex flex-col items-center px-4 py-10 text-center'>
-                  <div className='mb-3 flex size-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground'>
+                  <div className='mb-3 flex size-10 items-center justify-center rounded-none bg-muted text-muted-foreground'>
                     <Icons.chat className='size-4' />
                   </div>
                   <p className='font-display text-sm font-bold tracking-tight'>
@@ -347,7 +350,7 @@ export function AssistantWorkspace() {
                     size='sm'
                     onClick={handleNewThread}
                     disabled={creatingThread || sending}
-                    className='rounded-xl'
+                    className='rounded-none'
                   >
                     <Icons.add className='size-3.5' />
                     {tAssistant('newChat')}
@@ -357,7 +360,7 @@ export function AssistantWorkspace() {
                 <div className='space-y-0.5 p-1.5'>
                   {creatingThread ? (
                     <div
-                      className='flex items-start gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/60 px-2.5 py-2 animate-in fade-in duration-200'
+                      className='flex items-start gap-2 rounded-none border border-dashed border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft/60 px-2.5 py-2 animate-in fade-in duration-200'
                       aria-live='polite'
                     >
                       <Icons.spinner className='mt-0.5 size-3.5 shrink-0 animate-spin text-primary' />
@@ -365,7 +368,7 @@ export function AssistantWorkspace() {
                         <div className='text-sm font-medium text-foreground'>
                           {tAssistant('creatingChat')}
                         </div>
-                        <div className='font-mono text-[10px] text-muted-foreground'>
+                        <div className='font-mono text-xs text-muted-foreground'>
                           {tCommon('justNow')}
                         </div>
                       </div>
@@ -377,7 +380,7 @@ export function AssistantWorkspace() {
                       <div
                         key={thread.id}
                         className={cn(
-                          'group flex items-start gap-0.5 rounded-xl px-2 py-2 transition-colors',
+                          'group flex items-start gap-0.5 rounded-none px-2 py-2 transition-colors',
                           active
                             ? 'border border-[color-mix(in_srgb,var(--brand)_45%,var(--border))] bg-brand-soft shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
                             : 'hover:bg-muted/70'
@@ -414,7 +417,7 @@ export function AssistantWorkspace() {
                               <div className='truncate text-sm font-medium text-foreground'>
                                 {thread.title}
                               </div>
-                              <div className='font-mono text-[10px] text-muted-foreground'>
+                              <div className='font-mono text-xs text-muted-foreground'>
                                 {formatRelative(thread.updatedAt, locale, tCommon)}
                               </div>
                             </>
@@ -453,21 +456,14 @@ export function AssistantWorkspace() {
           <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
           <div
             aria-live='polite'
-            className='flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 md:px-8'
-            style={{
-              backgroundImage: `
-                radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
-                radial-gradient(color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px)
-              `,
-              backgroundSize: 'auto, 16px 16px'
-            }}
+            className='flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain bg-muted/15 px-4 py-4 sm:px-6 md:px-8'
           >
             {creatingThread ? (
               <div
                 className='flex flex-col items-center justify-center gap-3 px-1 py-16 text-center animate-in fade-in zoom-in-95 duration-300'
                 aria-live='polite'
               >
-                <div className='flex size-11 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'>
+                <div className='flex size-10 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'>
                   <Icons.spinner className='size-4 animate-spin' />
                 </div>
                 <div className='space-y-1'>
@@ -483,43 +479,42 @@ export function AssistantWorkspace() {
               activeId &&
               messagesQuery.data === undefined ? (
               <div className='space-y-3 px-1 py-2'>
-                <Skeleton className='ml-auto h-16 w-2/3 rounded-2xl' />
-                <Skeleton className='h-20 w-3/4 rounded-2xl' />
-                <Skeleton className='ml-auto h-12 w-1/2 rounded-2xl' />
+                <Skeleton className='ml-auto h-16 w-2/3 rounded-none' />
+                <Skeleton className='h-20 w-3/4 rounded-none' />
+                <Skeleton className='ml-auto h-12 w-1/2 rounded-none' />
               </div>
             ) : messages.length === 0 && !sending ? (
               <div
                 key={activeId ?? 'empty'}
-                className='space-y-4 px-1 py-2 animate-in fade-in slide-in-from-bottom-2 duration-300'
+                className='max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-300'
               >
-                <div className='flex items-start gap-3'>
-                  <div
-                    className=' flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-muted text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
-                    aria-hidden
-                  >
-                    <Icons.sparkles className='size-3.5' />
+                <div className='overflow-hidden rounded-none border border-border bg-card'>
+                  <div className={cn(panelWashClass, 'px-4 py-3 sm:px-5')}>
+                    <div className='flex items-start gap-2.5'>
+                      
+                      <div className='min-w-0 space-y-1'>
+                        <h2 className='text-xl font-bold tracking-tight text-foreground'>
+                          {tAssistant('askAnything')}
+                        </h2>
+                        <p className='text-muted-foreground text-xs leading-snug sm:text-sm'>
+                          {tAssistant('askAnythingHint')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className='min-w-0 space-y-1'>
-                    <p className='font-display text-base font-bold tracking-tight text-foreground'>
-                      {tAssistant('askAnything')}
-                    </p>
-                    <p className='text-sm leading-relaxed text-muted-foreground'>
-                      {tAssistant('askAnythingHint')}
-                    </p>
+                  <div className='space-y-1.5 px-4 py-3 sm:px-5'>
+                    {STARTER_KEYS.map((key) => (
+                      <button
+                        key={key}
+                        type='button'
+                        disabled={sending || creatingThread}
+                        onClick={() => void handleSend(tAssistant(key))}
+                        className='w-full rounded-none border border-border bg-background px-3 py-2.5 text-left text-xs font-medium leading-snug text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50'
+                      >
+                        {tAssistant(key)}
+                      </button>
+                    ))}
                   </div>
-                </div>
-                <div className='flex flex-wrap gap-1.5 pl-12'>
-                  {STARTER_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      type='button'
-                      disabled={sending || creatingThread}
-                      onClick={() => void handleSend(tAssistant(key))}
-                      className='rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50'
-                    >
-                      {tAssistant(key)}
-                    </button>
-                  ))}
                 </div>
               </div>
             ) : null}
@@ -533,19 +528,19 @@ export function AssistantWorkspace() {
                 )}
               >
                 {msg.role === 'assistant' ? (
-                  <div
-                    className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                  <span
+                    className='flex size-7 shrink-0 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'
                     aria-hidden
                   >
-                    <Icons.sparkles className='size-3.5' />
-                  </div>
+                    <Icons.sparkles className='size-3' />
+                  </span>
                 ) : null}
                 <div
                   className={cn(
-                    'max-w-[min(100%,36rem)] space-y-2 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                    'max-w-[min(100%,36rem)] space-y-1.5 text-sm leading-snug',
                     msg.role === 'user'
-                      ? 'rounded-br-md bg-primary text-primary-foreground'
-                      : 'rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                      ? 'rounded-none border border-foreground/15 bg-foreground px-3 py-2 text-background'
+                      : 'rounded-none border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_22%,var(--background))] px-3 py-2 text-foreground'
                   )}
                 >
                   {msg.role === 'assistant' ? (
@@ -558,7 +553,7 @@ export function AssistantWorkspace() {
                   {msg.role === 'assistant' &&
                   msg.citations &&
                   msg.citations.length > 0 ? (
-                    <div className='flex flex-wrap gap-1.5 border-t border-border/70 pt-2'>
+                    <div className='flex flex-wrap gap-1 border-t border-border/80 pt-1.5'>
                       {msg.citations.map((c, i) => {
                         const label =
                           c.sourceType === 'metrics'
@@ -569,20 +564,26 @@ export function AssistantWorkspace() {
                             <Link
                               key={`${c.chunkId ?? 'm'}-${i}`}
                               href={c.href}
-                              className='inline-flex max-w-full truncate rounded-full border border-border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-foreground hover:bg-muted/50'
+                              className='inline-flex max-w-full truncate'
                             >
-                              {label}
+                              <Badge
+                                variant='meta'
+                                className='h-6 max-w-[11rem] truncate px-2 text-[10px] normal-case hover:bg-muted'
+                              >
+                                {label}
+                              </Badge>
                             </Link>
                           );
                         }
                         return (
-                          <span
+                          <Badge
                             key={`${c.chunkId ?? 'm'}-${i}`}
-                            className='inline-flex max-w-full truncate rounded-full border border-border bg-background/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground'
+                            variant='meta'
+                            className='h-6 max-w-[11rem] truncate px-2 text-[10px] normal-case'
                             title={c.metricRefs?.join(', ')}
                           >
                             {label}
-                          </span>
+                          </Badge>
                         );
                       })}
                     </div>
@@ -598,13 +599,13 @@ export function AssistantWorkspace() {
                   streamDraft ? tAssistant('isAnswering') : stageLabel(streamStage)
                 }
               >
-                <div
-                  className='flex size-8 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand-soft text-primary shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]'
+                <span
+                  className='flex size-7 shrink-0 items-center justify-center rounded-none border border-foreground/15 bg-primary text-primary-foreground'
                   aria-hidden
                 >
-                  <Icons.sparkles className='size-3.5' />
-                </div>
-                <div className='max-w-[min(100%,36rem)] space-y-2 rounded-2xl rounded-bl-md border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-brand-soft px-3.5 py-2.5 text-sm leading-relaxed text-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_5%,transparent)]'>
+                  <Icons.sparkles className='size-3' />
+                </span>
+                <div className='max-w-[min(100%,36rem)] space-y-2 rounded-none border border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_22%,var(--background))] px-3 py-2 text-sm leading-snug text-foreground'>
                   {streamDraft ? (
                     <ChatMarkdown content={streamDraft} />
                   ) : (
@@ -630,8 +631,7 @@ export function AssistantWorkspace() {
             <div ref={endRef} />
           </div>
 
-          <div className='shrink-0 space-y-3 border-t border-border bg-brand-soft/70 px-4 py-3.5 sm:px-6 md:px-8'>
-            <div className='relative'>
+          <div className='relative shrink-0 border-t border-border bg-background px-4 py-2.5 sm:px-6 md:px-8'>
               <Input
                 ref={inputRef}
                 value={input}
@@ -644,7 +644,7 @@ export function AssistantWorkspace() {
                       : tAssistant('placeholder')
                 }
                 disabled={sending || creatingThread}
-                className='h-11 rounded-2xl border-2 border-border bg-card pr-12 text-sm shadow-sm focus-visible:border-[color-mix(in_srgb,var(--brand)_65%,var(--foreground))] disabled:opacity-70'
+                className={cn(planFieldControlClass, 'h-9 pr-11 disabled:opacity-70')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -659,12 +659,11 @@ export function AssistantWorkspace() {
                 aria-label={tAssistant('sendMessage')}
                 className={cn(
                   brandCtaClass,
-                  'absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-xl p-0'
+                  'absolute top-1/2 right-6 size-8 -translate-y-1/2 rounded-none p-0 sm:right-8 md:right-10'
                 )}
               >
                 <Icons.send className='size-3.5' />
               </Button>
-            </div>
           </div>
           </div>
         </div>

@@ -61,7 +61,7 @@ export function LanguageSwitcher({
             className={cn(
               compact
                 ? 'size-8'
-                : 'h-8 gap-1.5 rounded-xl border-border bg-card px-2.5 shadow-none',
+                : 'h-8 gap-1.5 rounded-none border-border bg-card px-2.5 shadow-none',
               className
             )}
             disabled={pending}
@@ -81,7 +81,7 @@ export function LanguageSwitcher({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='min-w-40'>
-        <div className='text-muted-foreground px-2 py-1.5 text-[10px] font-semibold tracking-wide uppercase'>
+        <div className='text-muted-foreground px-2 py-1.5 text-xs font-semibold tracking-wide uppercase'>
           {t('language')}
         </div>
         {locales.map((code) => (

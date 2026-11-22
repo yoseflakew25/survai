@@ -126,7 +126,7 @@ export function PlanQuickActions({
           title={t('editingLocked')}
           subtitle={t('questionsAlreadyGenerated')}
           badge={
-            <span className='inline-flex items-center gap-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground'>
+            <span className='inline-flex items-center gap-1.5 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground'>
               {t('readOnly')}
             </span>
           }
@@ -160,7 +160,7 @@ export function PlanQuickActions({
           badge={
             <span
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold',
                 hasUnsavedChanges
                   ? 'bg-brand-soft text-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -179,7 +179,7 @@ export function PlanQuickActions({
           }
         />
 
-        <SurvaiPanelBody className='space-y-3 p-3'>
+        <SurvaiPanelBody compact className='space-y-2.5'>
           <div className='bg-muted/35 grid grid-cols-2 gap-1 rounded-2xl p-1'>
             <ActionTile
               label={t('undo')}

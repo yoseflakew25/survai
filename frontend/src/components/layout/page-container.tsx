@@ -11,12 +11,12 @@ function PageSkeleton() {
     >
       <div className='flex items-center justify-between'>
         <div>
-          <div className='bg-muted mb-2 h-8 w-48 rounded' />
-          <div className='bg-muted h-4 w-96 rounded' />
+          <div className='bg-muted mb-2 h-8 w-48' />
+          <div className='bg-muted h-4 w-96' />
         </div>
       </div>
-      <div className='bg-muted mt-6 h-40 w-full rounded-lg' />
-      <div className='bg-muted h-40 w-full rounded-lg' />
+      <div className='bg-muted mt-6 h-40 w-full border border-border' />
+      <div className='bg-muted h-40 w-full border border-border' />
     </div>
   );
 }

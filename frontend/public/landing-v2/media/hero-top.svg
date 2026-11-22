@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Survai workspace preview placeholder">
+  <rect width="800" height="600" fill="#e8e8e8"/>
+  <g fill="#232323" opacity="0.85">
+    <rect x="48" y="56" width="280" height="18" rx="2"/>
+    <rect x="48" y="92" width="220" height="12" opacity="0.35"/>
+    <rect x="48" y="140" width="704" height="400" fill="none" stroke="#232323" stroke-width="1.5"/>
+    <rect x="72" y="176" width="320" height="48" fill="#a1ffcb" stroke="#232323" stroke-width="1"/>
+    <rect x="72" y="248" width="656" height="14" opacity="0.4"/>
+    <rect x="72" y="278" width="580" height="14" opacity="0.3"/>
+    <rect x="72" y="308" width="620" height="14" opacity="0.25"/>
+    <rect x="72" y="368" width="200" height="140" fill="#0f9f5c" opacity="0.25"/>
+    <circle cx="620" cy="420" r="72" fill="none" stroke="#232323" stroke-width="1.5"/>
+  </g>
+</svg>

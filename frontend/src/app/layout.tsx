@@ -15,7 +15,7 @@ import '../styles/globals.css';
 
 const META_THEME_COLORS = {
   light: '#ffffff',
-  dark: '#0a1419'
+  dark: '#232323'
 };
 
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       data-locale={locale}
       className={fontVariables}
     >
-      <body className='bg-background overflow-x-hidden overscroll-none font-sans antialiased'>
+      <body className='app-v2-root bg-background overflow-x-hidden overscroll-none font-sans antialiased'>
         <Script
           id='theme-bootstrap'
           strategy='beforeInteractive'

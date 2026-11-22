@@ -50,9 +50,9 @@ function SurveyTableSkeleton() {
           <Skeleton className='h-8 w-40 rounded' />
           <Skeleton className='h-4 w-72 rounded' />
         </div>
-        <Skeleton className='h-9 w-36 rounded-xl' />
+        <Skeleton className='h-9 w-36 rounded-none' />
       </div>
-      <Skeleton className='h-64 w-full rounded-xl' />
+      <Skeleton className='h-64 w-full rounded-none' />
     </div>
   );
 }
@@ -120,7 +120,7 @@ function SurveyTableContent() {
                 onChange={(e) =>
                   table.getColumn('title')?.setFilterValue(e.target.value)
                 }
-                className='h-9 w-48 rounded-xl border-border bg-card pl-9 lg:w-64'
+                className='h-9 w-48 rounded-none border-border bg-card pl-9 lg:w-64'
               />
             </div>
 
@@ -129,7 +129,7 @@ function SurveyTableContent() {
                 render={
                   <Button
                     variant='outline'
-                    className='h-9 rounded-xl border-border bg-card'
+                    className='h-9 rounded-none border-border bg-card'
                   />
                 }
               >
@@ -141,14 +141,14 @@ function SurveyTableContent() {
                     )
                   : t('filterStatus')}
                 {params.status ? (
-                  <span className='rounded-full bg-muted px-1.5 text-[10px] font-bold text-foreground'>
+                  <span className='rounded-full bg-muted px-1.5 text-xs font-bold text-foreground'>
                     1
                   </span>
                 ) : (
                   <Icons.chevronDown className='size-3.5 opacity-50' />
                 )}
               </DropdownMenuTrigger>
-              <DropdownMenuContent align='end' className='w-44 rounded-xl'>
+              <DropdownMenuContent align='end' className='w-44 rounded-none'>
                 <DropdownMenuGroup>
                   {STATUS_OPTIONS.map((opt) => (
                     <DropdownMenuCheckboxItem
@@ -193,9 +193,9 @@ function SurveyTableContent() {
         </div>
 
         {isLoading && !data ? (
-          <Skeleton className='h-64 w-full rounded-xl' />
+          <Skeleton className='h-64 w-full rounded-none' />
         ) : isError ? (
-          <div className='flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-4 py-16 text-center'>
+          <div className='flex flex-col items-center justify-center gap-3 rounded-none border border-dashed border-border px-4 py-16 text-center'>
             <p className='font-display text-base font-bold tracking-tight'>
               {t('loadError')}
             </p>
@@ -207,7 +207,7 @@ function SurveyTableContent() {
             <Button
               type='button'
               variant='outline'
-              className='h-9 rounded-xl'
+              className='h-9 rounded-none'
               onClick={() => void refetch()}
             >
               Retry
@@ -218,7 +218,7 @@ function SurveyTableContent() {
             table={table}
             rowNoun={(data?.total ?? 0) === 1 ? 'survey' : 'surveys'}
             emptyIcon={
-              <div className='bg-brand-soft flex size-12 items-center justify-center rounded-2xl'>
+              <div className='bg-brand-soft flex size-12 items-center justify-center rounded-none'>
                 <Icons.forms className='size-5 text-foreground' />
               </div>
             }

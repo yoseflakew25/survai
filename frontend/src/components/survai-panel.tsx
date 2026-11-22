@@ -2,52 +2,52 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * App chrome rules (landing page excluded):
- * - primary: page/hero headers — teal bg, light titles
- * - soft: default panel / section headers — brand-soft wash, foreground text
- * - brand: lead callouts only (chat rail headers, SurvaiBrandCard, CTAs)
- * - CTAs: brand fill → primary (teal) on hover; quiet actions stay outline/card
- * Dark mode keeps primary teal and brand green distinct — do not collapse them.
+ * App chrome rules (landing page excluded) — ink / mint editorial v2:
+ * - primary: ink headers, light titles
+ * - soft: mint wash section headers
+ * - brand: mint callouts (chat rail, lead sections)
  */
 
 export type SurvaiPanelHeaderTone = 'brand' | 'primary' | 'soft';
 
+/** Shared mint wash for section headers — brand + soft use the same surface. */
+export const panelWashClass =
+  'border-b border-foreground/15 bg-[color-mix(in_srgb,var(--brand)_72%,var(--background))]';
+
 export const panelHeaderToneClass: Record<SurvaiPanelHeaderTone, string> = {
-  brand:
-    'border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand',
-  primary:
-    'border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary',
-  soft: 'border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft'
+  brand: panelWashClass,
+  primary: 'border-b border-foreground/20 bg-primary',
+  soft: panelWashClass
 };
 
 const panelTitleToneClass: Record<SurvaiPanelHeaderTone, string> = {
-  brand: 'text-brand-foreground',
+  brand: 'text-foreground',
   primary: 'text-primary-foreground',
   soft: 'text-foreground'
 };
 
 const panelSubtitleToneClass: Record<SurvaiPanelHeaderTone, string> = {
-  brand: 'text-brand-foreground/75',
+  brand: 'text-muted-foreground',
   primary: 'text-primary-foreground/75',
   soft: 'text-muted-foreground'
 };
 
 const panelIconToneClass: Record<SurvaiPanelHeaderTone, string> = {
   brand:
-    'border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-card text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_8%,transparent)]',
+    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card/80 text-foreground shadow-none',
   primary:
     'border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-primary-foreground/12 text-primary-foreground shadow-none',
   soft:
-    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card/80 text-brand-foreground shadow-none'
+    'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-card/80 text-foreground shadow-none'
 };
 
 /** Meta chips on primary (teal) surfaces. */
 export const primaryMetaChipClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary-foreground)_12%,transparent)] px-2 py-1 text-[11px] text-primary-foreground';
+  'inline-flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--primary-foreground)_28%,transparent)] bg-[color-mix(in_srgb,var(--primary-foreground)_12%,transparent)] px-2.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-[0.05em] text-primary-foreground';
 
 /** Meta chips on brand (green) surfaces — always brand-foreground. */
 export const brandMetaChipClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2 py-1 text-[11px] text-brand-foreground';
+  'inline-flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] px-2.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-[0.05em] text-brand-foreground';
 
 /** Frosted controls (inputs/selects) sitting on brand header bars. */
 export const onBrandControlClass =
@@ -55,23 +55,30 @@ export const onBrandControlClass =
 
 /** Nested section index badge (primary fill). */
 export const sectionIndexClass =
-  'flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary font-mono text-[11px] font-bold tabular-nums text-primary-foreground shadow-sm';
+  'flex size-8 shrink-0 items-center justify-center rounded-none border border-foreground/20 bg-primary font-mono text-xs font-bold tabular-nums text-primary-foreground';
+
+/** Right-aligned question metadata chips (type, required, source). */
+export const questionMetaBadgeRowClass =
+  'flex w-full shrink-0 flex-wrap items-center gap-1.5 sm:max-w-[min(100%,24rem)] sm:justify-end';
+
+/** Choice option preview chips under a question prompt. */
+export const questionOptionChipClass =
+  'inline-flex h-8 items-center gap-1.5 rounded-none border border-border bg-card px-2.5 text-xs font-medium text-foreground';
 
 /** Soft nested section header bar (non-SurvaiPanelHeader). */
 export const softSectionHeaderClass =
-  'border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-4 py-3.5 sm:px-5';
+  `${panelWashClass} px-4 py-3.5 sm:px-5`;
 
 /** Dialog / sheet headers. */
 export const dialogHeaderPrimaryClass =
   'border-b border-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] bg-primary px-5 py-4 text-primary-foreground';
 export const dialogHeaderBrandClass =
-  'border-b border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-5 py-4 text-brand-foreground';
+  `${panelWashClass} px-5 py-4 text-foreground`;
 export const dialogHeaderSoftClass =
-  'border-b border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-5 py-4 text-foreground';
+  `${panelWashClass} px-5 py-4 text-foreground`;
 
 /**
- * Shared Survai card chrome —
- * white card, soft border, 1.125rem radius, teal/green brand accents.
+ * Shared Survai card chrome — hairline border, square corners, mint accents.
  */
 export function SurvaiPanel({
   children,
@@ -86,8 +93,7 @@ export function SurvaiPanel({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[1.125rem] border border-border bg-card',
-        'shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent),0_8px_24px_-16px_color-mix(in_srgb,var(--foreground)_18%,transparent)]',
+        'overflow-hidden rounded-none border border-border bg-card shadow-none',
         variant === 'soft' &&
           'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-brand-soft/35',
         className
@@ -123,7 +129,7 @@ export function SurvaiPanelHeader({
           <div
             data-slot='panel-icon'
             className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-xl',
+              'flex size-8 shrink-0 items-center justify-center rounded-none border border-foreground/10',
               panelIconToneClass[tone]
             )}
           >
@@ -134,19 +140,19 @@ export function SurvaiPanelHeader({
           {typeof title === 'string' ? (
             <h3
               className={cn(
-                'font-display text-base font-bold tracking-tight sm:text-lg',
+                'font-display text-lg font-bold tracking-[-0.035em] sm:text-xl',
                 panelTitleToneClass[tone]
               )}
             >
               {title}
             </h3>
           ) : (
-            <div className={cn('min-w-0', panelTitleToneClass[tone])}>
+            <div className={cn('min-w-0 font-semibold', panelTitleToneClass[tone])}>
               {title}
             </div>
           )}
           {subtitle ? (
-            <p className={cn('text-sm leading-snug', panelSubtitleToneClass[tone])}>
+            <p className={cn('text-sm font-medium leading-snug', panelSubtitleToneClass[tone])}>
               {subtitle}
             </p>
           ) : null}
@@ -164,13 +170,23 @@ export function SurvaiPanelHeader({
 
 export function SurvaiPanelBody({
   children,
-  className
+  className,
+  compact = false
 }: {
   children: ReactNode;
   className?: string;
+  /** Tighter padding for dense forms (plan editor, settings). */
+  compact?: boolean;
 }) {
-  return <div className={cn('p-5', className)}>{children}</div>;
+  return <div className={cn(compact ? 'p-4' : 'p-5', className)}>{children}</div>;
 }
+
+/** Plan / settings field chrome — paper surface, not mint wash. */
+export const planFieldLabelClass =
+  'text-muted-foreground text-xs font-semibold tracking-wide uppercase';
+
+export const planFieldControlClass =
+  'rounded-none border border-border bg-background text-sm font-medium text-foreground shadow-none placeholder:text-muted-foreground/80 focus-visible:border-[color-mix(in_srgb,var(--foreground)_28%,var(--border))] focus-visible:ring-1 focus-visible:ring-ring/35';
 
 export function SurvaiPanelFooter({
   children,
@@ -191,7 +207,10 @@ export function SurvaiPanelFooter({
   );
 }
 
-/** Brand CTA card — sidebar Collect / Generate / continue CTAs. */
+/**
+ * Mint rail card — sticky sidebar status / proceed CTAs (Review, Plan).
+ * Ink hairline, full mint fill, square corners — no pills or soft shadows.
+ */
 export function SurvaiBrandCard({
   title,
   description,
@@ -206,38 +225,30 @@ export function SurvaiBrandCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-[1.125rem]',
-        'border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))]',
-        'bg-brand shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_14%,transparent),0_12px_28px_-18px_color-mix(in_srgb,var(--foreground)_28%,transparent)]',
+        'relative isolate overflow-hidden rounded-none border border-foreground bg-brand shadow-none',
         className
       )}
     >
       <div
-        className='pointer-events-none absolute inset-0 opacity-[0.35]'
+        className='pointer-events-none absolute inset-0 z-0 opacity-[0.22]'
         style={{
           backgroundImage:
-            'linear-gradient(to right, color-mix(in srgb, var(--foreground) 10%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 10%, transparent) 1px, transparent 1px)',
-          backgroundSize: '18px 18px',
+            'linear-gradient(to right, color-mix(in srgb, var(--foreground) 12%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 12%, transparent) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
           maskImage:
-            'radial-gradient(ellipse 90% 80% at 50% 0%, black 20%, transparent 75%)',
+            'linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)',
           WebkitMaskImage:
-            'radial-gradient(ellipse 90% 80% at 50% 0%, black 20%, transparent 75%)'
+            'linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent)'
         }}
         aria-hidden
       />
-      <div className='relative space-y-4 p-5'>
-        <div className='space-y-1.5'>
-          <div className='flex items-center gap-2'>
-            <span
-              className='size-1.5 shrink-0 animate-pulse rounded-full bg-brand-foreground/80'
-              aria-hidden
-            />
-            <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground'>
-              {title}
-            </h3>
-          </div>
+      <div className='relative z-10 space-y-3 p-4'>
+        <div>
+          <h3 className='text-lg font-bold tracking-tight text-foreground sm:text-xl'>
+            {title}
+          </h3>
           {description ? (
-            <p className='text-sm leading-relaxed text-brand-foreground/75'>
+            <p className='mt-1 text-sm leading-snug text-foreground/75'>
               {description}
             </p>
           ) : null}
@@ -248,22 +259,67 @@ export function SurvaiBrandCard({
   );
 }
 
+/** Paper row inside a mint rail card — hairline, square icon slot. */
+export function SurvaiRailRow({
+  icon,
+  children,
+  active = true,
+  trailing,
+  className
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+  /** Filled ink icon vs quiet muted slot */
+  active?: boolean;
+  trailing?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <li
+      className={cn(
+        'flex items-center gap-2.5 border border-foreground/15 bg-background px-2.5 py-2',
+        className
+      )}
+    >
+      <span
+        className={cn(
+          'flex size-6 shrink-0 items-center justify-center border border-foreground/20',
+          active
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-muted-foreground'
+        )}
+      >
+        {icon}
+      </span>
+      <span
+        className={cn(
+          'min-w-0 flex-1 text-sm',
+          active ? 'font-medium text-foreground' : 'text-muted-foreground'
+        )}
+      >
+        {children}
+      </span>
+      {trailing ? <span className='shrink-0'>{trailing}</span> : null}
+    </li>
+  );
+}
+
 /** Primary brand CTA — secondary green fill, primary teal on hover. */
 export const brandCtaClass =
-  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--brand)_70%,var(--foreground))] bg-brand px-3.5 text-sm font-semibold text-brand-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_25%,transparent)] transition-[background-color,color,border-color,box-shadow] hover:border-primary hover:bg-primary hover:text-primary-foreground';
+  'h-10 rounded-none border border-foreground/20 bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground';
 
 /** Compact toolbar / export row CTA. */
 export const compactCtaClass =
-  'h-8 gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand)_55%,var(--border))] bg-brand px-3 text-xs font-medium text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground';
+  'h-9 gap-1.5 rounded-none border border-foreground/15 bg-brand px-3.5 text-sm font-semibold text-brand-foreground shadow-none transition-[background-color,color,border-color] hover:border-primary hover:bg-primary hover:text-primary-foreground';
 
 /** Strong primary fill CTA (use sparingly — brand CTAs preferred). */
 export const primaryCtaClass =
-  'h-9 rounded-xl border border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_18%,transparent)] transition-[filter] hover:brightness-110 disabled:opacity-60';
+  'h-10 rounded-none border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-none transition-[background-color,color,border-color] hover:bg-brand hover:text-brand-foreground disabled:opacity-60';
 
 /** Secondary quiet action for non-primary buttons. */
 export const quietActionClass =
-  'h-8 gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground shadow-none transition-colors hover:bg-muted/60';
+  'h-9 gap-1.5 rounded-none border border-border bg-card px-3.5 text-sm font-semibold text-foreground shadow-none transition-colors hover:bg-brand-soft/60';
 
 /** Soft brand wash action (regenerate / secondary tools). */
 export const softActionClass =
-  'h-8 gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-brand-soft px-3 text-xs font-medium text-primary shadow-none transition-[background-color,color] hover:bg-primary hover:text-primary-foreground';
+  'h-9 gap-1.5 rounded-none border border-foreground/15 bg-brand-soft px-3.5 text-sm font-semibold text-foreground shadow-none transition-[background-color,color] hover:bg-brand hover:text-brand-foreground';

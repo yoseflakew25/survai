@@ -67,7 +67,7 @@ export function DistributionChart({
             {distribution.totalResponses} responses · {distribution.missingCount} missing
           </p>
         </div>
-        <Badge variant='outline' className='shrink-0 text-[10px]'>
+        <Badge variant='outline' className='shrink-0 text-xs'>
           {distribution.questionType.replace('_', ' ')}
         </Badge>
       </div>

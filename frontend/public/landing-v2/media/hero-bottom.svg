@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Survey lifecycle placeholder">
+  <rect width="800" height="600" fill="#d9d9d9"/>
+  <g fill="#232323">
+    <text x="48" y="88" font-family="ui-monospace, monospace" font-size="14" letter-spacing="0.12em">PLAN · BUILD · COLLECT</text>
+    <rect x="48" y="120" width="120" height="120" fill="#a1ffcb" stroke="#232323" stroke-width="1.5"/>
+    <rect x="200" y="120" width="120" height="120" fill="#fff" stroke="#232323" stroke-width="1.5"/>
+    <rect x="352" y="120" width="120" height="120" fill="#0f9f5c" opacity="0.4" stroke="#232323" stroke-width="1.5"/>
+    <path d="M168 180h32M320 180h32M472 180h32" stroke="#232323" stroke-width="1.5"/>
+    <rect x="48" y="280" width="704" height="260" fill="#fff" stroke="#232323" stroke-width="1.5"/>
+    <rect x="80" y="312" width="480" height="16" opacity="0.25"/>
+    <rect x="80" y="348" width="560" height="16" opacity="0.18"/>
+    <rect x="80" y="384" width="400" height="16" opacity="0.12"/>
+    <rect x="580" y="312" width="140" height="196" fill="#a1ffcb" opacity="0.65" stroke="#232323" stroke-width="1"/>
+  </g>
+</svg>

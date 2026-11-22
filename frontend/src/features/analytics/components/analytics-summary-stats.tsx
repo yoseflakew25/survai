@@ -84,7 +84,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
             className='rounded-xl border border-border bg-muted/40 p-3'
           >
             <div className='flex items-center justify-between gap-2'>
-              <p className='text-muted-foreground text-[10px] font-medium tracking-wide uppercase'>
+              <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
                 {stat.title}
               </p>
               {IconComponent ? (
@@ -98,7 +98,7 @@ export function AnalyticsSummaryStats({ summary }: AnalyticsSummaryStatsProps) {
               {stat.trend ? (
                 <Badge
                   variant='outline'
-                  className='rounded-full border-transparent bg-muted text-[10px] text-muted-foreground'
+                  className='rounded-full border-transparent bg-muted text-xs text-muted-foreground'
                 >
                   {stat.trendUp ? (
                     <Icons.trendingUp className='h-2.5 w-2.5' />

@@ -10,6 +10,11 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import {
+  questionMetaBadgeRowClass,
+  questionOptionChipClass,
+  sectionIndexClass
+} from '@/components/survai-panel';
 import type { Question, QuestionType } from '../api/types';
 import { getQuestionTypeMeta } from '../api/types';
 
@@ -79,24 +84,24 @@ export function QuestionCard({
     setIsEditing(false);
   }, [editPrompt, editHelpText, onUpdate, question.promptText]);
 
-  const sourceBadge =
+  const sourceLabel =
     question.source === 'ai_generated'
-      ? { label: t('sourceAi'), className: 'bg-primary/10 text-primary' }
+      ? t('sourceAi')
       : question.source === 'ai_edited'
-        ? { label: t('sourceAiPlus'), className: 'bg-primary/10 text-primary' }
-        : { label: t('manual'), className: 'bg-muted text-muted-foreground' };
+        ? t('sourceAiPlus')
+        : t('manual');
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group rounded-lg border bg-background p-3 transition-all',
+        'group rounded-none border border-border bg-card p-3 transition-all',
         isDragging && 'opacity-50 shadow-lg',
         isEditing && 'ring-1 ring-primary/20'
       )}
     >
-      <div className='flex items-start gap-2'>
+      <div className='flex items-start gap-3'>
         {!readOnly ? (
           <button
             type='button'
@@ -115,7 +120,11 @@ export function QuestionCard({
           <span className=' flex h-5 w-5 shrink-0' />
         )}
 
-        <div className='flex-1 space-y-2'>
+        <span className={cn(sectionIndexClass, 'mt-0.5')} aria-hidden>
+          {index + 1}
+        </span>
+
+        <div className='min-w-0 flex-1 space-y-2.5'>
           {isEditing ? (
             <>
               <Input
@@ -155,38 +164,50 @@ export function QuestionCard({
             </>
           ) : (
             <>
-              <div className='flex items-center gap-2'>
-                <span className='text-muted-foreground text-xs font-medium'>
-                  {t('questionIndex', { index: index + 1 })}
-                </span>
-                {TypeIcon && <TypeIcon className='text-muted-foreground h-3.5 w-3.5' />}
-                <span className='text-muted-foreground text-xs'>
-                  {t(TYPE_LABEL_KEY[question.type])}
-                </span>
-                {question.isRequired && <span className='text-destructive text-xs'>*</span>}
-                <Badge
-                  variant='secondary'
-                  className={cn('ml-auto text-[10px]', sourceBadge.className)}
-                >
-                  {sourceBadge.label}
-                </Badge>
+              <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3'>
+                <p className='text-base font-semibold leading-snug tracking-tight text-foreground'>
+                  {question.promptText}
+                </p>
+                <div className={questionMetaBadgeRowClass}>
+                  <Badge variant='meta' className='gap-1.5 text-foreground'>
+                    {TypeIcon ? <TypeIcon className='size-3.5 shrink-0 opacity-60' /> : null}
+                    {t(TYPE_LABEL_KEY[question.type])}
+                  </Badge>
+                  <Badge variant={question.isRequired ? 'accent' : 'meta'}>
+                    {question.isRequired ? t('required') : tCommon('optional')}
+                  </Badge>
+                  {question.source !== 'manual' ? (
+                    <Badge variant='soft' className='gap-1'>
+                      <Icons.sparkles className='size-3 shrink-0 opacity-80' />
+                      {sourceLabel}
+                    </Badge>
+                  ) : null}
+                </div>
               </div>
-              <p className='text-sm font-medium leading-relaxed'>{question.promptText}</p>
               {question.helpText && (
                 <p className='text-muted-foreground text-xs'>{question.helpText}</p>
               )}
               {question.options && question.options.length > 0 && (
-                <div className='mt-2 flex flex-wrap gap-1'>
+                <ul className='flex flex-wrap gap-1.5'>
                   {question.options.map((opt) => (
-                    <Badge key={opt.id} variant='outline' className='text-[10px]'>
+                    <li key={opt.id} className={questionOptionChipClass}>
+                      <span
+                        className={cn(
+                          'size-1.5 shrink-0 bg-muted-foreground/60',
+                          question.type === 'multiple_choice'
+                            ? 'rounded-[1px]'
+                            : 'rounded-full'
+                        )}
+                        aria-hidden
+                      />
                       {opt.label}
-                    </Badge>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
               {question.type === 'rating_scale' && question.validationRules && (
                 <div className='mt-2'>
-                  <Badge variant='outline' className='text-[10px]'>
+                  <Badge variant='outline' className='text-xs'>
                     {t('scaleRange', {
                       min: question.validationRules.min ?? 1,
                       max: question.validationRules.max ?? 5

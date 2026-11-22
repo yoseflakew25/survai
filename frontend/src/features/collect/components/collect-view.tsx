@@ -15,9 +15,11 @@ import {
   SurvaiBrandCard,
   SurvaiPanel,
   SurvaiPanelBody,
-  SurvaiPanelFooter,
   SurvaiPanelHeader,
-  brandCtaClass
+  brandCtaClass,
+  planFieldControlClass,
+  planFieldLabelClass,
+  primaryCtaClass
 } from '@/components/survai-panel';
 import { Icons } from '@/components/icons';
 import { toast } from '@/lib/toast';
@@ -252,41 +254,33 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
         })
       : t('responseCount', { count: stats.responseCount });
 
+  const statusBadgeVariant = isPublished
+    ? ('accent' as const)
+    : isClosed
+      ? ('meta' as const)
+      : ('outline' as const);
+
   return (
     <div className='space-y-4'>
-      <div className='grid gap-6 lg:grid-cols-3'>
-        <div className='space-y-6 lg:col-span-2'>
+      <div className='grid gap-4 lg:grid-cols-12 xl:gap-5'>
+        <div className='min-w-0 space-y-4 lg:col-span-7'>
           <SurvaiPanel>
             <SurvaiPanelHeader
-              tone='brand'
-              title={
-                <div className='min-w-0'>
-                  <h3 className='font-display text-2xl font-extrabold tracking-tight text-brand-foreground sm:text-2xl'>
-                    {t('heading')}
-                  </h3>
-                  <p className='text-sm leading-snug text-brand-foreground/70'>
-                    {isLive ? t('linkAndQr') : t('publishToUnlock')}
-                  </p>
-                </div>
-              }
+              tone='soft'
+              title={t('heading')}
+              subtitle={isLive ? t('linkAndQr') : t('publishToUnlock')}
               badge={
-                <Badge
-                  className={cn(
-                    'rounded-full border border-[color-mix(in_srgb,var(--brand-foreground)_22%,transparent)] bg-[color-mix(in_srgb,var(--brand-foreground)_10%,transparent)] text-[10px] font-semibold text-brand-foreground',
-                    isPublished &&
-                      'border-transparent bg-[var(--brand-foreground)] text-brand'
-                  )}
-                >
+                <Badge variant={statusBadgeVariant}>
                   {isPublished ? t('live') : isClosed ? t('closed') : t('notPublished')}
                 </Badge>
               }
             />
-            <SurvaiPanelBody className='space-y-5'>
+            <SurvaiPanelBody compact className='space-y-3'>
               {(responseQuota != null || stats.closesAt || survey.closesAt) && (
-                <div className='rounded-xl border border-border bg-muted/20 px-3.5 py-3 text-sm'>
+                <div className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-none border border-border bg-muted/25 px-3 py-2 text-sm'>
                   <p className='font-semibold tabular-nums'>{quotaLabel}</p>
                   {(stats.closesAt || survey.closesAt) && (
-                    <p className='text-muted-foreground  text-xs'>
+                    <p className='text-muted-foreground text-xs'>
                       {t('closesOn', {
                         date: new Date(
                           stats.closesAt ?? survey.closesAt!
@@ -298,15 +292,15 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
               )}
 
               {!isLive ? (
-                <div className='space-y-4'>
-                  <div className='rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center'>
-                    <div className='mx-auto mb-3 flex size-12 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground'>
-                      <Icons.collect className='size-5' />
+                <div className='space-y-3'>
+                  <div className='rounded-none border border-dashed border-border bg-muted/20 px-4 py-6 text-center'>
+                    <div className='mx-auto mb-2 flex size-10 items-center justify-center rounded-none border border-border bg-background text-muted-foreground'>
+                      <Icons.collect className='size-4' />
                     </div>
-                    <p className='mb-1 text-sm font-semibold tracking-tight'>
+                    <p className='mb-0.5 text-sm font-semibold tracking-tight'>
                       {t('readyTitle')}
                     </p>
-                    <p className='text-muted-foreground mx-auto max-w-sm text-xs leading-relaxed'>
+                    <p className='text-muted-foreground mx-auto max-w-md text-xs leading-snug'>
                       {t('readyHint')}
                     </p>
                   </div>
@@ -337,68 +331,62 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                 </div>
               ) : (
                 <>
-                  <div
-                    className={cn(
-                      'flex items-start gap-3 rounded-xl border p-3.5',
-                      isPublished
-                        ? 'border-border bg-muted/40'
-                        : 'border-border bg-muted/40'
-                    )}
-                  >
+                  <div className='flex items-center gap-2.5 rounded-none border border-border bg-muted/25 px-3 py-2'>
                     <span
                       className={cn(
-                        ' flex size-8 shrink-0 items-center justify-center rounded-lg',
+                        'flex size-7 shrink-0 items-center justify-center rounded-none border border-foreground/15',
                         isPublished
-                          ? 'border border-border bg-foreground text-background'
-                          : 'border border-border bg-card text-muted-foreground'
+                          ? 'bg-foreground text-background'
+                          : 'bg-background text-muted-foreground'
                       )}
                     >
-                      <Icons.circleCheck className='size-4' />
+                      <Icons.circleCheck className='size-3.5' />
                     </span>
                     <div className='min-w-0 flex-1'>
-                      <p className='text-sm font-semibold tracking-tight text-foreground'>
+                      <p className='text-sm font-semibold leading-tight text-foreground'>
                         {isPublished ? t('surveyIsLive') : t('surveyIsClosed')}
                       </p>
-                      <p className='text-muted-foreground  text-xs leading-relaxed'>
+                      <p className='text-muted-foreground text-xs leading-snug'>
                         {isPublished ? t('shareHint') : t('closedHint')}
                       </p>
                     </div>
                   </div>
 
                   {collectionUrl ? (
-                    <div className='space-y-2'>
-                      <label
-                        htmlFor='collection-link'
-                        className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'
-                      >
+                    <div className='space-y-1.5'>
+                      <label htmlFor='collection-link' className={planFieldLabelClass}>
                         {t('collectionLink')}
                       </label>
-                      <div className='flex flex-col gap-2 sm:flex-row'>
+                      <div className='flex gap-2'>
                         <Input
                           id='collection-link'
                           value={collectionUrl}
                           readOnly
-                          className='h-11 rounded-xl border-border bg-muted/20 font-mono text-xs sm:text-sm'
+                          className={cn(
+                            planFieldControlClass,
+                            'h-9 min-w-0 flex-1 font-mono text-xs sm:text-sm'
+                          )}
                         />
                         <Button
                           type='button'
+                          size='sm'
                           onClick={() => void handleCopyLink()}
                           disabled={!collectionUrl}
                           className={cn(
-                            'h-11 shrink-0 rounded-xl font-semibold sm:min-w-[7.5rem]',
+                            'h-9 shrink-0 rounded-none px-3 font-semibold sm:min-w-[6.5rem]',
                             copied
-                              ? 'border border-border bg-foreground text-background hover:bg-foreground/90'
+                              ? 'border border-foreground bg-foreground text-background hover:bg-foreground/90'
                               : 'border border-border bg-card text-foreground hover:bg-muted/50'
                           )}
                         >
                           {copied ? (
                             <>
-                              <Icons.check className='mr-1.5 size-4' />
+                              <Icons.check className='mr-1 size-3.5' />
                               {tCommon('copied')}
                             </>
                           ) : (
                             <>
-                              <Icons.share className='mr-1.5 size-4' />
+                              <Icons.share className='mr-1 size-3.5' />
                               {tCommon('copy')}
                             </>
                           )}
@@ -408,76 +396,76 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                   ) : null}
 
                   {collectionUrl ? (
-                    <>
-                      <div className='border-border border-t border-dashed' />
-                      <div className='space-y-2'>
-                        <div className='flex flex-wrap items-center justify-between gap-2'>
-                          <p className='text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
-                            {t('sharePack')}
-                          </p>
-                          <Button
-                            type='button'
-                            variant='outline'
-                            size='sm'
-                            className='h-8 rounded-lg text-xs'
-                            onClick={handlePrintShareSheet}
-                          >
-                            <Icons.page className='mr-1.5 size-3.5' />
-                            {t('printShareSheet')}
-                          </Button>
-                        </div>
-                        <CollectionQr url={collectionUrl} />
+                    <div className='space-y-2 border-t border-border pt-3'>
+                      <div className='flex items-center justify-between gap-2'>
+                        <p className={planFieldLabelClass}>{t('sharePack')}</p>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          className='h-8 rounded-none px-2.5 text-xs'
+                          onClick={handlePrintShareSheet}
+                        >
+                          <Icons.page className='mr-1 size-3.5' />
+                          {t('printShareSheet')}
+                        </Button>
                       </div>
-                    </>
+                      <CollectionQr url={collectionUrl} />
+                    </div>
+                  ) : null}
+
+                  {isPublished ? (
+                    <p className='border-t border-border pt-3 text-xs leading-snug text-muted-foreground'>
+                      {t('lockedHint')}
+                    </p>
                   ) : null}
                 </>
               )}
             </SurvaiPanelBody>
-
-            {isPublished ? (
-              <SurvaiPanelFooter>
-                <p className='text-muted-foreground text-xs leading-relaxed'>
-                  {t('lockedHint')}
-                </p>
-              </SurvaiPanelFooter>
-            ) : null}
           </SurvaiPanel>
 
           {canEdit ? (
             <SurvaiPanel>
               <SurvaiPanelHeader
+                tone='soft'
                 title={t('settingsTitle')}
                 subtitle={t('settingsSubtitle')}
               />
-              <SurvaiPanelBody className='space-y-4'>
-                <div className='space-y-1.5'>
-                  <Label htmlFor='response-quota'>{t('quota')}</Label>
-                  <Input
-                    id='response-quota'
-                    type='number'
-                    min={1}
-                    inputMode='numeric'
-                    placeholder={tCommon('unlimited')}
-                    value={quotaDraft}
-                    onChange={(e) => setQuotaDraft(e.target.value)}
-                    className='h-10 rounded-xl'
-                  />
-                </div>
-                <div className='space-y-1.5'>
-                  <Label htmlFor='closes-at'>{t('closeDateTime')}</Label>
-                  <Input
-                    id='closes-at'
-                    type='datetime-local'
-                    value={closesAtDraft}
-                    onChange={(e) => setClosesAtDraft(e.target.value)}
-                    className='h-10 rounded-xl'
-                  />
+              <SurvaiPanelBody compact className='space-y-3'>
+                <div className='grid gap-3 sm:grid-cols-2'>
+                  <div className='space-y-1.5'>
+                    <Label htmlFor='response-quota' className={planFieldLabelClass}>
+                      {t('quota')}
+                    </Label>
+                    <Input
+                      id='response-quota'
+                      type='number'
+                      min={1}
+                      inputMode='numeric'
+                      placeholder={tCommon('unlimited')}
+                      value={quotaDraft}
+                      onChange={(e) => setQuotaDraft(e.target.value)}
+                      className={cn(planFieldControlClass, 'h-9')}
+                    />
+                  </div>
+                  <div className='space-y-1.5'>
+                    <Label htmlFor='closes-at' className={planFieldLabelClass}>
+                      {t('closeDateTime')}
+                    </Label>
+                    <Input
+                      id='closes-at'
+                      type='datetime-local'
+                      value={closesAtDraft}
+                      onChange={(e) => setClosesAtDraft(e.target.value)}
+                      className={cn(planFieldControlClass, 'h-9')}
+                    />
+                  </div>
                 </div>
                 <Button
                   type='button'
                   onClick={() => void handleSaveSettings()}
                   disabled={savingSettings}
-                  className='h-10 w-full rounded-xl'
+                  className='h-9 w-full rounded-none sm:w-auto sm:min-w-[10rem]'
                 >
                   {savingSettings ? (
                     <Icons.spinner className='mr-2 size-4 animate-spin' />
@@ -489,7 +477,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
           ) : null}
         </div>
 
-        <div className='sticky top-[4.5rem] self-start space-y-6'>
+        <aside className='sticky top-[4.25rem] space-y-3 self-start lg:col-span-5'>
           <SurvaiBrandCard
             title={t('viewResults')}
             description={
@@ -506,12 +494,12 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
               )}
             >
               <Button
-                className='h-11 w-full rounded-xl border border-foreground/15 bg-foreground font-semibold text-background hover:bg-foreground/90'
+                className={cn(primaryCtaClass, 'h-11 w-full justify-between')}
                 size='lg'
                 disabled={!isLive}
               >
                 {t('viewRespondents')}
-                <Icons.arrowRight className='ml-2 size-4' />
+                <Icons.arrowRight className='size-4' />
               </Button>
             </Link>
           </SurvaiBrandCard>
@@ -519,7 +507,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
           <Separator />
 
           <SurvaiPanel>
-            <SurvaiPanelBody className='flex flex-col gap-2'>
+            <SurvaiPanelBody compact className='flex flex-col gap-1.5'>
               {collectionPath ? (
                 <a
                   href={collectionPath}
@@ -527,7 +515,10 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
                   rel='noopener noreferrer'
                   className='block'
                 >
-                  <Button className='h-auto w-full justify-start rounded-xl px-3 py-2.5 text-sm'>
+                  <Button
+                    variant='outline'
+                    className='h-9 w-full justify-start rounded-none px-3 text-sm'
+                  >
                     <Icons.openInNew className='mr-2 size-3.5' />
                     {t('previewSurvey')}
                   </Button>
@@ -536,7 +527,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
               {isPublished && canEdit ? (
                 <Button
                   variant='outline'
-                  className='w-full justify-start rounded-xl text-destructive hover:text-destructive'
+                  className='h-9 w-full justify-start rounded-none text-destructive hover:text-destructive'
                   onClick={() => void handleClose()}
                   disabled={isClosing}
                 >
@@ -550,7 +541,7 @@ function CollectViewContent({ surveyId }: CollectViewProps) {
               ) : null}
             </SurvaiPanelBody>
           </SurvaiPanel>
-        </div>
+        </aside>
       </div>
     </div>
   );

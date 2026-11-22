@@ -71,17 +71,15 @@ function PlanDetailContent({ planId, surveyId }: { planId: string; surveyId?: st
 
 export function PlanDetailSkeleton() {
   return (
-    <div className='grid gap-6 lg:grid-cols-3'>
-      <div className='space-y-6 lg:col-span-2'>
-        <Skeleton className='h-48 w-full rounded-xl' />
-        <Skeleton className='h-64 w-full rounded-xl' />
-        <Skeleton className='h-64 w-full rounded-xl' />
-        <Skeleton className='h-48 w-full rounded-xl' />
+    <div className='grid gap-4 lg:grid-cols-12'>
+      <div className='space-y-4 lg:col-span-6 xl:col-span-7'>
+        <Skeleton className='h-40 w-full rounded-none' />
+        <Skeleton className='h-72 w-full rounded-none' />
       </div>
-      <div className='space-y-4'>
-        <Skeleton className='h-32 w-full rounded-xl' />
-        <Skeleton className='h-48 w-full rounded-xl' />
-        <Skeleton className='h-32 w-full rounded-xl' />
+      <div className='space-y-4 lg:col-span-6 xl:col-span-5'>
+        <Skeleton className='h-32 w-full rounded-none' />
+        <Skeleton className='h-48 w-full rounded-none' />
+        <Skeleton className='h-32 w-full rounded-none' />
       </div>
     </div>
   );

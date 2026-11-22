@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -10,23 +11,30 @@ export default function NotFound() {
   const t = useTranslations('common');
 
   return (
-    <div className='absolute top-1/2 left-1/2 mb-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center text-center'>
-      <span className='from-foreground bg-linear-to-b to-transparent bg-clip-text text-[10rem] leading-none font-extrabold text-transparent'>
-        404
-      </span>
-      <h2 className='font-heading my-2 text-2xl font-bold'>{t('notFoundTitle')}</h2>
-      <p>{t('notFoundBody')}</p>
-      <div className='mt-8 flex justify-center gap-2'>
-        <Button onClick={() => router.back()} variant='default' size='lg'>
-          {t('goBack')}
-        </Button>
-        <Button
-          onClick={() => router.push('/dashboard')}
-          variant='ghost'
-          size='lg'
-        >
-          {t('backToHome')}
-        </Button>
+    <div className='flex min-h-svh items-center justify-center px-4'>
+      <div className='w-full max-w-md border border-foreground/15 bg-background p-8 text-center'>
+        <p className='font-mono text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground'>
+          404
+        </p>
+        <p className='mt-4 text-[clamp(3rem,12vw,4.5rem)] font-semibold leading-[0.85] tracking-[-0.06em] lowercase'>
+          surv<span className='text-[var(--survai-mint-strong,#0f9f5c)]'>ai</span>
+        </p>
+        <h1 className='mt-6 font-display text-xl font-semibold tracking-[-0.03em]'>{t('notFoundTitle')}</h1>
+        <p className='text-muted-foreground mt-2 text-sm leading-relaxed'>{t('notFoundBody')}</p>
+        <div className='mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center'>
+          <Button onClick={() => router.back()} variant='default' size='lg' className='w-full sm:w-auto'>
+            {t('goBack')}
+          </Button>
+          <Button
+            render={<Link href='/' />}
+            nativeButton={false}
+            variant='outline'
+            size='lg'
+            className='w-full sm:w-auto'
+          >
+            {t('backToHome')}
+          </Button>
+        </div>
       </div>
     </div>
   );

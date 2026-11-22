@@ -74,7 +74,7 @@ export function FindingsList({
           dismissed: counts.dismissed
         })}
         badge={
-          <span className='inline-flex min-w-6 items-center justify-center rounded-lg bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-primary-foreground'>
+          <span className='inline-flex min-w-6 items-center justify-center rounded-lg bg-primary px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-primary-foreground'>
             {counts.all}
           </span>
         }
@@ -104,7 +104,7 @@ export function FindingsList({
               >
                 {t(FILTER_KEY[status])}
                 {status !== 'all' ? (
-                  <span className='font-mono text-[10px] tabular-nums opacity-70'>
+                  <span className='font-mono text-xs tabular-nums opacity-70'>
                     {counts[status]}
                   </span>
                 ) : null}
@@ -211,7 +211,7 @@ function FindingCard({
         {finding.status !== 'open' ? (
           <span
             className={cn(
-              'ml-auto rounded-md px-1.5 py-0.5 text-[10px] font-medium capitalize',
+              'ml-auto rounded-md px-1.5 py-0.5 text-xs font-medium capitalize',
               finding.status === 'accepted'
                 ? 'bg-brand-soft text-primary'
                 : 'bg-muted text-muted-foreground'

@@ -186,7 +186,7 @@ export function createColumns(
         return (
           <Badge
             variant='outline'
-            className={`rounded-full text-[10px] font-medium ${config.className}`}
+            className={`rounded-full text-xs font-medium ${config.className}`}
           >
             {status === 'completed' ? (
               <Icons.circleCheck className='mr-1 h-3 w-3' />

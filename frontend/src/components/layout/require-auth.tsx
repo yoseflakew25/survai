@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/lib/auth-context';
-import { HippieLoadingScreen } from '@/components/hippie-loading-screen';
+import { SurvaiLoadingScreen } from '@/components/hippie-loading-screen';
 import { overviewQueryOptions } from '@/features/overview/api/queries';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -38,15 +38,15 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }, [isSignedIn, isLoading, pathname, queryClient]);
 
   if (isLoggingOut) {
-    return <HippieLoadingScreen message={tNav('signingOut')} />;
+    return <SurvaiLoadingScreen message={tNav('signingOut')} />;
   }
 
   if (isLoading) {
-    return <HippieLoadingScreen message={tAuth('checkingSession')} />;
+    return <SurvaiLoadingScreen message={tAuth('checkingSession')} />;
   }
 
   if (!isSignedIn) {
-    return <HippieLoadingScreen message={tAuth('redirectingSignIn')} />;
+    return <SurvaiLoadingScreen message={tAuth('redirectingSignIn')} />;
   }
 
   return <>{children}</>;
