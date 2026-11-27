@@ -34,12 +34,8 @@ import {
   SurvaiPanelHeader,
   brandCtaClass
 } from '@/components/survai-panel';
-import {
-  changePassword,
-  deleteMyAccount,
-  updateMe
-} from '@/features/profile/api/service';
-import { PasswordInput } from '@/features/auth/components/password-input';
+import { deleteMyAccount, updateMe } from '@/features/profile/api/service';
+import { ChangePasswordPanel } from '@/features/profile/components/change-password-panel';
 import { TeamPanel } from '@/features/team/components/team-panel';
 import { toast } from '@/lib/toast';
 import {
@@ -55,12 +51,6 @@ import {
   type CsoDocumentApplyPayload
 } from '@/features/profile/components/cso-profile-document-import';
 import type { OrganizationProfileFormValues } from '@/features/profile/components/organization-profile-form-types';
-
-type PasswordFormValues = {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-};
 
 type ProfileSection = 'profile' | 'team' | 'security' | 'danger';
 
@@ -128,9 +118,7 @@ export default function ProfileViewPage() {
           .optional()
           .refine(
             (val) =>
-              !val ||
-              /^https?:\/\/.+/i.test(val) ||
-              /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(val),
+              !val || /^https?:\/\/.+/i.test(val) || /^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(val),
             { message: tAccount('validationWebsite') }
           ),
         cso: csoProfileSchema
@@ -138,55 +126,20 @@ export default function ProfileViewPage() {
     [tAccount]
   );
 
-  const passwordSchema = useMemo(
-    () =>
-      z
-        .object({
-          currentPassword: z
-            .string()
-            .min(1, tAccount('validationCurrentPasswordRequired')),
-          newPassword: z
-            .string()
-            .min(8, tAccount('validationPasswordMin'))
-            .regex(/[A-Z]/, tAccount('validationPasswordUpper'))
-            .regex(/[a-z]/, tAccount('validationPasswordLower'))
-            .regex(/[0-9]/, tAccount('validationPasswordNumber')),
-          confirmPassword: z
-            .string()
-            .min(1, tAccount('validationConfirmPasswordRequired'))
-        })
-        .refine((data) => data.newPassword === data.confirmPassword, {
-          message: tAccount('validationPasswordsMismatch'),
-          path: ['confirmPassword']
-        }),
-    [tAccount]
+  const navItems: { id: ProfileSection; label: string; icon: keyof typeof Icons }[] = useMemo(
+    () => [
+      { id: 'profile', label: tAccount('profile'), icon: 'account' },
+      { id: 'team', label: tTeam('title'), icon: 'users' },
+      { id: 'security', label: tNav('security'), icon: 'lock' },
+      { id: 'danger', label: tAccount('dangerZone'), icon: 'logout' }
+    ],
+    [tAccount, tTeam, tNav]
   );
 
-  const navItems: { id: ProfileSection; label: string; icon: keyof typeof Icons }[] =
-    useMemo(
-      () => [
-        { id: 'profile', label: tAccount('profile'), icon: 'account' },
-        { id: 'team', label: tTeam('title'), icon: 'users' },
-        { id: 'security', label: tNav('security'), icon: 'lock' },
-        { id: 'danger', label: tAccount('dangerZone'), icon: 'logout' }
-      ],
-      [tAccount, tTeam, tNav]
-    );
-
-  const strengthLabels = useMemo(
-    () => ({
-      weak: tAccount('passwordStrengthWeak'),
-      fair: tAccount('passwordStrengthFair'),
-      good: tAccount('passwordStrengthGood'),
-      strong: tAccount('passwordStrengthStrong')
-    }),
-    [tAccount]
-  );
   const [activeSection, setActiveSection] = useState<ProfileSection>(() =>
     sectionFromTab(searchParams.get('tab'))
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -220,21 +173,6 @@ export default function ProfileViewPage() {
     }
   });
 
-  const {
-    register: registerPassword,
-    handleSubmit: handleSubmitPassword,
-    formState: { errors: passwordErrors, isDirty: isPasswordDirty },
-    reset: resetPassword,
-    watch: watchPassword
-  } = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }
-  });
-
   useEffect(() => {
     if (!user) return;
     resetProfile({
@@ -248,25 +186,6 @@ export default function ProfileViewPage() {
       cso: csoProfileFromApi(user.organizationCsoProfile)
     });
   }, [user, resetProfile]);
-
-  const newPasswordValue = watchPassword('newPassword');
-
-  const getPasswordStrength = (password: string) => {
-    if (!password) return { score: 0, label: '', color: '' };
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-
-    if (score <= 2) return { score, label: strengthLabels.weak, color: 'bg-destructive' };
-    if (score <= 3) return { score, label: strengthLabels.fair, color: 'bg-amber-500' };
-    if (score <= 4) return { score, label: strengthLabels.good, color: 'bg-success' };
-    return { score, label: strengthLabels.strong, color: 'bg-primary' };
-  };
-
-  const passwordStrength = getPasswordStrength(newPasswordValue || '');
 
   if (!user) {
     return (
@@ -284,16 +203,9 @@ export default function ProfileViewPage() {
     .toUpperCase()
     .slice(0, 2);
 
-  const handleCsoDocumentApply = (
-    payload: CsoDocumentApplyPayload,
-    mode: 'empty' | 'all'
-  ) => {
+  const handleCsoDocumentApply = (payload: CsoDocumentApplyPayload, mode: 'empty' | 'all') => {
     const cur = watchProfile();
-    const organizationName = mergeProfileText(
-      cur.organizationName,
-      payload.organizationName,
-      mode
-    );
+    const organizationName = mergeProfileText(cur.organizationName, payload.organizationName, mode);
     const organizationDescription = mergeProfileText(
       cur.organizationDescription,
       payload.organizationDescription,
@@ -339,26 +251,6 @@ export default function ProfileViewPage() {
       });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const onPasswordSubmit = async (data: PasswordFormValues) => {
-    setIsChangingPassword(true);
-    try {
-      await changePassword({
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword
-      });
-      resetPassword();
-      toast.success(tAccount('passwordUpdated'), {
-        description: tAccount('passwordUpdatedDesc')
-      });
-    } catch (err) {
-      toast.error(tAccount('passwordFailed'), {
-        description: err instanceof Error ? err.message : tAccount('tryAgain')
-      });
-    } finally {
-      setIsChangingPassword(false);
     }
   };
 
@@ -418,16 +310,12 @@ export default function ProfileViewPage() {
               onClick={() => setActiveSection(item.id)}
               className={cn(
                 'inline-flex items-center gap-2 border-r border-foreground/10 px-3.5 py-2.5 text-sm font-medium transition-colors last:border-r-0',
-                isActive && !isDanger && 'bg-[color-mix(in_srgb,var(--brand)_36%,var(--background))] text-foreground',
                 isActive &&
-                  isDanger &&
-                  'bg-destructive/10 text-destructive',
-                !isActive &&
                   !isDanger &&
-                  'text-muted-foreground hover:text-foreground',
-                !isActive &&
-                  isDanger &&
-                  'text-muted-foreground hover:text-destructive'
+                  'bg-[color-mix(in_srgb,var(--brand)_36%,var(--background))] text-foreground',
+                isActive && isDanger && 'bg-destructive/10 text-destructive',
+                !isActive && !isDanger && 'text-muted-foreground hover:text-foreground',
+                !isActive && isDanger && 'text-muted-foreground hover:text-destructive'
               )}
             >
               {Icon ? <Icon className='size-3.5' /> : null}
@@ -457,17 +345,7 @@ export default function ProfileViewPage() {
         {activeSection === 'team' && <TeamPanel />}
 
         {activeSection === 'security' && (
-          <SecuritySection
-            registerPassword={registerPassword}
-            handleSubmitPassword={handleSubmitPassword}
-            passwordErrors={passwordErrors}
-            isPasswordDirty={isPasswordDirty}
-            isChangingPassword={isChangingPassword}
-            newPasswordValue={newPasswordValue}
-            passwordStrength={passwordStrength}
-            onPasswordSubmit={onPasswordSubmit}
-            brandCtaClass={brandCtaClass}
-          />
+          <ChangePasswordPanel subtitle={tAccount('keepAccountSecure')} />
         )}
         {activeSection === 'danger' && (
           <DangerSection
@@ -497,20 +375,13 @@ function ProfileSection({
   user: AuthUser;
   initials: string;
   registerProfile: ReturnType<typeof useForm<OrganizationProfileFormValues>>['register'];
-  handleSubmitProfile: ReturnType<
-    typeof useForm<OrganizationProfileFormValues>
-  >['handleSubmit'];
-  profileErrors: ReturnType<
-    typeof useForm<OrganizationProfileFormValues>
-  >['formState']['errors'];
+  handleSubmitProfile: ReturnType<typeof useForm<OrganizationProfileFormValues>>['handleSubmit'];
+  profileErrors: ReturnType<typeof useForm<OrganizationProfileFormValues>>['formState']['errors'];
   isProfileDirty: boolean;
   watchProfile: ReturnType<typeof useForm<OrganizationProfileFormValues>>['watch'];
   isSaving: boolean;
   onProfileSubmit: (data: OrganizationProfileFormValues) => void;
-  onCsoDocumentApply: (
-    payload: CsoDocumentApplyPayload,
-    mode: 'empty' | 'all'
-  ) => void;
+  onCsoDocumentApply: (payload: CsoDocumentApplyPayload, mode: 'empty' | 'all') => void;
   brandCtaClass: string;
 }) {
   const tAccount = useTranslations('account');
@@ -559,8 +430,7 @@ function ProfileSection({
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>
                 <Label htmlFor='organizationName'>
-                  {tAccount('orgName')}{' '}
-                  <span className='text-destructive'>*</span>
+                  {tAccount('orgName')} <span className='text-destructive'>*</span>
                 </Label>
                 <Input
                   id='organizationName'
@@ -579,36 +449,25 @@ function ProfileSection({
               </div>
               <div className='space-y-2'>
                 <Label htmlFor='email'>{tAccount('emailAddress')}</Label>
-                <Input
-                  id='email'
-                  value={user.email}
-                  disabled
-                  className='h-11 rounded-xl'
-                />
-                <p className='text-muted-foreground text-xs'>
-                  {tAccount('emailChangeHint')}
-                </p>
+                <Input id='email' value={user.email} disabled className='h-11 rounded-xl' />
+                <p className='text-muted-foreground text-xs'>{tAccount('emailChangeHint')}</p>
               </div>
             </div>
             <div className='grid gap-4 sm:grid-cols-2'>
               <div className='space-y-2'>
                 <Label htmlFor='fullName'>
-                  {tAccount('displayName')}{' '}
-                  <span className='text-destructive'>*</span>
+                  {tAccount('displayName')} <span className='text-destructive'>*</span>
                 </Label>
                 <Input
                   id='fullName'
                   {...registerProfile('fullName')}
                   className={cn(
                     'h-11 rounded-xl',
-                    profileErrors.fullName &&
-                      'border-destructive focus-visible:ring-destructive/20'
+                    profileErrors.fullName && 'border-destructive focus-visible:ring-destructive/20'
                   )}
                 />
                 {profileErrors.fullName ? (
-                  <p className='text-destructive text-xs'>
-                    {profileErrors.fullName.message}
-                  </p>
+                  <p className='text-destructive text-xs'>{profileErrors.fullName.message}</p>
                 ) : null}
               </div>
               <div className='space-y-2'>
@@ -619,14 +478,11 @@ function ProfileSection({
                   placeholder='+1 (555) 000-0000'
                   className={cn(
                     'h-11 rounded-xl',
-                    profileErrors.phone &&
-                      'border-destructive focus-visible:ring-destructive/20'
+                    profileErrors.phone && 'border-destructive focus-visible:ring-destructive/20'
                   )}
                 />
                 {profileErrors.phone ? (
-                  <p className='text-destructive text-xs'>
-                    {profileErrors.phone.message}
-                  </p>
+                  <p className='text-destructive text-xs'>{profileErrors.phone.message}</p>
                 ) : null}
               </div>
             </div>
@@ -639,14 +495,11 @@ function ProfileSection({
                   placeholder={tAccount('focusRolePlaceholder')}
                   className={cn(
                     'h-11 rounded-xl',
-                    profileErrors.jobTitle &&
-                      'border-destructive focus-visible:ring-destructive/20'
+                    profileErrors.jobTitle && 'border-destructive focus-visible:ring-destructive/20'
                   )}
                 />
                 {profileErrors.jobTitle ? (
-                  <p className='text-destructive text-xs'>
-                    {profileErrors.jobTitle.message}
-                  </p>
+                  <p className='text-destructive text-xs'>{profileErrors.jobTitle.message}</p>
                 ) : null}
               </div>
               <div className='space-y-2'>
@@ -657,21 +510,16 @@ function ProfileSection({
                   placeholder='https://example.com'
                   className={cn(
                     'h-11 rounded-xl',
-                    profileErrors.website &&
-                      'border-destructive focus-visible:ring-destructive/20'
+                    profileErrors.website && 'border-destructive focus-visible:ring-destructive/20'
                   )}
                 />
                 {profileErrors.website ? (
-                  <p className='text-destructive text-xs'>
-                    {profileErrors.website.message}
-                  </p>
+                  <p className='text-destructive text-xs'>{profileErrors.website.message}</p>
                 ) : null}
               </div>
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='organizationDescription'>
-                {tAccount('orgShortDescription')}
-              </Label>
+              <Label htmlFor='organizationDescription'>{tAccount('orgShortDescription')}</Label>
               <Textarea
                 id='organizationDescription'
                 {...registerProfile('organizationDescription')}
@@ -712,30 +560,18 @@ function ProfileSection({
           </SurvaiPanelBody>
         </SurvaiPanel>
 
-        <CsoProfileDocumentImport
-          currentCso={watchProfile('cso')}
-          onApply={onCsoDocumentApply}
-        />
+        <CsoProfileDocumentImport currentCso={watchProfile('cso')} onApply={onCsoDocumentApply} />
 
-        <CsoProfileFields
-          register={registerProfile}
-          errors={profileErrors}
-        />
+        <CsoProfileFields register={registerProfile} errors={profileErrors} />
 
         <SurvaiPanel>
           <SurvaiPanelFooter className='flex items-center justify-between gap-3'>
             {isProfileDirty ? (
-              <p className='text-muted-foreground text-xs'>
-                {tAccount('unsavedChanges')}
-              </p>
+              <p className='text-muted-foreground text-xs'>{tAccount('unsavedChanges')}</p>
             ) : (
               <span />
             )}
-            <Button
-              type='submit'
-              disabled={!isProfileDirty || isSaving}
-              className={brandCtaClass}
-            >
+            <Button type='submit' disabled={!isProfileDirty || isSaving} className={brandCtaClass}>
               {isSaving ? (
                 <>
                   <Icons.spinner className='mr-2 size-4 animate-spin' />
@@ -752,138 +588,6 @@ function ProfileSection({
   );
 }
 
-function SecuritySection({
-  registerPassword,
-  handleSubmitPassword,
-  passwordErrors,
-  isPasswordDirty,
-  isChangingPassword,
-  newPasswordValue,
-  passwordStrength,
-  onPasswordSubmit,
-  brandCtaClass
-}: {
-  registerPassword: ReturnType<typeof useForm<PasswordFormValues>>['register'];
-  handleSubmitPassword: ReturnType<typeof useForm<PasswordFormValues>>['handleSubmit'];
-  passwordErrors: ReturnType<typeof useForm<PasswordFormValues>>['formState']['errors'];
-  isPasswordDirty: boolean;
-  isChangingPassword: boolean;
-  newPasswordValue: string;
-  passwordStrength: { score: number; label: string; color: string };
-  onPasswordSubmit: (data: PasswordFormValues) => void;
-  brandCtaClass: string;
-}) {
-  const tAccount = useTranslations('account');
-  const tCommon = useTranslations('common');
-
-  return (
-    <form onSubmit={handleSubmitPassword(onPasswordSubmit)}>
-      <SurvaiPanel>
-        <SurvaiPanelHeader
-          tone='brand'
-          icon={<Icons.lock className='size-3.5' />}
-          title={tAccount('changePassword')}
-          subtitle={tAccount('keepAccountSecure')}
-        />
-        <SurvaiPanelBody className='space-y-4'>
-          <div className='space-y-2'>
-            <Label htmlFor='currentPassword'>{tAccount('currentPassword')}</Label>
-            <PasswordInput
-              id='currentPassword'
-              autoComplete='current-password'
-              {...registerPassword('currentPassword')}
-              className={cn(
-                'border-input bg-transparent h-11 w-full rounded-xl border px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-                passwordErrors.currentPassword &&
-                  'border-destructive focus-visible:ring-destructive/20'
-              )}
-            />
-            {passwordErrors.currentPassword ? (
-              <p className='text-destructive text-xs'>
-                {passwordErrors.currentPassword.message}
-              </p>
-            ) : null}
-          </div>
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <div className='space-y-2'>
-              <Label htmlFor='newPassword'>{tAccount('newPassword')}</Label>
-              <PasswordInput
-                id='newPassword'
-                autoComplete='new-password'
-                {...registerPassword('newPassword')}
-                className={cn(
-                  'border-input bg-transparent h-11 w-full rounded-xl border px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-                  passwordErrors.newPassword &&
-                    'border-destructive focus-visible:ring-destructive/20'
-                )}
-              />
-              {passwordErrors.newPassword ? (
-                <p className='text-destructive text-xs'>
-                  {passwordErrors.newPassword.message}
-                </p>
-              ) : null}
-              {newPasswordValue ? (
-                <div className='space-y-1.5'>
-                  <div className='flex gap-1'>
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          'h-1.5 flex-1 rounded-full transition-colors',
-                          i <= passwordStrength.score
-                            ? passwordStrength.color
-                            : 'bg-muted'
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <p className='text-muted-foreground text-xs'>
-                    {passwordStrength.label} — {tAccount('passwordStrengthHint')}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='confirmPassword'>{tAccount('confirmPassword')}</Label>
-              <PasswordInput
-                id='confirmPassword'
-                autoComplete='new-password'
-                {...registerPassword('confirmPassword')}
-                className={cn(
-                  'border-input bg-transparent h-11 w-full rounded-xl border px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-                  passwordErrors.confirmPassword &&
-                    'border-destructive focus-visible:ring-destructive/20'
-                )}
-              />
-              {passwordErrors.confirmPassword ? (
-                <p className='text-destructive text-xs'>
-                  {passwordErrors.confirmPassword.message}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </SurvaiPanelBody>
-        <SurvaiPanelFooter className='flex justify-end'>
-          <Button
-            type='submit'
-            disabled={!isPasswordDirty || isChangingPassword}
-            className={brandCtaClass}
-          >
-            {isChangingPassword ? (
-              <>
-                <Icons.spinner className='mr-2 size-4 animate-spin' />
-                {tCommon('updating')}
-              </>
-            ) : (
-              tAccount('updatePassword')
-            )}
-          </Button>
-        </SurvaiPanelFooter>
-      </SurvaiPanel>
-    </form>
-  );
-}
-
 function DangerSection({
   organizationName,
   isDeleting,
@@ -897,8 +601,7 @@ function DangerSection({
   const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [confirmName, setConfirmName] = useState('');
-  const canDelete =
-    confirmName.trim().toLowerCase() === organizationName.trim().toLowerCase();
+  const canDelete = confirmName.trim().toLowerCase() === organizationName.trim().toLowerCase();
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -1004,10 +707,7 @@ function DangerSection({
             </div>
 
             <AlertDialogFooter className='mx-0 mb-0 rounded-none border-t bg-brand-soft/70 px-5 py-4'>
-              <AlertDialogCancel
-                disabled={isDeleting}
-                className='rounded-xl'
-              >
+              <AlertDialogCancel disabled={isDeleting} className='rounded-xl'>
                 {tCommon('cancel')}
               </AlertDialogCancel>
               <AlertDialogAction

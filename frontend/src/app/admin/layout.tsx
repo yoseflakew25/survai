@@ -16,11 +16,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-export default async function AdminLayout({
-  children
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
 
@@ -29,7 +25,7 @@ export default async function AdminLayout({
       <KBar>
         <SidebarProvider
           defaultOpen={defaultOpen}
-          style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
+          style={{ '--sidebar-width': '16rem' } as React.CSSProperties}
         >
           <AdminSidebar />
           <SidebarInset id='main-content' tabIndex={-1} className='bg-background'>

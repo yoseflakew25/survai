@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -55,9 +55,15 @@ export default function ForgotPasswordViewPage() {
         }),
     [t]
   );
-  const deepLinkHandled = useRef(false);
-  const [step, setStep] = useState<'email' | 'otp'>('email');
-  const [pendingEmail, setPendingEmail] = useState('');
+  const initialParamEmail = (searchParams.get('email') || '').trim();
+  const initialParamMode = (searchParams.get('mode') || '').trim().toLowerCase();
+  const hasDeepLinkEmail = Boolean(initialParamEmail && initialParamEmail.includes('@'));
+  const [step, setStep] = useState<'email' | 'otp'>(
+    hasDeepLinkEmail && initialParamMode === 'otp' ? 'otp' : 'email'
+  );
+  const [pendingEmail, setPendingEmail] = useState(
+    hasDeepLinkEmail && initialParamMode === 'otp' ? initialParamEmail : ''
+  );
   const [otp, setOtp] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -66,32 +72,25 @@ export default function ForgotPasswordViewPage() {
 
   const emailForm = useForm<EmailValues>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: '' }
+    defaultValues: { email: hasDeepLinkEmail ? initialParamEmail : '' }
   });
 
+  const [passwordValue, setPasswordValue] = useState('');
   const resetForm = useForm<ResetValues>({
     resolver: zodResolver(resetSchema),
     defaultValues: { password: '', confirmPassword: '' }
   });
+  const passwordRules = [
+    { label: t('passwordMin'), met: passwordValue.length >= 8 },
+    { label: t('passwordUppercase'), met: /[A-Z]/.test(passwordValue) },
+    { label: t('passwordNumber'), met: /[0-9]/.test(passwordValue) }
+  ];
 
   useEffect(() => {
     if (!isLoading && isSignedIn) {
       router.replace('/dashboard/overview');
     }
   }, [isLoading, isSignedIn, router]);
-
-  useEffect(() => {
-    if (deepLinkHandled.current) return;
-    const email = (searchParams.get('email') || '').trim();
-    const mode = (searchParams.get('mode') || '').trim().toLowerCase();
-    if (!email || !email.includes('@')) return;
-    deepLinkHandled.current = true;
-    emailForm.setValue('email', email);
-    if (mode === 'otp') {
-      setPendingEmail(email);
-      setStep('otp');
-    }
-  }, [searchParams, emailForm]);
 
   async function onEmailSubmit(values: EmailValues) {
     setServerError(null);
@@ -160,6 +159,10 @@ export default function ForgotPasswordViewPage() {
   return (
     <AuthShell>
       <div className='auth-head'>
+        <p className='auth-step-eyebrow'>
+          <span className='auth-step-dot' aria-hidden='true' />
+          <span>{done ? '02 / 02' : step === 'otp' ? '02 / 02' : '01 / 02'}</span>
+        </p>
         <h1 className='auth-title'>
           {done ? t('passwordUpdated') : step === 'otp' ? t('enterResetCode') : t('forgotTitle')}
         </h1>
@@ -213,11 +216,7 @@ export default function ForgotPasswordViewPage() {
               ) : null}
             </div>
 
-            <button
-              type='submit'
-              disabled={emailForm.formState.isSubmitting}
-              className='auth-btn'
-            >
+            <button type='submit' disabled={emailForm.formState.isSubmitting} className='auth-btn'>
               {emailForm.formState.isSubmitting ? (
                 <>
                   <Icons.spinner className='size-4 animate-spin' />
@@ -232,6 +231,27 @@ export default function ForgotPasswordViewPage() {
 
         {!done && step === 'otp' ? (
           <form className='auth-fields' onSubmit={resetForm.handleSubmit(onResetSubmit)} noValidate>
+            <div className='auth-recipient-bar'>
+              <span className='auth-recipient-email' title={pendingEmail}>
+                {pendingEmail}
+              </span>
+              <button
+                type='button'
+                className='auth-inline-action'
+                disabled={resetForm.formState.isSubmitting || isResending}
+                onClick={() => {
+                  setStep('email');
+                  setOtp('');
+                  setDevCode(null);
+                  setServerError(null);
+                  setPasswordValue('');
+                  resetForm.reset();
+                }}
+              >
+                {t('useDifferentEmail')}
+              </button>
+            </div>
+
             {devCode ? (
               <div className='auth-notice'>
                 <p>{t('devCode')}</p>
@@ -242,13 +262,19 @@ export default function ForgotPasswordViewPage() {
             ) : null}
 
             <div className='auth-field'>
-              <p id='reset-code-label' className='auth-label'>
-                {t('resetCode')}
-              </p>
+              <div className='auth-label-row'>
+                <p id='reset-code-label' className='auth-label'>
+                  {t('resetCode')}
+                </p>
+                <span className={cn('auth-label-meta', otp.length === 6 && 'is-complete')}>
+                  {otp.length}/6
+                </span>
+              </div>
               <div className='auth-otp'>
                 <InputOTP
                   maxLength={6}
                   value={otp}
+                  autoFocus
                   aria-label={t('resetCode')}
                   aria-labelledby='reset-code-label'
                   onChange={(value) => {
@@ -277,11 +303,20 @@ export default function ForgotPasswordViewPage() {
                 aria-invalid={!!resetForm.formState.errors.password}
                 className={cn(resetForm.formState.errors.password && 'is-invalid')}
                 {...resetForm.register('password', {
-                  onChange: () => {
+                  onChange: (event) => {
+                    setPasswordValue(event.target.value);
                     if (serverError) setServerError(null);
                   }
                 })}
               />
+              <div className='auth-pw-rules' aria-label={t('newPassword')}>
+                {passwordRules.map((rule) => (
+                  <span key={rule.label} className={cn('auth-pw-rule', rule.met && 'is-met')}>
+                    {rule.met ? <Icons.check className='size-3 shrink-0' /> : null}
+                    {rule.label}
+                  </span>
+                ))}
+              </div>
               {resetForm.formState.errors.password ? (
                 <p className='auth-error-text'>{resetForm.formState.errors.password.message}</p>
               ) : null}
@@ -322,29 +357,19 @@ export default function ForgotPasswordViewPage() {
               )}
             </button>
 
-            <div className='auth-row auth-row-split'>
-              <button
-                type='button'
-                className='auth-btn-ghost'
-                disabled={isResending}
-                onClick={() => void onResend()}
-              >
-                {isResending ? t('sending') : t('resendCode')}
-              </button>
-              <button
-                type='button'
-                className='auth-btn-ghost'
-                onClick={() => {
-                  setStep('email');
-                  setOtp('');
-                  setDevCode(null);
-                  setServerError(null);
-                  resetForm.reset();
-                }}
-              >
-                {t('useDifferentEmail')}
-              </button>
-            </div>
+            <button
+              type='button'
+              className='auth-btn-ghost'
+              disabled={isResending}
+              onClick={() => void onResend()}
+            >
+              {isResending ? (
+                <Icons.spinner className='size-3.5 animate-spin' />
+              ) : (
+                <Icons.send className='size-3.5' />
+              )}
+              {isResending ? t('sending') : t('resendCode')}
+            </button>
           </form>
         ) : null}
 

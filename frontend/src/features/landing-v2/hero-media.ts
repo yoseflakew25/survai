@@ -1,26 +1,11 @@
 export type HeroMediaKind = 'image' | 'video';
 
-function kindFromEnv(value: string | undefined, fallback: HeroMediaKind): HeroMediaKind {
-  return value === 'video' || value === 'image' ? value : fallback;
-}
-
-/** Top-right hero cell — defaults to image until you add clips under `public/landing-v2/`. */
+/** Top-right hero cell — product demo played inside the laptop screen. */
 export const heroMediaTop = {
-  kind: kindFromEnv(process.env.NEXT_PUBLIC_LANDING_HERO_TOP_KIND, 'image'),
-  src:
-    process.env.NEXT_PUBLIC_LANDING_HERO_TOP ??
-    '/landing-v2/media/hero-top.svg',
+  kind: 'image' as HeroMediaKind,
+  srcs: [process.env.NEXT_PUBLIC_LANDING_HERO_TOP ?? '/landing-v2/media/hero-demo.gif'],
   /** Halftone fallback when media fails (top = standard scene). */
   toneBig: false as const
-};
-
-/** Bottom-left hero cell. */
-export const heroMediaBottom = {
-  kind: kindFromEnv(process.env.NEXT_PUBLIC_LANDING_HERO_BOTTOM_KIND, 'image'),
-  src:
-    process.env.NEXT_PUBLIC_LANDING_HERO_BOTTOM ??
-    '/landing-v2/media/hero-bottom.svg',
-  toneBig: true as const
 };
 
 /** @deprecated Use heroMediaTop — kept for env paths that still point at webm. */

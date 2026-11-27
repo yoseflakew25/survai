@@ -7,7 +7,8 @@ import { useState, useTransition, type ComponentProps, type ReactNode } from 're
 import { SurvaiLogo } from '@/components/survai-logo';
 import { LandingV2Footer } from '@/features/landing-v2/landing-v2-footer';
 import { HeroMediaCell } from '@/features/landing-v2/hero-media-cell';
-import { heroMediaBottom, heroMediaTop } from '@/features/landing-v2/hero-media';
+import { HeroPlanPrompt } from '@/features/landing-v2/hero-plan-prompt';
+import { heroMediaTop } from '@/features/landing-v2/hero-media';
 import { LandingCtaSplit } from '@/features/landing-v2/landing-v2-cta-split';
 import {
   LANDING_HEADER_NAV,
@@ -214,26 +215,22 @@ export function LandingV2Content({ menuOpen, onMenuToggle, onMenuClose }: Props)
             <div className='cell hero-media-cell-wrap'>
               <HeroMediaCell
                 kind={heroMediaTop.kind}
-                src={heroMediaTop.src}
+                srcs={heroMediaTop.srcs}
                 toneBig={heroMediaTop.toneBig}
                 label={t('hero.videoTopLabel')}
               />
             </div>
           </div>
           <div className='hero-r2'>
-            <div className='cell hero-media-cell-wrap'>
-              <HeroMediaCell
-                kind={heroMediaBottom.kind}
-                src={heroMediaBottom.src}
-                toneBig={heroMediaBottom.toneBig}
-                label={t('hero.videoBottomLabel')}
-              />
-            </div>
             <div className='hero-pair'>
-              <div className='cell cell-dark hero-box hero-box-copy'>
+              <div className='cell cell-mint hero-box hero-box-copy'>
                 <div className='fade'>
-                  <p className='t-body30'>{t('hero.title')}</p>
-                  <p className='t-body30'>{t('hero.titleLine2')}</p>
+                  <p className='t-body30'>{t('hero.panelTitle1')}</p>
+                  <p className='t-body30'>{t('hero.panelTitle2')}</p>
+                  <p className='hero-box-desc'>{t('hero.panelBody')}</p>
+                </div>
+                <div className='hero-art' aria-hidden='true'>
+                  <WorkflowArt id='build' />
                 </div>
                 <LandingCtaSplit
                   className='hero-cta-split fade'
@@ -257,24 +254,9 @@ export function LandingV2Content({ menuOpen, onMenuToggle, onMenuClose }: Props)
                   }
                 />
               </div>
-              <div className='cell cell-mint hero-box hero-box-mint'>
-                <div className='hero-mint-copy fade'>
-                  <p className='hero-mint-kicker'>{t('hero.badgeTagline')}</p>
-                  <p className='t-body30 hero-mint-lede'>{t('hero.subtitle')}</p>
-                </div>
-                <div className='hero-mint-footer fade'>
-                  <div
-                    className='ticker hero-mint-ticker'
-                    aria-label={STAGE_IDS.map((id) => t(`stages.${id}`)).join(', ')}
-                  >
-                    <div className='ticker-row' aria-hidden='true'>
-                      {[...STAGE_IDS, ...STAGE_IDS].map((id, i) => (
-                        <span key={`${id}-${i}`}>{t(`stages.${id}`)}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            </div>
+            <div className='cell hero-plan-cell'>
+              <HeroPlanPrompt />
             </div>
           </div>
         </section>

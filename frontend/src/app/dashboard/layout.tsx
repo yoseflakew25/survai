@@ -30,7 +30,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <KBar>
         <SidebarProvider
           defaultOpen={defaultOpen}
-          style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
+          style={{ '--sidebar-width': '16rem' } as React.CSSProperties}
         >
           <a
             href='#main-content'
@@ -39,11 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Skip to content
           </a>
           <AppSidebar />
-          <SidebarInset
-            id='main-content'
-            tabIndex={-1}
-            className='scroll-6 bg-background'
-          >
+          <SidebarInset id='main-content' tabIndex={-1} className='scroll-6 bg-background'>
             <ImpersonationBanner />
             <Header />
             <InfobarProvider defaultOpen={false}>

@@ -32,7 +32,7 @@ export const navGroups: NavGroup[] = [
     ]
   },
   {
-    label: '',
+    label: 'settings',
     items: [
       {
         title: 'account',

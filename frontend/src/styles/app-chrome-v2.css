@@ -15,11 +15,11 @@
 }
 
 .app-v2-root [data-slot='sidebar-container'][data-side='left'] {
-  border-right: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
 .app-v2-root [data-slot='sidebar-container'][data-side='right'] {
-  border-left: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
 .app-v2-root [data-slot='sidebar-inset'] {

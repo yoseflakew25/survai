@@ -158,9 +158,7 @@ export default function SignUpViewPage() {
   return (
     <AuthShell>
       <div className='auth-head'>
-        <h1 className='auth-title'>
-          {step === 'otp' ? t('verifyEmailTitle') : t('signUpTitle')}
-        </h1>
+        <h1 className='auth-title'>{step === 'otp' ? t('verifyEmailTitle') : t('signUpTitle')}</h1>
         <p className='auth-subtitle'>
           {step === 'otp' ? t('otpSentTo', { email: pendingEmail }) : t('signUpBody')}
         </p>
@@ -196,13 +194,7 @@ export default function SignUpViewPage() {
               </div>
             ) : null}
             <div className='auth-otp'>
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={setOtp}
-                containerClassName='gap-2'
-                autoFocus
-              >
+              <InputOTP maxLength={6} value={otp} onChange={setOtp} autoFocus>
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />
                   <InputOTPSlot index={1} />
